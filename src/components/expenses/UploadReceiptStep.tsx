@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Upload, X, CheckCircle, FileText, Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Upload, X, CheckCircle, FileText, Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { fileParseService, ParsedInvoiceData } from '@/services/fileParseService';
 
@@ -15,15 +14,17 @@ interface UploadReceiptStepProps {
     previewUrl: string;
   }) => void;
   onBack: () => void;
+  onDuplicateDetected?: (data: { parsedData: ParsedInvoiceData; uploadedFile: File; previewUrl: string }) => void;
 }
 
-export function UploadReceiptStep({ onNext, onBack }: UploadReceiptStepProps) {
+export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected }: UploadReceiptStepProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showPotentialDuplicateAlert, setShowPotentialDuplicateAlert] = useState(false);
   const [duplicateIds, setDuplicateIds] = useState<number[]>([]);
+
 
   const handleFileUpload = async (file: File) => {
     try {
@@ -34,19 +35,24 @@ export function UploadReceiptStep({ onNext, onBack }: UploadReceiptStepProps) {
       const parsedData = await fileParseService.parseInvoiceFile(file);
       setParsedData(parsedData);
 
-      // Show alerts for duplicates
-      if (parsedData?.matched_expense_id && !parsedData.is_invoice_flagged) {
-        setDuplicateIds([parseInt(parsedData.matched_expense_id)]);
+      if (parsedData?.is_duplicate_receipt === true) {
+        if (onDuplicateDetected) {
+          onDuplicateDetected({
+            parsedData,
+            uploadedFile: file,
+            previewUrl: URL.createObjectURL(file)
+          });
+        }
+        return;
+      }
+
+      if (parsedData?.original_expense_id && !parsedData?.is_duplicate_receipt) {
+        setDuplicateIds([parseInt(parsedData.original_expense_id)]);
         setShowPotentialDuplicateAlert(true);
-      } else if (parsedData?.is_invoice_flagged) {
-        setDuplicateIds(parsedData.matched_expense_id ? [parseInt(parsedData.matched_expense_id)] : []);
-        setShowPotentialDuplicateAlert(false);
       } else {
         setShowPotentialDuplicateAlert(false);
         setDuplicateIds([]);
       }
-
-      // Automatically proceed to step 2 after successful processing
       onNext({
         uploadedFile: file,
         parsedData,
@@ -90,9 +96,8 @@ export function UploadReceiptStep({ onNext, onBack }: UploadReceiptStepProps) {
   };
 
   const handleAddManually = () => {
-    // Skip file upload and go directly to step 2 with empty data
     onNext({
-      uploadedFile: null as any, // We'll handle this in the parent
+      uploadedFile: null as any,
       parsedData: null,
       previewUrl: '',
     });
@@ -213,37 +218,6 @@ export function UploadReceiptStep({ onNext, onBack }: UploadReceiptStepProps) {
                             />
                           )}
 
-                          {parsedData && (
-                            <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                              <h4 className="font-medium text-green-900 mb-3">Extracted Data:</h4>
-                              <div className="grid grid-cols-2 gap-3 text-sm">
-                                {parsedData.extracted_vendor && (
-                                  <div className="bg-white border border-green-200 rounded-md p-3">
-                                    <span className="font-semibold text-green-900">Merchant:</span>
-                                    <span className="ml-2 text-gray-900">{parsedData.extracted_vendor}</span>
-                                  </div>
-                                )}
-                                {parsedData.extracted_amount && (
-                                  <div className="bg-white border border-green-200 rounded-md p-3">
-                                    <span className="font-semibold text-green-900">Amount:</span>
-                                    <span className="ml-2 text-gray-900">₹ {parsedData.extracted_amount}</span>
-                                  </div>
-                                )}
-                                {parsedData.id && (
-                                  <div className="bg-white border border-green-200 rounded-md p-3">
-                                    <span className="font-semibold text-green-900">Receipt:</span>
-                                    <span className="ml-2 text-gray-900">{parsedData.id}</span>
-                                  </div>
-                                )}
-                                {parsedData.extracted_date && (
-                                  <div className="bg-white border border-green-200 rounded-md p-3">
-                                    <span className="font-semibold text-green-900">Date:</span>
-                                    <span className="ml-2 text-gray-900">{parsedData.extracted_date}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </CardContent>
                     </Card>

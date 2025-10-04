@@ -15,7 +15,8 @@ export interface ParsedInvoiceData {
     invoice_number: string;
   };
   is_invoice_flagged: boolean;
-  matched_expense_id: string | null;
+  is_duplicate_receipt: boolean;
+  original_expense_id: string | null;
 }
 
 export const fileParseService = {

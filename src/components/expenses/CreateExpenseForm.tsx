@@ -1,12 +1,11 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { expenseService, CreateExpenseData } from '@/services/expenseService';
 import { ParsedInvoiceData } from '@/services/fileParseService';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription } from '@/components/ui/alert-dialog';
 import { UploadReceiptStep } from './UploadReceiptStep';
 import { ExpenseDetailsStep } from './ExpenseDetailsStep';
 import { StepNavigation } from './StepNavigation';
@@ -27,19 +26,40 @@ type ExpenseFormValues = {
 
 export function CreateExpenseForm() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  // Step 1 data
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
-
-  // Dialog for duplicate expenses
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  const [pendingSubmitData, setPendingSubmitData] = useState<ExpenseFormValues | null>(null);
+  const [uploadStepKey, setUploadStepKey] = useState(0);
 
   const stepTitles = ['Upload Receipt', 'Expense Details'];
+
+  useEffect(() => {
+    const shouldShowDialog = localStorage.getItem('showDuplicateDialog');
+    const savedParsedData = localStorage.getItem('duplicateParsedData');
+    const savedPreviewUrl = localStorage.getItem('duplicatePreviewUrl');
+    
+    if (shouldShowDialog === 'true' && savedParsedData && savedPreviewUrl) {
+      try {
+        const parsedDataFromStorage = JSON.parse(savedParsedData);
+        const previewUrlFromStorage = savedPreviewUrl;
+        
+        setParsedData(parsedDataFromStorage);
+        setPreviewUrl(previewUrlFromStorage);
+        setShowDuplicateDialog(true);
+        
+        localStorage.removeItem('showDuplicateDialog');
+        localStorage.removeItem('duplicateParsedData');
+        localStorage.removeItem('duplicatePreviewUrl');
+      } catch (error) {
+        console.error('Error parsing saved data:', error);
+      }
+    }
+  }, [location]);
 
   const handleStep1Next = (data: {
     uploadedFile: File | null;
@@ -49,9 +69,32 @@ export function CreateExpenseForm() {
     setUploadedFile(data.uploadedFile);
     setPreviewUrl(data.previewUrl);
     setParsedData(data.parsedData);
-    
-    
     setCurrentStep(2);
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const handleDuplicateDetected = async (data: { parsedData: ParsedInvoiceData; uploadedFile: File; previewUrl: string }) => {
+    try {
+      const base64Url = await fileToBase64(data.uploadedFile);
+      setParsedData(data.parsedData);
+      setUploadedFile(data.uploadedFile);
+      setPreviewUrl(base64Url);
+      setShowDuplicateDialog(true);
+    } catch (error) {
+      console.error('Error converting file to base64:', error);
+      setParsedData(data.parsedData);
+      setUploadedFile(data.uploadedFile);
+      setPreviewUrl(data.previewUrl);
+      setShowDuplicateDialog(true);
+    }
   };
 
   const handleStep2Back = () => {
@@ -61,16 +104,14 @@ export function CreateExpenseForm() {
   const actuallySubmit = async (data: ExpenseFormValues) => {
     setLoading(true);
     try {
-      // Convert date format from Date to YYYY-MM-DD
       const formattedDate = format(data.dateOfExpense, 'yyyy-MM-dd');
-
 
       const expenseData: CreateExpenseData = {
         amount: parseFloat(data.amount),
-        category_id: data.categoryId, // Use category ID from form
+        category_id: data.categoryId,
         description: data.comments || data.merchant || 'Expense description',
         expense_date: formattedDate,
-        expense_policy_id: data.policyId, // Use policy ID from form
+        expense_policy_id: data.policyId,
         vendor: data.merchant,
         receipt_id: parsedData?.id || undefined,
         invoice_number: data.invoiceNumber || parsedData?.ocr_result?.invoice_number || null
@@ -80,7 +121,6 @@ export function CreateExpenseForm() {
         toast.success(result.message);
         navigate('/expenses');
       } else {
-        // Show detailed validation error if available, otherwise show general error
         if (result.validation_details) {
           toast.error(`Daily limit exceeded. Current: ${result.validation_details.current_daily_total}, New: ${result.validation_details.new_amount}, Limit: ${result.validation_details.daily_limit}`);
         } else {
@@ -91,25 +131,16 @@ export function CreateExpenseForm() {
       toast.error('Failed to create expense');
     } finally {
       setLoading(false);
-      setPendingSubmitData(null);
       setShowDuplicateDialog(false);
     }
   };
 
   const handleStep2Submit = async (data: ExpenseFormValues) => {
-    if (parsedData?.is_invoice_flagged) {
-      setPendingSubmitData(data);
-      setShowDuplicateDialog(true);
-      return;
-    }
     await actuallySubmit(data);
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-     
-
       {/* Step Navigation */}
       <div className="w-full">
         <StepNavigation 
@@ -123,8 +154,10 @@ export function CreateExpenseForm() {
       {/* Step Content */}
       {currentStep === 1 ? (
         <UploadReceiptStep 
+          key={uploadStepKey}
           onNext={handleStep1Next}
           onBack={() => navigate(-1)}
+          onDuplicateDetected={handleDuplicateDetected}
         />
       ) : (
         <ExpenseDetailsStep
@@ -137,47 +170,108 @@ export function CreateExpenseForm() {
         />
       )}
 
-      {/* Duplicate Dialog */}
       <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
-        <AlertDialogContent className="max-w-lg">
-          <AlertDialogHeader className="text-center pb-2">
-            <AlertDialogTitle className="text-xl font-semibold text-gray-900 text-center">
-              Duplicate Expense Detected
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader className="text-center pb-4">
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg font-bold">!</span>
+                </div>
+              </div>
+            </div>
+            <AlertDialogTitle className="text-xl font-bold text-gray-900">
+              Duplicate Receipt Detected!
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600 mt-3 leading-relaxed text-center">
-              This expense appears to match existing records in your system
+            <AlertDialogDescription className="text-gray-600 mt-3 leading-relaxed">
+              This receipt appears to be a duplicate of an existing expense:
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {parsedData?.ocr_result && (
+            <div className="space-y-4 mb-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <div className="font-bold text-gray-900">
+                      {parsedData?.ocr_result?.vendor || 'Unknown Merchant'}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Expense #{parsedData?.original_expense_id || 'Unknown'}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-gray-900">
+                      ₹{parsedData?.extracted_amount || parsedData?.ocr_result?.amount}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {parsedData?.extracted_date ? new Date(parsedData.extracted_date).toLocaleDateString('en-GB', { 
+                        weekday: 'short', 
+                        day: '2-digit', 
+                        month: 'short', 
+                        year: 'numeric' 
+                      }) : parsedData?.ocr_result?.date}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              
+              {parsedData?.original_expense_id && (
+                <div 
+                  className="flex items-center text-blue-600 text-sm cursor-pointer hover:text-blue-700"
+                  onClick={async () => {
+                    try {
+                      const base64Url = uploadedFile ? await fileToBase64(uploadedFile) : previewUrl;
+                      localStorage.setItem('showDuplicateDialog', 'true');
+                      localStorage.setItem('duplicateParsedData', JSON.stringify(parsedData));
+                      localStorage.setItem('duplicatePreviewUrl', base64Url || '');
+                      navigate(`/expenses/${parsedData.original_expense_id}?returnTo=create`);
+                    } catch (error) {
+                      console.error('Error converting file to base64:', error);
+                      localStorage.setItem('showDuplicateDialog', 'true');
+                      localStorage.setItem('duplicateParsedData', JSON.stringify(parsedData));
+                      localStorage.setItem('duplicatePreviewUrl', previewUrl || '');
+                      navigate(`/expenses/${parsedData.original_expense_id}?returnTo=create`);
+                    }
+                  }}
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  Tap to view expense
+                </div>
+              )}
+            </div>
+          )}
 
-          <AlertDialogFooter className="flex gap-3 pt-1">
-            <AlertDialogCancel
-                onClick={() => {
-                  setShowDuplicateDialog(false);
-                  setPendingSubmitData(null);
-                }}
-                className="flex-1 h-11 bg-gray-100 hover:bg-gray-200 text-gray-900 border-gray-200"
-            >
-              Cancel
-            </AlertDialogCancel>
+          <div className="space-y-3 pt-2">
             <Button
                 onClick={() => {
-                  if (pendingSubmitData) {
-                    actuallySubmit(pendingSubmitData);
-                  }
+                  setShowDuplicateDialog(false);
+                  setUploadedFile(null);
+                  setPreviewUrl(null);
+                  setParsedData(null);
+                  localStorage.removeItem('showDuplicateDialog');
+                  localStorage.removeItem('duplicateParsedData');
+                  localStorage.removeItem('duplicatePreviewUrl');
+                  setUploadStepKey(prev => prev + 1);
+                  setCurrentStep(1);
                 }}
-                disabled={loading}
-                className="flex-1 h-11 bg-amber-300 hover:bg-amber-400 text-black"
+                className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium"
             >
-              {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting
-                  </>
-              ) : (
-                  'Continue Anyway'
-              )}
+              Upload New Receipt
             </Button>
-          </AlertDialogFooter>
+            <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDuplicateDialog(false);
+                  setCurrentStep(2);
+                }}
+                className="w-full h-12 bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 font-medium"
+            >
+              Create as Duplicate
+            </Button>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>

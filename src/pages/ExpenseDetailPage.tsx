@@ -87,12 +87,13 @@ export function ExpenseDetailPage() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string | null>(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Check where we came from
   const searchParams = new URLSearchParams(location.search);
   const isFromReport = searchParams.get('from') === 'report';
   const isFromApprovals = searchParams.get('from') === 'approvals';
   const reportId = searchParams.get('reportId');
+  const returnTo = searchParams.get('returnTo');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -123,7 +124,7 @@ export function ExpenseDetailPage() {
     setReceiptLoading(true);
     try {
       const response = await fetch(
-        `https://staging-api.chronon.com.chronon.co.in/receipts/${receiptId}/signed-url?org_id=${orgId}`,
+        `https://in.pulse.chronon.co.in/receipts/${receiptId}/signed-url?org_id=${orgId}`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth-storage') ? JSON.parse(localStorage.getItem('auth-storage')!).state.token : ''}`
@@ -144,6 +145,13 @@ export function ExpenseDetailPage() {
     }
   };
 
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
 
   if (loading) {
     return (
@@ -174,7 +182,6 @@ export function ExpenseDetailPage() {
     );
   }
 
-  // Determine breadcrumb items based on navigation source
   let breadcrumbItems;
 
   if (isFromApprovals) {
@@ -193,6 +200,11 @@ export function ExpenseDetailPage() {
         label: `Report #${reportId}`,
         href: `/reports/${reportId}`
       },
+      { label: `Expense #${expense.receipt_id || expense.description}` },
+    ];
+  } else if (returnTo === 'create') {
+    breadcrumbItems = [
+      { label: 'Create Expense', href: '/expenses/create' },
       { label: `Expense #${expense.receipt_id || expense.description}` },
     ];
   } else {
@@ -274,14 +286,19 @@ export function ExpenseDetailPage() {
           </div>
         </div>
 
-        {/* Expense Form - Show appropriate component based on expense type */}
         {isMileageExpense(expense) ? (
           <MileagePage mode="view" expenseData={expense} />
         ) : isPerDiemExpense(expense) ? (
           <PerdiemPage mode="view" expenseData={expense} />
         ) : (
           <ExpenseDetailsStep
-            onBack={() => window.history.back()}
+            onBack={() => {
+              if (returnTo === 'create') {
+                window.location.href = '/expenses/create';
+              } else {
+                window.history.back();
+              }
+            }}
             onSubmit={() => {}}
             loading={false}
             parsedData={null}
