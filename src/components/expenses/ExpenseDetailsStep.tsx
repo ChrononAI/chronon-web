@@ -627,7 +627,7 @@ export function ExpenseDetailsStep({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900">Receipt</h3>
-                  {(uploadedFile || (readOnly && receiptUrls.length > 0)) && (
+                  {(uploadedFile || previewUrl || (readOnly && receiptUrls.length > 0)) && (
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-500">
                         {readOnly && receiptUrls.length > 0 
@@ -645,7 +645,7 @@ export function ExpenseDetailsStep({
                   )}
                 </div>
                 
-                {(uploadedFile && previewUrl) || (readOnly && receiptUrls.length > 0) ? (
+                {(uploadedFile || previewUrl) || (readOnly && receiptUrls.length > 0) ? (
                   <div className="space-y-4">
                     {/* Interactive Receipt Viewer */}
                     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
@@ -723,6 +723,7 @@ export function ExpenseDetailsStep({
                               ? receiptUrls[0].toLowerCase().includes('.pdf')
                               : uploadedFile?.type.includes('pdf');
                             
+                            
                             if (isPdf) {
                               return (
                                 <div className="w-full h-80 border border-gray-200 rounded bg-white">
@@ -756,38 +757,6 @@ export function ExpenseDetailsStep({
                       </div>
                     </div>
 
-                    {/* Extracted Data Summary */}
-                    {parsedData && parsedData.ocr_result && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <h4 className="font-medium text-green-900 mb-3">Extracted Information:</h4>
-                        <div className="space-y-2 text-sm">
-                          {parsedData.ocr_result.vendor && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Vendor:</span>
-                              <span className="font-medium">{parsedData.ocr_result.vendor}</span>
-                            </div>
-                          )}
-                          {parsedData.ocr_result.amount && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Amount:</span>
-                              <span className="font-medium">{parsedData.ocr_result.amount}</span>
-                            </div>
-                          )}
-                          {parsedData.ocr_result.invoice_number && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Invoice #:</span>
-                              <span className="font-medium">{parsedData.ocr_result.invoice_number}</span>
-                            </div>
-                          )}
-                          {parsedData.ocr_result.date && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Date:</span>
-                              <span className="font-medium">{parsedData.ocr_result.date}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ) : receiptLoading ? (
                   <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
@@ -813,14 +782,14 @@ export function ExpenseDetailsStep({
       </div>
 
       {/* Fullscreen Receipt Modal */}
-      {isReceiptFullscreen && uploadedFile && previewUrl && (
+      {isReceiptFullscreen && (uploadedFile || previewUrl) && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
           <div className="relative w-full h-full flex flex-col">
             {/* Fullscreen Header */}
             <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
               <div className="flex items-center gap-4">
                 <h3 className="text-lg font-semibold text-gray-900">Receipt Viewer</h3>
-                <span className="text-sm text-gray-500">{uploadedFile.name}</span>
+                <span className="text-sm text-gray-500">{uploadedFile?.name || 'Receipt'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -884,7 +853,7 @@ export function ExpenseDetailsStep({
 
             {/* Fullscreen Content */}
             <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
-              {uploadedFile.type.includes('pdf') ? (
+              {uploadedFile?.type.includes('pdf') ? (
                 <div className="w-full h-full bg-white rounded">
                   <iframe
                     src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0`}
@@ -898,7 +867,7 @@ export function ExpenseDetailsStep({
                 </div>
               ) : (
                 <img
-                  src={previewUrl}
+                  src={previewUrl || ''}
                   alt="Receipt fullscreen"
                   className="max-w-full max-h-full object-contain"
                   style={{
