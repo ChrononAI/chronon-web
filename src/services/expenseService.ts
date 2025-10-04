@@ -1,0 +1,253 @@
+import api from '@/lib/api';
+import { Expense, Report, Advance, ExpensesResponse, ReportsResponse, Policy } from '@/types/expense';
+import { getOrgIdFromToken } from '@/lib/jwtUtils';
+
+export interface CreateExpenseData {
+  amount: number;
+  category_id: string;
+  description: string;
+  expense_date: string;
+  expense_policy_id: string;
+  vendor: string;
+  receipt_id?: string;
+  invoice_number?: string | null;
+}
+
+export interface CreateExpenseResponse {
+  success: boolean;
+  message: string;
+  data?: any;
+  policy_validation?: {
+    amount: number;
+    category_name: string;
+    policy_details: {
+      annual_limit: number | null;
+      daily_limit: number;
+      monthly_limit: number;
+    };
+    policy_name: string;
+    requires_receipt: boolean;
+  };
+  validation_details?: {
+    current_daily_total: number;
+    daily_limit: number;
+    date: string;
+    limit_type: string;
+    new_amount: number;
+  };
+}
+
+export interface CreateAdvanceData {
+  description: string;
+  amount: number;
+  currency: string;
+}
+
+export const expenseService = {
+  async getMyExpenses(page:number = 4, perPage:number = 1): Promise<ExpensesResponse> {
+    const orgId = getOrgIdFromToken();
+    if (!orgId) {
+      throw new Error('Organization ID not found in token');
+    }
+    const response = await api.get(`/expenses/expenses?org_id=${orgId}&page=${page}&per_page=${perPage}`);
+    return response.data;
+  },
+
+  async getExpensesByStatus(status: string, page: number = 1, perPage: number = 10): Promise<ExpensesResponse> {
+    const orgId = getOrgIdFromToken();
+    if (!orgId) {
+      throw new Error('Organization ID not found in token');
+    }
+    const response = await api.get(`/expenses/expenses?org_id=${orgId}&status=${status}&page=${page}&per_page=${perPage}`);
+    return response.data;
+  },
+
+  async getExpenseById(id: string | number): Promise<Expense> {
+    const response = await api.get(`/expenses/${id}`);
+    return response.data.data;
+  },
+
+  async getMyReports(page: number = 1, perPage: number = 20): Promise<ReportsResponse> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        throw new Error('Organization ID not found in token');
+      }
+      const response = await api.get(`/reports/reports?org_id=${orgId}&page=${page}&per_page=${perPage}`);
+      
+      const reports = response.data.data.data || [];
+      const pagination = response.data.data.pagination || {
+        has_next: false,
+        has_prev: false,
+        page: 1,
+        pages: 0,
+        per_page: 20,
+        total: 0
+      };
+      
+      return {
+        reports,
+        pagination
+      };
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      return {
+        reports: [],
+        pagination: {
+          has_next: false,
+          has_prev: false,
+          page: 1,
+          pages: 0,
+          per_page: 20,
+          total: 0
+        }
+      };
+    }
+  },
+
+  async getReportsByStatus(status: string, page: number = 1, perPage: number = 20): Promise<ReportsResponse> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        throw new Error('Organization ID not found in token');
+      }
+      const response = await api.get(`/reports/reports?org_id=${orgId}&status=${status}&page=${page}&per_page=${perPage}`);
+      
+      const reports = response.data.data.data || [];
+      const pagination = response.data.data.pagination || {
+        has_next: false,
+        has_prev: false,
+        page: 1,
+        pages: 0,
+        per_page: 20,
+        total: 0
+      };
+      
+      return {
+        reports,
+        pagination
+      };
+    } catch (error) {
+      console.error('Error fetching reports by status:', error);
+      return {
+        reports: [],
+        pagination: {
+          has_next: false,
+          has_prev: false,
+          page: 1,
+          pages: 0,
+          per_page: 20,
+          total: 0
+        }
+      };
+    }
+  },
+
+  async getReportById(id: number): Promise<Report> {
+    const response = await api.get(`/reports/reports/${id}`);
+    return response.data.data;
+  },
+
+  async getMyAdvances(): Promise<Advance[]> {
+    try {
+      // Fetch advances with different statuses
+      const [pendingResponse, approvedResponse] = await Promise.all([
+        api.get('/advance/status/PENDING_APPROVAL'),
+        api.get('/advance/status/APPROVED')
+      ]);
+      
+      const pendingAdvances = pendingResponse.data.success ? pendingResponse.data.data : [];
+      const approvedAdvances = approvedResponse.data.success ? approvedResponse.data.data : [];
+      
+      // Combine all advances
+      return [...pendingAdvances, ...approvedAdvances];
+    } catch (error) {
+      console.error('Error fetching advances:', error);
+      return [];
+    }
+  },
+
+  async getPoliciesWithCategories(): Promise<Policy[]> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        console.warn('No org_id found, returning empty policies');
+        return [];
+      }
+      
+      const response = await api.get(`/api/v1/expense-policies?org_id=${orgId}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching policies:', error);
+      return [];
+    }
+  },
+
+  async createExpense(expense: CreateExpenseData): Promise<CreateExpenseResponse> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        throw new Error('Organization ID not found in token');
+      }
+      const response = await api.post(`/em/expenses/create?org_id=${orgId}`, expense);
+      
+      return {
+        success: response.data.status === 'success',
+        message: response.data.message,
+        data: response.data.data,
+        policy_validation: response.data.policy_validation
+      };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error('Error creating expense:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Failed to create expense',
+        validation_details: error.response?.data?.validation_details
+      };
+    }
+  },
+
+  async createAdvance(advance: CreateAdvanceData): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await api.post('/advance', advance);
+      
+      return {
+        success: response.data.success,
+        message: response.data.message || (response.data.success ? 'Advance request created successfully' : 'Failed to create advance request')
+      };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error('Error creating advance:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Failed to create advance request'
+      };
+    }
+  },
+
+  async updateExpense(id: string, expense: CreateExpenseData): Promise<CreateExpenseResponse> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        throw new Error('Organization ID not found in token');
+      }
+      const response = await api.put(`/em/expenses/${id}?org_id=${orgId}`, expense);
+      
+      return {
+        success: response.data.status === 'success',
+        message: response.data.message,
+        data: response.data.data,
+        policy_validation: response.data.policy_validation
+      };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error('Error updating expense:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Failed to update expense',
+        validation_details: error.response?.data?.validation_details
+      };
+    }
+  },
+};
