@@ -13,6 +13,24 @@ export interface CreateExpenseData {
   invoice_number?: string | null;
 }
 
+export interface UpdateExpenseData {
+  amount: string;
+  category_id: string;
+  description: string;
+  expense_date: string;
+  expense_policy_id: string;
+  vendor: string;
+  receipt_id?: string | null;
+  invoice_number?: string | null;
+  distance?: number | string | null;
+  distance_unit?: string | null;
+  end_location?: string | null;
+  start_location?: string | null;
+  vehicle_type?: string | null;
+  mileage_meta?: any;
+  custom_attributes?: any;
+}
+
 export interface CreateExpenseResponse {
   success: boolean;
   message: string;
@@ -226,13 +244,13 @@ export const expenseService = {
     }
   },
 
-  async updateExpense(id: string, expense: CreateExpenseData): Promise<CreateExpenseResponse> {
+  async updateExpense(id: string, expense: UpdateExpenseData): Promise<CreateExpenseResponse> {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
         throw new Error('Organization ID not found in token');
       }
-      const response = await api.put(`/em/expenses/${id}?org_id=${orgId}`, expense);
+      const response = await api.put(`/em/expenses/update/${id}?org_id=${orgId}`, expense);
       
       return {
         success: response.data.status === 'success',

@@ -14,7 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { 
+import {
   Eye, 
   FileText, 
   Calendar, 
@@ -116,6 +116,25 @@ export function ReportDetailPage() {
   useEffect(() => {
     fetchReport();
   }, [id]);
+
+  // Redirect to edit mode if report is DRAFT
+  useEffect(() => {
+    if (report && report.status === 'DRAFT' && !isFromApprovals) {
+      navigate('/reports/create', {
+        state: {
+          editMode: true,
+          reportData: {
+            id: report.id,
+            title: report.title,
+            description: report.description,
+            custom_attributes: report.custom_attributes,
+            expenses: report.expenses
+          }
+        },
+        replace: true
+      });
+    }
+  }, [report, isFromApprovals, navigate]);
 
   const handleAction = (type: 'approve' | 'reject' | 'draft_back') => {
     setActionType(type);

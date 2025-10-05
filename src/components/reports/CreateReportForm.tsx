@@ -9,6 +9,7 @@ import {
   FileText,
   Calendar,
   Building,
+  X,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 import { reportService } from '@/services/reportService';
@@ -69,7 +77,18 @@ type ReportFormValues = {
   [key: string]: string | undefined;
 };
 
-export function CreateReportForm() {
+interface CreateReportFormProps {
+  editMode?: boolean;
+  reportData?: {
+    id: string;
+    title: string;
+    description: string;
+    custom_attributes?: Record<string, string>;
+    expenses?: Expense[];
+  };
+}
+
+export function CreateReportForm({ editMode = false, reportData }: CreateReportFormProps) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   
@@ -78,10 +97,14 @@ export function CreateReportForm() {
   const [loadingExpenses, setLoadingExpenses] = useState(true);
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [selectedExpenses, setSelectedExpenses] = useState<Set<string>>(new Set());
+  const [availableExpenses, setAvailableExpenses] = useState<Expense[]>([]);
+  const [selectedAvailableExpenses, setSelectedAvailableExpenses] = useState<Set<string>>(new Set());
   const [additionalFields, setAdditionalFields] = useState<AdditionalFieldMeta[]>([]);
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>([]);
   const [formSchema, setFormSchema] = useState(createReportSchema([]));
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  const [apiLoading, setApiLoading] = useState(false);
 
   // Determine if Hospital Name and Campaign Code should be shown
   const userDept = user?.department?.toLowerCase() || '';
@@ -90,12 +113,24 @@ export function CreateReportForm() {
   // Create default values for dynamic form
   const createDefaultValues = (attributes: CustomAttribute[]) => {
     const defaults: ReportFormValues = {
-      reportName: '',
-      description: '',
+      reportName: editMode && reportData ? reportData.title : '',
+      description: editMode && reportData ? reportData.description : '',
     };
+    
+    // Set custom attribute values if in edit mode
+    if (editMode && reportData?.custom_attributes) {
+      Object.entries(reportData.custom_attributes).forEach(([key, value]) => {
+        defaults[key] = value;
+      });
+    }
+    
+    // Set default empty values for other attributes
     attributes.forEach(attr => {
+      if (defaults[attr.name] === undefined) {
       defaults[attr.name] = '';
+      }
     });
+    
     return defaults;
   };
 
@@ -125,14 +160,28 @@ export function CreateReportForm() {
       setLoadingExpenses(true);
       setLoadingMeta(true);
 
-      // Fetch expenses, metadata, and custom attributes in parallel
-      const [unassignedExpenses, orgMeta, customAttrs] = await Promise.all([
-        reportService.getUnassignedExpenses(),
+      if (editMode && reportData) {
+        // In edit mode, fetch the full report with expenses
+        const fullReportResponse = await reportService.getReportWithExpenses(reportData.id);
+        const reportExpenses = fullReportResponse.success ? (fullReportResponse.data?.expenses || []) : (reportData.expenses || []);
+        setExpenses(reportExpenses);
+        
+        // Fetch all available expenses (unassigned)
+        const unassignedExpenses = await reportService.getUnassignedExpenses();
+        setAvailableExpenses(unassignedExpenses);
+      } else {
+        // In create mode, fetch unassigned expenses
+        const unassignedExpenses = await reportService.getUnassignedExpenses();
+        setAvailableExpenses(unassignedExpenses);
+        setExpenses([]);
+      }
+
+      // Fetch metadata and custom attributes
+      const [orgMeta, customAttrs] = await Promise.all([
         reportService.getOrganizationMeta(user?.organization?.id || 0),
         reportService.getCustomAttributes(user?.organization?.id?.toString() || '5')
       ]);
 
-      setExpenses(unassignedExpenses);
       setCustomAttributes(customAttrs);
 
       // Update form schema with custom attributes
@@ -143,6 +192,12 @@ export function CreateReportForm() {
       if (orgMeta && orgMeta.additionalFieldsMeta?.expense_reports_fields) {
         setAdditionalFields(orgMeta.additionalFieldsMeta.expense_reports_fields);
       }
+
+      // Reset form with new default values if in edit mode
+      if (editMode && reportData) {
+        const newDefaultValues = createDefaultValues(customAttrs);
+        form.reset(newDefaultValues);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to fetch data');
@@ -152,23 +207,99 @@ export function CreateReportForm() {
     }
   };
 
-  const toggleExpenseSelection = (expenseId: string) => {
-    const newSelected = new Set(selectedExpenses);
+
+  const toggleAvailableExpenseSelection = (expenseId: string) => {
+    const newSelected = new Set(selectedAvailableExpenses);
     if (newSelected.has(expenseId)) {
       newSelected.delete(expenseId);
     } else {
       newSelected.add(expenseId);
     }
-    setSelectedExpenses(newSelected);
+    setSelectedAvailableExpenses(newSelected);
   };
 
-  const selectAllExpenses = () => {
-    const allExpenseIds = new Set(expenses.map(expense => expense.id));
-    setSelectedExpenses(allExpenseIds);
+  const selectAllAvailableExpenses = () => {
+    const allExpenseIds = new Set(availableExpenses.map(expense => expense.id));
+    setSelectedAvailableExpenses(allExpenseIds);
   };
 
-  const deselectAllExpenses = () => {
-    setSelectedExpenses(new Set());
+  const deselectAllAvailableExpenses = () => {
+    setSelectedAvailableExpenses(new Set());
+  };
+
+  const removeExpenseFromReport = (expenseId: string) => {
+    const expenseToRemove = expenses.find(expense => expense.id === expenseId);
+    if (expenseToRemove) {
+      setExpenseToDelete(expenseToRemove);
+      setShowDeleteDialog(true);
+    }
+  };
+
+  const confirmDeleteExpense = async () => {
+    if (!expenseToDelete || !editMode || !reportData) return;
+
+    setApiLoading(true);
+    try {
+      const response = await reportService.removeExpensesFromReport(reportData.id, [expenseToDelete.id]);
+      
+      if (response.success) {
+        // Remove from current expenses
+        const newExpenses = expenses.filter(expense => expense.id !== expenseToDelete.id);
+        setExpenses(newExpenses);
+        
+        
+        // Add to available expenses
+        setAvailableExpenses(prev => [...prev, expenseToDelete]);
+        
+        toast.success(response.message || 'Expense removed from report');
+      } else {
+        toast.error(response.message || 'Failed to remove expense from report');
+      }
+    } catch (error) {
+      console.error('Error removing expense from report:', error);
+      toast.error('Failed to remove expense from report');
+    } finally {
+      setApiLoading(false);
+      setShowDeleteDialog(false);
+      setExpenseToDelete(null);
+    }
+  };
+
+  const addExpensesToReport = async () => {
+    if (selectedAvailableExpenses.size === 0 || !editMode || !reportData) return;
+    
+    const expensesToAdd = availableExpenses.filter(expense => 
+      selectedAvailableExpenses.has(expense.id)
+    );
+    
+    setApiLoading(true);
+    try {
+      const expenseIds = Array.from(selectedAvailableExpenses);
+      const response = await reportService.addExpensesToReport(reportData.id, expenseIds);
+      
+      if (response.success) {
+        // Add to current expenses
+        setExpenses(prev => [...prev, ...expensesToAdd]);
+        
+        // Remove from available expenses
+        setAvailableExpenses(prev => 
+          prev.filter(expense => !selectedAvailableExpenses.has(expense.id))
+        );
+        
+        
+        // Clear available selection
+        setSelectedAvailableExpenses(new Set());
+        
+        toast.success(response.message || 'Expenses added to report');
+      } else {
+        toast.error(response.message || 'Failed to add expenses to report');
+      }
+    } catch (error) {
+      console.error('Error adding expenses to report:', error);
+      toast.error('Failed to add expenses to report');
+    } finally {
+      setApiLoading(false);
+    }
   };
 
   const getFieldMeta = (fieldName: string) => {
@@ -176,8 +307,8 @@ export function CreateReportForm() {
   };
 
   const onSave = async () => {
-    if (selectedExpenses.size === 0) {
-      toast.error('Please select at least one expense');
+    if (expenses.length === 0) {
+      toast.error('Please add at least one expense to the report');
       return;
     }
 
@@ -231,22 +362,40 @@ export function CreateReportForm() {
         }
       });
 
-      const reportData = {
+      if (editMode && reportData) {
+        // Update existing report
+        const updateData = {
+          title: formData.reportName,
+          description: formData.description,
+          custom_attributes: customAttributesData,
+        };
+        
+        const updateResponse = await reportService.updateReport(reportData.id, updateData);
+        
+        if (updateResponse.success) {
+          toast.success('Report updated successfully');
+          navigate('/reports');
+        } else {
+          toast.error(updateResponse.message);
+        }
+      } else {
+        // Create new report
+        const newReportData = {
         reportName: formData.reportName,
         description: formData.description,
-        expenseIds: Array.from(selectedExpenses),
+          expenseIds: expenses.map(expense => expense.id),
         additionalFields: additionalFieldsData,
         customAttributes: customAttributesData,
       };
 
-      // Only create report (DRAFT status) - no submit
-      const createResponse = await reportService.createReport(reportData);
+        const createResponse = await reportService.createReport(newReportData);
       
       if (createResponse.success) {
         toast.success('Report saved as draft');
         navigate('/reports');
       } else {
         toast.error(createResponse.message);
+        }
       }
     } catch (error) {
       console.error('Failed to save report', error);
@@ -257,8 +406,8 @@ export function CreateReportForm() {
   };
 
   const onSubmit = async (data: ReportFormValues) => {
-    if (selectedExpenses.size === 0) {
-      toast.error('Please select at least one expense');
+    if (expenses.length === 0) {
+      toast.error('Please add at least one expense to the report');
       return;
     }
 
@@ -313,7 +462,7 @@ export function CreateReportForm() {
       const reportData = {
         reportName: data.reportName,
         description: data.description,
-        expenseIds: Array.from(selectedExpenses),
+        expenseIds: expenses.map(expense => expense.id),
         additionalFields: additionalFieldsData,
         customAttributes: customAttributesData,
       };
@@ -322,11 +471,8 @@ export function CreateReportForm() {
       const createResponse = await reportService.createReport(reportData);
       
       if (createResponse.success && createResponse.reportId) {
-        console.log('Report created with ID:', createResponse.reportId);
-        
         // 2. Submit report immediately
         const submitResponse = await reportService.submitReport(createResponse.reportId);
-        console.log('Submit response:', submitResponse);
         
         if (submitResponse.success) {
           toast.success('Report created and submitted successfully!');
@@ -337,7 +483,6 @@ export function CreateReportForm() {
         // 3. Navigate to reports page (this will refresh the table)
         navigate('/reports');
       } else {
-        console.log('Create response:', createResponse);
         toast.error(createResponse.message);
       }
     } catch (error) {
@@ -391,7 +536,9 @@ export function CreateReportForm() {
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">Create Report</h1>
+        <h1 className="text-2xl font-bold">
+          {editMode ? 'Edit Report' : 'Create Report'}
+        </h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -477,56 +624,115 @@ export function CreateReportForm() {
         </div>
 
         {/* Expense Selection Section */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-6">
+          {/* Current Expenses Section */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Select Expenses
-                </CardTitle>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={selectAllExpenses}>
-                    Select All
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={deselectAllExpenses}>
-                    Clear
-                  </Button>
-                </div>
-              </div>
-              {selectedExpenses.size > 0 && (
-                <Badge variant="secondary" className="w-fit">
-                  {selectedExpenses.size} expense{selectedExpenses.size !== 1 ? 's' : ''} selected
-                </Badge>
-              )}
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Current Expenses ({expenses.length})
+              </CardTitle>
             </CardHeader>
-            <CardContent className="max-h-96 overflow-y-auto">
-              {loadingExpenses ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                  <span className="text-muted-foreground">Loading expenses...</span>
-                </div>
-              ) : expenses.length === 0 ? (
+            <CardContent className="max-h-80 overflow-y-auto">
+              {expenses.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">No unassigned expenses found</p>
+                  <p className="text-muted-foreground">No expenses in this report yet</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {expenses.map((expense) => (
                     <div
                       key={expense.id}
+                      className="border rounded-lg p-3 transition-colors bg-white"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="font-medium text-sm truncate">
+                              {expense.vendor}
+                            </p>
+                            <p className="font-semibold text-sm text-primary">
+                              {formatCurrency(expense.amount, 'INR')}
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                            <span className="flex items-center gap-1">
+                              <Building className="h-3 w-3" />
+                              {expense.category}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {formatDate(expense.expense_date)}
+                            </span>
+                          </div>
+                          {expense.description && (
+                            <p className="text-xs text-muted-foreground italic truncate">
+                              {expense.description}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeExpenseFromReport(expense.id)}
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Available Expenses Section */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Available Expenses ({availableExpenses.length})
+                </CardTitle>
+                {availableExpenses.length > 0 && (
+                  <button
+                    onClick={selectAllAvailableExpenses}
+                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    Select All
+                  </button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="max-h-80 overflow-y-auto">
+              {loadingExpenses ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span className="text-muted-foreground">Loading expenses...</span>
+                </div>
+              ) : availableExpenses.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">No available expenses found</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {availableExpenses.map((expense) => (
+                    <div
+                      key={expense.id}
                       className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                        selectedExpenses.has(expense.id)
+                        selectedAvailableExpenses.has(expense.id)
                           ? 'border-primary bg-primary/5'
                           : 'border-border hover:border-primary/50'
                       }`}
-                      onClick={() => toggleExpenseSelection(expense.id)}
+                      onClick={() => toggleAvailableExpenseSelection(expense.id)}
                     >
                       <div className="flex items-start gap-3">
                         <Checkbox
-                          checked={selectedExpenses.has(expense.id)}
-                          onChange={() => toggleExpenseSelection(expense.id)}
+                          checked={selectedAvailableExpenses.has(expense.id)}
+                          onChange={() => toggleAvailableExpenseSelection(expense.id)}
                           className="mt-1"
                         />
                         <div className="flex-1 min-w-0">
@@ -561,8 +767,43 @@ export function CreateReportForm() {
               )}
             </CardContent>
           </Card>
+
+          {/* Add Selected Expenses Button */}
+          {selectedAvailableExpenses.size > 0 && (
+            <div className="flex justify-center">
+              <Button 
+                onClick={addExpensesToReport}
+                disabled={apiLoading}
+                className="w-full"
+              >
+                {apiLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding Expenses...
+                  </>
+                ) : (
+                  `Add ${selectedAvailableExpenses.size} Selected Expense${selectedAvailableExpenses.size !== 1 ? 's' : ''} to Report`
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Total Amount Display */}
+      {expenses.length > 0 && (
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-semibold">Total Amount:</span>
+            <span className="text-xl font-bold text-primary">
+              {formatCurrency(
+                expenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0),
+                'INR'
+              )}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons - At the very bottom of the page */}
       <div className="sticky bottom-0 bg-white border-t pt-6 pb-4">
@@ -576,12 +817,13 @@ export function CreateReportForm() {
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                {editMode ? 'Updating...' : 'Saving...'}
               </>
             ) : (
-              'Save Draft'
+              editMode ? 'Update Report' : 'Save Draft'
             )}
           </Button>
+          {!editMode && (
           <Button 
             onClick={form.handleSubmit(onSubmit)} 
             disabled={loading} 
@@ -596,8 +838,80 @@ export function CreateReportForm() {
               'Create & Submit'
             )}
           </Button>
+          )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <X className="h-5 w-5 text-red-600" />
+              Remove Expense
+            </DialogTitle>
+          </DialogHeader>
+          
+          {expenseToDelete && (
+            <div className="space-y-4">
+              <div className="bg-muted/30 rounded-lg p-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Vendor:</span>
+                    <span className="text-sm font-medium">{expenseToDelete.vendor}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Amount:</span>
+                    <span className="text-sm font-medium">
+                      {formatCurrency(expenseToDelete.amount, 'INR')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Category:</span>
+                    <span className="text-sm font-medium">{expenseToDelete.category}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Date:</span>
+                    <span className="text-sm font-medium">{formatDate(expenseToDelete.expense_date)}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to remove this expense from the report? This action cannot be undone.
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter className="flex flex-row gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setExpenseToDelete(null);
+              }}
+              disabled={apiLoading}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmDeleteExpense}
+              disabled={apiLoading}
+              className="flex-1 bg-red-600 hover:bg-red-700"
+            >
+              {apiLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Removing...
+                </>
+              ) : (
+                'Remove Expense'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

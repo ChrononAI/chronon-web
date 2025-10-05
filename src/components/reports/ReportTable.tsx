@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,29 @@ interface ReportTableProps {
 }
 
 export function ReportTable({ reports }: ReportTableProps) {
+  const navigate = useNavigate();
+
+  const handleReportClick = (report: Report) => {
+    if (report.status === 'DRAFT') {
+      // For draft reports, navigate to create page in edit mode
+      navigate('/reports/create', {
+        state: {
+          editMode: true,
+          reportData: {
+            id: report.id,
+            title: report.title,
+            description: report.description,
+            custom_attributes: report.custom_attributes,
+            expenses: report.expenses || []
+          }
+        }
+      });
+    } else {
+      // For other reports, navigate to report detail page
+      navigate(`/reports/${report.id}`);
+    }
+  };
+
   return (
     <div className="border rounded-lg bg-white">
         <Table>
@@ -34,11 +57,15 @@ export function ReportTable({ reports }: ReportTableProps) {
           </TableHeader>
           <TableBody>
             {reports.map((report) => (
-              <TableRow key={report.id} className="cursor-pointer hover:bg-muted/50">
+              <TableRow 
+                key={report.id} 
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => handleReportClick(report)}
+              >
                 <TableCell className="font-medium">
-                  <Link to={`/reports/${report.id}`} className="hover:underline">
+                  <span className="hover:underline">
                     {report.title}
-                  </Link>
+                  </span>
                 </TableCell>
                 <TableCell>{report.description}</TableCell>
                 <TableCell>
@@ -50,10 +77,19 @@ export function ReportTable({ reports }: ReportTableProps) {
                 <TableCell>{report.created_by.email}</TableCell>
                 <TableCell>{formatDate(report.created_at)}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link to={`/reports/${report.id}`}>
-                      <Eye className="h-4 w-4" />
-                    </Link>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (report.status === 'DRAFT') {
+                        handleReportClick(report);
+                      } else {
+                        navigate(`/reports/${report.id}`);
+                      }
+                    }}
+                  >
+                    <Eye className="h-4 w-4" />
                   </Button>
                 </TableCell>
               </TableRow>
