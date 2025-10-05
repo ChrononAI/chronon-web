@@ -62,8 +62,10 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
                   {expense.report_id && (
                     <span 
                       className="text-blue-600 hover:underline"
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
+                        // For now, navigate to report detail page
+                        // In the future, we could fetch report status here to determine if it's a draft
                         navigate(`/reports/${expense.report_id}`);
                       }}
                     >

@@ -84,9 +84,9 @@ class ReportService {
         console.log("Total expenses found:", response.data.data.length);
         console.log("Sample expense:", response.data.data[0]);
         
-        // Filter expenses: only show COMPLETE and INCOMPLETE status and not assigned to any report
+        // Filter expenses: only show COMPLETE status and not assigned to any report
         const availableExpenses = response.data.data.filter((expense: Expense) => 
-          (expense.status === 'COMPLETE' || expense.status === 'INCOMPLETE') && !expense.report_id
+          expense.status === 'COMPLETE' && !expense.report_id
         );
         console.log("Available expenses found:", availableExpenses.length);
         console.log("Sample available expense:", availableExpenses[0]);
@@ -565,6 +565,70 @@ class ReportService {
     } catch (error) {
       console.error('Error downloading report:', error);
       throw error;
+    }
+  }
+
+  async updateReport(reportId: string, updateData: {
+    title?: string;
+    description?: string;
+    custom_attributes?: Record<string, string>;
+  }): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const response = await api.put(`/reports/reports/${reportId}`, updateData);
+      
+      return {
+        success: response.data.status === 'success',
+        message: response.data.message || 'Report updated successfully',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error updating report:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to update report'
+      };
+    }
+  }
+
+  async addExpensesToReport(reportId: string, expenseIds: string[]): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const response = await api.post(`/reports/reports/${reportId}/expenses`, {
+        expense_ids: expenseIds
+      });
+      
+      return {
+        success: response.data.status === 'success',
+        message: response.data.message || 'Expenses added to report successfully',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error adding expenses to report:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to add expenses to report'
+      };
+    }
+  }
+
+  async removeExpensesFromReport(reportId: string, expenseIds: string[]): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const response = await api.delete(`/reports/reports/${reportId}/expenses`, {
+        data: {
+          expense_ids: expenseIds
+        }
+      });
+      
+      return {
+        success: response.data.status === 'success',
+        message: response.data.message || 'Expenses removed from report successfully',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error removing expenses from report:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to remove expenses from report'
+      };
     }
   }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Badge } from '@/components/ui/badge';
@@ -15,10 +15,12 @@ import {
   Edit3,
   X,
 } from 'lucide-react';
-import { expenseService } from '@/services/expenseService';
+import { expenseService, UpdateExpenseData } from '@/services/expenseService';
 import { Expense, Policy } from '@/types/expense';
 import { getStatusColor } from '@/lib/utils';
 import { toast } from 'sonner';
+
+const EDITABLE_STATUSES = ['DRAFT', 'INCOMPLETE', 'COMPLETE', 'PENDING', 'PENDING_APPROVAL'];
 
 // Check if expense is a mileage expense
 const isMileageExpense = (expense: Expense): boolean => {
@@ -34,18 +36,13 @@ const isPerDiemExpense = (expense: Expense): boolean => {
 
 // Transform Expense data to form format
 const transformExpenseToFormData = (expense: Expense, policies?: Policy[]) => {
-  // Find the policy and category based on the expense data
   let policyId = '';
   let categoryId = '';
   
-  
   if (policies && expense.category) {
-    // Try to find policy by matching category name (case-insensitive and flexible matching)
     for (const policy of policies) {
       const matchingCategory = policy.categories.find(cat => 
-        cat.name.toLowerCase() === expense.category.toLowerCase() ||
-        cat.name.toLowerCase().includes(expense.category.toLowerCase()) ||
-        expense.category.toLowerCase().includes(cat.name.toLowerCase())
+        cat.name.toLowerCase() === expense.category.toLowerCase()
       );
       if (matchingCategory) {
         policyId = policy.id;
@@ -54,7 +51,6 @@ const transformExpenseToFormData = (expense: Expense, policies?: Policy[]) => {
       }
     }
     
-    // If no exact match found, try to find by partial matching or use the first available category
     if (!categoryId && policies.length > 0) {
       const firstPolicy = policies[0];
       if (firstPolicy.categories.length > 0) {
@@ -64,7 +60,6 @@ const transformExpenseToFormData = (expense: Expense, policies?: Policy[]) => {
     }
   }
 
-
   return {
     policyId,
     categoryId,
@@ -73,7 +68,7 @@ const transformExpenseToFormData = (expense: Expense, policies?: Policy[]) => {
     amount: expense.amount.toString(),
     dateOfExpense: new Date(expense.expense_date),
     comments: expense.description || '',
-    city: '', // These fields might not be available in Expense type
+    city: '',
     source: '',
     destination: '',
   };
@@ -82,12 +77,14 @@ const transformExpenseToFormData = (expense: Expense, policies?: Policy[]) => {
 export function ExpenseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string | null>(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const searchParams = new URLSearchParams(location.search);
   const isFromReport = searchParams.get('from') === 'report';
@@ -105,6 +102,10 @@ export function ExpenseDetailPage() {
         ]);
         setExpense(expenseData);
         setPolicies(policiesData);
+        
+        if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())) {
+          setIsEditing(true);
+        }
         
         if (expenseData.receipt_id) {
           fetchReceiptPreview(expenseData.receipt_id, expenseData.created_by.org_id);
@@ -151,6 +152,46 @@ export function ExpenseDetailPage() {
 
   const handleCancel = () => {
     setIsEditing(false);
+  };
+
+  const handleExpenseSubmit = async (formData: any) => {
+    if (!expense || !id) return;
+    
+    setSaving(true);
+    try {
+      // Transform form data to UpdateExpenseData format
+      const expenseData: UpdateExpenseData = {
+        amount: parseFloat(formData.amount).toFixed(2),
+        category_id: formData.categoryId,
+        description: formData.comments || expense.description,
+        expense_date: formData.dateOfExpense.toISOString().split('T')[0],
+        expense_policy_id: formData.policyId,
+        vendor: formData.merchant,
+        receipt_id: expense.receipt_id || null,
+        invoice_number: formData.invoiceNumber || null,
+        distance: expense.distance || null,
+        distance_unit: expense.distance_unit || null,
+        end_location: expense.end_location || null,
+        start_location: expense.start_location || null,
+        vehicle_type: expense.vehicle_type || null,
+        mileage_meta: expense.mileage_meta || null,
+        custom_attributes: {},
+      };
+
+      const response = await expenseService.updateExpense(id, expenseData);
+      
+      if (response.success) {
+        toast.success('Expense updated successfully');
+        navigate('/expenses');
+      } else {
+        toast.error(response.message || 'Failed to update expense');
+      }
+    } catch (error) {
+      console.error('Failed to update expense:', error);
+      toast.error('Failed to update expense');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -255,7 +296,7 @@ export function ExpenseDetailPage() {
                   {expense.status.replace('_', ' ')}
                 </Badge>
               </div>
-              {expense.status === 'DRAFT' && (
+              {EDITABLE_STATUSES.includes(expense.status.toUpperCase()) && (
                 <div className="flex items-center gap-2">
                   {!isEditing ? (
                     <Button
@@ -268,17 +309,15 @@ export function ExpenseDetailPage() {
                       Edit
                     </Button>
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={handleCancel}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <X className="h-4 w-4" />
-                        Cancel
-                      </Button>
-                    </div>
+                    <Button
+                      onClick={handleCancel}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <X className="h-4 w-4" />
+                      Cancel
+                    </Button>
                   )}
                 </div>
               )}
@@ -299,15 +338,15 @@ export function ExpenseDetailPage() {
                 window.history.back();
               }
             }}
-            onSubmit={() => {}}
-            loading={false}
+            onSubmit={handleExpenseSubmit}
+            loading={saving}
             parsedData={null}
             uploadedFile={null}
             previewUrl={receiptSignedUrl}
-            readOnly={true}
+            readOnly={!isEditing}
             expenseData={transformExpenseToFormData(expense, policies)}
             receiptUrls={receiptSignedUrl ? [receiptSignedUrl] : []}
-            isEditMode={false}
+            isEditMode={isEditing}
             receiptLoading={receiptLoading}
           />
         )}
