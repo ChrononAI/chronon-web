@@ -98,10 +98,11 @@ export function ExpenseDetailPage() {
       try {
         const [expenseData, policiesData] = await Promise.all([
           expenseService.getExpenseById(id),
-          expenseService.getPoliciesWithCategories()
+          expenseService.getAllPoliciesWithCategories()
         ]);
         setExpense(expenseData);
         setPolicies(policiesData);
+        
         
         if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())) {
           setIsEditing(true);

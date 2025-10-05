@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { getOrgIdFromToken } from '@/lib/jwtUtils';
+import api from '@/lib/api';
 import {
   ArrowLeft,
   MapPin,
@@ -114,15 +116,41 @@ export function ExpenseDetailsStep({
   receiptLoading = false
 }: ExpenseDetailsStepProps) {
   const [policies, setPolicies] = useState<Policy[]>([]);
+  const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(null);
+  const [duplicateReceiptLoading, setDuplicateReceiptLoading] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
+  // Fetch signed URL for duplicate receipts
+  const fetchDuplicateReceiptUrl = async (receiptId: string) => {
+    try {
+      setDuplicateReceiptLoading(true);
+      const orgId = getOrgIdFromToken();
+      if (!orgId) return;
+      
+      const response = await api.get(`/receipts/${receiptId}/signed-url?org_id=${orgId}`);
+      if (response.data.status === 'success' && response.data.data.signed_url) {
+        setDuplicateReceiptUrl(response.data.data.signed_url);
+      }
+    } catch (error) {
+      console.error('Error fetching duplicate receipt signed URL:', error);
+    } finally {
+      setDuplicateReceiptLoading(false);
+    }
+  };
 
   // Receipt viewer states
   const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
   const [receiptZoom, setReceiptZoom] = useState(1);
   const [receiptRotation, setReceiptRotation] = useState(0);
+
+  // Fetch signed URL for duplicate receipts when component mounts
+  useEffect(() => {
+    if (parsedData?.id && !readOnly && !receiptUrls.length && !duplicateReceiptUrl && !duplicateReceiptLoading) {
+      fetchDuplicateReceiptUrl(parsedData.id);
+    }
+  }, [parsedData?.id, readOnly, receiptUrls.length, duplicateReceiptUrl, duplicateReceiptLoading, fetchDuplicateReceiptUrl]);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -243,6 +271,7 @@ export function ExpenseDetailsStep({
 
   const isConveyanceCategory = selectedCategory?.name === 'Conveyance 2W';
   const availableCategories = selectedPolicy?.categories || [];
+
 
   return (
     <div className="space-y-6">
@@ -645,7 +674,7 @@ export function ExpenseDetailsStep({
                   )}
                 </div>
                 
-                {(uploadedFile || previewUrl) || (readOnly && receiptUrls.length > 0) ? (
+                {!!(uploadedFile || previewUrl || (readOnly && receiptUrls.length > 0)) ? (
                   <div className="space-y-4">
                     {/* Interactive Receipt Viewer */}
                     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
@@ -718,27 +747,48 @@ export function ExpenseDetailsStep({
                         <div className="flex items-center justify-center p-4">
                           {(() => {
                             // Determine the source URL and file type
-                            const sourceUrl = readOnly && receiptUrls.length > 0 ? receiptUrls[0] : previewUrl;
-                            const isPdf = readOnly && receiptUrls.length > 0 
-                              ? receiptUrls[0].toLowerCase().includes('.pdf')
-                              : uploadedFile?.type.includes('pdf');
+                            let sourceUrl: string | null;
+                            if (readOnly && receiptUrls.length > 0) {
+                              sourceUrl = receiptUrls[0];
+                            } else if (duplicateReceiptUrl) {
+                              sourceUrl = duplicateReceiptUrl;
+                            } else {
+                              sourceUrl = previewUrl;
+                            }
                             
+                            
+                            // Show loading state if we're fetching the duplicate receipt URL
+                            if (duplicateReceiptLoading) {
+                              return (
+                                <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                                  <p className="text-gray-600 mb-4">Loading receipt...</p>
+                                  <p className="text-xs text-gray-500">Fetching signed URL</p>
+                                </div>
+                              );
+                            }
+                            
+                            // Check if this is a PDF by looking at the URL
+                            const isPdf = sourceUrl?.toLowerCase().includes('.pdf');
                             
                             if (isPdf) {
+                              // For PDFs, use embed tag with simple styling to avoid PDF viewer interface
                               return (
-                                <div className="w-full h-80 border border-gray-200 rounded bg-white">
-                                  <iframe
-                                    src={`${sourceUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                                    className="w-full h-full border-0 rounded"
-                                    title="PDF Preview"
-                                    style={{
-                                      transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
-                                      transformOrigin: 'center',
-                                    }}
-                                  />
+                                <div className="w-full h-80 border border-gray-200 rounded bg-white flex flex-col">
+                                  <div className="flex-1 flex items-center justify-center">
+                                    <embed
+                                      src={`${sourceUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
+                                      type="application/pdf"
+                                      className="w-full h-full border-0 rounded"
+                                      style={{
+                                        transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
+                                        transformOrigin: 'center',
+                                      }}
+                                    />
+                                  </div>
                                 </div>
                               );
                             } else {
+                              // For regular images, use img tag
                               return (
                                 <img
                                   src={sourceUrl || ''}
@@ -747,8 +797,27 @@ export function ExpenseDetailsStep({
                                   style={{
                                     transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
                                     transformOrigin: 'center',
+                                    maxHeight: '100%',
+                                    objectFit: 'contain'
                                   }}
                                   onClick={handleReceiptFullscreen}
+                                  onError={(e) => {
+                                    // Fallback: if image fails to load, show download option
+                                    e.currentTarget.style.display = 'none';
+                                    const fallbackDiv = document.createElement('div');
+                                    fallbackDiv.className = 'flex flex-col items-center justify-center h-full text-center p-4';
+                                    fallbackDiv.innerHTML = `
+                                      <p class="text-gray-600 mb-4">Receipt preview not available.</p>
+                                      <a href="${sourceUrl ?? '#'}" target="_blank" rel="noopener noreferrer" 
+                                         class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        Download Receipt
+                                      </a>
+                                    `;
+                                    e.currentTarget.parentNode?.appendChild(fallbackDiv);
+                                  }}
                                 />
                               );
                             }
@@ -782,7 +851,7 @@ export function ExpenseDetailsStep({
       </div>
 
       {/* Fullscreen Receipt Modal */}
-      {isReceiptFullscreen && (uploadedFile || previewUrl) && (
+      {isReceiptFullscreen && (uploadedFile || previewUrl || duplicateReceiptUrl) && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
           <div className="relative w-full h-full flex flex-col">
             {/* Fullscreen Header */}
@@ -853,12 +922,14 @@ export function ExpenseDetailsStep({
 
             {/* Fullscreen Content */}
             <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
-              {uploadedFile?.type.includes('pdf') ? (
+              {(() => {
+                const fullscreenSourceUrl = duplicateReceiptUrl || previewUrl;
+                return fullscreenSourceUrl?.toLowerCase().includes('.pdf') ? (
                 <div className="w-full h-full bg-white rounded">
-                  <iframe
-                    src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                  <embed
+                    src={`${fullscreenSourceUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
+                    type="application/pdf"
                     className="w-full h-full border-0 rounded"
-                    title="PDF Fullscreen"
                     style={{
                       transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
                       transformOrigin: 'center',
@@ -867,7 +938,7 @@ export function ExpenseDetailsStep({
                 </div>
               ) : (
                 <img
-                  src={previewUrl || ''}
+                  src={fullscreenSourceUrl || ''}
                   alt="Receipt fullscreen"
                   className="max-w-full max-h-full object-contain"
                   style={{
@@ -875,7 +946,8 @@ export function ExpenseDetailsStep({
                     transformOrigin: 'center',
                   }}
                 />
-              )}
+              );
+              })()}
             </div>
           </div>
         </div>
