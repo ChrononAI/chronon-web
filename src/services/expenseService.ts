@@ -185,7 +185,7 @@ export const expenseService = {
     }
   },
 
-  async getPoliciesWithCategories(): Promise<Policy[]> {
+  async getAllPoliciesWithCategories(): Promise<Policy[]> {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
@@ -195,6 +195,56 @@ export const expenseService = {
       
       const response = await api.get(`/api/v1/expense-policies?org_id=${orgId}`);
       return response.data.data;
+    } catch (error) {
+      console.error('Error fetching policies:', error);
+      return [];
+    }
+  },
+
+  async getPoliciesWithCategories(): Promise<Policy[]> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        console.warn('No org_id found, returning empty policies');
+        return [];
+      }
+      
+      const allPolicies = await this.getAllPoliciesWithCategories();
+      
+      const filteredPolicies = allPolicies.filter((policy: Policy) => {
+        const policyName = policy.name?.toLowerCase() || '';
+        const policyDescription = policy.description?.toLowerCase() || '';
+        const policyType = policy.policy_type?.toLowerCase() || '';
+        
+        const isPerdiemPolicy = policyName.includes('perdiem') || 
+                               policyName.includes('per diem') ||
+                               policyDescription.includes('perdiem') ||
+                               policyDescription.includes('per diem') ||
+                               policyType.includes('perdiem') ||
+                               policyType.includes('per_diem');
+                               
+        const isMileagePolicy = policyName.includes('mileage') ||
+                               policyName.includes('mile') ||
+                               policyDescription.includes('mileage') ||
+                               policyDescription.includes('mile') ||
+                               policyType.includes('mileage') ||
+                               policyType.includes('mile');
+        
+        const hasPerdiemMileageCategories = policy.categories?.some(category => {
+          const categoryName = category.name?.toLowerCase() || '';
+          const categoryType = category.category_type?.toLowerCase() || '';
+          return categoryName.includes('perdiem') ||
+                 categoryName.includes('per diem') ||
+                 categoryName.includes('mileage') ||
+                 categoryName.includes('mile') ||
+                 categoryType.includes('perdiem') ||
+                 categoryType.includes('mileage');
+        });
+        
+        return !(isPerdiemPolicy || isMileagePolicy || hasPerdiemMileageCategories);
+      });
+      
+      return filteredPolicies;
     } catch (error) {
       console.error('Error fetching policies:', error);
       return [];

@@ -50,6 +50,8 @@ export function CreateExpenseForm() {
         
         setParsedData(parsedDataFromStorage);
         setPreviewUrl(previewUrlFromStorage);
+        // Note: uploadedFile is not restored from localStorage as it's a File object
+        // but previewUrl should be sufficient for display
         setShowDuplicateDialog(true);
         
         localStorage.removeItem('showDuplicateDialog');
