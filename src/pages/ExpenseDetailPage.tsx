@@ -3,7 +3,6 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { ExpenseDetailsStep } from '@/components/expenses/ExpenseDetailsStep';
 import MileagePage from '@/pages/MileagePage';
 import PerdiemPage from '@/pages/PerdiemPage';
@@ -12,8 +11,6 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  Edit3,
-  X,
 } from 'lucide-react';
 import { expenseService, UpdateExpenseData } from '@/services/expenseService';
 import { Expense, Policy } from '@/types/expense';
@@ -147,13 +144,6 @@ export function ExpenseDetailPage() {
     }
   };
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-  };
 
   const handleExpenseSubmit = async (formData: any) => {
     if (!expense || !id) return;
@@ -297,37 +287,20 @@ export function ExpenseDetailPage() {
                   {expense.status.replace('_', ' ')}
                 </Badge>
               </div>
-              {EDITABLE_STATUSES.includes(expense.status.toUpperCase()) && (
-                <div className="flex items-center gap-2">
-                  {!isEditing ? (
-                    <Button
-                      onClick={handleEdit}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                      Edit
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleCancel}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <X className="h-4 w-4" />
-                      Cancel
-                    </Button>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
 
         {isMileageExpense(expense) ? (
-          <MileagePage mode="view" expenseData={expense} />
+          <MileagePage 
+            mode="view" 
+            expenseData={expense} 
+            isEditable={EDITABLE_STATUSES.includes(expense.status.toUpperCase())}
+            onUpdate={handleExpenseSubmit}
+            onCancel={() => setIsEditing(false)}
+            isEditing={isEditing}
+            saving={saving}
+          />
         ) : isPerDiemExpense(expense) ? (
           <PerdiemPage mode="view" expenseData={expense} />
         ) : (

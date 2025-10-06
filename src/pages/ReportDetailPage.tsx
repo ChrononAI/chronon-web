@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,6 +48,7 @@ import { WorkflowTimeline } from '@/components/expenses/WorkflowTimeline';
 export function ReportDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const isFromApprovals = searchParams.get('from') === 'approvals';
   const { user } = useAuthStore();
   
