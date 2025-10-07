@@ -9,7 +9,6 @@ import { MyReportsPage } from '@/pages/MyReportsPage';
 import { ReportDetailPage } from '@/pages/ReportDetailPage';
 import { MyAdvancesPage } from '@/pages/MyAdvancesPage';
 import { CreateAdvancePage } from '@/pages/CreateAdvancePage';
-import { CreateExpensePage } from '@/pages/CreateExpensePage';
 import { CreateReportPage } from '@/pages/CreateReportPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { ApprovalsReportsPage } from '@/pages/ApprovalsReportsPage';
@@ -23,8 +22,6 @@ import { NotFoundPage } from '@/pages/NotFoundPage';
 import { PermissionDeniedPage } from '@/pages/PermissionDeniedPage';
 import { MyExpensesPage } from '@/pages/MyExpensesPage';
 import { UnifiedExpensesPage } from "@/pages/UnifiedExpensesPage"
-import MileagePage from "@/pages/MileagePage"
-import PerdiemPage from "@/pages/PerdiemPage"
 
 // Simple redirect component with toast notification
 function AdvancesRedirect() {

@@ -31,7 +31,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -221,10 +220,6 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
   const selectAllAvailableExpenses = () => {
     const allExpenseIds = new Set(availableExpenses.map(expense => expense.id));
     setSelectedAvailableExpenses(allExpenseIds);
-  };
-
-  const deselectAllAvailableExpenses = () => {
-    setSelectedAvailableExpenses(new Set());
   };
 
   const removeExpenseFromReport = (expenseId: string) => {

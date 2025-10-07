@@ -1,6 +1,6 @@
 import { CheckCircle, Clock, Circle, XCircle } from 'lucide-react';
 import { ApprovalWorkflow } from '@/types/expense';
-import { formatDate, getWorkflowStatusColor } from '@/lib/utils';
+import { getWorkflowStatusColor } from '@/lib/utils';
 
 interface WorkflowTimelineProps {
   approvalWorkflow: ApprovalWorkflow;
