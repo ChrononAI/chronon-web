@@ -22,7 +22,7 @@ export interface CreateExpenseData {
 }
 
 export interface UpdateExpenseData {
-  amount: string;
+  amount?: string | number;
   category_id: string;
   description: string;
   expense_date: string;
@@ -37,6 +37,7 @@ export interface UpdateExpenseData {
   vehicle_type?: string | null;
   mileage_meta?: any;
   custom_attributes?: any;
+  is_round_trip?: boolean;
 }
 
 export interface CreateExpenseResponse {

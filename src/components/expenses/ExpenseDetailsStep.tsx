@@ -405,7 +405,8 @@ export function ExpenseDetailsStep({
                                   {...field}
                                   placeholder="Invoice Number"
                                   className={parsedData?.ocr_result?.invoice_number ? "bg-white border-green-300 text-gray-900" : ""}
-                                  readOnly={readOnly}
+                                  // readOnly={readOnly}
+                                  disabled={readOnly}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -429,7 +430,8 @@ export function ExpenseDetailsStep({
                                   {...field}
                                   placeholder="Vendor"
                                   className={parsedData?.ocr_result?.vendor ? "bg-white border-green-300 text-gray-900" : ""}
-                                  readOnly={readOnly}
+                                  // readOnly={readOnly}
+                                  disabled={readOnly}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -483,7 +485,8 @@ export function ExpenseDetailsStep({
                               {...field}
                               placeholder="Enter source location"
                               className="pl-10"
-                              readOnly={readOnly}
+                              // readOnly={readOnly}
+                              disabled={readOnly}
                               onChange={field.onChange}
                             />
                           </div>
@@ -506,7 +509,8 @@ export function ExpenseDetailsStep({
                               {...field}
                               placeholder="Enter destination location"
                               className="pl-10"
-                              readOnly={readOnly}
+                              // readOnly={readOnly}
+                              disabled={readOnly}
                               onChange={field.onChange}
                             />
                           </div>
@@ -543,7 +547,8 @@ export function ExpenseDetailsStep({
                                   ? "bg-white border-green-300 text-gray-900"
                                   : ""
                               }
-                              readOnly={readOnly}
+                              // readOnly={readOnly}
+                              disabled={readOnly}
                             />
                           </FormControl>
                           <FormMessage />
@@ -616,7 +621,8 @@ export function ExpenseDetailsStep({
                             {...field}
                             placeholder="Add any additional comments..."
                             rows={4}
-                            readOnly={readOnly}
+                            // readOnly={readOnly}
+                            disabled={readOnly}
                           />
                         </FormControl>
                         <FormMessage />
