@@ -358,7 +358,24 @@ const MileagePage = ({
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    {/* <Label htmlFor="roundTrip" className="text-sm font-medium text-gray-700">
+                      Round Trip
+                    </Label> */}
+                    <div className="flex items-center space-x-2 h-10">
+                      <Switch
+                        id="roundTrip"
+                        checked={formData.isRoundTrip}
+                        onCheckedChange={(checked) => handleInputChange('isRoundTrip', checked)}
+                        disabled={mode === 'view' && !editMode}
+                      />
+                      <Label htmlFor="roundTrip" className="text-sm text-gray-600">
+                        Round Trip
+                      </Label>
+                    </div>
+                  </div>
+                  
                   <div className="space-y-2">
                     <Label htmlFor="vehiclesType" className="text-sm font-medium text-gray-700">
                       Vehicle Type
@@ -377,23 +394,6 @@ const MileagePage = ({
                         <SelectItem value="public_transport">Public Transport</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="roundTrip" className="text-sm font-medium text-gray-700">
-                      Round Trip
-                    </Label>
-                    <div className="flex items-center space-x-2 h-10">
-                      <Switch
-                        id="roundTrip"
-                        checked={formData.isRoundTrip}
-                        onCheckedChange={(checked) => handleInputChange('isRoundTrip', checked)}
-                        disabled={mode === 'view' && !editMode}
-                      />
-                      <Label htmlFor="roundTrip" className="text-sm text-gray-600">
-                        {formData.isRoundTrip ? 'Yes' : 'No'}
-                      </Label>
-                    </div>
                   </div>
                 </div>
               </div>

@@ -538,29 +538,14 @@ class ReportService {
         throw new Error('Invalid download URL or filename');
       }
 
-      // Fetch the file and create blob download
-      const response = await fetch(downloadUrl);
+      // For S3 pre-signed URLs without CORS, we can't use fetch()
+      // Instead, we directly navigate to the URL
+      // The download behavior depends on the Content-Disposition header set by the backend
+      // If the backend includes Content-Disposition: attachment, it will download
+      // Otherwise, it may open in a new tab (for viewable files like PDFs, images)
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename;
-      link.style.display = 'none';
-      
-      document.body.appendChild(link);
-      link.click();
-      
-      // Clean up
-      setTimeout(() => {
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(blobUrl);
-      }, 1000);
+      // Using window.open is more reliable than creating an <a> tag for cross-origin URLs
+      window.open(downloadUrl, '_blank');
       
     } catch (error) {
       console.error('Error downloading report:', error);
