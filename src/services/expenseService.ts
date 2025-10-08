@@ -1,6 +1,14 @@
-import api from '@/lib/api';
-import { Expense, Report, Advance, ExpensesResponse, ReportsResponse, Policy } from '@/types/expense';
-import { getOrgIdFromToken } from '@/lib/jwtUtils';
+import api from "@/lib/api";
+import {
+  Expense,
+  Report,
+  Advance,
+  ExpensesResponse,
+  ReportsResponse,
+  Policy,
+} from "@/types/expense";
+import { getOrgIdFromToken } from "@/lib/jwtUtils";
+import { toast } from "sonner";
 
 export interface CreateExpenseData {
   amount: number;
@@ -62,21 +70,32 @@ export interface CreateAdvanceData {
 }
 
 export const expenseService = {
-  async getMyExpenses(page:number = 4, perPage:number = 1): Promise<ExpensesResponse> {
+  async getMyExpenses(
+    page: number = 4,
+    perPage: number = 1
+  ): Promise<ExpensesResponse> {
     const orgId = getOrgIdFromToken();
     if (!orgId) {
-      throw new Error('Organization ID not found in token');
+      throw new Error("Organization ID not found in token");
     }
-    const response = await api.get(`/expenses/expenses?org_id=${orgId}&page=${page}&per_page=${perPage}`);
+    const response = await api.get(
+      `/expenses/expenses?org_id=${orgId}&page=${page}&per_page=${perPage}`
+    );
     return response.data;
   },
 
-  async getExpensesByStatus(status: string, page: number = 1, perPage: number = 10): Promise<ExpensesResponse> {
+  async getExpensesByStatus(
+    status: string,
+    page: number = 1,
+    perPage: number = 10
+  ): Promise<ExpensesResponse> {
     const orgId = getOrgIdFromToken();
     if (!orgId) {
-      throw new Error('Organization ID not found in token');
+      throw new Error("Organization ID not found in token");
     }
-    const response = await api.get(`/expenses/expenses?org_id=${orgId}&status=${status}&page=${page}&per_page=${perPage}`);
+    const response = await api.get(
+      `/expenses/expenses?org_id=${orgId}&status=${status}&page=${page}&per_page=${perPage}`
+    );
     return response.data;
   },
 
@@ -85,14 +104,19 @@ export const expenseService = {
     return response.data.data;
   },
 
-  async getMyReports(page: number = 1, perPage: number = 20): Promise<ReportsResponse> {
+  async getMyReports(
+    page: number = 1,
+    perPage: number = 20
+  ): Promise<ReportsResponse> {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
-        throw new Error('Organization ID not found in token');
+        throw new Error("Organization ID not found in token");
       }
-      const response = await api.get(`/reports/reports?org_id=${orgId}&page=${page}&per_page=${perPage}`);
-      
+      const response = await api.get(
+        `/reports/reports?org_id=${orgId}&page=${page}&per_page=${perPage}`
+      );
+
       const reports = response.data.data.data || [];
       const pagination = response.data.data.pagination || {
         has_next: false,
@@ -100,15 +124,15 @@ export const expenseService = {
         page: 1,
         pages: 0,
         per_page: 20,
-        total: 0
+        total: 0,
       };
-      
+
       return {
         reports,
-        pagination
+        pagination,
       };
     } catch (error) {
-      console.error('Error fetching reports:', error);
+      console.error("Error fetching reports:", error);
       return {
         reports: [],
         pagination: {
@@ -117,20 +141,26 @@ export const expenseService = {
           page: 1,
           pages: 0,
           per_page: 20,
-          total: 0
-        }
+          total: 0,
+        },
       };
     }
   },
 
-  async getReportsByStatus(status: string, page: number = 1, perPage: number = 20): Promise<ReportsResponse> {
+  async getReportsByStatus(
+    status: string,
+    page: number = 1,
+    perPage: number = 20
+  ): Promise<ReportsResponse> {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
-        throw new Error('Organization ID not found in token');
+        throw new Error("Organization ID not found in token");
       }
-      const response = await api.get(`/reports/reports?org_id=${orgId}&status=${status}&page=${page}&per_page=${perPage}`);
-      
+      const response = await api.get(
+        `/reports/reports?org_id=${orgId}&status=${status}&page=${page}&per_page=${perPage}`
+      );
+
       const reports = response.data.data.data || [];
       const pagination = response.data.data.pagination || {
         has_next: false,
@@ -138,15 +168,15 @@ export const expenseService = {
         page: 1,
         pages: 0,
         per_page: 20,
-        total: 0
+        total: 0,
       };
-      
+
       return {
         reports,
-        pagination
+        pagination,
       };
     } catch (error) {
-      console.error('Error fetching reports by status:', error);
+      console.error("Error fetching reports by status:", error);
       return {
         reports: [],
         pagination: {
@@ -155,8 +185,8 @@ export const expenseService = {
           page: 1,
           pages: 0,
           per_page: 20,
-          total: 0
-        }
+          total: 0,
+        },
       };
     }
   },
@@ -170,17 +200,21 @@ export const expenseService = {
     try {
       // Fetch advances with different statuses
       const [pendingResponse, approvedResponse] = await Promise.all([
-        api.get('/advance/status/PENDING_APPROVAL'),
-        api.get('/advance/status/APPROVED')
+        api.get("/advance/status/PENDING_APPROVAL"),
+        api.get("/advance/status/APPROVED"),
       ]);
-      
-      const pendingAdvances = pendingResponse.data.success ? pendingResponse.data.data : [];
-      const approvedAdvances = approvedResponse.data.success ? approvedResponse.data.data : [];
-      
+
+      const pendingAdvances = pendingResponse.data.success
+        ? pendingResponse.data.data
+        : [];
+      const approvedAdvances = approvedResponse.data.success
+        ? approvedResponse.data.data
+        : [];
+
       // Combine all advances
       return [...pendingAdvances, ...approvedAdvances];
     } catch (error) {
-      console.error('Error fetching advances:', error);
+      console.error("Error fetching advances:", error);
       return [];
     }
   },
@@ -189,14 +223,16 @@ export const expenseService = {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
-        console.warn('No org_id found, returning empty policies');
+        console.warn("No org_id found, returning empty policies");
         return [];
       }
-      
-      const response = await api.get(`/api/v1/expense-policies?org_id=${orgId}`);
+
+      const response = await api.get(
+        `/api/v1/expense-policies?org_id=${orgId}`
+      );
       return response.data.data;
     } catch (error) {
-      console.error('Error fetching policies:', error);
+      console.error("Error fetching policies:", error);
       return [];
     }
   },
@@ -205,116 +241,183 @@ export const expenseService = {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
-        console.warn('No org_id found, returning empty policies');
+        console.warn("No org_id found, returning empty policies");
         return [];
       }
-      
+
       const allPolicies = await this.getAllPoliciesWithCategories();
-      
+
       const filteredPolicies = allPolicies.filter((policy: Policy) => {
-        const policyName = policy.name?.toLowerCase() || '';
-        const policyDescription = policy.description?.toLowerCase() || '';
-        const policyType = policy.policy_type?.toLowerCase() || '';
-        
-        const isPerdiemPolicy = policyName.includes('perdiem') || 
-                               policyName.includes('per diem') ||
-                               policyDescription.includes('perdiem') ||
-                               policyDescription.includes('per diem') ||
-                               policyType.includes('perdiem') ||
-                               policyType.includes('per_diem');
-                               
-        const isMileagePolicy = policyName.includes('mileage') ||
-                               policyName.includes('mile') ||
-                               policyDescription.includes('mileage') ||
-                               policyDescription.includes('mile') ||
-                               policyType.includes('mileage') ||
-                               policyType.includes('mile');
-        
-        const hasPerdiemMileageCategories = policy.categories?.some(category => {
-          const categoryName = category.name?.toLowerCase() || '';
-          const categoryType = category.category_type?.toLowerCase() || '';
-          return categoryName.includes('perdiem') ||
-                 categoryName.includes('per diem') ||
-                 categoryName.includes('mileage') ||
-                 categoryName.includes('mile') ||
-                 categoryType.includes('perdiem') ||
-                 categoryType.includes('mileage');
-        });
-        
-        return !(isPerdiemPolicy || isMileagePolicy || hasPerdiemMileageCategories);
+        const policyName = policy.name?.toLowerCase() || "";
+        const policyDescription = policy.description?.toLowerCase() || "";
+        const policyType = policy.policy_type?.toLowerCase() || "";
+
+        const isPerdiemPolicy =
+          policyName.includes("perdiem") ||
+          policyName.includes("per diem") ||
+          policyDescription.includes("perdiem") ||
+          policyDescription.includes("per diem") ||
+          policyType.includes("perdiem") ||
+          policyType.includes("per_diem");
+
+        const isMileagePolicy =
+          policyName.includes("mileage") ||
+          policyName.includes("mile") ||
+          policyDescription.includes("mileage") ||
+          policyDescription.includes("mile") ||
+          policyType.includes("mileage") ||
+          policyType.includes("mile");
+
+        const hasPerdiemMileageCategories = policy.categories?.some(
+          (category) => {
+            const categoryName = category.name?.toLowerCase() || "";
+            const categoryType = category.category_type?.toLowerCase() || "";
+            return (
+              categoryName.includes("perdiem") ||
+              categoryName.includes("per diem") ||
+              categoryName.includes("mileage") ||
+              categoryName.includes("mile") ||
+              categoryType.includes("perdiem") ||
+              categoryType.includes("mileage")
+            );
+          }
+        );
+
+        return !(
+          isPerdiemPolicy ||
+          isMileagePolicy ||
+          hasPerdiemMileageCategories
+        );
       });
-      
+
       return filteredPolicies;
     } catch (error) {
-      console.error('Error fetching policies:', error);
+      console.error("Error fetching policies:", error);
       return [];
     }
   },
 
-  async createExpense(expense: CreateExpenseData): Promise<CreateExpenseResponse> {
+  async calculatePerDiemAmount({
+    orgId,
+    policyId,
+    categoryId,
+    startDate,
+    endDate,
+  }: {
+    orgId: number | undefined;
+    policyId: string;
+    categoryId: string;
+    startDate: string;
+    endDate: string;
+  }): Promise<any> {
     try {
-      const orgId = getOrgIdFromToken();
-      if (!orgId) {
-        throw new Error('Organization ID not found in token');
-      }
-      const response = await api.post(`/em/expenses/create?org_id=${orgId}`, expense);
-      
-      return {
-        success: response.data.status === 'success',
-        message: response.data.message,
-        data: response.data.data,
-        policy_validation: response.data.policy_validation
-      };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await api.get(
+        `/em/expenses/calculate_per_diem?org_id=${orgId}&policy_id=${policyId}&category_id=${categoryId}&start_date=${startDate}&end_date=${endDate}`
+      );
+      return response.data;
     } catch (error: any) {
-      console.error('Error creating expense:', error);
+      console.log("Error calculating per diem amount", error);
+      toast.error(error.response?.data?.message || error.message)
       return {
         success: false,
-        message: error.response?.data?.message || error.message || 'Failed to create expense',
-        validation_details: error.response?.data?.validation_details
+        message:
+          error?.response?.data?.message ||
+          error.message ||
+          "Failed to create advance request",
       };
     }
   },
 
-  async createAdvance(advance: CreateAdvanceData): Promise<{ success: boolean; message: string }> {
+  async createExpense(
+    expense: CreateExpenseData
+  ): Promise<CreateExpenseResponse> {
     try {
-      const response = await api.post('/advance', advance);
-      
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        throw new Error("Organization ID not found in token");
+      }
+      const response = await api.post(
+        `/em/expenses/create?org_id=${orgId}`,
+        expense
+      );
+
+      return {
+        success: response.data.status === "success",
+        message: response.data.message,
+        data: response.data.data,
+        policy_validation: response.data.policy_validation,
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Error creating expense:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create expense",
+        validation_details: error.response?.data?.validation_details,
+      };
+    }
+  },
+
+  async createAdvance(
+    advance: CreateAdvanceData
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await api.post("/advance", advance);
+
       return {
         success: response.data.success,
-        message: response.data.message || (response.data.success ? 'Advance request created successfully' : 'Failed to create advance request')
+        message:
+          response.data.message ||
+          (response.data.success
+            ? "Advance request created successfully"
+            : "Failed to create advance request"),
       };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      console.error('Error creating advance:', error);
+      console.error("Error creating advance:", error);
       return {
         success: false,
-        message: error.response?.data?.message || error.message || 'Failed to create advance request'
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create advance request",
       };
     }
   },
 
-  async updateExpense(id: string, expense: UpdateExpenseData): Promise<CreateExpenseResponse> {
+  async updateExpense(
+    id: string,
+    expense: UpdateExpenseData
+  ): Promise<CreateExpenseResponse> {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
-        throw new Error('Organization ID not found in token');
+        throw new Error("Organization ID not found in token");
       }
-      const response = await api.put(`/em/expenses/update/${id}?org_id=${orgId}`, expense);
-      
+      const response = await api.put(
+        `/em/expenses/update/${id}?org_id=${orgId}`,
+        expense
+      );
+
       return {
-        success: response.data.status === 'success',
+        success: response.data.status === "success",
         message: response.data.message,
         data: response.data.data,
-        policy_validation: response.data.policy_validation
+        policy_validation: response.data.policy_validation,
       };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      console.error('Error updating expense:', error);
+      console.error("Error updating expense:", error);
       return {
         success: false,
-        message: error.response?.data?.message || error.message || 'Failed to update expense',
-        validation_details: error.response?.data?.validation_details
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update expense",
+        validation_details: error.response?.data?.validation_details,
       };
     }
   },
