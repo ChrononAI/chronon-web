@@ -101,7 +101,7 @@ export function ExpenseDetailPage() {
         setPolicies(policiesData);
         
         
-        if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())) {
+        if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase()) && !isFromApprovals && !isFromReport) {
           setIsEditing(true);
         }
         
@@ -154,23 +154,25 @@ export function ExpenseDetailPage() {
       const expenseData: UpdateExpenseData = {
         amount: parseFloat(formData.amount).toFixed(2),
         category_id: formData.categoryId,
-        description: formData.comments || expense.description,
-        expense_date: formData.dateOfExpense.toISOString().split('T')[0],
+        description: formData.description,
+        expense_date: formData.dateOfExpense,
         expense_policy_id: formData.policyId,
         vendor: formData.merchant,
         receipt_id: expense.receipt_id || null,
-        invoice_number: formData.invoiceNumber || null,
-        distance: expense.distance || null,
-        distance_unit: expense.distance_unit || null,
-        end_location: expense.end_location || null,
-        start_location: expense.start_location || null,
-        vehicle_type: expense.vehicle_type || null,
-        mileage_meta: expense.mileage_meta || null,
+        invoice_number: expense.invoice_number || null,
+        distance: formData.distance || null,
+        distance_unit: formData.distance_unit || null,
+        end_location: formData.end_location || null,
+        start_location: formData.start_location || null,
+        vehicle_type: formData.vehicle_type || null,
+        mileage_meta: formData.mileage_meta || null,
+        is_round_trip: formData.is_round_trip === "true" ? true : false,
         custom_attributes: {},
       };
+      console.log(expenseData, formData);
 
       const response = await expenseService.updateExpense(id, expenseData);
-      
+      console.log(response);
       if (response.success) {
         toast.success('Expense updated successfully');
         navigate('/expenses');
@@ -293,16 +295,15 @@ export function ExpenseDetailPage() {
 
         {isMileageExpense(expense) ? (
           <MileagePage 
-            mode="view" 
+            mode={(expense.status === "INCOMPLETE" || expense.status === "COMPLETE") ? "edit" : "view"}
             expenseData={expense} 
             isEditable={EDITABLE_STATUSES.includes(expense.status.toUpperCase())}
             onUpdate={handleExpenseSubmit}
-            onCancel={() => setIsEditing(false)}
             isEditing={isEditing}
             saving={saving}
           />
         ) : isPerDiemExpense(expense) ? (
-          <PerdiemPage mode="view" expenseData={expense} />
+          <PerdiemPage mode={(expense.status === "INCOMPLETE" || expense.status === "COMPLETE") ? "edit" : "view"} expenseData={expense} />
         ) : (
           <ExpenseDetailsStep
             onBack={() => {

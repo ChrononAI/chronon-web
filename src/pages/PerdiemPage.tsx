@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Layout } from "@/components/layout/Layout";
+import { useNavigate, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -21,24 +20,30 @@ import {
 import { useAuthStore } from "@/store/authStore";
 
 interface PerdiemPageProps {
-  mode?: "create" | "view";
+  mode?: "create" | "view" | "edit";
   expenseData?: Expense;
-  showLayout?: boolean;
 }
 
-const PerdiemPage = ({
-  mode = "create",
-  expenseData,
-  showLayout = true,
-}: PerdiemPageProps) => {
+const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    startDate: string;
+    endDate: string;
+    location: string;
+    purpose: string;
+    totalAmount: string | number;
+    policy: string;
+    category: string;
+    policyId: string;
+    categoryId: string;
+  }>({
     startDate: "",
     endDate: "",
     location: "",
     purpose: "",
-    totalAmount: 0,
+    totalAmount: "0",
     policy: "",
     category: "",
     policyId: "",
@@ -54,11 +59,11 @@ const PerdiemPage = ({
   // Pre-fill form data when in view mode
   useEffect(() => {
     if (mode === "view") {
-      setEditMode(false);
+      setEditMode(true);
     } else {
       setEditMode(true);
     }
-    if (mode === "view" && expenseData) {
+    if (expenseData) {
       const formatDate = (dateString: string) => {
         try {
           return new Date(dateString).toISOString().split("T")[0];
@@ -86,6 +91,18 @@ const PerdiemPage = ({
       }));
     }
   }, [mode, expenseData]);
+
+  useEffect(() => {
+    if (expenseData && categories.length > 0) {
+      const category = categories.find((cat) => cat.name === expenseData.category);
+      if (category) {
+        setFormData((prev) => ({
+          ...prev,
+          categoryId: category.id
+        }))
+      }
+    }
+  }, [formData.categoryId, expenseData?.category, categories]);
 
   const loadPerDiemPolicies = async () => {
     setLoadingPolicies(true);
@@ -132,12 +149,12 @@ const PerdiemPage = ({
     }
 
     const submitData = {
-      expense_policy_id: "ep0AGCzwSOmn", // Hardcoded policy ID
-      category_id: "cat1GIY3ygLyb", // Hardcoded category ID
+      expense_policy_id: formData.policyId, // Hardcoded policy ID
+      category_id: formData.categoryId, // Hardcoded category ID
       amount: formData.totalAmount,
       expense_date: formData.startDate,
       description: formData.purpose,
-      expense_type: "PER_DIEM",
+      vendor: expenseData?.vendor || "",
       per_diem_info: {
         start_date: formData.startDate,
         end_date: formData.endDate,
@@ -151,10 +168,16 @@ const PerdiemPage = ({
         toast.error("Organization ID not found. Please login again.");
         return;
       }
-
-      await placesService.createPerDiemExpense(submitData, orgId);
-
-      toast.success("Per diem expense created successfully!");
+      if (mode === "create") {
+        await placesService.createPerDiemExpense(submitData, orgId);
+      } else if (mode === "edit" && id) {
+        await expenseService.updateExpense(id, submitData);
+      }
+      if (mode === "create") {
+        toast.success("Per diem expense created successfully!");
+      } else if (mode === "edit") {
+        toast.success("Per diem expense edited successfully!");
+      }
       setTimeout(() => {
         navigate("/expenses");
       }, 500);
@@ -214,7 +237,7 @@ const PerdiemPage = ({
     formData.policyId,
   ]);
 
-  const content = (
+  return (
     <div className="w-full px-6 py-2">
       {/* Header */}
       <div className="mb-4">
@@ -414,12 +437,12 @@ const PerdiemPage = ({
               <p className="text-sm text-gray-500">{days} days</p>
             </div>
 
-            {mode === "create" && (
+            {(mode === "create" || mode === "edit") && (
               <Button
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6"
               >
-                Create Expense
+                {mode === "create" ? "Create" : "Edit"} Expense
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             )}
@@ -428,19 +451,6 @@ const PerdiemPage = ({
       </form>
     </div>
   );
-
-  // In view mode, don't wrap with Layout since it's already inside ExpenseDetailPage
-  if (mode === "view") {
-    return content;
-  }
-
-  // If showLayout is false, return content without Layout wrapper
-  if (!showLayout) {
-    return content;
-  }
-
-  // In create mode, wrap with Layout
-  return <Layout>{content}</Layout>;
 };
 
 export default PerdiemPage;

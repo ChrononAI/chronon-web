@@ -14,6 +14,7 @@ export interface Expense {
   invoice_number: string | null;
   receipt_id: string | null;
   report_id: string | null;
+  is_round_trip: boolean;
   status: string;
   store_id: string | null;
   updated_at: string;
