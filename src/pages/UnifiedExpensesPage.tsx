@@ -27,11 +27,11 @@ export function UnifiedExpensesPage() {
           </TabsContent>
           
           <TabsContent value="mileage" className="mt-6">
-            <MileagePage mode="create" showLayout={false} />
+            <MileagePage mode="create" />
           </TabsContent>
           
           <TabsContent value="perdiem" className="mt-6">
-            <PerdiemPage mode="create" showLayout={false} />
+            <PerdiemPage mode="create" />
           </TabsContent>
         </Tabs>
       </div>

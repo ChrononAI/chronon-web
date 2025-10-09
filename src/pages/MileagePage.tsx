@@ -253,6 +253,7 @@ const MileagePage = ({
     vehicle: string,
     isRoundTrip: boolean = false
   ) => {
+    console.log(isRoundTrip);
     if (!originId || !destinationId || !vehicle) return;
 
     const orgId = getOrgIdFromToken();
