@@ -231,7 +231,19 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
   };
 
   const confirmDeleteExpense = async () => {
-    if (!expenseToDelete || !editMode || !reportData) return;
+    if (!expenseToDelete) return;
+
+    if (!editMode) {
+      const newExpenses = expenses.filter((expense) => expense.id !== expenseToDelete.id);
+      setExpenses(newExpenses);
+
+      setAvailableExpenses((prev) => [...prev, expenseToDelete]);
+      toast.success("Expense removed from report");
+      setShowDeleteDialog(false);
+      setExpenseToDelete(null);
+      return;
+    }
+    if(!reportData)return
 
     setApiLoading(true);
     try {
@@ -261,11 +273,29 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
   };
 
   const addExpensesToReport = async () => {
-    if (selectedAvailableExpenses.size === 0 || !editMode || !reportData) return;
+    if (selectedAvailableExpenses.size === 0) return;
     
     const expensesToAdd = availableExpenses.filter(expense => 
       selectedAvailableExpenses.has(expense.id)
     );
+    if (!editMode) {
+      // Add to current expenses
+      setExpenses(prev => [...prev, ...expensesToAdd]);
+      
+      // Remove from available expenses
+      setAvailableExpenses(prev => 
+        prev.filter(expense => !selectedAvailableExpenses.has(expense.id))
+      );
+      
+      // Clear available selection
+      setSelectedAvailableExpenses(new Set());
+      
+      toast.success(`${expensesToAdd.length} expense${expensesToAdd.length !== 1 ? 's' : ''} added to report`);
+      return;
+    }
+    
+    // In edit mode, make API call
+    if (!reportData) return;
     
     setApiLoading(true);
     try {
@@ -403,20 +433,6 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
   const onSubmit = async (data: ReportFormValues) => {
     if (expenses.length === 0) {
       toast.error('Please add at least one expense to the report');
-      return;
-    }
-
-    // Check if required fields are selected
-    const costCenterField = getFieldMeta('Cost Center');
-    const expenseHeadField = getFieldMeta('Expense Head');
-
-    if (costCenterField && !data.costCenter) {
-      toast.error('Please select a Cost Center');
-      return;
-    }
-
-    if (expenseHeadField && !data.expenseHead) {
-      toast.error('Please select an Expense Head');
       return;
     }
 
@@ -818,7 +834,6 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
               editMode ? 'Update Report' : 'Save Draft'
             )}
           </Button>
-          {!editMode && (
           <Button 
             onClick={form.handleSubmit(onSubmit)} 
             disabled={loading} 
@@ -833,7 +848,6 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
               'Create & Submit'
             )}
           </Button>
-          )}
         </div>
       </div>
 

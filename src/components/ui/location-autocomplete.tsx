@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Input } from '@/components/ui/input';
-import { MapPin, Loader2 } from 'lucide-react';
-import { placesService, PlaceSuggestion } from '@/services/placesService';
+import React, { useState, useEffect, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { MapPin, Loader2 } from "lucide-react";
+import { placesService, PlaceSuggestion } from "@/services/placesService";
 
 interface LocationAutocompleteProps {
   value: string;
@@ -16,7 +16,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   onChange,
   onSelect,
   placeholder = "e.g., 123 Main St, Anytown",
-  disabled = false
+  disabled = false,
 }) => {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,8 +62,8 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,6 +76,26 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     setShowSuggestions(false);
   };
 
+  const [isAutoSelected, setIsAutoSelected] = useState(false);
+
+  useEffect(() => {
+    const autoSelectExistingPlace = async () => {
+      if (!value || disabled || isAutoSelected) return;
+
+      const results = await placesService.getSuggestions(value);
+      const match = results.find(
+        (s) => s.description.toLowerCase() === value.toLowerCase()
+      );
+
+      if (match) {
+        onSelect(match);
+        setIsAutoSelected(true);
+      }
+    };
+
+    autoSelectExistingPlace();
+  }, [value, disabled, isAutoSelected]);
+
   return (
     <div className="relative">
       <div className="relative">
@@ -86,7 +106,9 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
           placeholder={placeholder}
           value={value}
           onChange={handleInputChange}
-          onFocus={() => !disabled && setShowSuggestions(suggestions.length > 0)}
+          onFocus={() =>
+            !disabled && setShowSuggestions(suggestions.length > 0)
+          }
           className="pl-10"
           disabled={disabled}
         />

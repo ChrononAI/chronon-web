@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,31 +18,30 @@ import { LocationAutocomplete } from "@/components/ui/location-autocomplete";
 import { placesService, PlaceSuggestion } from "@/services/placesService";
 import { expenseService } from "@/services/expenseService";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
-import { Expense, Policy } from "@/types/expense";
+import { Expense, Policy, PolicyCategory } from "@/types/expense";
 import { toast } from "sonner";
 
 interface MileagePageProps {
-  mode?: "create" | "view";
+  mode?: "create" | "view" | "edit";
   expenseData?: Expense;
-  showLayout?: boolean;
   isEditable?: boolean;
   onUpdate?: (data: any) => Promise<void>;
-  onCancel?: () => void;
   isEditing?: boolean;
   saving?: boolean;
+  onCancel?: () => void;
 }
 
 const MileagePage = ({
   mode = "create",
   expenseData,
-  showLayout = true,
   isEditable = false,
   onUpdate,
-  onCancel,
   isEditing = false,
   saving = false,
+  onCancel,
 }: MileagePageProps) => {
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     startLocation: "",
     startLocationId: "",
@@ -58,58 +56,15 @@ const MileagePage = ({
     policyId: "",
     categoryId: "",
   });
+
   const [isCalculating, setIsCalculating] = useState(false);
   const [policies, setPolicies] = useState<Policy[]>([]);
+  const [categories, setCategories] = useState<PolicyCategory[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
-  useEffect(() => {
-    if (mode === "view" && expenseData) {
-      const formatDate = (dateString: string) => {
-        try {
-          return new Date(dateString).toISOString().split("T")[0];
-        } catch {
-          return new Date().toISOString().split("T")[0];
-        }
-      };
-
-      const getVehicleTypeFromApi = (vehicleType: string) => {
-        switch (vehicleType?.toLowerCase()) {
-          case "four_wheelers":
-            return "car";
-          case "two_wheelers":
-            return "bike";
-          case "public_transport":
-            return "public_transport";
-          default:
-            return "car";
-        }
-      };
-
-      setFormData({
-        startLocation: expenseData.start_location || "",
-        startLocationId: "",
-        endLocation: expenseData.end_location || "",
-        endLocationId: "",
-        distance: expenseData.distance
-          ? `${expenseData.distance} ${expenseData.distance_unit || "KM"}`
-          : "",
-        amount: `₹${expenseData.amount}`,
-        description: expenseData.description || "",
-        vehiclesType: getVehicleTypeFromApi(expenseData.vehicle_type || ""),
-        expenseDate: formatDate(expenseData.expense_date),
-        isRoundTrip: false,
-        policyId: (expenseData as any).expense_policy_id || "",
-        categoryId: (expenseData as any).category_id || "",
-      });
-    }
-  }, [mode, expenseData]);
-
-  useEffect(() => {
-    loadMileagePolicies();
-  }, []);
-
+  // ✅ Fix duplicate useEffect closing braces
   useEffect(() => {
     if (mode === "view" && isEditable && !isEditing) {
       setEditMode(false);
@@ -117,60 +72,6 @@ const MileagePage = ({
       setEditMode(true);
     }
   }, [mode, isEditable, isEditing]);
-
-  const loadMileagePolicies = async () => {
-    if (mode === "view" && !editMode) return;
-
-    setLoadingPolicies(true);
-    try {
-      const allPolicies = await expenseService.getAllPoliciesWithCategories();
-
-      // Filter for mileage policies only
-      const mileagePolicies = allPolicies.filter((policy: Policy) => {
-        const policyName = policy.name?.toLowerCase() || "";
-        const policyDescription = policy.description?.toLowerCase() || "";
-        const policyType = policy.policy_type?.toLowerCase() || "";
-
-        return (
-          policyName.includes("mileage") ||
-          policyName.includes("mile") ||
-          policyDescription.includes("mileage") ||
-          policyDescription.includes("mile") ||
-          policyType.includes("mileage") ||
-          policyType.includes("mile") ||
-          policy.categories?.some((category) => {
-            const categoryName = category.name?.toLowerCase() || "";
-            const categoryType = category.category_type?.toLowerCase() || "";
-            return (
-              categoryName.includes("mileage") ||
-              categoryName.includes("mile") ||
-              categoryType.includes("mileage") ||
-              categoryType.includes("mile")
-            );
-          })
-        );
-      });
-
-      setPolicies(mileagePolicies);
-
-      // Auto-select first policy and category if available
-      if (mileagePolicies.length > 0) {
-        const firstPolicy = mileagePolicies[0];
-        setSelectedPolicy(firstPolicy);
-        setFormData((prev) => ({ ...prev, policyId: firstPolicy.id }));
-
-        if (firstPolicy.categories && firstPolicy.categories.length > 0) {
-          const firstCategory = firstPolicy.categories[0];
-          setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
-        }
-      }
-    } catch (error) {
-      console.error("Error loading mileage policies:", error);
-      toast.error("Failed to load policies");
-    } finally {
-      setLoadingPolicies(false);
-    }
-  };
 
   const vehicleTypeMapping = {
     car: "FOUR_WHEELERS",
@@ -233,38 +134,118 @@ const MileagePage = ({
   };
 
   const handleStartLocationSelect = (place: PlaceSuggestion) => {
-    setFormData((prev) => {
-      const updatedData = {
-        ...prev,
-        startLocation: place.description,
-        startLocationId: place.place_id,
-      };
-      calculateMileageCost(
-        place.place_id,
-        updatedData.endLocationId,
-        updatedData.vehiclesType,
-        updatedData.isRoundTrip
-      );
-      return updatedData;
-    });
+    setFormData((prev) => ({
+      ...prev,
+      startLocation: place.description,
+      startLocationId: place.place_id,
+    }));
   };
 
   const handleEndLocationSelect = (place: PlaceSuggestion) => {
-    setFormData((prev) => {
-      const updatedData = {
-        ...prev,
-        endLocation: place.description,
-        endLocationId: place.place_id,
-      };
-      calculateMileageCost(
-        updatedData.startLocationId,
-        place.place_id,
-        updatedData.vehiclesType,
-        updatedData.isRoundTrip
-      );
-      return updatedData;
-    });
+    setFormData((prev) => ({
+      ...prev,
+      endLocation: place.description,
+      endLocationId: place.place_id,
+    }));
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const orgId = getOrgIdFromToken();
+    if (!orgId) return alert("Organization ID not found.");
+
+    const submitData = {
+      expense_policy_id: formData.policyId,
+      category_id: formData.categoryId,
+      amount: extractAmount(formData.amount),
+      dateOfExpense: formData.expenseDate,
+      description: formData.description,
+      expenseDate: formData.expenseDate,
+      start_location: formData.startLocation,
+      end_location: formData.endLocation,
+      distance: extractDistance(formData.distance),
+      distance_unit: "KM",
+      vehicle_type:
+        vehicleTypeMapping[
+          formData.vehiclesType as keyof typeof vehicleTypeMapping
+        ] || "four_wheeler",
+      is_round_trip: formData.isRoundTrip.toString(),
+      mileage_meta: {
+        trip_purpose: "business_travel",
+        notes: formData.isRoundTrip ? "Round trip" : "",
+      },
+      vendor: expenseData?.vendor,
+    };
+
+    try {
+      if (mode === "create") {
+        await placesService.createMileageExpense(submitData, orgId);
+      } else if (mode === "edit" && onUpdate) {
+        await onUpdate(submitData);
+      }
+      navigate("/expenses");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save mileage expense");
+    }
+  };
+
+  const loadMileagePolicies = async () => {
+    setLoadingPolicies(true);
+    try {
+      const allPolicies = await expenseService.getAllPoliciesWithCategories();
+
+      // Filter for mileage policies only
+      const mileagePolicies = allPolicies.filter((policy: Policy) => {
+        const policyName = policy.name?.toLowerCase() || "";
+        const policyDescription = policy.description?.toLowerCase() || "";
+        const policyType = policy.policy_type?.toLowerCase() || "";
+
+        return (
+          policyName.includes("mileage") ||
+          policyName.includes("mile") ||
+          policyDescription.includes("mileage") ||
+          policyDescription.includes("mile") ||
+          policyType.includes("mileage") ||
+          policyType.includes("mile") ||
+          policy.categories?.some((category) => {
+            const categoryName = category.name?.toLowerCase() || "";
+            const categoryType = category.category_type?.toLowerCase() || "";
+            return (
+              categoryName.includes("mileage") ||
+              categoryName.includes("mile") ||
+              categoryType.includes("mileage") ||
+              categoryType.includes("mile")
+            );
+          })
+        );
+      });
+
+      setPolicies(mileagePolicies);
+      setCategories(mileagePolicies[0].categories);
+
+      // Auto-select first policy and category if available
+      if (mileagePolicies.length > 0) {
+        const firstPolicy = mileagePolicies[0];
+        setSelectedPolicy(firstPolicy);
+        setFormData((prev) => ({ ...prev, policyId: firstPolicy.id }));
+
+        if (firstPolicy.categories && firstPolicy.categories.length > 0) {
+          const firstCategory = firstPolicy.categories[0];
+          setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
+        }
+      }
+    } catch (error) {
+      console.error("Error loading mileage policies:", error);
+      toast.error("Failed to load policies");
+    } finally {
+      setLoadingPolicies(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMileagePolicies();
+  }, []);
 
   const calculateMileageCost = async (
     originId: string,
@@ -291,16 +272,16 @@ const MileagePage = ({
         orgId
       );
       if (costData) {
-        const multiplier = isRoundTrip ? 2 : 1;
+        // const multiplier = isRoundTrip ? 2 : 1;
         const baseDistance =
           costData.distance?.distance ||
           parseFloat(costData.distance?.text?.replace(/[^\d.]/g, "") || "0");
-        const calculatedDistance = baseDistance * multiplier;
+        const calculatedDistance = baseDistance;
 
         setFormData((prev) => ({
           ...prev,
           distance: `${calculatedDistance.toFixed(1)} km`,
-          amount: `₹${(costData.cost * multiplier).toFixed(2)}`,
+          amount: `₹${costData.cost.toFixed(2)}`,
         }));
       }
     } catch (error) {
@@ -310,139 +291,49 @@ const MileagePage = ({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (
-      !formData.startLocation ||
-      !formData.endLocation ||
-      !formData.vehiclesType ||
-      !formData.description ||
-      !formData.policyId ||
-      !formData.categoryId
-    ) {
-      alert(
-        "Please fill in all required fields: Start Location, End Location, Vehicle Type, Policy, Category, and Description"
-      );
-      return;
-    }
-
-    const submitData = {
-      expense_policy_id: formData.policyId,
-      category_id: formData.categoryId,
-      amount: extractAmount(formData.amount),
-      expense_date: formData.expenseDate,
-      description: formData.description,
-      start_location: formData.startLocation,
-      end_location: formData.endLocation,
-      distance: extractDistance(formData.distance),
-      distance_unit: "KM",
-      vehicle_type:
-        vehicleTypeMapping[
-          formData.vehiclesType as keyof typeof vehicleTypeMapping
-        ] || "four_wheeler",
-      is_round_trip: formData.isRoundTrip.toString(),
-      mileage_meta: {
-        trip_purpose: "business_travel",
-        notes: formData.isRoundTrip ? "Round trip" : "",
-      },
-      vendor: "Personal Vehicle",
-    };
-
-    try {
-      if (mode === "view" && onUpdate) {
-        await onUpdate(submitData);
-        return;
-      }
-
-      const orgId = getOrgIdFromToken();
-      if (!orgId) {
-        alert("Organization ID not found. Please login again.");
-        return;
-      }
-
-      await placesService.createMileageExpense(submitData, orgId);
-
-      toast.success("Mileage expense created successfully!");
-      setTimeout(() => {
-        navigate("/expenses");
-      }, 500);
-    } catch (error: any) {
-      console.error("Error creating mileage expense:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to create mileage expense";
-      alert(`Error: ${errorMessage}`);
-    }
-  };
-
-  const content = (
+  return (
     <div className="max-w-full mx-auto px-6 pt-1 pb-6">
       <div className="mb-3">
         <h1 className="text-2xl font-bold text-gray-800">
-          {mode === "view"
-            ? "Mileage Expense Details"
-            : "Create New Mileage Expense"}
+          {mode === "create"
+            ? "Create New Mileage Expense"
+            : "Mileage Expense Details"}
         </h1>
       </div>
 
       <form onSubmit={handleSubmit}>
         <Card>
-          <CardContent className="px-6 py-4 space-y-2">
+          <CardContent className="px-6 py-4 space-y-4">
+            {/* 🚗 Route Section */}
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-gray-700">Route</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="startLocation"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Start Location
-                  </Label>
+                <div>
+                  <Label>Start Location</Label>
                   <LocationAutocomplete
                     value={formData.startLocation}
-                    onChange={(value) =>
-                      handleInputChange("startLocation", value)
-                    }
+                    onChange={(v) => handleInputChange("startLocation", v)}
                     onSelect={handleStartLocationSelect}
-                    placeholder="e.g., 123 Main St, Anytown"
                     disabled={mode === "view" && !editMode}
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="endLocation"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    End Location
-                  </Label>
+                <div>
+                  <Label>End Location</Label>
                   <LocationAutocomplete
                     value={formData.endLocation}
-                    onChange={(value) =>
-                      handleInputChange("endLocation", value)
-                    }
+                    onChange={(v) => handleInputChange("endLocation", v)}
                     onSelect={handleEndLocationSelect}
-                    placeholder="e.g., 456 Oak Ave, Sometown"
                     disabled={mode === "view" && !editMode}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="vehiclesType"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Vehicle Type
-                  </Label>
+                <div>
+                  <Label>Vehicle Type</Label>
                   <Select
                     value={formData.vehiclesType}
-                    onValueChange={(value) =>
-                      handleInputChange("vehiclesType", value)
-                    }
+                    onValueChange={(v) => handleInputChange("vehiclesType", v)}
                     disabled={mode === "view" && !editMode}
                   >
                     <SelectTrigger>
@@ -458,35 +349,26 @@ const MileagePage = ({
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="roundTrip"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Round Trip
-                  </Label>
-                  <div className="flex items-center space-x-2 h-10">
+                <div className="flex flex-col justify-center space-y-1">
+                  <Label>Round Trip</Label>
+                  <div className="flex items-center space-x-2">
                     <Switch
-                      id="roundTrip"
                       checked={formData.isRoundTrip}
-                      onCheckedChange={(checked) =>
-                        handleInputChange("isRoundTrip", checked)
+                      onCheckedChange={(v) =>
+                        handleInputChange("isRoundTrip", v)
                       }
                       disabled={mode === "view" && !editMode}
                     />
-                    <Label
-                      htmlFor="roundTrip"
-                      className="text-sm text-gray-600"
-                    >
-                      {formData.isRoundTrip ? "Yes" : "No"}
-                    </Label>
+                    <span>{formData.isRoundTrip ? "Yes" : "No"}</span>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* 🧾 Details Section */}
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-gray-700">Details</h3>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label
@@ -556,53 +438,44 @@ const MileagePage = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="policy"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Policy
-                  </Label>
-                  <Input
-                    id="policy"
-                    type="text"
-                    value={selectedPolicy?.name}
-                    className="bg-gray-50 text-gray-500"
-                    disabled
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="category"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Category
-                  </Label>
+                <div>
+                  <Label>Policy</Label>
                   <Select
-                    value={formData.categoryId}
-                    onValueChange={(value) =>
-                      handleInputChange("categoryId", value)
-                    }
-                    disabled={
-                      (mode === "view" && !editMode) ||
-                      !selectedPolicy ||
-                      loadingPolicies
-                    }
+                    value={formData.policyId}
+                    onValueChange={(v) => handleInputChange("policyId", v)}
+                    disabled={loadingPolicies || (mode === "view" && !editMode)}
                   >
                     <SelectTrigger>
                       <SelectValue
                         placeholder={
-                          !selectedPolicy
-                            ? "Select policy first"
-                            : "Select category"
+                          loadingPolicies ? "Loading..." : "Select Policy"
                         }
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      {selectedPolicy?.categories?.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
+                      {policies.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Category</Label>
+                  <Select
+                    value={formData.categoryId}
+                    onValueChange={(v) => handleInputChange("categoryId", v)}
+                    disabled={!selectedPolicy || loadingPolicies}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories?.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -632,29 +505,22 @@ const MileagePage = ({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="description"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Description
-                </Label>
+              <div>
+                <Label>Description</Label>
                 <Textarea
-                  id="description"
-                  placeholder="Provide a brief description for this trip..."
                   value={formData.description}
                   onChange={(e) =>
                     handleInputChange("description", e.target.value)
                   }
-                  className="min-h-[100px] resize-none"
-                  disabled={mode === "view"}
+                  disabled={mode === "view" && !editMode}
                 />
               </div>
             </div>
 
-            {(mode === "create" || (mode === "view" && editMode)) && (
-              <div className="flex justify-end gap-2 pt-2">
-                {mode === "view" && editMode && onCancel && (
+            {/* 💾 Actions */}
+            {(mode === "create" || mode === "edit" || editMode) && (
+              <div className="flex justify-end gap-2 pt-4">
+                {editMode && onCancel && (
                   <Button
                     type="button"
                     variant="outline"
@@ -671,7 +537,7 @@ const MileagePage = ({
                 >
                   {saving
                     ? "Saving..."
-                    : mode === "view"
+                    : mode === "edit" || editMode
                     ? "Update Expense"
                     : "Submit Expense"}
                 </Button>
@@ -682,16 +548,6 @@ const MileagePage = ({
       </form>
     </div>
   );
-
-  if (mode === "view") {
-    return content;
-  }
-
-  if (!showLayout) {
-    return content;
-  }
-
-  return <Layout>{content}</Layout>;
 };
 
 export default MileagePage;

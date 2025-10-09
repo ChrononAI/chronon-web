@@ -639,7 +639,8 @@ export function ExpenseDetailsStep({
                                   ? "bg-white border-green-300 text-gray-900"
                                   : ""
                               }
-                              readOnly={readOnly}
+                              // readOnly={readOnly}
+                              disabled={readOnly}
                             />
                           </FormControl>
                           <FormMessage />
@@ -719,7 +720,8 @@ export function ExpenseDetailsStep({
                             {...field}
                             placeholder="Add any additional comments..."
                             rows={4}
-                            readOnly={readOnly}
+                            // readOnly={readOnly}
+                            disabled={readOnly}
                           />
                         </FormControl>
                         <FormMessage />
