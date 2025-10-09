@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { getOrgIdFromToken } from '@/lib/jwtUtils';
-import api from '@/lib/api';
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { getOrgIdFromToken } from "@/lib/jwtUtils";
+import api from "@/lib/api";
 import {
   ArrowLeft,
   MapPin,
@@ -19,9 +19,9 @@ import {
   Download,
   X,
   ChevronDown,
-} from 'lucide-react';
+} from "lucide-react";
 
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -29,23 +29,23 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -53,23 +53,22 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { expenseService } from '@/services/expenseService';
-import { Policy, PolicyCategory } from '@/types/expense';
-import { ParsedInvoiceData } from '@/services/fileParseService';
-
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { expenseService } from "@/services/expenseService";
+import { Policy, PolicyCategory } from "@/types/expense";
+import { ParsedInvoiceData } from "@/services/fileParseService";
 
 // Form schema
 const expenseSchema = z.object({
-  policyId: z.string().min(1, 'Please select a policy'),
-  categoryId: z.string().min(1, 'Please select a category'),
-  invoiceNumber: z.string().min(1, 'Invoice number is required'),
-  merchant: z.string().min(1, 'Merchant is required'),
-  amount: z.string().min(1, 'Amount is required'),
+  policyId: z.string().min(1, "Please select a policy"),
+  categoryId: z.string().min(1, "Please select a category"),
+  invoiceNumber: z.string().min(1, "Invoice number is required"),
+  merchant: z.string().min(1, "Merchant is required"),
+  amount: z.string().min(1, "Amount is required"),
   dateOfExpense: z.date({
-    required_error: 'Date is required',
+    required_error: "Date is required",
   }),
   comments: z.string().optional(),
   // Conveyance specific fields
@@ -80,12 +79,27 @@ const expenseSchema = z.object({
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
-
 const cities = [
-  'Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Ahmedabad', 'Chennai',
-  'Kolkata', 'Pune', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore',
-  'Thane', 'Bhopal', 'Visakhapatnam', 'Pimpri-Chinchwad', 'Patna',
-  'Vadodara', 'Ghaziabad'
+  "Mumbai",
+  "Delhi",
+  "Bengaluru",
+  "Hyderabad",
+  "Ahmedabad",
+  "Chennai",
+  "Kolkata",
+  "Pune",
+  "Jaipur",
+  "Lucknow",
+  "Kanpur",
+  "Nagpur",
+  "Indore",
+  "Thane",
+  "Bhopal",
+  "Visakhapatnam",
+  "Pimpri-Chinchwad",
+  "Patna",
+  "Vadodara",
+  "Ghaziabad",
 ];
 
 interface ExpenseDetailsStepProps {
@@ -102,10 +116,10 @@ interface ExpenseDetailsStepProps {
   receiptLoading?: boolean;
 }
 
-export function ExpenseDetailsStep({ 
-  onBack, 
-  onSubmit, 
-  loading, 
+export function ExpenseDetailsStep({
+  onBack,
+  onSubmit,
+  loading,
   parsedData,
   uploadedFile,
   previewUrl,
@@ -113,13 +127,16 @@ export function ExpenseDetailsStep({
   expenseData,
   receiptUrls = [],
   isEditMode = false,
-  receiptLoading = false
+  receiptLoading = false,
 }: ExpenseDetailsStepProps) {
   const [policies, setPolicies] = useState<Policy[]>([]);
-  const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(null);
+  const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(
+    null
+  );
   const [duplicateReceiptLoading, setDuplicateReceiptLoading] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<PolicyCategory | null>(null);
+  const [selectedCategory, setSelectedCategory] =
+    useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
   // Fetch signed URL for duplicate receipts
@@ -128,13 +145,15 @@ export function ExpenseDetailsStep({
       setDuplicateReceiptLoading(true);
       const orgId = getOrgIdFromToken();
       if (!orgId) return;
-      
-      const response = await api.get(`/receipts/${receiptId}/signed-url?org_id=${orgId}`);
-      if (response.data.status === 'success' && response.data.data.signed_url) {
+
+      const response = await api.get(
+        `/receipts/${receiptId}/signed-url?org_id=${orgId}`
+      );
+      if (response.data.status === "success" && response.data.data.signed_url) {
         setDuplicateReceiptUrl(response.data.data.signed_url);
       }
     } catch (error) {
-      console.error('Error fetching duplicate receipt signed URL:', error);
+      console.error("Error fetching duplicate receipt signed URL:", error);
     } finally {
       setDuplicateReceiptLoading(false);
     }
@@ -147,25 +166,40 @@ export function ExpenseDetailsStep({
 
   // Fetch signed URL for duplicate receipts when component mounts
   useEffect(() => {
-    if (parsedData?.id && !readOnly && !receiptUrls.length && !duplicateReceiptUrl && !duplicateReceiptLoading) {
+    if (
+      parsedData?.id &&
+      !readOnly &&
+      !receiptUrls.length &&
+      !duplicateReceiptUrl &&
+      !duplicateReceiptLoading
+    ) {
       fetchDuplicateReceiptUrl(parsedData.id);
     }
-  }, [parsedData?.id, readOnly, receiptUrls.length, duplicateReceiptUrl, duplicateReceiptLoading, fetchDuplicateReceiptUrl]);
+  }, [
+    parsedData?.id,
+    readOnly,
+    receiptUrls.length,
+    duplicateReceiptUrl,
+    duplicateReceiptLoading,
+    fetchDuplicateReceiptUrl,
+  ]);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
-    defaultValues: expenseData ? expenseData : {
-      policyId: '',
-      categoryId: '',
-      invoiceNumber: '',
-      merchant: '',
-      amount: '',
-      dateOfExpense: new Date(),
-      comments: '',
-      city: '',
-      source: '',
-      destination: '',
-    },
+    defaultValues: expenseData
+      ? expenseData
+      : {
+          policyId: "",
+          categoryId: "",
+          invoiceNumber: "",
+          merchant: "",
+          amount: "",
+          dateOfExpense: new Date(),
+          comments: "",
+          city: "",
+          source: "",
+          destination: "",
+        },
   });
 
   useEffect(() => {
@@ -176,15 +210,17 @@ export function ExpenseDetailsStep({
   useEffect(() => {
     if (expenseData) {
       form.reset(expenseData);
-      
+
       // Set selected policy and category based on form data
       if (expenseData.policyId && policies.length > 0) {
-        const policy = policies.find(p => p.id === expenseData.policyId);
+        const policy = policies.find((p) => p.id === expenseData.policyId);
         if (policy) {
           setSelectedPolicy(policy);
-          
+
           if (expenseData.categoryId) {
-            const category = policy.categories.find(c => c.id === expenseData.categoryId);
+            const category = policy.categories.find(
+              (c) => c.id === expenseData.categoryId
+            );
             if (category) {
               setSelectedCategory(category);
             }
@@ -201,23 +237,25 @@ export function ExpenseDetailsStep({
 
       if (ocrData.amount) {
         // Clean amount by removing currency symbols and commas
-        const cleanAmount = ocrData.amount.replace(/[^\d.,]/g, '').replace(/,/g, '');
-        form.setValue('amount', cleanAmount);
+        const cleanAmount = ocrData.amount
+          .replace(/[^\d.,]/g, "")
+          .replace(/,/g, "");
+        form.setValue("amount", cleanAmount);
       }
-      
+
       if (ocrData.vendor) {
-        form.setValue('merchant', ocrData.vendor);
+        form.setValue("merchant", ocrData.vendor);
       }
-      
+
       if (ocrData.invoice_number) {
-        form.setValue('invoiceNumber', ocrData.invoice_number);
+        form.setValue("invoiceNumber", ocrData.invoice_number);
       }
-      
+
       if (ocrData.date) {
         // Parse the date string and convert to Date object
         const parsedDate = new Date(ocrData.date);
         if (!isNaN(parsedDate.getTime())) {
-          form.setValue('dateOfExpense', parsedDate);
+          form.setValue("dateOfExpense", parsedDate);
         }
       }
     }
@@ -228,23 +266,21 @@ export function ExpenseDetailsStep({
       const policiesData = await expenseService.getPoliciesWithCategories();
       setPolicies(policiesData);
     } catch (error) {
-      console.error('Error loading policies:', error);
+      console.error("Error loading policies:", error);
     }
   };
 
-
-
   // Receipt viewer functions
   const handleReceiptZoomIn = () => {
-    setReceiptZoom(prev => Math.min(prev + 0.25, 3));
+    setReceiptZoom((prev) => Math.min(prev + 0.25, 3));
   };
 
   const handleReceiptZoomOut = () => {
-    setReceiptZoom(prev => Math.max(prev - 0.25, 0.5));
+    setReceiptZoom((prev) => Math.max(prev - 0.25, 0.5));
   };
 
   const handleReceiptRotate = () => {
-    setReceiptRotation(prev => (prev + 90) % 360);
+    setReceiptRotation((prev) => (prev + 90) % 360);
   };
 
   const handleReceiptReset = () => {
@@ -259,7 +295,7 @@ export function ExpenseDetailsStep({
   const handleReceiptDownload = () => {
     if (uploadedFile) {
       const url = URL.createObjectURL(uploadedFile);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = uploadedFile.name;
       document.body.appendChild(a);
@@ -269,17 +305,40 @@ export function ExpenseDetailsStep({
     }
   };
 
-  const isConveyanceCategory = selectedCategory?.name === 'Conveyance 2W';
+  const isConveyanceCategory = selectedCategory?.name === "Conveyance 2W";
   const availableCategories = selectedPolicy?.categories || [];
 
+  useEffect(() => {
+    console.log(parsedData);
+    if (parsedData?.recommended_policy_id && parsedData?.recommended_category) {
+      const selectedPolicy = policies.find(
+        (policy) => policy.id === parsedData.recommended_policy_id
+      );
+      const selectedCategory = selectedPolicy?.categories.find(
+        (category) =>
+          category.id === parsedData.recommended_category.category_id
+      );
+      if (selectedPolicy && selectedCategory) {
+        console.log("inside if", selectedPolicy, selectedCategory);
+        setSelectedCategory(selectedCategory);
+        setSelectedPolicy(selectedPolicy);
+        form.setValue("policyId", selectedPolicy.id);
+      }
+    }
+  }, [parsedData, policies]);
+  console.log(form.getValues("policyId"));
 
   return (
     <div className="space-y-6">
       {/* Step Header - Only show when not in read-only mode */}
       {!readOnly && (
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Step 2: Expense Details</h2>
-          <p className="text-gray-600">Fill in the expense details and submit your request</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Step 2: Expense Details
+          </h2>
+          <p className="text-gray-600">
+            Fill in the expense details and submit your request
+          </p>
         </div>
       )}
 
@@ -289,7 +348,10 @@ export function ExpenseDetailsStep({
           <Card>
             <CardContent className="p-6">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-6"
+                >
                   {/* 2-Column Grid for Form Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Policy Selection */}
@@ -300,20 +362,24 @@ export function ExpenseDetailsStep({
                         <FormItem>
                           <FormLabel>Policy *</FormLabel>
                           <Select
+                            value={field.value}
                             onValueChange={(value) => {
                               field.onChange(value);
-                              const policy = policies.find(p => p.id === value);
+                              const policy = policies.find(
+                                (p) => p.id === value
+                              );
                               setSelectedPolicy(policy || null);
                               setSelectedCategory(null);
-                              form.setValue('categoryId', '');
+                              form.setValue("categoryId", "");
                             }}
-                            defaultValue={field.value}
                             disabled={readOnly}
                           >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a policy">
-                                  {field.value && selectedPolicy ? selectedPolicy.name : "Select a policy"}
+                                  {field.value && selectedPolicy
+                                    ? selectedPolicy.name
+                                    : "Select a policy"}
                                 </SelectValue>
                               </SelectTrigger>
                             </FormControl>
@@ -321,9 +387,13 @@ export function ExpenseDetailsStep({
                               {policies.map((policy) => (
                                 <SelectItem key={policy.id} value={policy.id}>
                                   <div>
-                                    <div className="font-medium">{policy.name}</div>
+                                    <div className="font-medium">
+                                      {policy.name}
+                                    </div>
                                     {policy.description && (
-                                      <div className="text-sm text-muted-foreground">{policy.description}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {policy.description}
+                                      </div>
                                     )}
                                   </div>
                                 </SelectItem>
@@ -342,7 +412,10 @@ export function ExpenseDetailsStep({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Category *</FormLabel>
-                          <Popover open={categoryDropdownOpen} onOpenChange={setCategoryDropdownOpen}>
+                          <Popover
+                            open={categoryDropdownOpen}
+                            onOpenChange={setCategoryDropdownOpen}
+                          >
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
@@ -352,7 +425,11 @@ export function ExpenseDetailsStep({
                                   className="w-full justify-between"
                                   disabled={!selectedPolicy || readOnly}
                                 >
-                                  {selectedCategory ? selectedCategory.name : (!selectedPolicy ? "Select policy first" : "Select a category")}
+                                  {selectedCategory
+                                    ? selectedCategory.name
+                                    : !selectedPolicy
+                                    ? "Select policy first"
+                                    : "Select a category"}
                                   <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                               </FormControl>
@@ -361,7 +438,9 @@ export function ExpenseDetailsStep({
                               <Command>
                                 <CommandInput placeholder="Search categories..." />
                                 <CommandList>
-                                  <CommandEmpty>No category found.</CommandEmpty>
+                                  <CommandEmpty>
+                                    No category found.
+                                  </CommandEmpty>
                                   <CommandGroup>
                                     {availableCategories.map((category) => (
                                       <CommandItem
@@ -397,16 +476,21 @@ export function ExpenseDetailsStep({
                               <FormLabel>
                                 Invoice Number *
                                 {parsedData?.ocr_result?.invoice_number && (
-                                  <span className="text-green-600 text-xs ml-2">(Auto-filled)</span>
+                                  <span className="text-green-600 text-xs ml-2">
+                                    (Auto-filled)
+                                  </span>
                                 )}
                               </FormLabel>
                               <FormControl>
                                 <Input
                                   {...field}
                                   placeholder="Invoice Number"
-                                  className={parsedData?.ocr_result?.invoice_number ? "bg-white border-green-300 text-gray-900" : ""}
-                                  // readOnly={readOnly}
-                                  disabled={readOnly}
+                                  className={
+                                    parsedData?.ocr_result?.invoice_number
+                                      ? "bg-white border-green-300 text-gray-900"
+                                      : ""
+                                  }
+                                  readOnly={readOnly}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -422,16 +506,21 @@ export function ExpenseDetailsStep({
                               <FormLabel>
                                 Vendor *
                                 {parsedData?.ocr_result?.vendor && (
-                                  <span className="text-green-600 text-xs ml-2">(Auto-filled)</span>
+                                  <span className="text-green-600 text-xs ml-2">
+                                    (Auto-filled)
+                                  </span>
                                 )}
                               </FormLabel>
                               <FormControl>
                                 <Input
                                   {...field}
                                   placeholder="Vendor"
-                                  className={parsedData?.ocr_result?.vendor ? "bg-white border-green-300 text-gray-900" : ""}
-                                  // readOnly={readOnly}
-                                  disabled={readOnly}
+                                  className={
+                                    parsedData?.ocr_result?.vendor
+                                      ? "bg-white border-green-300 text-gray-900"
+                                      : ""
+                                  }
+                                  readOnly={readOnly}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -441,87 +530,84 @@ export function ExpenseDetailsStep({
                       </>
                     )}
 
-              {/* Conveyance 2W Specific Fields */}
-              {isConveyanceCategory && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Select City *</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select city" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {cities.map((city) => (
-                              <SelectItem key={city} value={city}>
-                                {city}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    {/* Conveyance 2W Specific Fields */}
+                    {isConveyanceCategory && (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Select City *</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select city" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {cities.map((city) => (
+                                    <SelectItem key={city} value={city}>
+                                      {city}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                  <FormField
-                    control={form.control}
-                    name="source"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Source *</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              {...field}
-                              placeholder="Enter source location"
-                              className="pl-10"
-                              // readOnly={readOnly}
-                              disabled={readOnly}
-                              onChange={field.onChange}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        <FormField
+                          control={form.control}
+                          name="source"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Source *</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                  <Input
+                                    {...field}
+                                    placeholder="Enter source location"
+                                    className="pl-10"
+                                    readOnly={readOnly}
+                                    onChange={field.onChange}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                  <FormField
-                    control={form.control}
-                    name="destination"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Destination *</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Navigation className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              {...field}
-                              placeholder="Enter destination location"
-                              className="pl-10"
-                              // readOnly={readOnly}
-                              disabled={readOnly}
-                              onChange={field.onChange}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                        <FormField
+                          control={form.control}
+                          name="destination"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Destination *</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Navigation className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                  <Input
+                                    {...field}
+                                    placeholder="Enter destination location"
+                                    className="pl-10"
+                                    readOnly={readOnly}
+                                    onChange={field.onChange}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </>
                     )}
-                  />
-
-                </>
-              )}
 
                     {/* Amount */}
                     <FormField
@@ -533,14 +619,20 @@ export function ExpenseDetailsStep({
                             Amount *
                             {parsedData?.ocr_result?.amount && (
                               <span className="text-green-600 text-xs ml-2">
-                                (Auto-{isConveyanceCategory ? 'calculated' : 'filled'})
+                                (Auto-
+                                {isConveyanceCategory ? "calculated" : "filled"}
+                                )
                               </span>
                             )}
                           </FormLabel>
                           <FormControl>
                             <Input
                               {...field}
-                              placeholder={isConveyanceCategory ? 'Amount will be calculated (₹4 per km)' : 'Amount'}
+                              placeholder={
+                                isConveyanceCategory
+                                  ? "Amount will be calculated (₹4 per km)"
+                                  : "Amount"
+                              }
                               type="number"
                               className={
                                 parsedData?.ocr_result?.amount
@@ -565,7 +657,9 @@ export function ExpenseDetailsStep({
                           <FormLabel>
                             Date *
                             {parsedData?.ocr_result?.date && (
-                              <span className="text-green-600 text-xs ml-2">(Auto-filled)</span>
+                              <span className="text-green-600 text-xs ml-2">
+                                (Auto-filled)
+                              </span>
                             )}
                           </FormLabel>
                           <Popover>
@@ -576,7 +670,8 @@ export function ExpenseDetailsStep({
                                   className={cn(
                                     "w-full pl-3 text-left font-normal",
                                     !field.value && "text-muted-foreground",
-                                    parsedData?.ocr_result?.date && "bg-white border-green-300 text-gray-900"
+                                    parsedData?.ocr_result?.date &&
+                                      "bg-white border-green-300 text-gray-900"
                                   )}
                                   disabled={readOnly}
                                 >
@@ -589,13 +684,17 @@ export function ExpenseDetailsStep({
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent
+                              className="w-auto p-0"
+                              align="start"
+                            >
                               <CalendarComponent
                                 mode="single"
                                 selected={field.value}
                                 onSelect={field.onChange}
                                 disabled={(date) =>
-                                  date > new Date() || date < new Date("1900-01-01")
+                                  date > new Date() ||
+                                  date < new Date("1900-01-01")
                                 }
                                 initialFocus
                               />
@@ -637,14 +736,20 @@ export function ExpenseDetailsStep({
                       Back
                     </Button>
                     {!readOnly && (
-                      <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90">
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="bg-primary hover:bg-primary/90"
+                      >
                         {loading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {isEditMode ? 'Saving...' : 'Creating...'}
+                            {isEditMode ? "Saving..." : "Creating..."}
                           </>
+                        ) : isEditMode ? (
+                          "Save Changes"
                         ) : (
-                          isEditMode ? 'Save Changes' : 'Create Expense'
+                          "Create Expense"
                         )}
                       </Button>
                     )}
@@ -661,26 +766,37 @@ export function ExpenseDetailsStep({
             <CardContent className="p-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">Receipt</h3>
-                  {(uploadedFile || previewUrl || (readOnly && receiptUrls.length > 0)) && (
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Receipt
+                  </h3>
+                  {(uploadedFile ||
+                    previewUrl ||
+                    (readOnly && receiptUrls.length > 0)) && (
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-500">
-                        {readOnly && receiptUrls.length > 0 
-                          ? `Receipt ${receiptUrls.length > 1 ? '1' : ''}` 
+                        {readOnly && receiptUrls.length > 0
+                          ? `Receipt ${receiptUrls.length > 1 ? "1" : ""}`
                           : uploadedFile?.name}
                       </span>
                       <span className="text-xs text-gray-400">•</span>
                       <span className="text-xs text-gray-500">
-                        {readOnly && receiptUrls.length > 0 
-                          ? (receiptUrls[0].toLowerCase().includes('.pdf') ? 'PDF' : 'Image')
-                          : (uploadedFile?.type.includes('pdf') ? 'PDF' : 'Image')
-                        }
+                        {readOnly && receiptUrls.length > 0
+                          ? receiptUrls[0].toLowerCase().includes(".pdf")
+                            ? "PDF"
+                            : "Image"
+                          : uploadedFile?.type.includes("pdf")
+                          ? "PDF"
+                          : "Image"}
                       </span>
                     </div>
                   )}
                 </div>
-                
-                {!!(uploadedFile || previewUrl || (readOnly && receiptUrls.length > 0)) ? (
+
+                {!!(
+                  uploadedFile ||
+                  previewUrl ||
+                  (readOnly && receiptUrls.length > 0)
+                ) ? (
                   <div className="space-y-4">
                     {/* Interactive Receipt Viewer */}
                     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
@@ -761,21 +877,26 @@ export function ExpenseDetailsStep({
                             } else {
                               sourceUrl = previewUrl;
                             }
-                            
-                            
+
                             // Show loading state if we're fetching the duplicate receipt URL
                             if (duplicateReceiptLoading) {
                               return (
                                 <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                                  <p className="text-gray-600 mb-4">Loading receipt...</p>
-                                  <p className="text-xs text-gray-500">Fetching signed URL</p>
+                                  <p className="text-gray-600 mb-4">
+                                    Loading receipt...
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    Fetching signed URL
+                                  </p>
                                 </div>
                               );
                             }
-                            
+
                             // Check if this is a PDF by looking at the URL
-                            const isPdf = sourceUrl?.toLowerCase().includes('.pdf');
-                            
+                            const isPdf = sourceUrl
+                              ?.toLowerCase()
+                              .includes(".pdf");
+
                             if (isPdf) {
                               // For PDFs, use embed tag with simple styling to avoid PDF viewer interface
                               return (
@@ -787,7 +908,7 @@ export function ExpenseDetailsStep({
                                       className="w-full h-full border-0 rounded"
                                       style={{
                                         transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
-                                        transformOrigin: 'center',
+                                        transformOrigin: "center",
                                       }}
                                     />
                                   </div>
@@ -797,24 +918,28 @@ export function ExpenseDetailsStep({
                               // For regular images, use img tag
                               return (
                                 <img
-                                  src={sourceUrl || ''}
+                                  src={sourceUrl || ""}
                                   alt="Receipt preview"
                                   className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
                                   style={{
                                     transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
-                                    transformOrigin: 'center',
-                                    maxHeight: '100%',
-                                    objectFit: 'contain'
+                                    transformOrigin: "center",
+                                    maxHeight: "100%",
+                                    objectFit: "contain",
                                   }}
                                   onClick={handleReceiptFullscreen}
                                   onError={(e) => {
                                     // Fallback: if image fails to load, show download option
-                                    e.currentTarget.style.display = 'none';
-                                    const fallbackDiv = document.createElement('div');
-                                    fallbackDiv.className = 'flex flex-col items-center justify-center h-full text-center p-4';
+                                    e.currentTarget.style.display = "none";
+                                    const fallbackDiv =
+                                      document.createElement("div");
+                                    fallbackDiv.className =
+                                      "flex flex-col items-center justify-center h-full text-center p-4";
                                     fallbackDiv.innerHTML = `
                                       <p class="text-gray-600 mb-4">Receipt preview not available.</p>
-                                      <a href="${sourceUrl ?? '#'}" target="_blank" rel="noopener noreferrer" 
+                                      <a href="${
+                                        sourceUrl ?? "#"
+                                      }" target="_blank" rel="noopener noreferrer" 
                                          class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
                                         <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -822,7 +947,9 @@ export function ExpenseDetailsStep({
                                         Download Receipt
                                       </a>
                                     `;
-                                    e.currentTarget.parentNode?.appendChild(fallbackDiv);
+                                    e.currentTarget.parentNode?.appendChild(
+                                      fallbackDiv
+                                    );
                                   }}
                                 />
                               );
@@ -831,13 +958,14 @@ export function ExpenseDetailsStep({
                         </div>
                       </div>
                     </div>
-
                   </div>
                 ) : receiptLoading ? (
                   <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
                     <div className="text-center">
                       <Loader2 className="h-12 w-12 mx-auto text-gray-400 mb-3 animate-spin" />
-                      <p className="text-sm text-gray-600 mb-2">Loading receipt...</p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Loading receipt...
+                      </p>
                       <p className="text-xs text-gray-500">Please wait</p>
                     </div>
                   </div>
@@ -845,7 +973,9 @@ export function ExpenseDetailsStep({
                   <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
                     <div className="text-center">
                       <FileText className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                      <p className="text-sm text-gray-600 mb-2">No receipt uploaded</p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        No receipt uploaded
+                      </p>
                       <p className="text-xs text-gray-500">Manual entry mode</p>
                     </div>
                   </div>
@@ -857,107 +987,112 @@ export function ExpenseDetailsStep({
       </div>
 
       {/* Fullscreen Receipt Modal */}
-      {isReceiptFullscreen && (uploadedFile || previewUrl || duplicateReceiptUrl) && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
-          <div className="relative w-full h-full flex flex-col">
-            {/* Fullscreen Header */}
-            <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-              <div className="flex items-center gap-4">
-                <h3 className="text-lg font-semibold text-gray-900">Receipt Viewer</h3>
-                <span className="text-sm text-gray-500">{uploadedFile?.name || 'Receipt'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReceiptZoomOut}
-                  disabled={receiptZoom <= 0.5}
-                  className="h-8 w-8 p-0"
-                >
-                  <ZoomOut className="h-4 w-4" />
-                </Button>
-                <span className="text-sm text-gray-600 min-w-[3rem] text-center">
-                  {Math.round(receiptZoom * 100)}%
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReceiptZoomIn}
-                  disabled={receiptZoom >= 3}
-                  className="h-8 w-8 p-0"
-                >
-                  <ZoomIn className="h-4 w-4" />
-                </Button>
-                <div className="w-px h-6 bg-gray-300 mx-2" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReceiptRotate}
-                  className="h-8 w-8 p-0"
-                >
-                  <RotateCw className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReceiptReset}
-                  className="h-8 w-8 p-0"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-                <div className="w-px h-6 bg-gray-300 mx-2" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReceiptDownload}
-                  className="h-8 px-3 text-xs"
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsReceiptFullscreen(false)}
-                className="h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Fullscreen Content */}
-            <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
-              {(() => {
-                const fullscreenSourceUrl = duplicateReceiptUrl || previewUrl;
-                return fullscreenSourceUrl?.toLowerCase().includes('.pdf') ? (
-                <div className="w-full h-full bg-white rounded">
-                  <embed
-                    src={`${fullscreenSourceUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
-                    type="application/pdf"
-                    className="w-full h-full border-0 rounded"
-                    style={{
-                      transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
-                      transformOrigin: 'center',
-                    }}
-                  />
+      {isReceiptFullscreen &&
+        (uploadedFile || previewUrl || duplicateReceiptUrl) && (
+          <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
+            <div className="relative w-full h-full flex flex-col">
+              {/* Fullscreen Header */}
+              <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+                <div className="flex items-center gap-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Receipt Viewer
+                  </h3>
+                  <span className="text-sm text-gray-500">
+                    {uploadedFile?.name || "Receipt"}
+                  </span>
                 </div>
-              ) : (
-                <img
-                  src={fullscreenSourceUrl || ''}
-                  alt="Receipt fullscreen"
-                  className="max-w-full max-h-full object-contain"
-                  style={{
-                    transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
-                    transformOrigin: 'center',
-                  }}
-                />
-              );
-              })()}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleReceiptZoomOut}
+                    disabled={receiptZoom <= 0.5}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ZoomOut className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-gray-600 min-w-[3rem] text-center">
+                    {Math.round(receiptZoom * 100)}%
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleReceiptZoomIn}
+                    disabled={receiptZoom >= 3}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
+                  <div className="w-px h-6 bg-gray-300 mx-2" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleReceiptRotate}
+                    className="h-8 w-8 p-0"
+                  >
+                    <RotateCw className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleReceiptReset}
+                    className="h-8 w-8 p-0"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <div className="w-px h-6 bg-gray-300 mx-2" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleReceiptDownload}
+                    className="h-8 px-3 text-xs"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Download
+                  </Button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsReceiptFullscreen(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Fullscreen Content */}
+              <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
+                {(() => {
+                  const fullscreenSourceUrl = duplicateReceiptUrl || previewUrl;
+                  return fullscreenSourceUrl?.toLowerCase().includes(".pdf") ? (
+                    <div className="w-full h-full bg-white rounded">
+                      <embed
+                        src={`${fullscreenSourceUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
+                        type="application/pdf"
+                        className="w-full h-full border-0 rounded"
+                        style={{
+                          transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
+                          transformOrigin: "center",
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <img
+                      src={fullscreenSourceUrl || ""}
+                      alt="Receipt fullscreen"
+                      className="max-w-full max-h-full object-contain"
+                      style={{
+                        transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
+                        transformOrigin: "center",
+                      }}
+                    />
+                  );
+                })()}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }

@@ -49,7 +49,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     policyId: "",
     categoryId: "",
   });
-  const [policies, setPolicies] = useState<Policy[]>([]);
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
@@ -111,7 +110,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
       const perDiemPolicies = allPolicies.filter(
         (policy: Policy) => policy.name.toLowerCase() === "per diem"
       );
-      setPolicies(perDiemPolicies);
       setSelectedPolicy(perDiemPolicies[0]);
       if (perDiemPolicies.length > 0) {
         setCategories(perDiemPolicies[0].categories);
@@ -342,7 +340,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                 >
                   Policy
                 </Label>
-                <Select
+                {/* <Select
                   value={formData.policyId}
                   onValueChange={(value) =>
                     handleInputChange("policyId", value)
@@ -365,7 +363,14 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                       </SelectItem>
                     ))}
                   </SelectContent>
-                </Select>
+                </Select> */}
+                <Input
+                  id="policy"
+                  type="text"
+                  value={selectedPolicy?.name}
+                  className="bg-gray-50 text-gray-500"
+                  disabled
+                />
               </div>
               <div className="space-y-2">
                 <Label

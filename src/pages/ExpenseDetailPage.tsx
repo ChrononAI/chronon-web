@@ -60,7 +60,7 @@ const transformExpenseToFormData = (expense: Expense, policies?: Policy[]) => {
   return {
     policyId,
     categoryId,
-    invoiceNumber: expense.receipt_id || expense.description,
+    invoiceNumber: expense.invoice_number || "",
     merchant: expense.vendor,
     amount: expense.amount.toString(),
     dateOfExpense: new Date(expense.expense_date),
