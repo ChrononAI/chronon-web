@@ -42,7 +42,6 @@ const MileagePage = ({
   onCancel,
 }: MileagePageProps) => {
   const navigate = useNavigate();
-  console.log(expenseData);
 
   const [formData, setFormData] = useState({
     startLocation: "",
@@ -59,16 +58,18 @@ const MileagePage = ({
     categoryId: "",
   });
 
-  const getVehicleType = (type: "FOUR_WHEELERS" | "TWO_WHEELERS" | "PUBLIC_TRANSPORT" | string) => {
+  const getVehicleType = (
+    type: "FOUR_WHEELERS" | "TWO_WHEELERS" | "PUBLIC_TRANSPORT" | string
+  ) => {
     if (type === "FOUR_WHEELERS") return "car";
     if (type === "TWO_WHEELERS") return "bike";
-    if (type === "PUBLIC_TRANSPORT") return "public_transport"
+    if (type === "PUBLIC_TRANSPORT") return "public_transport";
     return "";
-  }
+  };
 
-  console.log(expenseData, formData);
   useEffect(() => {
     if (expenseData) {
+      console.log(expenseData);
       setFormData({
         startLocation: expenseData.start_location || "",
         startLocationId: "",
@@ -78,10 +79,11 @@ const MileagePage = ({
         amount: expenseData.amount.toString() || "",
         description: expenseData.description || "",
         vehiclesType: getVehicleType(expenseData.vehicle_type || ""),
-        expenseDate: format(new Date(expenseData.expense_date), 'yyyy-MM-dd') || "", //format(new Date(expenseData.expense_date), 'yyyy-MM-dd')
+        expenseDate:
+          format(new Date(expenseData.expense_date), "yyyy-MM-dd") || "",
         isRoundTrip: expenseData.is_round_trip,
         policyId: expenseData.expense_policy_id || "",
-        categoryId: expenseData.category_id || ""
+        categoryId: expenseData.category_id || "",
       });
     }
   }, [expenseData]);
@@ -92,8 +94,9 @@ const MileagePage = ({
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [startLocation, setStartLocation] = useState<PlaceSuggestion | null>();
+  const [endLocation, setEndLocation] = useState<PlaceSuggestion | null>();
 
-  // ✅ Fix duplicate useEffect closing braces
   useEffect(() => {
     if (mode === "view" && isEditable && !isEditing) {
       setEditMode(false);
@@ -125,7 +128,6 @@ const MileagePage = ({
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    console.log(field, value);
     setFormData((prev) => {
       const updatedData = {
         ...prev,
@@ -164,6 +166,7 @@ const MileagePage = ({
   };
 
   const handleStartLocationSelect = (place: PlaceSuggestion) => {
+    setStartLocation(place);
     setFormData((prev) => ({
       ...prev,
       startLocation: place.description,
@@ -172,12 +175,24 @@ const MileagePage = ({
   };
 
   const handleEndLocationSelect = (place: PlaceSuggestion) => {
+    setEndLocation(place);
     setFormData((prev) => ({
       ...prev,
       endLocation: place.description,
       endLocationId: place.place_id,
     }));
   };
+
+  useEffect(() => {
+    if (startLocation && endLocation) {
+      calculateMileageCost(
+        startLocation?.place_id,
+        endLocation?.place_id,
+        formData.vehiclesType,
+        formData.isRoundTrip
+      );
+    }
+  }, [startLocation, endLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -321,6 +336,10 @@ const MileagePage = ({
       setIsCalculating(false);
     }
   };
+
+  // useEffect(() => {
+  //   console.log("start or end location changed");
+  // }, [formData.startLocation, formData.endLocation]);
 
   return (
     <div className="max-w-full mx-auto px-6 pt-1 pb-6">
