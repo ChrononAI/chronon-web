@@ -152,7 +152,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
       amount: formData.totalAmount,
       expense_date: formData.startDate,
       description: formData.purpose,
-      vendor: expenseData?.vendor || "",
+      // vendor: expenseData?.vendor || "",
       per_diem_info: {
         start_date: formData.startDate,
         end_date: formData.endDate,
