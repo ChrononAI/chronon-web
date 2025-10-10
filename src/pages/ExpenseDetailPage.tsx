@@ -125,13 +125,15 @@ export function ExpenseDetailPage() {
     if (!expense || !id) return;
     
     setSaving(true);
+    console.log(formData);
     try {
       // Transform form data to UpdateExpenseData format
       const expenseData: UpdateExpenseData = {
         amount: parseFloat(formData.amount).toFixed(2),
         category_id: formData.categoryId,
         description: formData.description,
-        expense_date: formData.dateOfExpense.toISOString().split('T')[0],
+        // expense_date: formData.dateOfExpense.toISOString().split('T')[0],
+        expense_date: formData.expense_date,
         expense_policy_id: formData.policyId,
         vendor: formData.merchant,
         receipt_id: expense.receipt_id || null,

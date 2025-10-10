@@ -26,7 +26,7 @@ export interface Expense {
   distance_unit?: string;
   start_location?: string;
   end_location?: string;
-  vehicle_type?: string;
+  vehicle_type?: "FOUR_WHEELERS" | "TWO_WHEELERS" | "PUBLIC_TRANSPORT";
   mileage_meta?: {
     trip_purpose?: string;
     notes?: string;

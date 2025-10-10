@@ -52,7 +52,7 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
                 <TableCell>
                   {formatDate(expense.expense_date)}
                 </TableCell>
-                <TableCell>{expense.vendor}</TableCell>
+                <TableCell>{expense.vendor || '-'}</TableCell>
                 <TableCell>
                   <Badge className={getStatusColor(expense.status)}>
                     {expense.status.replace('_', ' ')}

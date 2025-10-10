@@ -20,6 +20,7 @@ import { expenseService } from "@/services/expenseService";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { Expense, Policy, PolicyCategory } from "@/types/expense";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -41,6 +42,7 @@ const MileagePage = ({
   onCancel,
 }: MileagePageProps) => {
   const navigate = useNavigate();
+  console.log(expenseData);
 
   const [formData, setFormData] = useState({
     startLocation: "",
@@ -56,6 +58,33 @@ const MileagePage = ({
     policyId: "",
     categoryId: "",
   });
+
+  const getVehicleType = (type: "FOUR_WHEELERS" | "TWO_WHEELERS" | "PUBLIC_TRANSPORT" | string) => {
+    if (type === "FOUR_WHEELERS") return "car";
+    if (type === "TWO_WHEELERS") return "bike";
+    if (type === "PUBLIC_TRANSPORT") return "public_transport"
+    return "";
+  }
+
+  console.log(expenseData, formData);
+  useEffect(() => {
+    if (expenseData) {
+      setFormData({
+        startLocation: expenseData.start_location || "",
+        startLocationId: "",
+        endLocation: expenseData.end_location || "",
+        endLocationId: "",
+        distance: expenseData.distance?.toString() || "",
+        amount: expenseData.amount.toString() || "",
+        description: expenseData.description || "",
+        vehiclesType: getVehicleType(expenseData.vehicle_type || ""),
+        expenseDate: format(new Date(expenseData.expense_date), 'yyyy-MM-dd') || "", //format(new Date(expenseData.expense_date), 'yyyy-MM-dd')
+        isRoundTrip: expenseData.is_round_trip,
+        policyId: expenseData.expense_policy_id || "",
+        categoryId: expenseData.category_id || ""
+      });
+    }
+  }, [expenseData]);
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -96,6 +125,7 @@ const MileagePage = ({
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {
+    console.log(field, value);
     setFormData((prev) => {
       const updatedData = {
         ...prev,
@@ -158,9 +188,8 @@ const MileagePage = ({
       expense_policy_id: formData.policyId,
       category_id: formData.categoryId,
       amount: extractAmount(formData.amount),
-      dateOfExpense: formData.expenseDate,
+      expense_date: formData.expenseDate,
       description: formData.description,
-      expenseDate: formData.expenseDate,
       start_location: formData.startLocation,
       end_location: formData.endLocation,
       distance: extractDistance(formData.distance),
@@ -265,19 +294,19 @@ const MileagePage = ({
 
     setIsCalculating(true);
     try {
-      const costData: any = await placesService.getMileageCost(
-        {
-          originPlaceId: originId,
-          destinationPlaceIds: destinationId,
-          vehicle: mappedVehicle,
-          orgId,
-          isRoundTrip,
-        }
-      );
+      const costData: any = await placesService.getMileageCost({
+        originPlaceId: originId,
+        destinationPlaceIds: destinationId,
+        vehicle: mappedVehicle,
+        orgId,
+        isRoundTrip,
+      });
       if (costData) {
         const baseDistance =
           costData.total_distance ||
-          parseFloat(costData.total_distance?.text?.replace(/[^\d.]/g, "") || "0");
+          parseFloat(
+            costData.total_distance?.text?.replace(/[^\d.]/g, "") || "0"
+          );
         const calculatedDistance = baseDistance;
 
         setFormData((prev) => ({
@@ -311,7 +340,7 @@ const MileagePage = ({
               <h3 className="text-lg font-semibold text-gray-700">Route</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Start Location</Label>
+                  <Label>Start Location *</Label>
                   <LocationAutocomplete
                     value={formData.startLocation}
                     onChange={(v) => handleInputChange("startLocation", v)}
@@ -320,7 +349,7 @@ const MileagePage = ({
                   />
                 </div>
                 <div>
-                  <Label>End Location</Label>
+                  <Label>End Location *</Label>
                   <LocationAutocomplete
                     value={formData.endLocation}
                     onChange={(v) => handleInputChange("endLocation", v)}
@@ -332,7 +361,7 @@ const MileagePage = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Vehicle Type</Label>
+                  <Label>Vehicle Type *</Label>
                   <Select
                     value={formData.vehiclesType}
                     onValueChange={(v) => handleInputChange("vehiclesType", v)}
@@ -441,7 +470,7 @@ const MileagePage = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Policy</Label>
+                  <Label>Policy *</Label>
                   <Select
                     value={formData.policyId}
                     onValueChange={(v) => handleInputChange("policyId", v)}
@@ -465,7 +494,7 @@ const MileagePage = ({
                 </div>
 
                 <div>
-                  <Label>Category</Label>
+                  <Label>Category *</Label>
                   <Select
                     value={formData.categoryId}
                     onValueChange={(v) => handleInputChange("categoryId", v)}
@@ -490,7 +519,7 @@ const MileagePage = ({
                   htmlFor="expenseDate"
                   className="text-sm font-medium text-gray-700"
                 >
-                  Expense Date
+                  Expense Date *
                 </Label>
                 <div className="relative w-fit">
                   <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -508,7 +537,7 @@ const MileagePage = ({
               </div>
 
               <div>
-                <Label>Description</Label>
+                <Label>Description *</Label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) =>

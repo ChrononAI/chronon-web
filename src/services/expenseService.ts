@@ -27,7 +27,7 @@ export interface UpdateExpenseData {
   description: string;
   expense_date: string;
   expense_policy_id: string;
-  vendor: string;
+  vendor?: string;
   receipt_id?: string | null;
   invoice_number?: string | null;
   distance?: number | string | null;
