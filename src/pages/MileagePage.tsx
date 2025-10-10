@@ -253,7 +253,6 @@ const MileagePage = ({
     vehicle: string,
     isRoundTrip: boolean = false
   ) => {
-    console.log(isRoundTrip);
     if (!originId || !destinationId || !vehicle) return;
 
     const orgId = getOrgIdFromToken();
@@ -266,17 +265,19 @@ const MileagePage = ({
 
     setIsCalculating(true);
     try {
-      const costData = await placesService.getMileageCost(
-        originId,
-        destinationId,
-        mappedVehicle,
-        orgId
+      const costData: any = await placesService.getMileageCost(
+        {
+          originPlaceId: originId,
+          destinationPlaceIds: destinationId,
+          vehicle: mappedVehicle,
+          orgId,
+          isRoundTrip,
+        }
       );
       if (costData) {
-        // const multiplier = isRoundTrip ? 2 : 1;
         const baseDistance =
-          costData.distance?.distance ||
-          parseFloat(costData.distance?.text?.replace(/[^\d.]/g, "") || "0");
+          costData.total_distance ||
+          parseFloat(costData.total_distance?.text?.replace(/[^\d.]/g, "") || "0");
         const calculatedDistance = baseDistance;
 
         setFormData((prev) => ({

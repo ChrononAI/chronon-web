@@ -13,7 +13,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { expenseService, UpdateExpenseData } from '@/services/expenseService';
-import { Expense, Policy } from '@/types/expense';
+import { Expense } from '@/types/expense';
 import { getStatusColor } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -32,34 +32,10 @@ const isPerDiemExpense = (expense: Expense): boolean => {
 };
 
 // Transform Expense data to form format
-const transformExpenseToFormData = (expense: Expense, policies?: Policy[]) => {
-  let policyId = '';
-  let categoryId = '';
-  
-  if (policies && expense.category) {
-    for (const policy of policies) {
-      const matchingCategory = policy.categories.find(cat => 
-        cat.name.toLowerCase() === expense.category.toLowerCase()
-      );
-      if (matchingCategory) {
-        policyId = policy.id;
-        categoryId = matchingCategory.id;
-        break;
-      }
-    }
-    
-    if (!categoryId && policies.length > 0) {
-      const firstPolicy = policies[0];
-      if (firstPolicy.categories.length > 0) {
-        policyId = firstPolicy.id;
-        categoryId = firstPolicy.categories[0].id;
-      }
-    }
-  }
-
+const transformExpenseToFormData = (expense: Expense) => {
   return {
-    policyId,
-    categoryId,
+    policyId: expense.expense_policy_id,
+    categoryId: expense.category_id,
     invoiceNumber: expense.invoice_number || "",
     merchant: expense.vendor,
     amount: expense.amount.toString(),
@@ -77,7 +53,7 @@ export function ExpenseDetailPage() {
   const navigate = useNavigate();
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
-  const [policies, setPolicies] = useState<Policy[]>([]);
+  // const [policies, setPolicies] = useState<Policy[]>([]);
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string | null>(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -93,12 +69,12 @@ export function ExpenseDetailPage() {
     const fetchData = async () => {
       if (!id) return;
       try {
-        const [expenseData, policiesData] = await Promise.all([
+        const [expenseData] = await Promise.all([
           expenseService.getExpenseById(id),
           expenseService.getAllPoliciesWithCategories()
         ]);
         setExpense(expenseData);
-        setPolicies(policiesData);
+        // setPolicies(policiesData);
         
         
         if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase()) && !isFromApprovals && !isFromReport) {
@@ -123,7 +99,7 @@ export function ExpenseDetailPage() {
     setReceiptLoading(true);
     try {
       const response = await fetch(
-        `https://in.pulse.chronon.co.in/receipts/${receiptId}/signed-url?org_id=${orgId}`,
+        `https://staging-api.chronon.com.chronon.co.in/receipts/${receiptId}/signed-url?org_id=${orgId}`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth-storage') ? JSON.parse(localStorage.getItem('auth-storage')!).state.token : ''}`
@@ -155,11 +131,11 @@ export function ExpenseDetailPage() {
         amount: parseFloat(formData.amount).toFixed(2),
         category_id: formData.categoryId,
         description: formData.description,
-        expense_date: formData.dateOfExpense,
+        expense_date: formData.dateOfExpense.toISOString().split('T')[0],
         expense_policy_id: formData.policyId,
         vendor: formData.merchant,
         receipt_id: expense.receipt_id || null,
-        invoice_number: expense.invoice_number || null,
+        invoice_number: formData.invoiceNumber || null,
         distance: formData.distance || null,
         distance_unit: formData.distance_unit || null,
         end_location: formData.end_location || null,
@@ -169,10 +145,8 @@ export function ExpenseDetailPage() {
         is_round_trip: formData.is_round_trip === "true" ? true : false,
         custom_attributes: {},
       };
-      console.log(expenseData, formData);
 
       const response = await expenseService.updateExpense(id, expenseData);
-      console.log(response);
       if (response.success) {
         toast.success('Expense updated successfully');
         navigate('/expenses');
@@ -319,7 +293,7 @@ export function ExpenseDetailPage() {
             uploadedFile={null}
             previewUrl={receiptSignedUrl}
             readOnly={!isEditing}
-            expenseData={transformExpenseToFormData(expense, policies)}
+            expenseData={transformExpenseToFormData(expense)}
             receiptUrls={receiptSignedUrl ? [receiptSignedUrl] : []}
             isEditMode={isEditing}
             receiptLoading={receiptLoading}

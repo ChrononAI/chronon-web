@@ -1,4 +1,4 @@
-import api from '@/lib/api';
+import api from "@/lib/api";
 
 export interface PlaceSuggestion {
   description: string;
@@ -31,43 +31,67 @@ export interface MileageCostData {
 export const placesService = {
   async getSuggestions(keyword: string): Promise<PlaceSuggestion[]> {
     if (!keyword.trim()) return [];
-    
+
     try {
-      const response = await api.get(`/api/v1/places/autocomplete?keyword=${encodeURIComponent(keyword)}&radius=50`);
+      const response = await api.get(
+        `/api/v1/places/autocomplete?keyword=${encodeURIComponent(
+          keyword
+        )}&radius=50`
+      );
       return response.data.data || [];
     } catch (error) {
-      console.error('Error fetching suggestions:', error);
+      console.error("Error fetching suggestions:", error);
       return [];
     }
   },
 
-  async getMileageCost(originPlaceId: string, destinationPlaceId: string, vehicle: string, orgId: string): Promise<MileageCostData | null> {
+  async getMileageCost({
+    originPlaceId,
+    destinationPlaceIds,
+    vehicle,
+    orgId,
+    isRoundTrip,
+  }: {
+    originPlaceId: string;
+    destinationPlaceIds: string;
+    vehicle: string;
+    orgId: string;
+    isRoundTrip: boolean;
+  }): Promise<MileageCostData | null> {
     try {
-      const response = await api.get(`/em/expenses/mileage/cost?origin_placeid=${originPlaceId}&destination_placeid=${destinationPlaceId}&vehicle=${vehicle}&org_id=${orgId}`);
+      const response = await api.get(
+        `/em/expenses/mileage/cost?origin_placeid=${originPlaceId}&destination_placeids=${destinationPlaceIds}&vehicle=${vehicle}&org_id=${orgId}&is_round_trip=${isRoundTrip}`
+      );
       return response.data.data || null;
     } catch (error) {
-      console.error('Error fetching mileage cost:', error);
+      console.error("Error fetching mileage cost:", error);
       return null;
     }
   },
 
   async createMileageExpense(expenseData: any, orgId: string): Promise<any> {
     try {
-      const response = await api.post(`/em/expenses/create/mileage?org_id=${orgId}`, expenseData);
+      const response = await api.post(
+        `/em/expenses/create/mileage?org_id=${orgId}`,
+        expenseData
+      );
       return response.data;
     } catch (error) {
-      console.error('Error creating mileage expense:', error);
+      console.error("Error creating mileage expense:", error);
       throw error;
     }
   },
 
   async createPerDiemExpense(expenseData: any, orgId: string): Promise<any> {
     try {
-      const response = await api.post(`/em/expenses/create?org_id=${orgId}`, expenseData);
+      const response = await api.post(
+        `/em/expenses/create?org_id=${orgId}`,
+        expenseData
+      );
       return response.data;
     } catch (error) {
-      console.error('Error creating per diem expense:', error);
+      console.error("Error creating per diem expense:", error);
       throw error;
     }
-  }
+  },
 };
