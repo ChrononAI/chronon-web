@@ -210,12 +210,12 @@ export function ExpenseDetailsStep({
   useEffect(() => {
     if (expenseData) {
       form.reset(expenseData);
-
       // Set selected policy and category based on form data
       if (expenseData.policyId && policies.length > 0) {
         const policy = policies.find((p) => p.id === expenseData.policyId);
         if (policy) {
           setSelectedPolicy(policy);
+          form.setValue("policyId", expenseData.policyId);
 
           if (expenseData.categoryId) {
             const category = policy.categories.find(
@@ -223,6 +223,7 @@ export function ExpenseDetailsStep({
             );
             if (category) {
               setSelectedCategory(category);
+              form.setValue("categoryId", expenseData.categoryId);
             }
           }
         }
@@ -309,7 +310,6 @@ export function ExpenseDetailsStep({
   const availableCategories = selectedPolicy?.categories || [];
 
   useEffect(() => {
-    console.log(parsedData);
     if (parsedData?.recommended_policy_id && parsedData?.recommended_category) {
       const selectedPolicy = policies.find(
         (policy) => policy.id === parsedData.recommended_policy_id
@@ -319,14 +319,13 @@ export function ExpenseDetailsStep({
           category.id === parsedData.recommended_category.category_id
       );
       if (selectedPolicy && selectedCategory) {
-        console.log("inside if", selectedPolicy, selectedCategory);
         setSelectedCategory(selectedCategory);
         setSelectedPolicy(selectedPolicy);
         form.setValue("policyId", selectedPolicy.id);
+        form.setValue("categoryId", selectedCategory.id);
       }
     }
   }, [parsedData, policies]);
-  console.log(form.getValues("policyId"));
 
   return (
     <div className="space-y-6">
@@ -793,10 +792,10 @@ export function ExpenseDetailsStep({
                 </div>
 
                 {!!(
-                  uploadedFile ||
-                  previewUrl ||
-                  (readOnly && receiptUrls.length > 0)
-                ) ? (
+                    uploadedFile ||
+                    previewUrl ||
+                    (readOnly && receiptUrls.length > 0)
+                  ) ? (
                   <div className="space-y-4">
                     {/* Interactive Receipt Viewer */}
                     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">

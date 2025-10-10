@@ -2,7 +2,7 @@ import api from '@/lib/api';
 import { Report } from '@/types/expense';
 import { getOrgIdFromToken } from '@/lib/jwtUtils';
 
-const API_BASE_URL = 'https://in.pulse.chronon.co.in';
+const API_BASE_URL = 'https://staging-api.chronon.com.chronon.co.in/';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {

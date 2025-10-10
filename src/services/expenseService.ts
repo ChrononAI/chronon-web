@@ -290,7 +290,6 @@ export const expenseService = {
           hasPerdiemMileageCategories
         );
       });
-
       return filteredPolicies;
     } catch (error) {
       console.error("Error fetching policies:", error);

@@ -15,9 +15,11 @@ interface UploadReceiptStepProps {
   }) => void;
   onBack: () => void;
   onDuplicateDetected?: (data: { parsedData: ParsedInvoiceData; uploadedFile: File; previewUrl: string }) => void;
+  type: "upload" | "reupload";
+  setParsedDataO?: any;
 }
 
-export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected }: UploadReceiptStepProps) {
+export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected, type = "upload", setParsedDataO }: UploadReceiptStepProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
@@ -58,6 +60,7 @@ export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected }: Uploa
         parsedData,
         previewUrl: URL.createObjectURL(file),
       });
+      setParsedDataO(parsedData);
     } catch (error) {
       console.error('Error uploading invoice:', error);
     } finally {
@@ -229,7 +232,7 @@ export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected }: Uploa
       </Card>
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between">
+      {type === "upload" && <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
@@ -250,7 +253,7 @@ export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected }: Uploa
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
