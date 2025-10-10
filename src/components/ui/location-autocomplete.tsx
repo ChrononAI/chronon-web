@@ -21,6 +21,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [userInteracted, setUserInteracted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +68,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUserInteracted(true);
     onChange(e.target.value);
   };
 
@@ -106,9 +108,10 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
           placeholder={placeholder}
           value={value}
           onChange={handleInputChange}
-          onFocus={() =>
-            !disabled && setShowSuggestions(suggestions.length > 0)
-          }
+          onFocus={() => {
+            if (!disabled && userInteracted)
+              setShowSuggestions(suggestions.length > 0);
+          }}
           className="pl-10"
           disabled={disabled}
         />
@@ -117,7 +120,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
         )}
       </div>
 
-      {!disabled && showSuggestions && suggestions.length > 0 && (
+      {!disabled && userInteracted && showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
           className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto"
