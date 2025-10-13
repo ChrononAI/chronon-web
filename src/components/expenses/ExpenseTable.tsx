@@ -1,6 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -25,14 +23,17 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100">
-              <TableHead>Invoice Number</TableHead>
+              <TableHead>Expense ID</TableHead>
+              {/* <TableHead>Invoice Number</TableHead> */}
+              <TableHead>Policy</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Date</TableHead>
               <TableHead>Vendor</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead className='text-right'>Amount</TableHead>
+              <TableHead>Currency</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Report</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              {/* <TableHead>Report</TableHead>
+              <TableHead className="text-right">Actions</TableHead> */}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -43,47 +44,26 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
                 onClick={() => navigate(`/expenses/${expense.id}`)}
               >
                 <TableCell className="font-medium">
-                  {expense.invoice_number || '-'}
+                  {expense.id}
+                </TableCell>
+                <TableCell className="font-medium">
+                  {expense.expense_policy_id}
                 </TableCell>
                 <TableCell>{expense.category}</TableCell>
-                <TableCell>
-                  {formatCurrency(expense.amount, 'INR')}
-                </TableCell>
-                <TableCell>
+                <TableCell>{expense.vendor || (expense.expense_type === "RECEIPT_BASED" ? <span className='text-gray-600 italic'>Unknown Vendor</span> : 'NA')}</TableCell>
+                 <TableCell>
                   {formatDate(expense.expense_date)}
                 </TableCell>
-                <TableCell>{expense.vendor || '-'}</TableCell>
+                <TableCell className='text-right'>
+                  {formatCurrency(expense.amount, 'INR')}
+                </TableCell>
+               <TableCell>
+                  INR
+                </TableCell>
                 <TableCell>
                   <Badge className={getStatusColor(expense.status)}>
                     {expense.status.replace('_', ' ')}
                   </Badge>
-                </TableCell>
-                <TableCell>
-                  {expense.report_id && (
-                    <span 
-                      className="text-blue-600 hover:underline"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        // For now, navigate to report detail page
-                        // In the future, we could fetch report status here to determine if it's a draft
-                        navigate(`/reports/${expense.report_id}`);
-                      }}
-                    >
-                      {expense.report_id}
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/expenses/${expense.id}`);
-                    }}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
                 </TableCell>
               </TableRow>
             ))}

@@ -198,29 +198,29 @@ export function ExpenseDetailPage() {
     breadcrumbItems = [
       { label: 'Requests for Approval', href: '/approvals/reports' },
       {
-        label: `Report #${reportId}`,
+        label: 'View Report',
         href: reportId ? `/reports/${reportId}?from=approvals` : '#'
       },
-      { label: `Expense #${expense.receipt_id || expense.description}` },
+      { label: 'View Expense' },
     ];
   } else if (isFromReport && reportId) {
     breadcrumbItems = [
       { label: 'Expenses Reports', href: '/reports' },
       {
-        label: `Report #${reportId}`,
+        label: 'View Report',
         href: `/reports/${reportId}`
       },
-      { label: `Expense #${expense.receipt_id || expense.description}` },
+      { label: 'View Expense' },
     ];
   } else if (returnTo === 'create') {
     breadcrumbItems = [
       { label: 'Create Expense', href: '/expenses/create' },
-      { label: `Expense #${expense.receipt_id || expense.description}` },
+      { label: 'View Expense' },
     ];
   } else {
     breadcrumbItems = [
       { label: 'My Expenses', href: '/expenses' },
-      { label: `Expense #${expense.receipt_id || expense.description}` },
+      { label: 'View Expense' },
     ];
   }
 
@@ -289,6 +289,7 @@ export function ExpenseDetailPage() {
                 window.history.back();
               }
             }}
+            mode="view"
             onSubmit={handleExpenseSubmit}
             loading={saving}
             parsedData={null}

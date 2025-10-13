@@ -165,6 +165,7 @@ export function CreateExpenseForm() {
       ) : (
         <ExpenseDetailsStep
           onBack={handleStep2Back}
+          mode="create"
           onSubmit={handleStep2Submit}
           loading={loading}
           parsedData={parsedData}
