@@ -434,7 +434,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
           <div className="flex justify-between items-end pt-4">
             <div>
               <Label className="text-sm font-medium text-gray-700">
-                Total Amount
+                Total Per Diem
               </Label>
               <div className="text-2xl font-bold text-blue-600 mt-1">
                 ₹{(Number(formData.totalAmount) || 0).toFixed(2)}

@@ -105,6 +105,7 @@ const cities = [
 interface ExpenseDetailsStepProps {
   onBack: () => void;
   onSubmit: (data: ExpenseFormValues) => void;
+  mode?: "create" | "edit" | "view";
   loading: boolean;
   parsedData: ParsedInvoiceData | null;
   uploadedFile: File | null;
@@ -119,6 +120,7 @@ interface ExpenseDetailsStepProps {
 export function ExpenseDetailsStep({
   onBack,
   onSubmit,
+  mode="create",
   loading,
   parsedData,
   uploadedFile,
@@ -330,7 +332,7 @@ export function ExpenseDetailsStep({
   return (
     <div className="space-y-6">
       {/* Step Header - Only show when not in read-only mode */}
-      {!readOnly && (
+      {mode === "create" && (
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Step 2: Expense Details
@@ -473,7 +475,7 @@ export function ExpenseDetailsStep({
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>
-                                Invoice Number *
+                                Receipt Number *
                                 {parsedData?.ocr_result?.invoice_number && (
                                   <span className="text-green-600 text-xs ml-2">
                                     (Auto-filled)
@@ -713,11 +715,11 @@ export function ExpenseDetailsStep({
                     name="comments"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Comments</FormLabel>
+                        <FormLabel>Description</FormLabel>
                         <FormControl>
                           <Textarea
                             {...field}
-                            placeholder="Add any additional comments..."
+                            placeholder="e.g. Lunch with client"
                             rows={4}
                             // readOnly={readOnly}
                             disabled={readOnly}

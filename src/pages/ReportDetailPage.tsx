@@ -249,7 +249,7 @@ export function ReportDetailPage() {
 
   const breadcrumbItems = [
     { label: isFromApprovals ? 'Reports for Approval' : 'My Reports', href: isFromApprovals ? '/approvals/reports' : '/reports' },
-    { label: report.title },
+    { label: 'View Report' },
   ];
 
 

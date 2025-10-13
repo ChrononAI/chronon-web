@@ -67,9 +67,17 @@ const MileagePage = ({
     return "";
   };
 
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [categories, setCategories] = useState<PolicyCategory[]>([]);
+  const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
+  const [loadingPolicies, setLoadingPolicies] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [startLocation, setStartLocation] = useState<PlaceSuggestion | null>();
+  const [endLocation, setEndLocation] = useState<PlaceSuggestion | null>();
+
   useEffect(() => {
     if (expenseData) {
-      console.log(expenseData);
       setFormData({
         startLocation: expenseData.start_location || "",
         startLocationId: "",
@@ -86,16 +94,7 @@ const MileagePage = ({
         categoryId: expenseData.category_id || "",
       });
     }
-  }, [expenseData]);
-
-  const [isCalculating, setIsCalculating] = useState(false);
-  const [policies, setPolicies] = useState<Policy[]>([]);
-  const [categories, setCategories] = useState<PolicyCategory[]>([]);
-  const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
-  const [loadingPolicies, setLoadingPolicies] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [startLocation, setStartLocation] = useState<PlaceSuggestion | null>();
-  const [endLocation, setEndLocation] = useState<PlaceSuggestion | null>();
+  }, [expenseData, policies]);
 
   useEffect(() => {
     if (mode === "view" && isEditable && !isEditing) {
@@ -211,7 +210,7 @@ const MileagePage = ({
       distance_unit: "KM",
       vehicle_type:
         vehicleTypeMapping[
-          formData.vehiclesType as keyof typeof vehicleTypeMapping
+        formData.vehiclesType as keyof typeof vehicleTypeMapping
         ] || "four_wheeler",
       is_round_trip: formData.isRoundTrip.toString(),
       mileage_meta: {
@@ -304,7 +303,7 @@ const MileagePage = ({
 
     const mappedVehicle =
       vehicleTypeMappingForCost[
-        vehicle as keyof typeof vehicleTypeMappingForCost
+      vehicle as keyof typeof vehicleTypeMappingForCost
       ] || vehicle;
 
     setIsCalculating(true);
@@ -380,7 +379,7 @@ const MileagePage = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Vehicle Type *</Label>
+                  <Label>Vehicle *</Label>
                   <Select
                     value={formData.vehiclesType}
                     onValueChange={(v) => handleInputChange("vehiclesType", v)}
@@ -399,7 +398,7 @@ const MileagePage = ({
                   </Select>
                 </div>
 
-                <div className="flex flex-col justify-center space-y-1">
+                <div className="flex flex-col justify-center space-y-2">
                   <Label>Round Trip</Label>
                   <div className="flex items-center space-x-2">
                     <Switch
@@ -409,7 +408,6 @@ const MileagePage = ({
                       }
                       disabled={mode === "view" && !editMode}
                     />
-                    <span>{formData.isRoundTrip ? "Yes" : "No"}</span>
                   </div>
                 </div>
               </div>
@@ -538,7 +536,7 @@ const MileagePage = ({
                   htmlFor="expenseDate"
                   className="text-sm font-medium text-gray-700"
                 >
-                  Expense Date *
+                  Date *
                 </Label>
                 <div className="relative w-fit">
                   <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -556,7 +554,7 @@ const MileagePage = ({
               </div>
 
               <div>
-                <Label>Description *</Label>
+                <Label>Purpose of Travel *</Label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) =>
@@ -588,8 +586,8 @@ const MileagePage = ({
                   {saving
                     ? "Saving..."
                     : mode === "edit" || editMode
-                    ? "Update Expense"
-                    : "Submit Expense"}
+                      ? "Update Expense"
+                      : "Submit Expense"}
                 </Button>
               </div>
             )}
