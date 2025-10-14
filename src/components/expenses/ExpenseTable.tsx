@@ -15,6 +15,13 @@ interface ExpenseTableProps {
   expenses: Expense[];
 }
 
+function getExpenseType(type: string) {
+  if (type === "RECEIPT_BASED") return "Expense";
+  if (type === "MILEAGE_BASED") return "Mileage";
+  if (type === "PER_DIEM") return "Per Diem";
+  return type;
+}
+
 export function ExpenseTable({ expenses }: ExpenseTableProps) {
   const navigate = useNavigate();
   
@@ -24,7 +31,7 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
           <TableHeader>
             <TableRow className="bg-gray-100">
               <TableHead>Expense ID</TableHead>
-              {/* <TableHead>Invoice Number</TableHead> */}
+              <TableHead>Type</TableHead>
               <TableHead>Policy</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Vendor</TableHead>
@@ -32,8 +39,6 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
               <TableHead className='text-right'>Amount</TableHead>
               <TableHead>Currency</TableHead>
               <TableHead>Status</TableHead>
-              {/* <TableHead>Report</TableHead>
-              <TableHead className="text-right">Actions</TableHead> */}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -44,10 +49,11 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
                 onClick={() => navigate(`/expenses/${expense.id}`)}
               >
                 <TableCell className="font-medium">
-                  {expense.id}
+                  {expense.invoice_number}
                 </TableCell>
+                <TableCell>{getExpenseType(expense.expense_type)}</TableCell>
                 <TableCell className="font-medium">
-                  {expense.expense_policy_id}
+                  {expense.policy.name}
                 </TableCell>
                 <TableCell>{expense.category}</TableCell>
                 <TableCell>{expense.vendor || (expense.expense_type === "RECEIPT_BASED" ? <span className='text-gray-600 italic'>Unknown Vendor</span> : 'NA')}</TableCell>

@@ -14,6 +14,23 @@ export interface Expense {
   expense_date: string;
   expense_type: string;
   invoice_number: string | null;
+  policy: {
+    annual_limit: string | null;
+    auto_approve_under_amount: string | null;
+    created_at: string;
+    created_by: string;
+    daily_limit: string;
+    description: string;
+    id: string;
+    monthly_limit: string | null;
+    name: string;
+    org_id: string;
+    policy_type: "APPROVAL" | string; // could narrow if enum known
+    requires_receipt: boolean;
+    status: "ACTIVE" | "INACTIVE" | string;
+    updated_at: string;
+    workflow_config_id: string | null;
+  };
   receipt_id: string | null;
   report_id: string | null;
   is_round_trip: boolean;
