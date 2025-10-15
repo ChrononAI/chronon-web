@@ -53,7 +53,7 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
                 </TableCell>
                 <TableCell>{getExpenseType(expense.expense_type)}</TableCell>
                 <TableCell className="font-medium">
-                  {expense?.policy?.name}
+                  {expense.policy?.name || 'No Policy'}
                 </TableCell>
                 <TableCell>{expense.category}</TableCell>
                 <TableCell>{expense.vendor || (expense.expense_type === "RECEIPT_BASED" ? <span className='text-gray-600 italic'>Unknown Vendor</span> : 'NA')}</TableCell>
