@@ -30,7 +30,7 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100">
-              <TableHead>Expense ID</TableHead>
+              <TableHead>Invoice Number</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Policy</TableHead>
               <TableHead>Category</TableHead>
@@ -53,7 +53,7 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
                 </TableCell>
                 <TableCell>{getExpenseType(expense.expense_type)}</TableCell>
                 <TableCell className="font-medium">
-                  {expense.policy.name}
+                  {expense?.policy?.name}
                 </TableCell>
                 <TableCell>{expense.category}</TableCell>
                 <TableCell>{expense.vendor || (expense.expense_type === "RECEIPT_BASED" ? <span className='text-gray-600 italic'>Unknown Vendor</span> : 'NA')}</TableCell>

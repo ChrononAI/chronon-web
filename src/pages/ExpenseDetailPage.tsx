@@ -16,6 +16,7 @@ import { expenseService, UpdateExpenseData } from '@/services/expenseService';
 import { Expense } from '@/types/expense';
 import { getStatusColor } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useExpenseStore } from '@/store/expenseStore';
 
 const EDITABLE_STATUSES = ['DRAFT', 'INCOMPLETE', 'COMPLETE', 'PENDING', 'PENDING_APPROVAL'];
 
@@ -26,9 +27,9 @@ const isMileageExpense = (expense: Expense): boolean => {
 
 // Check if expense is a per diem expense
 const isPerDiemExpense = (expense: Expense): boolean => {
-  return expense.expense_type === 'PER_DIEM' || 
-         !!(expense.location && (expense.start_date || expense.end_date)) ||
-         !!expense.per_diem_info;
+  return expense.expense_type === 'PER_DIEM' ||
+    !!(expense.location && (expense.start_date || expense.end_date)) ||
+    !!expense.per_diem_info;
 };
 
 // Transform Expense data to form format
@@ -48,14 +49,15 @@ const transformExpenseToFormData = (expense: Expense) => {
 };
 
 export function ExpenseDetailPage() {
+  const { parsedData, setParsedData } = useExpenseStore();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isReceiptReplaced, setIsReceiptReplaced] = useState(false);
   // const [policies, setPolicies] = useState<Policy[]>([]);
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string | null>(null);
-  const [receiptLoading, setReceiptLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -75,12 +77,13 @@ export function ExpenseDetailPage() {
         ]);
         setExpense(expenseData);
         // setPolicies(policiesData);
-        
-        
+        setParsedData(null);
+
+
         if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase()) && !isFromApprovals && !isFromReport) {
           setIsEditing(true);
         }
-        
+
         if (expenseData.receipt_id) {
           fetchReceiptPreview(expenseData.receipt_id, expenseData.created_by.org_id);
         }
@@ -96,7 +99,6 @@ export function ExpenseDetailPage() {
   }, [id]);
 
   const fetchReceiptPreview = async (receiptId: string, orgId: string) => {
-    setReceiptLoading(true);
     try {
       const response = await fetch(
         `https://staging-api.chronon.com.chronon.co.in/receipts/${receiptId}/signed-url?org_id=${orgId}`,
@@ -106,7 +108,7 @@ export function ExpenseDetailPage() {
           }
         }
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.status === 'success' && data.data.signed_url) {
@@ -115,28 +117,26 @@ export function ExpenseDetailPage() {
       }
     } catch (error) {
       console.error('Failed to fetch receipt preview:', error);
-    } finally {
-      setReceiptLoading(false);
     }
   };
 
 
   const handleExpenseSubmit = async (formData: any) => {
     if (!expense || !id) return;
-    
+
     setSaving(true);
-    console.log(formData);
     try {
       // Transform form data to UpdateExpenseData format
       const expenseData: UpdateExpenseData = {
         amount: parseFloat(formData.amount).toFixed(2),
         category_id: formData.categoryId,
         description: formData.description,
-        // expense_date: formData.dateOfExpense.toISOString().split('T')[0],
         expense_date: formData.expense_date,
         expense_policy_id: formData.policyId,
         vendor: formData.merchant,
-        receipt_id: expense.receipt_id || null,
+        receipt_id: isReceiptReplaced
+          ? parsedData?.id ?? null
+          : expense?.receipt_id ?? null,
         invoice_number: formData.invoiceNumber || null,
         distance: formData.distance || null,
         distance_unit: formData.distance_unit || null,
@@ -147,6 +147,7 @@ export function ExpenseDetailPage() {
         is_round_trip: formData.is_round_trip === "true" ? true : false,
         custom_attributes: {},
       };
+      console.log(expenseData);
 
       const response = await expenseService.updateExpense(id, expenseData);
       if (response.success) {
@@ -270,9 +271,9 @@ export function ExpenseDetailPage() {
         </div>
 
         {isMileageExpense(expense) ? (
-          <MileagePage 
+          <MileagePage
             mode={(expense.status === "INCOMPLETE" || expense.status === "COMPLETE") ? "edit" : "view"}
-            expenseData={expense} 
+            expenseData={expense}
             isEditable={EDITABLE_STATUSES.includes(expense.status.toUpperCase())}
             onUpdate={handleExpenseSubmit}
             isEditing={isEditing}
@@ -292,14 +293,15 @@ export function ExpenseDetailPage() {
             mode="view"
             onSubmit={handleExpenseSubmit}
             loading={saving}
-            parsedData={null}
+            isReceiptReplaced={isReceiptReplaced}
+            setIsReceiptReplaced={setIsReceiptReplaced}
             uploadedFile={null}
             previewUrl={receiptSignedUrl}
+            fetchReceipt={fetchReceiptPreview}
             readOnly={!isEditing}
             expenseData={transformExpenseToFormData(expense)}
             receiptUrls={receiptSignedUrl ? [receiptSignedUrl] : []}
             isEditMode={isEditing}
-            receiptLoading={receiptLoading}
           />
         )}
       </div>

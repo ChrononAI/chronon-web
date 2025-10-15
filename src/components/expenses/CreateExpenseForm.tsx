@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { UploadReceiptStep } from './UploadReceiptStep';
 import { ExpenseDetailsStep } from './ExpenseDetailsStep';
 import { StepNavigation } from './StepNavigation';
+import { useExpenseStore } from '@/store/expenseStore';
 
 // Form schema for step 2
 type ExpenseFormValues = {
@@ -27,12 +28,13 @@ type ExpenseFormValues = {
 export function CreateExpenseForm() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { parsedData, setParsedData } = useExpenseStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
+  // const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [uploadStepKey, setUploadStepKey] = useState(0);
 
@@ -70,7 +72,7 @@ export function CreateExpenseForm() {
   }) => {
     setUploadedFile(data.uploadedFile);
     setPreviewUrl(data.previewUrl);
-    setParsedData(data.parsedData);
+    if(data.parsedData) setParsedData(data.parsedData);
     setCurrentStep(2);
   };
 
@@ -155,7 +157,7 @@ export function CreateExpenseForm() {
 
       {/* Step Content */}
       {currentStep === 1 ? (
-        <UploadReceiptStep 
+        <UploadReceiptStep
           key={uploadStepKey}
           onNext={handleStep1Next}
           onBack={() => navigate(-1)}
@@ -168,7 +170,6 @@ export function CreateExpenseForm() {
           mode="create"
           onSubmit={handleStep2Submit}
           loading={loading}
-          parsedData={parsedData}
           uploadedFile={uploadedFile}
           previewUrl={previewUrl}
         />
