@@ -56,7 +56,7 @@ export function ReportDetailPage() {
   const [approvalWorkflow, setApprovalWorkflow] = useState<ApprovalWorkflow | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [actionType, setActionType] = useState<'approve' | 'reject' | 'draft_back' | null>(null);
+  const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
   const [comments, setComments] = useState('');
   const [showActionDialog, setShowActionDialog] = useState(false);
 
@@ -137,7 +137,7 @@ export function ReportDetailPage() {
     }
   }, [report, isFromApprovals, navigate]);
 
-  const handleAction = (type: 'approve' | 'reject' | 'draft_back') => {
+  const handleAction = (type: 'approve' | 'reject') => {
     setActionType(type);
     setComments('');
     setShowActionDialog(true);
@@ -158,8 +158,6 @@ export function ReportDetailPage() {
         result = await approvalService.approveReport(report.id, comments);
       } else if (actionType === 'reject') {
         result = await approvalService.rejectReport(report.id, comments);
-      } else if (actionType === 'draft_back') {
-        result = await approvalService.draftBackReport(report.id, comments);
       }
 
       if (result && result.success) {
@@ -281,14 +279,6 @@ export function ReportDetailPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button
-                  onClick={() => handleAction('draft_back')}
-                  disabled={actionLoading}
-                  className="bg-orange-600 hover:bg-orange-700"
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Draft Back
-                </Button>
                 <Button
                   onClick={() => handleAction('approve')}
                   disabled={actionLoading}
@@ -604,7 +594,7 @@ export function ReportDetailPage() {
               ) : (
                 <XCircle className="h-5 w-5 text-orange-600" />
               )}
-              {actionType === 'approve' ? 'Approve' : actionType === 'reject' ? 'Reject' : 'Draft Back'} Report
+              {actionType === 'approve' ? 'Approve' : 'Reject'} Report
             </DialogTitle>
           </DialogHeader>
           
@@ -686,7 +676,7 @@ export function ReportDetailPage() {
                       ) : (
                         <XCircle className="h-4 w-4 mr-2" />
                       )}
-                      {actionType === 'approve' ? 'Approve Report' : actionType === 'reject' ? 'Reject Report' : 'Draft Back'}
+                      {actionType === 'approve' ? 'Approve Report' : 'Reject Report'}
                     </>
                   )}
                 </Button>
