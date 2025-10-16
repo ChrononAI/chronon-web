@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { fileParseService, ParsedInvoiceData } from '@/services/fileParseService';
+import { useExpenseStore } from '@/store/expenseStore';
 
 
 interface UploadReceiptStepProps {
@@ -19,10 +20,11 @@ interface UploadReceiptStepProps {
   setParsedDataO?: any;
 }
 
-export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected, type = "upload", setParsedDataO }: UploadReceiptStepProps) {
+export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected, type = "upload" }: UploadReceiptStepProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
+  // const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
+    const { parsedData, setParsedData } = useExpenseStore();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showPotentialDuplicateAlert, setShowPotentialDuplicateAlert] = useState(false);
   const [duplicateIds, setDuplicateIds] = useState<number[]>([]);
@@ -60,7 +62,6 @@ export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected, type = 
         parsedData,
         previewUrl: URL.createObjectURL(file),
       });
-      setParsedDataO(parsedData);
     } catch (error) {
       console.error('Error uploading invoice:', error);
     } finally {

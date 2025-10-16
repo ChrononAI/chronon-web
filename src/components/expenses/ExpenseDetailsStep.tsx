@@ -58,7 +58,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
-import { ParsedInvoiceData } from "@/services/fileParseService";
+import { fileParseService } from "@/services/fileParseService";
+import { useExpenseStore } from "@/store/expenseStore";
 
 // Form schema
 const expenseSchema = z.object({
@@ -107,30 +108,33 @@ interface ExpenseDetailsStepProps {
   onSubmit: (data: ExpenseFormValues) => void;
   mode?: "create" | "edit" | "view";
   loading: boolean;
-  parsedData: ParsedInvoiceData | null;
+  isReceiptReplaced?: boolean;
+  setIsReceiptReplaced?: any;
   uploadedFile: File | null;
   previewUrl: string | null;
+  fetchReceipt?: any;
   readOnly?: boolean;
   expenseData?: ExpenseFormValues;
   receiptUrls?: string[];
   isEditMode?: boolean;
-  receiptLoading?: boolean;
 }
 
 export function ExpenseDetailsStep({
   onBack,
   onSubmit,
-  mode="create",
+  mode = "create",
   loading,
-  parsedData,
+  isReceiptReplaced,
+  setIsReceiptReplaced,
   uploadedFile,
   previewUrl,
+  fetchReceipt,
   readOnly = false,
   expenseData,
   receiptUrls = [],
   isEditMode = false,
-  receiptLoading = false,
 }: ExpenseDetailsStepProps) {
+  const { parsedData, setParsedData } = useExpenseStore();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(
     null
@@ -140,6 +144,7 @@ export function ExpenseDetailsStep({
   const [selectedCategory, setSelectedCategory] =
     useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [replaceRecLoading, setReplaceRecLoading] = useState(false);
 
   // Fetch signed URL for duplicate receipts
   const fetchDuplicateReceiptUrl = async (receiptId: string) => {
@@ -191,17 +196,17 @@ export function ExpenseDetailsStep({
     defaultValues: expenseData
       ? expenseData
       : {
-          policyId: "",
-          categoryId: "",
-          invoiceNumber: "",
-          merchant: "",
-          amount: "",
-          dateOfExpense: new Date(),
-          comments: "",
-          city: "",
-          source: "",
-          destination: "",
-        },
+        policyId: "",
+        categoryId: "",
+        invoiceNumber: "",
+        merchant: "",
+        amount: "",
+        dateOfExpense: new Date(),
+        comments: "",
+        city: "",
+        source: "",
+        destination: "",
+      },
   });
 
   useEffect(() => {
@@ -210,7 +215,7 @@ export function ExpenseDetailsStep({
 
   // Update form values when expenseData changes
   useEffect(() => {
-    if (expenseData) {
+    if (expenseData && !isReceiptReplaced) {
       form.reset(expenseData);
       // Set selected policy and category based on form data
       if (expenseData.policyId && policies.length > 0) {
@@ -307,6 +312,35 @@ export function ExpenseDetailsStep({
       URL.revokeObjectURL(url);
     }
   };
+
+  const uploadNewReceipt = async (file: File) => {
+    const orgId = getOrgIdFromToken();
+    try {
+      setReplaceRecLoading(true);
+      const parsedData = await fileParseService.parseInvoiceFile(file);
+      console.log(parsedData);
+      setParsedData(parsedData);
+      fetchReceipt(parsedData.id, orgId)
+      setIsReceiptReplaced(true);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setReplaceRecLoading(false);
+    }
+  }
+
+  const handleReplaceReceipt = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf,image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        uploadNewReceipt(file);
+      }
+    };
+    input.click();
+  }
 
   const isConveyanceCategory = selectedCategory?.name === "Conveyance 2W";
   const availableCategories = selectedPolicy?.categories || [];
@@ -429,8 +463,8 @@ export function ExpenseDetailsStep({
                                   {selectedCategory
                                     ? selectedCategory.name
                                     : !selectedPolicy
-                                    ? "Select policy first"
-                                    : "Select a category"}
+                                      ? "Select policy first"
+                                      : "Select a category"}
                                   <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                               </FormControl>
@@ -672,7 +706,7 @@ export function ExpenseDetailsStep({
                                     "w-full pl-3 text-left font-normal",
                                     !field.value && "text-muted-foreground",
                                     parsedData?.ocr_result?.date &&
-                                      "bg-white border-green-300 text-gray-900"
+                                    "bg-white border-green-300 text-gray-900"
                                   )}
                                   disabled={readOnly}
                                 >
@@ -773,34 +807,44 @@ export function ExpenseDetailsStep({
                   {(uploadedFile ||
                     previewUrl ||
                     (readOnly && receiptUrls.length > 0)) && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">
-                        {readOnly && receiptUrls.length > 0
-                          ? `Receipt ${receiptUrls.length > 1 ? "1" : ""}`
-                          : uploadedFile?.name}
-                      </span>
-                      <span className="text-xs text-gray-400">•</span>
-                      <span className="text-xs text-gray-500">
-                        {readOnly && receiptUrls.length > 0
-                          ? receiptUrls[0].toLowerCase().includes(".pdf")
-                            ? "PDF"
-                            : "Image"
-                          : uploadedFile?.type.includes("pdf")
-                          ? "PDF"
-                          : "Image"}
-                      </span>
-                    </div>
-                  )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">
+                          {readOnly && receiptUrls.length > 0
+                            ? `Receipt ${receiptUrls.length > 1 ? "1" : ""}`
+                            : uploadedFile?.name}
+                        </span>
+                        <span className="text-xs text-gray-400">•</span>
+                        <span className="text-xs text-gray-500">
+                          {readOnly && receiptUrls.length > 0
+                            ? receiptUrls[0].toLowerCase().includes(".pdf")
+                              ? "PDF"
+                              : "Image"
+                            : uploadedFile?.type.includes("pdf")
+                              ? "PDF"
+                              : "Image"}
+                        </span>
+                      </div>
+                    )}
                 </div>
 
                 {!!(
-                    uploadedFile ||
-                    previewUrl ||
-                    (readOnly && receiptUrls.length > 0)
-                  ) ? (
+                  uploadedFile ||
+                  previewUrl ||
+                  (readOnly && receiptUrls.length > 0)
+                ) ? (
                   <div className="space-y-4">
                     {/* Interactive Receipt Viewer */}
-                    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                    {replaceRecLoading ? (
+                  <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
+                    <div className="text-center">
+                      <Loader2 className="h-12 w-12 mx-auto text-gray-400 mb-3 animate-spin" />
+                      <p className="text-sm text-gray-600 mb-2">
+                        Loading receipt...
+                      </p>
+                      <p className="text-xs text-gray-500">Please wait</p>
+                    </div>
+                  </div>
+                ) : <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
                       {/* Receipt Controls */}
                       <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center gap-2">
@@ -938,8 +982,7 @@ export function ExpenseDetailsStep({
                                       "flex flex-col items-center justify-center h-full text-center p-4";
                                     fallbackDiv.innerHTML = `
                                       <p class="text-gray-600 mb-4">Receipt preview not available.</p>
-                                      <a href="${
-                                        sourceUrl ?? "#"
+                                      <a href="${sourceUrl ?? "#"
                                       }" target="_blank" rel="noopener noreferrer" 
                                          class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
                                         <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -958,16 +1001,16 @@ export function ExpenseDetailsStep({
                           })()}
                         </div>
                       </div>
-                    </div>
-                  </div>
-                ) : receiptLoading ? (
-                  <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
-                    <div className="text-center">
-                      <Loader2 className="h-12 w-12 mx-auto text-gray-400 mb-3 animate-spin" />
-                      <p className="text-sm text-gray-600 mb-2">
-                        Loading receipt...
-                      </p>
-                      <p className="text-xs text-gray-500">Please wait</p>
+                    </div>}
+                    <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="bg-primary hover:bg-primary/90"
+                      onClick={handleReplaceReceipt}
+                    >
+                      Replace Receipt
+                    </Button>
                     </div>
                   </div>
                 ) : (

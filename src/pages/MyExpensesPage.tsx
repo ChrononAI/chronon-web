@@ -15,7 +15,7 @@ export function MyExpensesPage() {
   const [perPage] = useState(10);
   
   // Tab and filter states
-  const [activeTab, setActiveTab] = useState<"draft" | "submitted">("draft");
+  const [activeTab, setActiveTab] = useState<"all" | "draft" | "reported">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -27,7 +27,7 @@ export function MyExpensesPage() {
       
       if (activeTab === 'draft') {
         response = await expenseService.getExpensesByStatus('COMPLETE,INCOMPLETE', page, perPage);
-      } else if (activeTab === 'submitted') {
+      } else if (activeTab === 'reported') {
         response = await expenseService.getExpensesByStatus('APPROVED,REJECTED,PENDING_APPROVAL', page, perPage);
       } else {
         response = await expenseService.getMyExpenses(page, perPage);
@@ -86,15 +86,16 @@ export function MyExpensesPage() {
   const draftCount = expenses.filter(expense => 
     expense.status === 'COMPLETE' || expense.status === 'INCOMPLETE'
   ).length;
-  const submittedCount = expenses.filter(expense => 
+  const reportedCount = expenses.filter(expense => 
     expense.status === 'PENDING_APPROVAL' || 
     expense.status === 'APPROVED' || 
     expense.status === 'REJECTED'
   ).length;
 
   const tabs = [
-    { key: "draft", label: "Draft", count: draftCount },
-    { key: "submitted", label: "Submitted", count: submittedCount }
+    {key: 'all', label: 'All', count: expenses.length},
+    { key: "draft", label: "Drafts", count: draftCount },
+    { key: "reported", label: "Reported", count: reportedCount }
   ];
 
   const statusOptions = [
@@ -123,7 +124,7 @@ export function MyExpensesPage() {
       description="Manage your expense entries and track their status."
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) => setActiveTab(tabId as "draft" | "submitted")}
+      onTabChange={(tabId) => setActiveTab(tabId as "all" | "draft" | "reported")}
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       searchPlaceholder="Search expenses..."
