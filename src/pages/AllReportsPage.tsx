@@ -46,7 +46,9 @@ export function AllReportsPage() {
     try {
       setGeneratedReportsLoading(true);
       const response = await reportService.getGeneratedReports();
+      console.log(response.data);
       
+
       if (response.success && response.data) {
         setGeneratedReports(response.data);
       } else {
@@ -74,9 +76,9 @@ export function AllReportsPage() {
     toast.success('Report generated and downloaded successfully!');
   };
 
-  const handleDownloadGeneratedReport = async (reportUrl: string, filename: string) => {
+  const handleDownloadGeneratedReport = async (id: number) => {
     try {
-      await reportService.downloadGeneratedReport(reportUrl, filename);
+      await reportService.downloadGeneratedReport(id);
       toast.success('Download started successfully');
     } catch (error) {
       console.error('Error downloading generated report:', error);
@@ -247,7 +249,6 @@ export function AllReportsPage() {
               <div className="divide-y">
                 <div className="grid grid-cols-12 gap-4 px-6 py-3 text-sm font-medium text-muted-foreground bg-muted/50">
                   <div className="col-span-2">Report ID</div>
-                  <div className="col-span-2">Template</div>
                   <div className="col-span-2">Date Range</div>
                   <div className="col-span-1">Records</div>
                   <div className="col-span-1">Size</div>
@@ -255,22 +256,16 @@ export function AllReportsPage() {
                   <div className="col-span-1">Created</div>
                   <div className="col-span-1 text-right">Actions</div>
                 </div>
-                {generatedReports.map((report) => {
+                {generatedReports.map((report, idx) => {
                   const criteria = parseCriteria(report.criteria);
-                  const filename = report.report_url.split('/').pop()?.split('?')[0] || 'report.xlsx';
                   
                   return (
                     <div key={report.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-muted/50 transition-colors">
                       <div className="col-span-2">
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span>{report.id}</span>
+                          <span>{idx+1}</span>
                         </div>
-                      </div>
-                      <div className="col-span-2 text-sm">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                          Template {report.report_template_id}
-                        </span>
                       </div>
                       <div className="col-span-2 text-sm text-muted-foreground">
                         <div>{criteria.start_date} to {criteria.end_date}</div>
@@ -297,7 +292,7 @@ export function AllReportsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDownloadGeneratedReport(report.report_url, filename)}
+                          onClick={() => handleDownloadGeneratedReport(report.id)}
                           title="Download report"
                         >
                           <Download className="h-4 w-4" />

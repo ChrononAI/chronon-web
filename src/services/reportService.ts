@@ -531,21 +531,13 @@ class ReportService {
     }
   }
 
-  async downloadGeneratedReport(downloadUrl: string, filename: string): Promise<void> {
+  async downloadGeneratedReport(id: number): Promise<void> {
     try {
-      // Validate URL
-      if (!downloadUrl || !filename) {
-        throw new Error('Invalid download URL or filename');
-      }
-
-      // For S3 pre-signed URLs without CORS, we can't use fetch()
-      // Instead, we directly navigate to the URL
-      // The download behavior depends on the Content-Disposition header set by the backend
-      // If the backend includes Content-Disposition: attachment, it will download
-      // Otherwise, it may open in a new tab (for viewable files like PDFs, images)
+      const res = await api.get(`/reports/${id}/signed_url`);
+      console.log(res);
       
       // Using window.open is more reliable than creating an <a> tag for cross-origin URLs
-      window.open(downloadUrl, '_blank');
+      window.open(res.data.data.signed_url, '_blank');
       
     } catch (error) {
       console.error('Error downloading report:', error);
