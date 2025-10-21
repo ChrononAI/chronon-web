@@ -100,6 +100,21 @@ export const expenseService = {
     return response.data;
   },
 
+  async fetchAllExpenses(
+    page: number = 1,
+    perPage: number = 10) {
+    const orgId = getOrgIdFromToken();
+    if (!orgId) {
+      throw new Error("Organization ID not found in token");
+    }
+    try {
+      const response = await api.get(`/expenses/expenses?org_id=${orgId}&page=${page}&per_page=${perPage}`)
+      return response.data
+    } catch (error) {
+      console.log(error);
+    }
+  },
+
   async getExpenseById(id: string | number): Promise<Expense> {
     const response = await api.get(`/expenses/${id}`);
     return response.data.data;
@@ -421,4 +436,14 @@ export const expenseService = {
       };
     }
   },
+
+  async fetchReceiptPreview(receiptId: string, orgId: string) {
+    try {
+      const response = await api.get(`/receipts/${receiptId}/signed-url?org_id=${orgId}`);
+      return response;
+    } catch (error) {
+      console.log(error);
+      return error;
+    }
+  }
 };
