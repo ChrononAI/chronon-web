@@ -71,7 +71,7 @@ const expenseSchema = z.object({
   dateOfExpense: z.date({
     required_error: "Date is required",
   }),
-  comments: z.string().optional(),
+  comments: z.string().min(1, 'Description is required'),
   // Conveyance specific fields
   city: z.string().optional(),
   source: z.string().optional(),
@@ -749,7 +749,7 @@ export function ExpenseDetailsStep({
                     name="comments"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Description</FormLabel>
+                        <FormLabel>Description *</FormLabel>
                         <FormControl>
                           <Textarea
                             {...field}

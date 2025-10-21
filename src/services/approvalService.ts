@@ -1,32 +1,11 @@
 import api from '@/lib/api';
 import { Report } from '@/types/expense';
 import { getOrgIdFromToken } from '@/lib/jwtUtils';
-
-const API_BASE_URL = 'https://staging-api.chronon.com.chronon.co.in/';
-
-// Helper function to get auth headers
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('auth-storage');
-  if (token) {
-    const authData = JSON.parse(token);
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': authData.state.token ? `Bearer ${authData.state.token}` : ''
-    };
-  }
-  return {
-    'Content-Type': 'application/json',
-    // Remove Authorization key entirely if not present
-  } as Record<string, string>;
-};
+import { AxiosResponse } from 'axios';
 
 // Helper function to handle API responses
-const handleApiResponse = async (response: Response) => {
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-  }
-  return await response.json();
+const handleApiResponse = async (response: AxiosResponse) => {
+  return await response.data;
 };
 
 export const approvalService = {
@@ -53,14 +32,10 @@ export const approvalService = {
 
   async approveReport(reportId: string, comments: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/reports/reports/${reportId}/action`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          action: 'approve',
-          approval_notes: comments
-        }),
-      });
+      const response = await api.post(`/reports/reports/${reportId}/action`, JSON.stringify({
+        action: 'approve',
+        approval_notes: comments
+      }))
       
       const result = await handleApiResponse(response);
       return {
@@ -78,14 +53,10 @@ export const approvalService = {
 
   async rejectReport(reportId: string, comments: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/reports/reports/${reportId}/action`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          action: 'reject',
-          approval_notes: comments
-        }),
-      });
+      const response = await api.post(`/reports/reports/${reportId}/action`, JSON.stringify({
+        action: 'reject',
+        approval_notes: comments
+      }))
       
       const result = await handleApiResponse(response);
       return {
@@ -103,14 +74,10 @@ export const approvalService = {
 
   async draftBackReport(reportId: string, comments: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/reports/reports/${reportId}/action`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          action: 'draft_back',
-          approval_notes: comments
-        }),
-      });
+      const response = await api.post(`/reports/reports/${reportId}/action`, JSON.stringify({
+        action: 'draft_back',
+        approval_notes: comments
+      }))
       
       const result = await handleApiResponse(response);
       return {
@@ -128,14 +95,10 @@ export const approvalService = {
 
   async approveExpense(expenseId: number, comments?: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/user-approvals/approve`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          expenseId: expenseId,
-          comments: comments || 'Approved'
-        }),
-      });
+      const response = await api.post(`/user-approvals/approve`, JSON.stringify({
+        expenseId,
+        approval_notes: comments
+      }))
       
       const result = await handleApiResponse(response);
       
@@ -154,14 +117,10 @@ export const approvalService = {
 
   async rejectExpense(expenseId: number, comments: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/user-approvals/reject`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          expenseId: expenseId,
-          comments: comments
-        }),
-      });
+      const response = await api.post(`/user-approvals/reject`, JSON.stringify({
+        expenseId,
+        approval_notes: comments
+      }))
       
       const result = await handleApiResponse(response);
       

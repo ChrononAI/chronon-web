@@ -98,6 +98,7 @@ export interface Report {
   id: string;
   title: string;
   description: string;
+  expense_count : number | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -130,6 +131,8 @@ export interface ApprovalWorkflow {
 }
 
 export interface ApprovalStep {
+  approved_at: string | null;
+  approver_note: { notes: string | null; status: string; approver_id: string; timestamp: string }[];
   step_id: string;
   step_name: string;
   step_order: number;

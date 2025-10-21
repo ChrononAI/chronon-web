@@ -258,7 +258,6 @@ export function ReportDetailPage() {
   const approvedExpenses = report.expenses.filter(exp => exp.status === 'APPROVED' || exp.status === 'FULLY_APPROVED').length;
   const rejectedExpenses = report.expenses.filter(exp => exp.status === 'REJECTED').length;
   const pendingExpenses = report.expenses.filter(exp => exp.status === 'PENDING' || exp.status === 'PENDING_APPROVAL').length;
-  
 
   return (
     <Layout>
@@ -503,6 +502,11 @@ export function ReportDetailPage() {
                     <span className="text-muted-foreground">Submitted:</span>
                     <span className="font-medium">{report.submitted_at ? formatDate(report.submitted_at) : 'Not submitted'}</span>
                   </div>
+                  {report.approved_at && <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Approved:</span>
+                    <span className="font-medium">{report.approved_at && formatDate(report.approved_at)}</span>
+                  </div>}
                 </div>
               </CardContent>
             </Card>

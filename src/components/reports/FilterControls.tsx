@@ -101,8 +101,11 @@ export function FilterControls({
                 mode="single"
                 selected={selectedDate}
                 onSelect={(date) => {
-                  onDateChange(date);
-                  setDatePickerOpen(false);
+                  if (date) {
+                    const adjustedDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+                    onDateChange(adjustedDate);
+                    setDatePickerOpen(false);
+                  }
                 }}
                 initialFocus
               />
