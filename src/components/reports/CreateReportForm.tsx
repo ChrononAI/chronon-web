@@ -88,6 +88,7 @@ interface CreateReportFormProps {
 }
 
 export function CreateReportForm({ editMode = false, reportData }: CreateReportFormProps) {
+  console.log(editMode, reportData);
   const navigate = useNavigate();
   const { user } = useAuthStore();
   
@@ -394,6 +395,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
           description: formData.description,
           custom_attributes: customAttributesData,
         };
+        console.log('inside if editmode && reportData');
         
         const updateResponse = await reportService.updateReport(reportData.id, updateData);
         
@@ -412,6 +414,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
         additionalFields: additionalFieldsData,
         customAttributes: customAttributesData,
       };
+      console.log('inside else');
 
         const createResponse = await reportService.createReport(newReportData);
       
@@ -470,7 +473,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
         }
       });
 
-      const reportData = {
+      const reportData2 = {
         reportName: data.reportName,
         description: data.description,
         expenseIds: expenses.map(expense => expense.id),
@@ -479,23 +482,33 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       };
 
       // 1. Create report
-      const createResponse = await reportService.createReport(reportData);
-      
-      if (createResponse.success && createResponse.reportId) {
-        // 2. Submit report immediately
-        const submitResponse = await reportService.submitReport(createResponse.reportId);
-        
-        if (submitResponse.success) {
-          toast.success('Report created and submitted successfully!');
+      if (editMode && reportData) {
+        const submitReport = await reportService.submitReport(reportData.id);
+        if (submitReport.success) {
+          toast.success('Report submitted successfully');
+          navigate('/reports');
         } else {
-          toast.success('Report created successfully!');
+          toast.error('Failed to submit report');
         }
-        
-        // 3. Navigate to reports page (this will refresh the table)
-        navigate('/reports');
       } else {
-        toast.error(createResponse.message);
+        const createResponse = await reportService.createReport(reportData2);
+        if (createResponse.success && createResponse.reportId) {
+          // 2. Submit report immediately
+          const submitResponse = await reportService.submitReport(createResponse.reportId);
+          
+          if (submitResponse.success) {
+            toast.success('Report created and submitted successfully!');
+          } else {
+            toast.success('Report created successfully!');
+          }
+          
+          // 3. Navigate to reports page (this will refresh the table)
+          navigate('/reports');
+        } else {
+          toast.error(createResponse.message);
+        }
       }
+      
     } catch (error) {
       console.error('Failed to create report', error);
       toast.error('Failed to create report');

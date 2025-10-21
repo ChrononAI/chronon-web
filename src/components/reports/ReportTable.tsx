@@ -18,7 +18,6 @@ interface ReportTableProps {
 }
 
 export function ReportTable({ reports }: ReportTableProps) {
-  console.log(reports);
   const navigate = useNavigate();
 
   const handleReportClick = (report: Report) => {

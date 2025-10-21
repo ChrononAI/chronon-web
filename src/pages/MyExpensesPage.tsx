@@ -1,51 +1,77 @@
 import { useEffect, useState, useMemo } from 'react';
 import { ExpenseTable } from '@/components/expenses/ExpenseTable';
 import { expenseService } from '@/services/expenseService';
-import { Expense, PaginationMeta } from '@/types/expense';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ReportsPageWrapper } from '@/components/reports/ReportsPageWrapper';
+import { useExpenseStore } from '@/store/expenseStore';
 
 export function MyExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+  const {
+    allExpenses,
+    draftExpenses,
+    reportedExpenses,
+    allExpensesPagination,
+    draftExpensesPagination,
+    reportedExpensesPagination,
+    setAllExpenses,
+    setDraftExpenses,
+    setReportedExpenses,
+    setAllExpensesPagination,
+    setDraftExpensesPagination,
+    setReportedExpensesPagination } = useExpenseStore()
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [perPage] = useState(10);
-  
+
   // Tab and filter states
   const [activeTab, setActiveTab] = useState<"all" | "draft" | "reported">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const expensesArr = activeTab === "all" ? allExpenses : activeTab === "draft" ? draftExpenses : reportedExpenses;
+  const pagination = activeTab === "all" ? allExpensesPagination : activeTab === "draft" ? draftExpensesPagination : reportedExpensesPagination;
 
-  const fetchExpenses = async (page: number) => {
+  const fetchAllExpenses = async (page: number) => {
     try {
-      setLoading(true);
-      let response;
-      
-      if (activeTab === 'draft') {
-        response = await expenseService.getExpensesByStatus('COMPLETE,INCOMPLETE', page, perPage);
-      } else if (activeTab === 'reported') {
-        response = await expenseService.getExpensesByStatus('APPROVED,REJECTED,PENDING_APPROVAL', page, perPage);
-      } else {
-        response = await expenseService.getMyExpenses(page, perPage);
-      }
-      
-      setExpenses(response.data);
-      setPagination(response.pagination);
+      const response = await expenseService.fetchAllExpenses(page, perPage);
+      setAllExpenses(response.data);
+      setAllExpensesPagination(response.pagination);
     } catch (error) {
-      console.error('Failed to fetch expenses', error);
-      toast.error('Failed to fetch expenses');
-    } finally {
-      setLoading(false);
+      console.log(error);
     }
-  };
+  }
+
+  const fetchDraftExpenses = async (page: number) => {
+    try {
+      const response = await expenseService.getExpensesByStatus('COMPLETE,INCOMPLETE', page, perPage);
+      setDraftExpenses(response.data);
+      setDraftExpensesPagination(response.pagination);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const fetchCompletedExpenses = async (page: number) => {
+    try {
+      const response = await expenseService.getExpensesByStatus('APPROVED,REJECTED,PENDING_APPROVAL', page, perPage);
+      setReportedExpenses(response.data);
+      setReportedExpensesPagination(response.pagination);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   useEffect(() => {
-    fetchExpenses(currentPage);
-  }, [currentPage, activeTab]);
+    // fetchExpenses(currentPage);
+    fetchAllExpenses(currentPage);
+    fetchDraftExpenses(currentPage);
+    fetchCompletedExpenses(currentPage);
+  }, [currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -53,7 +79,7 @@ export function MyExpensesPage() {
 
   // Filter expenses based on search and filters (API already filters by tab/status)
   const filteredExpenses = useMemo(() => {
-    let filtered = expenses;
+    let filtered = expensesArr;
 
     // Search filter
     if (searchTerm) {
@@ -80,22 +106,22 @@ export function MyExpensesPage() {
     }
 
     return filtered;
-  }, [expenses, searchTerm, statusFilter, selectedDate]);
+  }, [expensesArr, searchTerm, statusFilter, selectedDate]);
 
   // Calculate counts for tabs
-  const draftCount = expenses.filter(expense => 
-    expense.status === 'COMPLETE' || expense.status === 'INCOMPLETE'
-  ).length;
-  const reportedCount = expenses.filter(expense => 
-    expense.status === 'PENDING_APPROVAL' || 
-    expense.status === 'APPROVED' || 
-    expense.status === 'REJECTED'
-  ).length;
+  // const draftCount = expenses.filter(expense =>
+  //   expense.status === 'COMPLETE' || expense.status === 'INCOMPLETE'
+  // ).length;
+  // const reportedCount = expenses.filter(expense =>
+  //   expense.status === 'PENDING_APPROVAL' ||
+  //   expense.status === 'APPROVED' ||
+  //   expense.status === 'REJECTED'
+  // ).length;
 
   const tabs = [
-    {key: 'all', label: 'All', count: expenses.length},
-    { key: "draft", label: "Drafts", count: draftCount },
-    { key: "reported", label: "Reported", count: reportedCount }
+    { key: 'all', label: 'All', count: allExpensesPagination.total },
+    { key: "draft", label: "Drafts", count: draftExpensesPagination.total },
+    { key: "reported", label: "Reported", count: reportedExpensesPagination.total }
   ];
 
   const statusOptions = [
@@ -139,13 +165,13 @@ export function MyExpensesPage() {
       createButtonLink="/expenses/create"
     >
       <ExpenseTable expenses={filteredExpenses} />
-      
+
       {pagination && pagination.pages > 1 && (
         <div className="flex items-center justify-between mt-6">
           <div className="text-sm text-gray-600">
-            Showing {((currentPage - 1) * perPage) + 1} to {Math.min(currentPage * perPage, pagination.total)} of {pagination.total} expenses
+            Showing {((currentPage - 1) * perPage) + 1} to {Math.min(currentPage * perPage, activeTab === 'all' ? allExpensesPagination.total : activeTab === 'draft' ? draftExpensesPagination.total : reportedExpensesPagination.total)} of {activeTab === 'all' ? allExpensesPagination.total : activeTab === 'draft' ? draftExpensesPagination.total : reportedExpensesPagination.total} expenses
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
@@ -156,7 +182,7 @@ export function MyExpensesPage() {
               <ChevronLeft className="h-4 w-4" />
               Previous
             </Button>
-            
+
             <div className="flex items-center space-x-1">
               {Array.from({ length: Math.min(3, pagination.pages) }, (_, i) => {
                 const pageNum = Math.max(1, Math.min(pagination.pages - 2, currentPage - 1)) + i;
@@ -173,7 +199,7 @@ export function MyExpensesPage() {
                 );
               })}
             </div>
-            
+
             <Button
               variant="outline"
               size="sm"

@@ -79,13 +79,12 @@ export function ExpenseDetailPage() {
         // setPolicies(policiesData);
         setParsedData(null);
 
-
         if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase()) && !isFromApprovals && !isFromReport) {
           setIsEditing(true);
         }
 
         if (expenseData.receipt_id) {
-          fetchReceiptPreview(expenseData.receipt_id, expenseData.created_by.org_id);
+          fetchReceipt(expenseData.receipt_id, expenseData.created_by.org_id);
         }
       } catch (error) {
         console.error('Failed to fetch expense details', error);
@@ -98,27 +97,16 @@ export function ExpenseDetailPage() {
     fetchData();
   }, [id]);
 
-  const fetchReceiptPreview = async (receiptId: string, orgId: string) => {
+  const fetchReceipt = async (receiptId: string, orgId: string) => {
     try {
-      const response = await fetch(
-        `https://staging-api.chronon.com.chronon.co.in/receipts/${receiptId}/signed-url?org_id=${orgId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth-storage') ? JSON.parse(localStorage.getItem('auth-storage')!).state.token : ''}`
-          }
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.status === 'success' && data.data.signed_url) {
-          setReceiptSignedUrl(data.data.signed_url);
-        }
-      }
+      const response: any = await expenseService.fetchReceiptPreview(receiptId, orgId);
+      console.log(response);
+      setReceiptSignedUrl(response.data.data.signed_url);
     } catch (error) {
-      console.error('Failed to fetch receipt preview:', error);
+      console.log(error);
+      toast.error('Failed to fetch receipt image');
     }
-  };
+  }
 
 
   const handleExpenseSubmit = async (formData: any) => {
@@ -297,7 +285,7 @@ export function ExpenseDetailPage() {
             setIsReceiptReplaced={setIsReceiptReplaced}
             uploadedFile={null}
             previewUrl={receiptSignedUrl}
-            fetchReceipt={fetchReceiptPreview}
+            fetchReceipt={fetchReceipt}
             readOnly={!isEditing}
             expenseData={transformExpenseToFormData(expense)}
             receiptUrls={receiptSignedUrl ? [receiptSignedUrl] : []}
