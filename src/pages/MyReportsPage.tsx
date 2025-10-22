@@ -8,7 +8,8 @@ import { expenseService } from '@/services/expenseService';
 import { Report, ReportsResponse } from '@/types/expense';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 
 export function MyReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -150,7 +151,18 @@ export function MyReportsPage() {
         onDateChange={setSelectedDate}
         className="mt-6 mb-4"
       />
-
+      {filteredReports.length === 0 ? <Card><div className="text-center py-12">
+        <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-semibold mb-2">
+          No reports found
+        </h3>
+        <p className="text-muted-foreground">
+          {searchTerm
+            ? "Try adjusting your search terms"
+            : "There are currently no reports."
+          }
+        </p>
+      </div></Card> :<>
       <ReportTable reports={filteredReports} />
       
       {totalPages > 1 && (
@@ -199,6 +211,7 @@ export function MyReportsPage() {
           </div>
         </div>
       )}
+      </>}
     </Layout>
   );
 }

@@ -18,7 +18,7 @@ import { getStatusColor } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useExpenseStore } from '@/store/expenseStore';
 
-const EDITABLE_STATUSES = ['DRAFT', 'INCOMPLETE', 'COMPLETE', 'PENDING', 'PENDING_APPROVAL'];
+const EDITABLE_STATUSES = ['DRAFT', 'INCOMPLETE', 'COMPLETE'];
 
 // Check if expense is a mileage expense
 const isMileageExpense = (expense: Expense): boolean => {
@@ -100,7 +100,6 @@ export function ExpenseDetailPage() {
   const fetchReceipt = async (receiptId: string, orgId: string) => {
     try {
       const response: any = await expenseService.fetchReceiptPreview(receiptId, orgId);
-      console.log(response);
       setReceiptSignedUrl(response.data.data.signed_url);
     } catch (error) {
       console.log(error);
@@ -243,7 +242,7 @@ export function ExpenseDetailPage() {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold">Expense Details</h1>
-                  <p className="text-muted-foreground">Receipt #{expense.receipt_id || expense.description}</p>
+                  <p className="text-muted-foreground">{expense.sequence_number || expense.receipt_id}</p>
                 </div>
               </div>
             </div>
@@ -278,7 +277,7 @@ export function ExpenseDetailPage() {
                 window.history.back();
               }
             }}
-            mode="view"
+            mode={(expense.status === 'COMPLETE' || expense.status === 'INCOMPLETE') ? "edit" : "view"}
             onSubmit={handleExpenseSubmit}
             loading={saving}
             isReceiptReplaced={isReceiptReplaced}
