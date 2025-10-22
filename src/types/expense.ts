@@ -35,6 +35,7 @@ export interface Expense {
   report_id: string | null;
   is_round_trip: boolean;
   status: string;
+  sequence_number: string;
   store_id: string | null;
   updated_at: string;
   vendor: string;

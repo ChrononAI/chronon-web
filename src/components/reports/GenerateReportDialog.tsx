@@ -93,7 +93,7 @@ export function GenerateReportDialog({ open, onOpenChange, onReportGenerated, se
         start_date: formattedFromDate,
         end_date: formattedToDate,
       });
-
+      console.log(response);
       if (response.success && response.data) {
         toast.success(response.message || 'Report generated successfully!');
         
@@ -101,7 +101,7 @@ export function GenerateReportDialog({ open, onOpenChange, onReportGenerated, se
           // Auto-download the file
           toast.info('Downloading report...');
           
-          await reportService.downloadGeneratedReport(response.data.download_url, response.data.filename);
+          await reportService.downloadGeneratedReport(response.data.report_id);
           
           toast.success(`Report "${response.data.filename}" downloaded successfully! Check your Downloads folder.`);
         } catch (downloadError) {
