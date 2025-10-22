@@ -134,6 +134,7 @@ export function ExpenseDetailsStep({
   receiptUrls = [],
   isEditMode = false,
 }: ExpenseDetailsStepProps) {
+  console.log("mode", mode, readOnly);
   const { parsedData, setParsedData } = useExpenseStore();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(

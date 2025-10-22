@@ -99,7 +99,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [availableExpenses, setAvailableExpenses] = useState<Expense[]>([]);
   const [selectedAvailableExpenses, setSelectedAvailableExpenses] = useState<Set<string>>(new Set());
-  const [additionalFields, setAdditionalFields] = useState<AdditionalFieldMeta[]>([]);
+  const additionalFields: AdditionalFieldMeta[] = [];
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>([]);
   const [formSchema, setFormSchema] = useState(createReportSchema([]));
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -177,8 +177,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       }
 
       // Fetch metadata and custom attributes
-      const [orgMeta, customAttrs] = await Promise.all([
-        reportService.getOrganizationMeta(user?.organization?.id || 0),
+      const [customAttrs] = await Promise.all([
         reportService.getCustomAttributes(user?.organization?.id?.toString() || '5')
       ]);
 
@@ -189,9 +188,9 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       setFormSchema(newSchema);
 
       // Set additional fields from metadata
-      if (orgMeta && orgMeta.additionalFieldsMeta?.expense_reports_fields) {
-        setAdditionalFields(orgMeta.additionalFieldsMeta.expense_reports_fields);
-      }
+      // if (orgMeta && orgMeta.additionalFieldsMeta?.expense_reports_fields) {
+      //   setAdditionalFields(orgMeta.additionalFieldsMeta.expense_reports_fields);
+      // }
 
       // Reset form with new default values if in edit mode
       if (editMode && reportData) {
@@ -273,60 +272,26 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
     }
   };
 
-  const addExpensesToReport = async () => {
-    if (selectedAvailableExpenses.size === 0) return;
-    
-    const expensesToAdd = availableExpenses.filter(expense => 
-      selectedAvailableExpenses.has(expense.id)
-    );
+  const addExpenseToReport = async (expense: Expense) => {
     if (!editMode) {
-      // Add to current expenses
-      setExpenses(prev => [...prev, ...expensesToAdd]);
-      
-      // Remove from available expenses
-      setAvailableExpenses(prev => 
-        prev.filter(expense => !selectedAvailableExpenses.has(expense.id))
-      );
-      
-      // Clear available selection
-      setSelectedAvailableExpenses(new Set());
-      
-      toast.success(`${expensesToAdd.length} expense${expensesToAdd.length !== 1 ? 's' : ''} added to report`);
-      return;
+      setAvailableExpenses(prev => prev.filter(exp => exp.id !== expense.id));
+      setExpenses(prev => [...prev, expense]);
     }
-    
-    // In edit mode, make API call
     if (!reportData) return;
-    
     setApiLoading(true);
     try {
-      const expenseIds = Array.from(selectedAvailableExpenses);
-      const response = await reportService.addExpensesToReport(reportData.id, expenseIds);
-      
-      if (response.success) {
-        // Add to current expenses
-        setExpenses(prev => [...prev, ...expensesToAdd]);
-        
-        // Remove from available expenses
-        setAvailableExpenses(prev => 
-          prev.filter(expense => !selectedAvailableExpenses.has(expense.id))
-        );
-        
-        
-        // Clear available selection
-        setSelectedAvailableExpenses(new Set());
-        
-        toast.success(response.message || 'Expenses added to report');
-      } else {
-        toast.error(response.message || 'Failed to add expenses to report');
-      }
+      const response = await reportService.addExpensesToReport(reportData.id, [expense.id]);
+      console.log(response);
+      setAvailableExpenses(prev => prev.filter(exp => exp.id !== expense.id));
+      setExpenses(prev => [...prev, expense]);
+      toast.success('Expense added to report');
     } catch (error) {
-      console.error('Error adding expenses to report:', error);
-      toast.error('Failed to add expenses to report');
+      console.log(error);
+      toast.error('Error adding expense to report');
     } finally {
       setApiLoading(false);
     }
-  };
+  }
 
   const getFieldMeta = (fieldName: string) => {
     return additionalFields.find(field => field.name === fieldName);
@@ -751,7 +716,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
                           ? 'border-primary bg-primary/5'
                           : 'border-border hover:border-primary/50'
                       }`}
-                      onClick={() => toggleAvailableExpenseSelection(expense.id)}
+                      onClick={() => addExpenseToReport(expense)}
                     >
                       <div className="flex items-start gap-3">
                         <Checkbox
@@ -791,26 +756,6 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
               )}
             </CardContent>
           </Card>
-
-          {/* Add Selected Expenses Button */}
-          {selectedAvailableExpenses.size > 0 && (
-            <div className="flex justify-center">
-              <Button 
-                onClick={addExpensesToReport}
-                disabled={apiLoading}
-                className="w-full"
-              >
-                {apiLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Adding Expenses...
-                  </>
-                ) : (
-                  `Add ${selectedAvailableExpenses.size} Selected Expense${selectedAvailableExpenses.size !== 1 ? 's' : ''} to Report`
-                )}
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 

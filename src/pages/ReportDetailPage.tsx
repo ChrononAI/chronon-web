@@ -15,13 +15,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
-  Eye, 
-  FileText, 
-  Calendar, 
-  User, 
-  Building, 
-  CheckCircle, 
-  Clock, 
+  Eye,
+  FileText,
+  Calendar,
+  User,
+  Building,
+  CheckCircle,
+  Clock,
   AlertCircle,
   XCircle,
   IndianRupee,
@@ -51,7 +51,7 @@ export function ReportDetailPage() {
   const navigate = useNavigate();
   const isFromApprovals = searchParams.get('from') === 'approvals';
   const { user } = useAuthStore();
-  
+
   const [report, setReport] = useState<ReportWithExpenses | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] = useState<ApprovalWorkflow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,7 +67,7 @@ export function ReportDetailPage() {
     }
 
     const currentUserId = user.id.toString();
-    
+
     const userStep = approvalWorkflow.approval_steps.find(step =>
       step.approvers.some(approver => approver.user_id === currentUserId)
     );
@@ -77,8 +77,8 @@ export function ReportDetailPage() {
     }
 
     return userStep.status === 'APPROVED' ? 'APPROVED' :
-           userStep.status === 'REJECTED' ? 'REJECTED' :
-           'UNDER_REVIEW';
+      userStep.status === 'REJECTED' ? 'REJECTED' :
+        'UNDER_REVIEW';
   };
 
   const fetchReport = async () => {
@@ -87,8 +87,8 @@ export function ReportDetailPage() {
       setLoading(false);
       return;
     }
-    
-    
+
+
     try {
       const [reportResponse, workflowResponse] = await Promise.all([
         reportService.getReportWithExpenses(id),
@@ -180,22 +180,22 @@ export function ReportDetailPage() {
   // Check if user can approve any expense in the report
   const canApproveReport = () => {
     if (!report || !user) return false;
-    
+
     // Check if report is in a state that allows approval
     if (report.status === 'DRAFT' || report.status === 'SUBMITTED') {
       return false; // Can't approve draft or already submitted reports
     }
-    
+
     // Check if there are pending expenses
     const pendingExpenses = report.expenses.filter(exp =>
       exp.status === 'PENDING' || exp.status === 'PENDING_APPROVAL'
     ).length;
-    
+
     // Check if user is in the current approval step
     const isUserInCurrentStep = approvalWorkflow?.approval_steps
       .find(step => step.step_order === approvalWorkflow.current_step)
       ?.approvers.some(approver => approver.user_id === user.id.toString());
-    
+
     return pendingExpenses > 0 && (isUserInCurrentStep || !approvalWorkflow);
   };
 
@@ -253,24 +253,24 @@ export function ReportDetailPage() {
 
 
   const totalAmount = report.expenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0);
-  
+
   // Calculate expense statistics
   const approvedExpenses = report.expenses.filter(exp => exp.status === 'APPROVED' || exp.status === 'FULLY_APPROVED').length;
   const rejectedExpenses = report.expenses.filter(exp => exp.status === 'REJECTED').length;
   const pendingExpenses = report.expenses.filter(exp => exp.status === 'PENDING' || exp.status === 'PENDING_APPROVAL').length;
 
-  const steps = approvalWorkflow?.approval_steps;
-const completedSteps = steps?.filter(
-  step => step.status === "APPROVED" || step.status === "REJECTED"
-).length;
-const totalSteps = steps?.length;
-const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
+  // const steps = approvalWorkflow?.approval_steps;
+  // const completedSteps = steps?.filter(
+  //   step => step.status === "APPROVED" || step.status === "REJECTED"
+  // ).length;
+  // const totalSteps = steps?.length;
+  // const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
 
   return (
     <Layout>
       <div className="space-y-6">
         <Breadcrumb items={breadcrumbItems} />
-        
+
         {/* Action Buttons Header */}
         {isFromApprovals && canApproveReport() && (
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
@@ -326,7 +326,7 @@ const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
                     </div>
                     <p className="text-lg font-semibold">{report.title}</p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <Activity className="h-4 w-4" />
@@ -378,7 +378,7 @@ const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
                 {report.custom_attributes && Object.keys(report.custom_attributes).length > 0 && (
                   <>
                     <Separator />
-                    
+
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold flex items-center gap-2">
                         <Building className="h-5 w-5" />
@@ -454,7 +454,7 @@ const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
                           </TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="sm" asChild>
-                              <Link 
+                              <Link
                                 to={`/expenses/${expense.id}?from=${isFromApprovals ? 'approvals' : 'report'}&reportId=${report.id}`}
                               >
                                 <Eye className="h-4 w-4" />
@@ -490,9 +490,9 @@ const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
                     <p className="text-sm text-muted-foreground">Organization ID: {report.org_id}</p>
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -528,7 +528,7 @@ const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-3">
+                {/* <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Completion</span>
                     <span className="font-medium">
@@ -543,7 +543,7 @@ const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
                       }}
                     />
                   </div>
-                </div>
+                </div> */}
 
                 <div className="pt-2 space-y-2">
                   <div className="flex items-center justify-between text-sm">
@@ -604,7 +604,7 @@ const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
               {actionType === 'approve' ? 'Approve' : 'Reject'} Report
             </DialogTitle>
           </DialogHeader>
-          
+
           {report && (
             <div className="space-y-4">
               <div className="bg-muted/30 rounded-lg p-4">
@@ -624,71 +624,70 @@ const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
                     <span className="text-sm font-medium">{pendingExpenses}</span>
                   </div>
                 </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="comments">
-                    Comments <span className="text-red-500">*</span>
-                  </Label>
-                  <span className="text-xs text-muted-foreground">
-                    {comments.length}/500 characters
-                  </span>
-                </div>
-                <Textarea
-                  id="comments"
-                  placeholder={
-                    actionType === 'approve' 
-                      ? 'Please provide comments for approval...' 
-                      : actionType === 'reject'
-                      ? 'Please provide reason for rejection...'
-                      : 'Please provide reason for sending back to draft...'
-                  }
-                  value={comments}
-                  onChange={(e) => setComments(e.target.value)}
-                  rows={3}
-                  maxLength={500}
-                  className="resize-none"
-                />
-              </div>
-              </div>
-                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 w-full text-center">
-                  <div className="flex flex-row gap-3 justify-center w-full">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowActionDialog(false)}
-                  disabled={actionLoading}
-                  className="w-full sm:w-auto px-6 py-2.5 border-gray-300 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={executeAction}
-                  disabled={actionLoading || !comments.trim()}
-                  className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-200 ${
-                    actionType === 'approve'
-                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md'
-                      : actionType === 'reject'
-                      ? 'bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md'
-                      : 'bg-orange-600 hover:bg-orange-700 text-white shadow-sm hover:shadow-md'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {actionLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                      {actionType === 'approve' ? 'Approving...' : actionType === 'reject' ? 'Rejecting...' : 'Sending Back...'}
-                    </>
-                  ) : (
-                    <>
-                      {actionType === 'approve' ? (
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                      ) : (
-                        <XCircle className="h-4 w-4 mr-2" />
-                      )}
-                      {actionType === 'approve' ? 'Approve Report' : 'Reject Report'}
-                    </>
-                  )}
-                </Button>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="comments">
+                      Comments <span className="text-red-500">*</span>
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      {comments.length}/500 characters
+                    </span>
                   </div>
+                  <Textarea
+                    id="comments"
+                    placeholder={
+                      actionType === 'approve'
+                        ? 'Please provide comments for approval...'
+                        : actionType === 'reject'
+                          ? 'Please provide reason for rejection...'
+                          : 'Please provide reason for sending back to draft...'
+                    }
+                    value={comments}
+                    onChange={(e) => setComments(e.target.value)}
+                    rows={3}
+                    maxLength={500}
+                    className="resize-none"
+                  />
                 </div>
+              </div>
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 w-full text-center">
+                <div className="flex flex-row gap-3 justify-center w-full">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowActionDialog(false)}
+                    disabled={actionLoading}
+                    className="w-full sm:w-auto px-6 py-2.5 border-gray-300 hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={executeAction}
+                    disabled={actionLoading || !comments.trim()}
+                    className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-200 ${actionType === 'approve'
+                        ? 'bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md'
+                        : actionType === 'reject'
+                          ? 'bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md'
+                          : 'bg-orange-600 hover:bg-orange-700 text-white shadow-sm hover:shadow-md'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {actionLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        {actionType === 'approve' ? 'Approving...' : actionType === 'reject' ? 'Rejecting...' : 'Sending Back...'}
+                      </>
+                    ) : (
+                      <>
+                        {actionType === 'approve' ? (
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                        ) : (
+                          <XCircle className="h-4 w-4 mr-2" />
+                        )}
+                        {actionType === 'approve' ? 'Approve Report' : 'Reject Report'}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </DialogContent>

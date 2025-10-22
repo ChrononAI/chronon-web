@@ -46,8 +46,6 @@ export function AllReportsPage() {
     try {
       setGeneratedReportsLoading(true);
       const response = await reportService.getGeneratedReports();
-      console.log(response.data);
-      
 
       if (response.success && response.data) {
         setGeneratedReports(response.data);
@@ -211,7 +209,7 @@ export function AllReportsPage() {
         />
 
         {/* Generated Reports */}
-        <Card>
+        {templates.length !== 0 && <Card>
           <CardHeader className="border-b">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -304,7 +302,7 @@ export function AllReportsPage() {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card>}
       </div>
     </Layout>
   );

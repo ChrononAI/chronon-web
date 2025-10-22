@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Calendar } from 'lucide-react';
+import { Search, Calendar, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -92,8 +92,18 @@ export function FilterControls({
                   !selectedDate && "text-muted-foreground"
                 )}
               >
-                <Calendar className="mr-2 h-4 w-4" />
-                {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Select date"}
+                <div className="flex items-center gap-8">
+                  <div className="flex items-center">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Select date"}
+                  </div>
+                  {selectedDate && <div onClick={(e) => {
+                    e.stopPropagation();
+                    onDateChange(undefined);
+                  }}>
+                    <X className="h-4 w-4" />
+                  </div>}
+                </div>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
