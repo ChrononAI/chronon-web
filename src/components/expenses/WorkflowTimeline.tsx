@@ -1,6 +1,6 @@
 import { CheckCircle, Clock, Circle, XCircle } from 'lucide-react';
 import { ApprovalWorkflow } from '@/types/expense';
-import { getWorkflowStatusColor } from '@/lib/utils';
+import { formatDate, getWorkflowStatusColor } from '@/lib/utils';
 
 interface WorkflowTimelineProps {
   approvalWorkflow: ApprovalWorkflow;
@@ -60,7 +60,7 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                   <div>
                     <h4 className="font-medium">
                       {step.approvers[0] ? 
-                        `${step.approvers[0].first_name} ${step.approvers[0].last_name}` : 
+                        `${step.approvers[0].first_name || ''} ${step.approvers[0].last_name || ''}` : 
                         step.step_name
                       }
                     </h4>
@@ -69,17 +69,14 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                         {step.approvers[0].email}
                       </div>
                     )}
-                    {/* <div className="mt-2 space-y-1">
-                      {step.approvers.map((approver) => (
-                        <div key={approver.user_id} className="text-sm text-muted-foreground">
-                          {approver.first_name} {approver.last_name} ({approver.email})
-                        </div>
-                      ))}
-                    </div> */}
-                    <div className="mt-2">
+                    <div className="mt-2 flex items-center gap-4">
                       <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getWorkflowStatusColor(step.status)}`}>
                         {step.status.replace('_', ' ')}
                       </span>
+                      {step.approved_at && <span className="text-sm">{formatDate(step.approved_at)}</span>}
+                    </div>
+                    <div className="mt-2 text-gray-600 italic text-sm">
+                      {step.approver_note[0]?.notes || ''}
                     </div>
                   </div>
                   <div className="text-right text-sm text-muted-foreground">

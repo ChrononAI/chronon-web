@@ -167,9 +167,9 @@ export function ApprovalsReportsPage() {
                         <p className="font-medium text-gray-900">
                           {report.created_by.email}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        {/* <p className="text-sm text-gray-500">
                           {report.org_id}
-                        </p>
+                        </p> */}
                       </TableCell>
                       <TableCell>
                         <p className="font-medium text-gray-900">
@@ -183,7 +183,7 @@ export function ApprovalsReportsPage() {
                       </TableCell>
                       <TableCell>
                         <p className="text-gray-900">
-                          1
+                          {report.expense_count}
                         </p>
                       </TableCell>
                       <TableCell>

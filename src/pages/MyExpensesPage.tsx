@@ -99,8 +99,10 @@ export function MyExpensesPage() {
     // Date filter
     if (selectedDate) {
       const filterDate = selectedDate.toISOString().split('T')[0];
+      console.log(filterDate);
       filtered = filtered.filter(expense => {
         const expenseDate = new Date(expense.expense_date).toISOString().split('T')[0];
+        console.log(expenseDate);
         return expenseDate === filterDate;
       });
     }

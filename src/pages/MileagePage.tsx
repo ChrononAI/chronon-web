@@ -515,7 +515,7 @@ const MileagePage = ({
                   <Select
                     value={formData.categoryId}
                     onValueChange={(v) => handleInputChange("categoryId", v)}
-                    disabled={!selectedPolicy || loadingPolicies}
+                    disabled={loadingPolicies}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Category" />
