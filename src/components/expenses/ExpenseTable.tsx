@@ -30,7 +30,7 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100">
-              <TableHead>Invoice Number</TableHead>
+              <TableHead>Expense ID</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Policy</TableHead>
               <TableHead>Category</TableHead>
@@ -49,15 +49,15 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
                 onClick={() => navigate(`/expenses/${expense.id}`)}
               >
                 <TableCell className="font-medium">
-                  {expense.invoice_number}
+                  {expense.sequence_number}
                 </TableCell>
                 <TableCell>{getExpenseType(expense.expense_type)}</TableCell>
-                <TableCell className="font-medium">
+                <TableCell className="font-medium whitespace-nowrap">
                   {expense.policy?.name || 'No Policy'}
                 </TableCell>
-                <TableCell>{expense.category}</TableCell>
-                <TableCell>{expense.vendor || (expense.expense_type === "RECEIPT_BASED" ? <span className='text-gray-600 italic'>Unknown Vendor</span> : 'NA')}</TableCell>
-                 <TableCell>
+                <TableCell className="whitespace-nowrap">{expense.category}</TableCell>
+                <TableCell className="whitespace-nowrap">{expense.vendor || (expense.expense_type === "RECEIPT_BASED" ? <span className='text-gray-600 italic'>Unknown Vendor</span> : 'NA')}</TableCell>
+                 <TableCell className="whitespace-nowrap">
                   {formatDate(expense.expense_date)}
                 </TableCell>
                 <TableCell className='text-right'>
@@ -66,7 +66,7 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
                <TableCell>
                   INR
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap">
                   <Badge className={getStatusColor(expense.status)}>
                     {expense.status.replace('_', ' ')}
                   </Badge>

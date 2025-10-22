@@ -175,7 +175,7 @@ export function AllReportsPage() {
               {templates.map((template) => (
                 <Card 
                   key={template.id}
-                  className="bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 min-w-[280px]"
+                  className="my-2 bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200 cursor-pointer hover:shadow-lg transition-all duration-200 min-w-[280px]"
                   onClick={() => handleTemplateSelect(template.id)}
                 >
                   <CardContent className="p-6">

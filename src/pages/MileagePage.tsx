@@ -70,7 +70,6 @@ const MileagePage = ({
   const [isCalculating, setIsCalculating] = useState(false);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
-  const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [startLocation, setStartLocation] = useState<PlaceSuggestion | null>();
@@ -149,7 +148,7 @@ const MileagePage = ({
         );
       } else if (field === "policyId") {
         const policy = policies.find((p) => p.id === value);
-        setSelectedPolicy(policy || null);
+        // setSelectedPolicy(policy || null);
         if (policy?.categories && policy.categories.length > 0) {
           const firstCategory = policy.categories[0];
           setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
@@ -270,7 +269,7 @@ const MileagePage = ({
       // Auto-select first policy and category if available
       if (mileagePolicies.length > 0) {
         const firstPolicy = mileagePolicies[0];
-        setSelectedPolicy(firstPolicy);
+        // setSelectedPolicy(firstPolicy);
         setFormData((prev) => ({ ...prev, policyId: firstPolicy.id }));
 
         if (firstPolicy.categories && firstPolicy.categories.length > 0) {

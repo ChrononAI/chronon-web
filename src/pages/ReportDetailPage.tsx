@@ -59,6 +59,7 @@ export function ReportDetailPage() {
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
   const [comments, setComments] = useState('');
   const [showActionDialog, setShowActionDialog] = useState(false);
+  console.log(report);
 
   const getUserSpecificStatus = (): string => {
     if (!user || !approvalWorkflow || !approvalWorkflow.approval_steps) {
@@ -254,10 +255,16 @@ export function ReportDetailPage() {
   const totalAmount = report.expenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0);
   
   // Calculate expense statistics
-  const totalExpenses = report.expenses.length;
   const approvedExpenses = report.expenses.filter(exp => exp.status === 'APPROVED' || exp.status === 'FULLY_APPROVED').length;
   const rejectedExpenses = report.expenses.filter(exp => exp.status === 'REJECTED').length;
   const pendingExpenses = report.expenses.filter(exp => exp.status === 'PENDING' || exp.status === 'PENDING_APPROVAL').length;
+
+  const steps = approvalWorkflow?.approval_steps;
+const completedSteps = steps?.filter(
+  step => step.status === "APPROVED" || step.status === "REJECTED"
+).length;
+const totalSteps = steps?.length;
+const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
 
   return (
     <Layout>
@@ -409,7 +416,7 @@ export function ReportDetailPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead className="font-semibold">Invoice Number</TableHead>
+                        <TableHead className="font-semibold">Expense ID</TableHead>
                         <TableHead className="font-semibold">Category</TableHead>
                         <TableHead className="font-semibold">Amount</TableHead>
                         <TableHead className="font-semibold">Date</TableHead>
@@ -422,7 +429,7 @@ export function ReportDetailPage() {
                       {report.expenses.map((expense) => (
                         <TableRow key={expense.id} className="hover:bg-muted/30 transition-colors">
                           <TableCell className="font-medium">
-                            {expense.invoice_number || expense.description}
+                            {expense.sequence_number}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -525,18 +532,14 @@ export function ReportDetailPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Completion</span>
                     <span className="font-medium">
-                      {totalExpenses > 0 ? 
-                        Math.round(((approvedExpenses + rejectedExpenses) / totalExpenses) * 100) 
-                        : 0}%
+                      {progress}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div 
                       className="bg-gradient-to-r from-blue-500 to-primary h-3 rounded-full transition-all duration-500"
                       style={{ 
-                        width: `${totalExpenses > 0 ? 
-                          ((approvedExpenses + rejectedExpenses) / totalExpenses) * 100 
-                          : 0}%` 
+                        width: `${progress}%` 
                       }}
                     />
                   </div>

@@ -21,7 +21,8 @@ export function MyExpensesPage() {
     setDraftExpensesPagination,
     setReportedExpensesPagination } = useExpenseStore()
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
+  const loading = false;
   const [perPage] = useState(10);
 
   // Tab and filter states
