@@ -232,11 +232,6 @@ export function LoginForm({ onLogin }: LoginProps) {
             </form>
                 <div className="mt-4 text-center">
                   <p className="text-sm text-gray-500">
-                    Use credentials: pradeep@chronon.co.in / password
-                  </p>
-                </div>
-                <div className="mt-4 text-center">
-                  <p className="text-sm text-gray-500">
                     Need help?{" "}
                     <a
                       href="#"
