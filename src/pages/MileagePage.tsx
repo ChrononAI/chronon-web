@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +25,14 @@ import { Expense, Policy, PolicyCategory } from "@/types/expense";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { DateField } from "@/components/ui/date-field";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -33,7 +44,7 @@ interface MileagePageProps {
   onCancel?: () => void;
 }
 
- export const getVehicleType = (
+export const getVehicleType = (
     type: "FOUR_WHEELERS" | "TWO_WHEELERS" | "PUBLIC_TRANSPORT" | string
   ) => {
     if (type === "FOUR_WHEELERS") return "car";
@@ -41,6 +52,21 @@ interface MileagePageProps {
     if (type === "PUBLIC_TRANSPORT") return "public_transport";
     return "";
   };
+
+const mileageSchema = z.object({
+  startLocation: z.string().min(1, "Start location is required"),
+  endLocation: z.string().min(1, "End location is required"),
+  distance: z.string().min(1, "Distance is required"),
+  amount: z.string().min(1, "Amount is required"),
+  description: z.string().min(1, "Purpose of travel is required"),
+  vehiclesType: z.string().min(1, "Vehicle type is required"),
+  expenseDate: z.string().min(1, "Date is required"),
+  isRoundTrip: z.boolean(),
+  policyId: z.string().min(1, "Policy is required"),
+  categoryId: z.string().min(1, "Category is required"),
+});
+
+type MileageFormValues = z.infer<typeof mileageSchema>;
 
 const MileagePage = ({
   mode = "create",
@@ -52,6 +78,22 @@ const MileagePage = ({
   onCancel,
 }: MileagePageProps) => {
   const navigate = useNavigate();
+
+  const form = useForm<MileageFormValues>({
+    resolver: zodResolver(mileageSchema),
+    defaultValues: {
+      startLocation: "",
+      endLocation: "",
+      distance: "",
+      amount: "",
+      description: "",
+      vehiclesType: "",
+      expenseDate: new Date().toISOString().split("T")[0],
+      isRoundTrip: false,
+      policyId: "",
+      categoryId: "",
+    },
+  });
 
   const [formData, setFormData] = useState({
     startLocation: "",
@@ -141,6 +183,7 @@ const MileagePage = ({
           value as string,
           updatedData.isRoundTrip
         );
+        form.setValue("vehiclesType", value as string);
       } else if (field === "isRoundTrip") {
         calculateMileageCost(
           updatedData.startLocationId,
@@ -148,17 +191,22 @@ const MileagePage = ({
           updatedData.vehiclesType,
           value as boolean
         );
+        form.setValue("isRoundTrip", value as boolean);
       } else if (field === "policyId") {
         const policy = policies.find((p) => p.id === value);
-        // setSelectedPolicy(policy || null);
         if (policy?.categories && policy.categories.length > 0) {
           const firstCategory = policy.categories[0];
           setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
+          form.setValue("categoryId", firstCategory.id);
         } else {
           setFormData((prev) => ({ ...prev, categoryId: "" }));
+          form.setValue("categoryId", "");
         }
+        form.setValue("policyId", value as string);
       } else if (field === "categoryId") {
-        // Category selection handled by form state
+        form.setValue("categoryId", value as string);
+      } else {
+        form.setValue(field as keyof MileageFormValues, value);
       }
 
       return updatedData;
@@ -172,6 +220,7 @@ const MileagePage = ({
       startLocation: place.description,
       startLocationId: place.place_id,
     }));
+    form.setValue("startLocation", place.description);
   };
 
   const handleEndLocationSelect = (place: PlaceSuggestion) => {
@@ -181,6 +230,7 @@ const MileagePage = ({
       endLocation: place.description,
       endLocationId: place.place_id,
     }));
+    form.setValue("endLocation", place.description);
   };
 
   useEffect(() => {
@@ -194,29 +244,31 @@ const MileagePage = ({
     }
   }, [startLocation, endLocation]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (values: MileageFormValues) => {
     const orgId = getOrgIdFromToken();
-    if (!orgId) return alert("Organization ID not found.");
+    if (!orgId) {
+      toast.error("Organization ID not found");
+      return;
+    }
 
     const submitData = {
-      expense_policy_id: formData.policyId,
-      category_id: formData.categoryId,
-      amount: extractAmount(formData.amount),
-      expense_date: formData.expenseDate,
-      description: formData.description,
-      start_location: formData.startLocation,
-      end_location: formData.endLocation,
-      distance: extractDistance(formData.distance),
+      expense_policy_id: values.policyId,
+      category_id: values.categoryId,
+      amount: extractAmount(values.amount),
+      expense_date: values.expenseDate,
+      description: values.description,
+      start_location: values.startLocation,
+      end_location: values.endLocation,
+      distance: extractDistance(values.distance),
       distance_unit: "KM",
       vehicle_type:
         vehicleTypeMapping[
-        formData.vehiclesType as keyof typeof vehicleTypeMapping
+        values.vehiclesType as keyof typeof vehicleTypeMapping
         ] || "four_wheeler",
-      is_round_trip: formData.isRoundTrip.toString(),
+      is_round_trip: values.isRoundTrip.toString(),
       mileage_meta: {
         trip_purpose: "business_travel",
-        notes: formData.isRoundTrip ? "Round trip" : "",
+        notes: values.isRoundTrip ? "Round trip" : "",
       },
       vendor: expenseData?.vendor,
     };
@@ -227,7 +279,7 @@ const MileagePage = ({
       } else if (mode === "edit" && onUpdate) {
         await onUpdate(submitData);
       }
-      toast.success("Successfully created mileage expense")
+      toast.success("Successfully created mileage expense");
       navigate("/expenses");
     } catch (error) {
       console.error(error);
@@ -267,17 +319,20 @@ const MileagePage = ({
       });
 
       setPolicies(mileagePolicies);
-      setCategories(mileagePolicies[0].categories);
+      setCategories(mileagePolicies[0]?.categories || []);
 
-      // Auto-select first policy and category if available
+      
       if (mileagePolicies.length > 0) {
         const firstPolicy = mileagePolicies[0];
-        // setSelectedPolicy(firstPolicy);
         setFormData((prev) => ({ ...prev, policyId: firstPolicy.id }));
+        
+        
+        form.setValue("policyId", firstPolicy.id);
 
         if (firstPolicy.categories && firstPolicy.categories.length > 0) {
           const firstCategory = firstPolicy.categories[0];
           setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
+          
         }
       }
     } catch (error) {
@@ -330,6 +385,8 @@ const MileagePage = ({
           distance: `${calculatedDistance.toFixed(1)} km`,
           amount: `₹${costData.cost.toFixed(2)}`,
         }));
+        form.setValue("distance", `${calculatedDistance.toFixed(1)} km`);
+        form.setValue("amount", `₹${costData.cost.toFixed(2)}`);
       }
     } catch (error) {
       console.error("Error calculating mileage cost:", error);
@@ -346,52 +403,89 @@ const MileagePage = ({
         </h1>
       </div>}
 
-      <form onSubmit={handleSubmit}>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)}>
         <Card>
           <CardContent className="px-6 py-4 space-y-4">
             {/* 🚗 Route Section */}
             <div className="space-y-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Start Location *</Label>
-                  <LocationAutocomplete
-                    value={formData.startLocation}
-                    onChange={(v) => handleInputChange("startLocation", v)}
-                    onSelect={handleStartLocationSelect}
-                    disabled={mode === "view" && !editMode}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>End Location *</Label>
-                  <LocationAutocomplete
-                    value={formData.endLocation}
-                    onChange={(v) => handleInputChange("endLocation", v)}
-                    onSelect={handleEndLocationSelect}
-                    disabled={mode === "view" && !editMode}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="startLocation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Location *</FormLabel>
+                      <FormControl>
+                        <LocationAutocomplete
+                          value={formData.startLocation}
+                          onChange={(v) => {
+                            handleInputChange("startLocation", v);
+                            field.onChange(v);
+                          }}
+                          onSelect={handleStartLocationSelect}
+                          disabled={mode === "view" && !editMode}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="endLocation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Location *</FormLabel>
+                      <FormControl>
+                        <LocationAutocomplete
+                          value={formData.endLocation}
+                          onChange={(v) => {
+                            handleInputChange("endLocation", v);
+                            field.onChange(v);
+                          }}
+                          onSelect={handleEndLocationSelect}
+                          disabled={mode === "view" && !editMode}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Vehicle *</Label>
-                  <Select
-                    value={formData.vehiclesType}
-                    onValueChange={(v) => handleInputChange("vehiclesType", v)}
-                    disabled={mode === "view" && !editMode}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select vehicle type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="car">Car</SelectItem>
-                      <SelectItem value="bike">Bike</SelectItem>
-                      <SelectItem value="public_transport">
-                        Public Transport
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="vehiclesType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vehicle *</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={(v) => {
+                          handleInputChange("vehiclesType", v);
+                          field.onChange(v);
+                        }}
+                        disabled={mode === "view" && !editMode}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select vehicle type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="car">Car</SelectItem>
+                          <SelectItem value="bike">Bike</SelectItem>
+                          <SelectItem value="public_transport">
+                            Public Transport
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="flex flex-col justify-center space-y-3">
                   <Label>Round Trip</Label>
@@ -411,147 +505,196 @@ const MileagePage = ({
             {/* 🧾 Details Section */}
             <div className="space-y-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="distance"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Distance (km)
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="distance"
-                      type="text"
-                      value={
-                        isCalculating
-                          ? "Calculating..."
-                          : formData.distance || "Auto-calculated"
-                      }
-                      onChange={(e) =>
-                        handleInputChange("distance", e.target.value)
-                      }
-                      className="bg-gray-50 text-gray-500"
-                      disabled={isCalculating || (mode === "view" && !editMode)}
-                    />
-                    {isCalculating && (
-                      <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
-                    )}
-                  </div>
-                  {mode === "create" && (
-                    <p className="text-xs text-gray-500">
-                      Manual adjustment is possible.
-                    </p>
+                <FormField
+                  control={form.control}
+                  name="distance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Distance (km) *</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            type="text"
+                            value={
+                              isCalculating
+                                ? "Calculating..."
+                                : formData.distance || "Auto-calculated"
+                            }
+                            onChange={(e) => {
+                              handleInputChange("distance", e.target.value);
+                              field.onChange(e.target.value);
+                            }}
+                            className="bg-gray-50 text-gray-500"
+                            disabled={isCalculating || (mode === "view" && !editMode)}
+                          />
+                        </FormControl>
+                        {isCalculating && (
+                          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
+                        )}
+                      </div>
+                      {mode === "create" && (
+                        <p className="text-xs text-gray-500">
+                          Manual adjustment is possible.
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
+                />
 
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="amount"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Amount
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="amount"
-                      type="text"
-                      value={
-                        isCalculating
-                          ? "Calculating..."
-                          : formData.amount || "₹ Auto-calculated"
-                      }
-                      onChange={(e) =>
-                        handleInputChange("amount", e.target.value)
-                      }
-                      className="bg-gray-50 text-gray-500"
-                      disabled={isCalculating || (mode === "view" && !editMode)}
-                    />
-                    {isCalculating && (
-                      <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
-                    )}
-                  </div>
-                  {mode === "create" && (
-                    <p className="text-xs text-gray-500">
-                      Based on policy rate.
-                    </p>
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount *</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            type="text"
+                            value={
+                              isCalculating
+                                ? "Calculating..."
+                                : formData.amount || "₹ Auto-calculated"
+                            }
+                            onChange={(e) => {
+                              handleInputChange("amount", e.target.value);
+                              field.onChange(e.target.value);
+                            }}
+                            className="bg-gray-50 text-gray-500"
+                            disabled={isCalculating || (mode === "view" && !editMode)}
+                          />
+                        </FormControl>
+                        {isCalculating && (
+                          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
+                        )}
+                      </div>
+                      {mode === "create" && (
+                        <p className="text-xs text-gray-500">
+                          Based on policy rate.
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Policy *</Label>
-                  <Select
-                    value={formData.policyId}
-                    onValueChange={(v) => handleInputChange("policyId", v)}
-                    disabled={loadingPolicies || (mode === "view" && !editMode)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          loadingPolicies ? "Loading..." : "Select Policy"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {policies.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="policyId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Policy *</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={(v) => {
+                          handleInputChange("policyId", v);
+                          field.onChange(v);
+                        }}
+                        disabled={loadingPolicies || (mode === "view" && !editMode)}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={
+                                loadingPolicies ? "Loading..." : "Select Policy"
+                              }
+                            />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {policies.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                <div className="space-y-2">
-                  <Label>Category *</Label>
-                  <Select
-                    value={formData.categoryId}
-                    onValueChange={(v) => handleInputChange("categoryId", v)}
-                    disabled={loadingPolicies || (mode === "view" && !editMode)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories?.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category *</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={(v) => {
+                          handleInputChange("categoryId", v);
+                          field.onChange(v);
+                        }}
+                        disabled={loadingPolicies || (mode === "view" && !editMode)}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories?.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="expenseDate"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Date *
-                  </Label>
-                  <DateField
-                    id="startDate"
-                    value={formData.expenseDate}
-                    onChange={(value) => handleInputChange("expenseDate", value)}
-                    disabled={mode === "view"}
-                    maxDate={today}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Purpose of Travel *</Label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    handleInputChange("description", e.target.value)
-                  }
-                  disabled={mode === "view" && !editMode}
+                <FormField
+                  control={form.control}
+                  name="expenseDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date *</FormLabel>
+                      <FormControl>
+                        <DateField
+                          id="startDate"
+                          value={field.value}
+                          onChange={(value) => {
+                            handleInputChange("expenseDate", value);
+                            field.onChange(value);
+                          }}
+                          disabled={mode === "view"}
+                          maxDate={today}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Purpose of Travel *</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        value={field.value}
+                        onChange={(e) => {
+                          handleInputChange("description", e.target.value);
+                          field.onChange(e.target.value);
+                        }}
+                        disabled={mode === "view" && !editMode}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             {/* 💾 Actions */}
@@ -582,7 +725,8 @@ const MileagePage = ({
             )}
           </CardContent>
         </Card>
-      </form>
+        </form>
+      </Form>
     </div>
   );
 };
