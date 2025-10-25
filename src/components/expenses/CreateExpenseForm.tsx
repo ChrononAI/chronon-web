@@ -37,8 +37,20 @@ export function CreateExpenseForm() {
   // const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [uploadStepKey, setUploadStepKey] = useState(0);
+  const [isReceiptReplaced, setIsReceiptReplaced] = useState(false);
 
   const stepTitles = ['Upload Receipt', 'Expense Details'];
+
+  const fetchReceipt = async (receiptId: string, orgId: string) => {
+      console.log(receiptId, orgId)
+      try {
+        const response: any = await expenseService.fetchReceiptPreview(receiptId, orgId);
+        setPreviewUrl(response.data.data.signed_url);
+      } catch (error) {
+        console.log(error);
+        toast.error('Failed to fetch receipt image');
+      }
+    }
 
   useEffect(() => {
     const shouldShowDialog = localStorage.getItem('showDuplicateDialog');
@@ -172,6 +184,9 @@ export function CreateExpenseForm() {
           loading={loading}
           uploadedFile={uploadedFile}
           previewUrl={previewUrl}
+          fetchReceipt={fetchReceipt}
+          isReceiptReplaced={isReceiptReplaced}
+          setIsReceiptReplaced={setIsReceiptReplaced}
         />
       )}
 

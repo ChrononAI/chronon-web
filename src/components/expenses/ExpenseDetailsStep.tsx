@@ -146,7 +146,7 @@ export function ExpenseDetailsStep({
   const [duplicateReceiptLoading, setDuplicateReceiptLoading] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [selectedCategory, setSelectedCategory] =
-    useState<PolicyCategory | null>(null);
+  useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [replaceRecLoading, setReplaceRecLoading] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
@@ -324,10 +324,8 @@ export function ExpenseDetailsStep({
     try {
       setReplaceRecLoading(true);
       const parsedData = await fileParseService.parseInvoiceFile(file);
-      console.log(parsedData);
       if (parsedData.is_duplicate_receipt) {
         setSemiParsedData(parsedData);
-        // Open duplicate receipt moodal
         setShowDuplicateDialog(true)
       } else {
         setParsedData(parsedData);
@@ -800,10 +798,10 @@ export function ExpenseDetailsStep({
                         {loading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {isEditMode ? "Saving..." : "Creating..."}
+                            {isEditMode ? "Updating..." : "Creating..."}
                           </>
                         ) : isEditMode ? (
-                          "Save Changes"
+                          "Update Expense"
                         ) : (
                           "Create Expense"
                         )}
@@ -959,7 +957,7 @@ export function ExpenseDetailsStep({
                             }
 
                             // Check if this is a PDF by looking at the URL
-                            const isPdf = sourceUrl
+                            const isPdf = previewUrl
                               ?.toLowerCase()
                               .includes(".pdf");
 
@@ -969,7 +967,7 @@ export function ExpenseDetailsStep({
                                 <div className="w-full h-80 border border-gray-200 rounded bg-white flex flex-col">
                                   <div className="flex-1 flex items-center justify-center">
                                     <embed
-                                      src={`${sourceUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
+                                      src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
                                       type="application/pdf"
                                       className="w-full h-full border-0 rounded"
                                       style={{
@@ -984,7 +982,7 @@ export function ExpenseDetailsStep({
                               // For regular images, use img tag
                               return (
                                 <img
-                                  src={sourceUrl || ""}
+                                  src={previewUrl || ""}
                                   alt="Receipt preview"
                                   className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
                                   style={{
@@ -1003,7 +1001,7 @@ export function ExpenseDetailsStep({
                                       "flex flex-col items-center justify-center h-full text-center p-4";
                                     fallbackDiv.innerHTML = `
                                       <p class="text-gray-600 mb-4">Receipt preview not available.</p>
-                                      <a href="${sourceUrl ?? "#"
+                                      <a href="${previewUrl ?? "#"
                                       }" target="_blank" rel="noopener noreferrer" 
                                          class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
                                         <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1238,14 +1236,6 @@ export function ExpenseDetailsStep({
             <Button
               onClick={() => {
                 setShowDuplicateDialog(false);
-                // setUploadedFile(null);
-                // setPreviewUrl(null);
-                // setParsedData(null);
-                // localStorage.removeItem('showDuplicateDialog');
-                // localStorage.removeItem('duplicateParsedData');
-                // localStorage.removeItem('duplicatePreviewUrl');
-                // setUploadStepKey(prev => prev + 1);
-                // setCurrentStep(1);
               }}
               className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium"
             >
@@ -1257,6 +1247,7 @@ export function ExpenseDetailsStep({
                 setShowDuplicateDialog(false);
                 // setCurrentStep(2);
                 setParsedData(semiParsedData);
+                console.log(semiParsedData);
                 fetchReceipt(semiParsedData?.id, orgId)
                 setIsReceiptReplaced(true);
               }}

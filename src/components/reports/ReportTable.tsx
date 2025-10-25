@@ -1,6 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { Eye } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -43,59 +41,49 @@ export function ReportTable({ reports }: ReportTableProps) {
 
   return (
     <div className="border rounded-lg bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-100">
-              <TableHead>Title</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Total Amount</TableHead>
-              <TableHead>Created By</TableHead>
-              <TableHead>Created Date</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-gray-100">
+            <TableHead>TITLE</TableHead>
+            <TableHead>DESCRIPTION</TableHead>
+            <TableHead>STATUS</TableHead>
+            <TableHead>TOTAL AMOUNT</TableHead>
+            <TableHead>CREATED BY</TableHead>
+            <TableHead>CREATED DATE</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {reports.map((report) => (
+            <TableRow
+              key={report.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (report.status === 'DRAFT') {
+                  handleReportClick(report);
+                } else {
+                  navigate(`/reports/${report.id}`);
+                }
+              }}
+            >
+              <TableCell className="font-medium">
+                <span className="hover:underline">
+                  {report.title}
+                </span>
+              </TableCell>
+              <TableCell>{report.description}</TableCell>
+              <TableCell>
+                <Badge className={getStatusColor(report.status)}>
+                  {report.status}
+                </Badge>
+              </TableCell>
+              <TableCell>₹{Number(report.total_amount).toFixed(2)}</TableCell>
+              <TableCell>{report.created_by.email}</TableCell>
+              <TableCell>{formatDate(report.created_at)}</TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {reports.map((report) => (
-              <TableRow 
-                key={report.id} 
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => handleReportClick(report)}
-              >
-                <TableCell className="font-medium">
-                  <span className="hover:underline">
-                    {report.title}
-                  </span>
-                </TableCell>
-                <TableCell>{report.description}</TableCell>
-                <TableCell>
-                  <Badge className={getStatusColor(report.status)}>
-                    {report.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>₹{Number(report.total_amount).toFixed(2)}</TableCell>
-                <TableCell>{report.created_by.email}</TableCell>
-                <TableCell>{formatDate(report.created_at)}</TableCell>
-                <TableCell className="text-right">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (report.status === 'DRAFT') {
-                        handleReportClick(report);
-                      } else {
-                        navigate(`/reports/${report.id}`);
-                      }
-                    }}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
