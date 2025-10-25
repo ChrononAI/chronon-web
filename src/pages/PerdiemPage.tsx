@@ -18,10 +18,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuthStore } from "@/store/authStore";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PerdiemPageProps {
   mode?: "create" | "view" | "edit";
   expenseData?: Expense;
+}
+
+  export const calculateDays = (startDate: string, endDate: string): number => {
+  if (!startDate || !endDate) return 0
+
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+
+  // Ensure valid dates
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0
+
+  const diffTime = end.getTime() - start.getTime()
+
+  // +1 if you want to include both start and end dates as full days
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+
+  return diffDays > 0 ? diffDays : 0
 }
 
 const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
@@ -49,11 +67,18 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     policyId: "",
     categoryId: "",
   });
+  const [days, setDays] = useState<number>(0);
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
-  const [days, setDays] = useState<number>(0);
+  const today = new Date().toISOString().split("T")[0];
+
+  useEffect(() => {
+  const { startDate, endDate } = formData
+  setDays(calculateDays(startDate, endDate))
+}, [formData.startDate, formData.endDate])
+
 
   // Pre-fill form data when in view mode
   useEffect(() => {
@@ -75,13 +100,13 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         ...prev,
         startDate: formatDate(
           expenseData.start_date ||
-            expenseData.per_diem_info?.start_date ||
-            expenseData.expense_date
+          expenseData.per_diem_info?.start_date ||
+          expenseData.expense_date
         ),
         endDate: formatDate(
           expenseData.end_date ||
-            expenseData.per_diem_info?.end_date ||
-            expenseData.expense_date
+          expenseData.per_diem_info?.end_date ||
+          expenseData.expense_date
         ),
         location:
           expenseData.location || expenseData.per_diem_info?.location || "",
@@ -148,11 +173,10 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
     const submitData = {
       expense_policy_id: formData.policyId, // Hardcoded policy ID
-      category_id: formData.categoryId, // Hardcoded category ID
+      category_id: formData.categoryId,
       amount: formData.totalAmount,
       expense_date: formData.startDate,
       description: formData.purpose,
-      // vendor: expenseData?.vendor || "",
       per_diem_info: {
         start_date: formData.startDate,
         end_date: formData.endDate,
@@ -236,20 +260,12 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   ]);
 
   return (
-    <div className="w-full px-6 py-2">
-      {/* Header */}
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-800 mb-1">Per Diem</h1>
-        <p className="text-gray-600">
-          Request a daily allowance for business travel.
-        </p>
-      </div>
+    <div className="w-full pt-1">
 
       <form onSubmit={handleSubmit}>
         <div className="bg-white border rounded-lg p-6">
           {/* Date Section */}
           <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-700 mb-3">Dates</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label
@@ -263,6 +279,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                   value={formData.startDate}
                   onChange={(value) => handleInputChange("startDate", value)}
                   disabled={mode === "view"}
+                  maxDate={today}
                 />
               </div>
 
@@ -278,6 +295,8 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                   value={formData.endDate}
                   onChange={(value) => handleInputChange("endDate", value)}
                   disabled={mode === "view"}
+                  minDate={formData.startDate}
+                  maxDate={today}
                 />
               </div>
             </div>
@@ -285,9 +304,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
           {/* Details Section */}
           <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-700 mb-3">
-              Details
-            </h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label
@@ -340,30 +356,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                 >
                   Policy
                 </Label>
-                {/* <Select
-                  value={formData.policyId}
-                  onValueChange={(value) =>
-                    handleInputChange("policyId", value)
-                  }
-                  disabled={(mode === "view" && !editMode) || loadingPolicies}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        loadingPolicies
-                          ? "Loading policies..."
-                          : "Select policy"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {policies.map((policy) => (
-                      <SelectItem key={policy.id} value={policy.id}>
-                        {policy.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select> */}
                 <Input
                   id="policy"
                   type="text"
@@ -410,7 +402,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-1 gap-4 mt-4">
               <div className="space-y-2">
                 <Label
                   htmlFor="purpose"
@@ -418,11 +410,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                 >
                   Purpose
                 </Label>
-                <Input
-                  id="purpose"
-                  type="text"
-                  placeholder="e.g. Annual Sales Conference"
+                <Textarea
                   value={formData.purpose}
+                  placeholder="e.g. Annual Sales Conference"
                   onChange={(e) => handleInputChange("purpose", e.target.value)}
                   disabled={mode === "view"}
                 />

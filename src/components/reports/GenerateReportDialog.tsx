@@ -92,6 +92,7 @@ export function GenerateReportDialog({ open, onOpenChange, onReportGenerated, se
         report_template_id: selectedTemplateId,
         start_date: formattedFromDate,
         end_date: formattedToDate,
+        report_name: reportName
       });
       console.log(response);
       if (response.success && response.data) {
@@ -111,7 +112,9 @@ export function GenerateReportDialog({ open, onOpenChange, onReportGenerated, se
         
         // Close dialog and refresh reports list
         onReportGenerated(response.data.report_id);
-        onOpenChange(false);
+        setTimeout(() => {
+          onOpenChange(false);
+        }, 300);
         resetForm();
       } else {
         setStatus('error');

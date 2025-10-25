@@ -177,6 +177,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* <Route
+            path="/report/expenses/:id"
+            element={
+              <ProtectedRoute>
+                <ExpenseDetailPage />
+              </ProtectedRoute>
+            }
+          /> */}
           <Route path="/" element={<Navigate to="/expenses" replace />} />
           <Route path="/404" element={<NotFoundPage />} />
           <Route path="/permission-denied" element={<PermissionDeniedPage />} />

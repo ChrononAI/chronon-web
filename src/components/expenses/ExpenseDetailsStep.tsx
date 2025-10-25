@@ -58,8 +58,10 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
-import { fileParseService } from "@/services/fileParseService";
+import { fileParseService, ParsedInvoiceData } from "@/services/fileParseService";
 import { useExpenseStore } from "@/store/expenseStore";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
+import { useNavigate } from "react-router-dom";
 
 // Form schema
 const expenseSchema = z.object({
@@ -134,7 +136,8 @@ export function ExpenseDetailsStep({
   receiptUrls = [],
   isEditMode = false,
 }: ExpenseDetailsStepProps) {
-  console.log("mode", mode, readOnly);
+  const navigate = useNavigate();
+  const orgId = getOrgIdFromToken();
   const { parsedData, setParsedData } = useExpenseStore();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(
@@ -146,12 +149,12 @@ export function ExpenseDetailsStep({
     useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [replaceRecLoading, setReplaceRecLoading] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
 
   // Fetch signed URL for duplicate receipts
   const fetchDuplicateReceiptUrl = async (receiptId: string) => {
     try {
       setDuplicateReceiptLoading(true);
-      const orgId = getOrgIdFromToken();
       if (!orgId) return;
 
       const response = await api.get(
@@ -314,15 +317,23 @@ export function ExpenseDetailsStep({
     }
   };
 
+  const [semiParsedData, setSemiParsedData] = useState<ParsedInvoiceData | null>(null);
+
   const uploadNewReceipt = async (file: File) => {
     const orgId = getOrgIdFromToken();
     try {
       setReplaceRecLoading(true);
       const parsedData = await fileParseService.parseInvoiceFile(file);
       console.log(parsedData);
-      setParsedData(parsedData);
-      fetchReceipt(parsedData.id, orgId)
-      setIsReceiptReplaced(true);
+      if (parsedData.is_duplicate_receipt) {
+        setSemiParsedData(parsedData);
+        // Open duplicate receipt moodal
+        setShowDuplicateDialog(true)
+      } else {
+        setParsedData(parsedData);
+        fetchReceipt(parsedData.id, orgId)
+        setIsReceiptReplaced(true);
+      };
     } catch (error) {
       console.log(error);
     } finally {
@@ -363,6 +374,15 @@ export function ExpenseDetailsStep({
       }
     }
   }, [parsedData, policies]);
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -836,16 +856,16 @@ export function ExpenseDetailsStep({
                   <div className="space-y-4">
                     {/* Interactive Receipt Viewer */}
                     {replaceRecLoading ? (
-                  <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
-                    <div className="text-center">
-                      <Loader2 className="h-12 w-12 mx-auto text-gray-400 mb-3 animate-spin" />
-                      <p className="text-sm text-gray-600 mb-2">
-                        Loading receipt...
-                      </p>
-                      <p className="text-xs text-gray-500">Please wait</p>
-                    </div>
-                  </div>
-                ) : <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                      <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
+                        <div className="text-center">
+                          <Loader2 className="h-12 w-12 mx-auto text-gray-400 mb-3 animate-spin" />
+                          <p className="text-sm text-gray-600 mb-2">
+                            Loading receipt...
+                          </p>
+                          <p className="text-xs text-gray-500">Please wait</p>
+                        </div>
+                      </div>
+                    ) : <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
                       {/* Receipt Controls */}
                       <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center gap-2">
@@ -1003,16 +1023,17 @@ export function ExpenseDetailsStep({
                         </div>
                       </div>
                     </div>}
-                    <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="bg-primary hover:bg-primary/90"
-                      onClick={handleReplaceReceipt}
-                    >
-                      Replace Receipt
-                    </Button>
-                    </div>
+                    {!readOnly &&
+                      <div className="flex justify-end">
+                        <Button
+                          type="submit"
+                          disabled={loading}
+                          className="bg-primary hover:bg-primary/90"
+                          onClick={handleReplaceReceipt}
+                        >
+                          Replace Receipt
+                        </Button>
+                      </div>}
                   </div>
                 ) : (
                   <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
@@ -1138,6 +1159,114 @@ export function ExpenseDetailsStep({
             </div>
           </div>
         )}
+
+      <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader className="text-center pb-4">
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg font-bold">!</span>
+                </div>
+              </div>
+            </div>
+            <AlertDialogTitle className="text-xl font-bold text-gray-900">
+              Duplicate Receipt Detected!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 mt-3 leading-relaxed">
+              This receipt appears to be a duplicate of an existing expense:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {semiParsedData?.ocr_result && (
+            <div className="space-y-4 mb-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <div className="font-bold text-gray-900">
+                      {semiParsedData?.ocr_result?.vendor || 'Unknown Merchant'}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Expense #{semiParsedData?.original_expense_id || 'Unknown'}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-gray-900">
+                      ₹{semiParsedData?.extracted_amount || semiParsedData?.ocr_result?.amount}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {semiParsedData?.extracted_date ? new Date(semiParsedData.extracted_date).toLocaleDateString('en-GB', {
+                        weekday: 'short',
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                      }) : semiParsedData?.ocr_result?.date}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+              {semiParsedData?.original_expense_id && (
+                <div
+                  className="flex items-center text-blue-600 text-sm cursor-pointer hover:text-blue-700"
+                  onClick={async () => {
+                    try {
+                      const base64Url = uploadedFile ? await fileToBase64(uploadedFile) : previewUrl;
+                      localStorage.setItem('showDuplicateDialog', 'true');
+                      localStorage.setItem('duplicateParsedData', JSON.stringify(semiParsedData));
+                      localStorage.setItem('duplicatePreviewUrl', base64Url || '');
+                      navigate(`/expenses/${semiParsedData.original_expense_id}?returnTo=create`);
+                    } catch (error) {
+                      console.error('Error converting file to base64:', error);
+                      localStorage.setItem('showDuplicateDialog', 'true');
+                      localStorage.setItem('duplicateParsedData', JSON.stringify(semiParsedData));
+                      localStorage.setItem('duplicatePreviewUrl', previewUrl || '');
+                      navigate(`/expenses/${semiParsedData.original_expense_id}?returnTo=create`);
+                    }
+                  }}
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  Tap to view expense
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-3 pt-2">
+            <Button
+              onClick={() => {
+                setShowDuplicateDialog(false);
+                // setUploadedFile(null);
+                // setPreviewUrl(null);
+                // setParsedData(null);
+                // localStorage.removeItem('showDuplicateDialog');
+                // localStorage.removeItem('duplicateParsedData');
+                // localStorage.removeItem('duplicatePreviewUrl');
+                // setUploadStepKey(prev => prev + 1);
+                // setCurrentStep(1);
+              }}
+              className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium"
+            >
+              Upload New Receipt
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDuplicateDialog(false);
+                // setCurrentStep(2);
+                setParsedData(semiParsedData);
+                fetchReceipt(semiParsedData?.id, orgId)
+                setIsReceiptReplaced(true);
+              }}
+              className="w-full h-12 bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 font-medium"
+            >
+              Create as Duplicate
+            </Button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

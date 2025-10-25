@@ -11,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { approvalService } from "@/services/approvalService";
 import { Report } from "@/types/expense";
 import { formatDate, formatCurrency } from "@/lib/utils";
@@ -146,7 +145,6 @@ export function ApprovalsReportsPage() {
                     <TableHead className="font-medium text-gray-700">AMOUNT</TableHead>
                     <TableHead className="font-medium text-gray-700">SUBMITTED</TableHead>
                     <TableHead className="font-medium text-gray-700">EXPENSES</TableHead>
-                    <TableHead className="font-medium text-gray-700">ACTIONS</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -154,22 +152,17 @@ export function ApprovalsReportsPage() {
                     <TableRow
                       key={report.id}
                       className="hover:bg-gray-50 transition-colors"
+                      onClick={() => handleViewDetails(report.id)}
                     >
                       <TableCell>
                         <div>
                           <p className="font-medium text-gray-900">{report.title}</p>
-                          <p className="text-sm text-gray-500 truncate max-w-xs">
-                            {report.description}
-                          </p>
                         </div>
                       </TableCell>
                       <TableCell>
                         <p className="font-medium text-gray-900">
                           {report.created_by.email}
                         </p>
-                        {/* <p className="text-sm text-gray-500">
-                          {report.org_id}
-                        </p> */}
                       </TableCell>
                       <TableCell>
                         <p className="font-medium text-gray-900">
@@ -185,16 +178,6 @@ export function ApprovalsReportsPage() {
                         <p className="text-gray-900">
                           {report.expense_count}
                         </p>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewDetails(report.id)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          View
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FileText, Search, Download, Loader2 } from 'lucide-react';
+import { FileText, Search, Loader2 } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { GenerateReportDialog } from '@/components/reports/GenerateReportDialog';
 import { reportService, ReportTemplate, GeneratedReport } from '@/services/reportService';
+import { AllReportsTable } from '@/components/reports/AllReportsTable';
 
 export function AllReportsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,7 +69,7 @@ export function AllReportsPage() {
     // Refresh generated reports list after new report is created
     setTimeout(() => {
       fetchGeneratedReports();
-    }, 1000);
+    }, 300);
     
     toast.success('Report generated and downloaded successfully!');
   };
@@ -94,31 +94,6 @@ export function AllReportsPage() {
     if (description.length <= maxLength) return description;
     return description.substring(0, maxLength) + '...';
   };
-
-  const parseCriteria = (criteria: string) => {
-    try {
-      const parsed = JSON.parse(criteria);
-      return {
-        start_date: parsed.start_date || 'N/A',
-        end_date: parsed.end_date || 'N/A',
-      };
-    } catch {
-      return {
-        start_date: 'N/A',
-        end_date: 'N/A',
-      };
-    }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-
 
   return (
     <Layout>
@@ -196,7 +171,7 @@ export function AllReportsPage() {
         </div>
         
         {/* Generate Report Dialog */}
-        <GenerateReportDialog 
+        <GenerateReportDialog
           open={isGenerateDialogOpen}
           onOpenChange={(open) => {
             setIsGenerateDialogOpen(open);
@@ -244,62 +219,7 @@ export function AllReportsPage() {
                 </p>
               </div>
             ) : (
-              <div className="divide-y">
-                <div className="grid grid-cols-12 gap-4 px-6 py-3 text-sm font-medium text-muted-foreground bg-muted/50">
-                  <div className="col-span-2">Report ID</div>
-                  <div className="col-span-2">Date Range</div>
-                  <div className="col-span-1">Records</div>
-                  <div className="col-span-1">Size</div>
-                  <div className="col-span-2">Status</div>
-                  <div className="col-span-1">Created</div>
-                  <div className="col-span-1 text-right">Actions</div>
-                </div>
-                {generatedReports.map((report, idx) => {
-                  const criteria = parseCriteria(report.criteria);
-                  
-                  return (
-                    <div key={report.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-muted/50 transition-colors">
-                      <div className="col-span-2">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span>{idx+1}</span>
-                        </div>
-                      </div>
-                      <div className="col-span-2 text-sm text-muted-foreground">
-                        <div>{criteria.start_date} to {criteria.end_date}</div>
-                      </div>
-                      <div className="col-span-1 text-sm text-muted-foreground">
-                        {report.number_of_records}
-                      </div>
-                      <div className="col-span-1 text-sm text-muted-foreground">
-                        {formatFileSize(report.report_size)}
-                      </div>
-                      <div className="col-span-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          report.status === 'GENERATED' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {report.status}
-                        </span>
-                      </div>
-                      <div className="col-span-1 text-sm text-muted-foreground">
-                        {report.created_at ? new Date(report.created_at).toLocaleDateString() : 'N/A'}
-                      </div>
-                      <div className="col-span-1 flex justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDownloadGeneratedReport(report.id)}
-                          title="Download report"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <AllReportsTable reports={generatedReports} handleDownloadGeneratedReport={handleDownloadGeneratedReport} />
             )}
           </CardContent>
         </Card>}
