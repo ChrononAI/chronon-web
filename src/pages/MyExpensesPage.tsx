@@ -85,10 +85,10 @@ export function MyExpensesPage() {
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(expense =>
-        expense.sequence_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.category.toLowerCase().includes(searchTerm.toLowerCase())
+        expense.sequence_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.vendor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.category?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 

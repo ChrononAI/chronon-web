@@ -48,10 +48,10 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
                 className="group cursor-pointer hover:bg-muted/50"
                 onClick={() => navigate(`/expenses/${expense.id}`)}
               >
-                <TableCell className="font-medium">
+                <TableCell className="font-medium whitespace-nowrap">
                   {expense.sequence_number}
                 </TableCell>
-                <TableCell>{getExpenseType(expense.expense_type)}</TableCell>
+                <TableCell className='whitespace-nowrap'>{getExpenseType(expense.expense_type)}</TableCell>
                 <TableCell className="font-medium whitespace-nowrap">
                   {expense.policy?.name || 'No Policy'}
                 </TableCell>
@@ -60,7 +60,7 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
                  <TableCell className="whitespace-nowrap">
                   {formatDate(expense.expense_date)}
                 </TableCell>
-                <TableCell className='text-right'>
+                <TableCell className='text-right whitespace-nowrap'>
                   {formatCurrency(expense.amount, 'INR')}
                 </TableCell>
                <TableCell>

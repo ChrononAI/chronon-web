@@ -194,82 +194,6 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
     setSelectedAvailableExpenses(newSelected);
   };
 
-  // const selectAllAvailableExpenses = () => {
-  //   const allExpenseIds = new Set(availableExpenses.map(expense => expense.id));
-  //   setSelectedAvailableExpenses(allExpenseIds);
-  // };
-
-  // const removeExpenseFromReport = (expenseId: string) => {
-  //   const expenseToRemove = expenses.find(expense => expense.id === expenseId);
-  //   if (expenseToRemove) {
-  //     setExpenseToDelete(expenseToRemove);
-  //     setShowDeleteDialog(true);
-  //   }
-  // };
-
-  // const confirmDeleteExpense = async () => {
-  //   if (!expenseToDelete) return;
-
-  //   if (!editMode) {
-  //     const newExpenses = expenses.filter((expense) => expense.id !== expenseToDelete.id);
-  //     setExpenses(newExpenses);
-
-  //     setAvailableExpenses((prev) => [...prev, expenseToDelete]);
-  //     toast.success("Expense removed from report");
-  //     setShowDeleteDialog(false);
-  //     setExpenseToDelete(null);
-  //     return;
-  //   }
-  //   if (!reportData) return
-
-  //   setApiLoading(true);
-  //   try {
-  //     const response = await reportService.removeExpensesFromReport(reportData.id, [expenseToDelete.id]);
-
-  //     if (response.success) {
-  //       // Remove from current expenses
-  //       const newExpenses = expenses.filter(expense => expense.id !== expenseToDelete.id);
-  //       setExpenses(newExpenses);
-
-
-  //       // Add to available expenses
-  //       setAvailableExpenses(prev => [...prev, expenseToDelete]);
-
-  //       toast.success(response.message || 'Expense removed from report');
-  //     } else {
-  //       toast.error(response.message || 'Failed to remove expense from report');
-  //     }
-  //   } catch (error) {
-  //     console.error('Error removing expense from report:', error);
-  //     toast.error('Failed to remove expense from report');
-  //   } finally {
-  //     setApiLoading(false);
-  //     setShowDeleteDialog(false);
-  //     setExpenseToDelete(null);
-  //   }
-  // };
-
-  // const addExpenseToReport = async (expense: Expense) => {
-  //   if (!editMode) {
-  //     setAvailableExpenses(prev => prev.filter(exp => exp.id !== expense.id));
-  //     setExpenses(prev => [...prev, expense]);
-  //   }
-  //   if (!reportData) return;
-  //   setApiLoading(true);
-  //   try {
-  //     const response = await reportService.addExpensesToReport(reportData.id, [expense.id]);
-  //     console.log(response);
-  //     setAvailableExpenses(prev => prev.filter(exp => exp.id !== expense.id));
-  //     setExpenses(prev => [...prev, expense]);
-  //     toast.success('Expense added to report');
-  //   } catch (error) {
-  //     console.log(error);
-  //     toast.error('Error adding expense to report');
-  //   } finally {
-  //     setApiLoading(false);
-  //   }
-  // }
-
   const getFieldMeta = (fieldName: string) => {
     return additionalFields.find(field => field.name === fieldName);
   };
@@ -630,7 +554,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
                   <p className="text-muted-foreground">No expenses found</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 h-full">
                   {allExpenses.map((expense) => (
                     <div
                       key={expense.id}
