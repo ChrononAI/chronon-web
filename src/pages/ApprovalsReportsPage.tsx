@@ -23,7 +23,7 @@ export function ApprovalsReportsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"unsubmitted" | "submitted">("unsubmitted");
-  const [statusFilter, setStatusFilter] = useState("all");
+  // const [statusFilter, setStatusFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export function ApprovalsReportsPage() {
     const matchesSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.created_by.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === "all" || report.status.toLowerCase() === statusFilter.toLowerCase();
+    // const matchesStatus = statusFilter === "all" || report.status.toLowerCase() === statusFilter.toLowerCase();
     
     const matchesDate = !selectedDate || (() => {
       const reportDate = new Date(report.created_at).toISOString().split('T')[0];
@@ -69,7 +69,7 @@ export function ApprovalsReportsPage() {
       return reportDate === filterDate;
     })();
     
-    return matchesSearch && matchesStatus && matchesDate;
+    return matchesSearch && matchesDate;
   });
 
 
@@ -110,8 +110,6 @@ export function ApprovalsReportsPage() {
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       searchPlaceholder="Search reports..."
-      statusFilter={statusFilter}
-      onStatusChange={setStatusFilter}
       statusOptions={statusOptions}
       selectedDate={selectedDate}
       onDateChange={setSelectedDate}
@@ -139,7 +137,7 @@ export function ApprovalsReportsPage() {
             <div className="overflow-hidden">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-50">
+                  <TableRow className="bg-gray-100">
                     <TableHead className="font-medium text-gray-700">REPORT NAME</TableHead>
                     <TableHead className="font-medium text-gray-700">SUBMITTER</TableHead>
                     <TableHead className="font-medium text-gray-700">AMOUNT</TableHead>

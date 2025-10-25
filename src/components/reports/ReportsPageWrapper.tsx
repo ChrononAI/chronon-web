@@ -34,8 +34,8 @@ interface ReportsPageWrapperProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder?: string;
-  statusFilter: string;
-  onStatusChange: (value: string) => void;
+  statusFilter?: string | null;
+  onStatusChange?: (value: string) => void;
   statusOptions?: StatusOption[];
   selectedDate?: Date;
   onDateChange?: (date: Date | undefined) => void;

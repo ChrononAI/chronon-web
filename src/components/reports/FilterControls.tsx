@@ -20,8 +20,8 @@ interface FilterControlsProps {
   searchPlaceholder?: string;
 
   // Status Filter
-  statusFilter: string;
-  onStatusChange: (value: string) => void;
+  statusFilter?: string | null;
+  onStatusChange?: (value: string) => void;
   statusOptions?: StatusOption[];
 
   // Date Filter
@@ -65,7 +65,7 @@ export function FilterControls({
       </div>
 
       {/* Status Filter */}
-      <div className="min-w-[160px]">
+      {statusFilter && <div className="min-w-[160px]">
         <Select value={statusFilter} onValueChange={onStatusChange}>
           <SelectTrigger className="bg-white h-10">
             <SelectValue placeholder="Status: All" />
@@ -78,7 +78,7 @@ export function FilterControls({
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </div>}
 
       {/* Date Picker */}
       {onDateChange && (

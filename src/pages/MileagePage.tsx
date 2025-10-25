@@ -576,7 +576,7 @@ const MileagePage = ({
                     ? "Saving..."
                     : mode === "edit" || editMode
                       ? "Update Expense"
-                      : "Submit Expense"}
+                      : "Create Expense"}
                 </Button>
               </div>
             )}

@@ -30,15 +30,15 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100">
-              <TableHead>Expense ID</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Policy</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Vendor</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead className='text-right'>Amount</TableHead>
-              <TableHead>Currency</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>EXPENSE ID</TableHead>
+              <TableHead>TYPE</TableHead>
+              <TableHead>POLICY</TableHead>
+              <TableHead>CATEGORY</TableHead>
+              <TableHead>VENDOR</TableHead>
+              <TableHead>DATE</TableHead>
+              <TableHead className='text-right'>AMOUNT</TableHead>
+              <TableHead>CURRENCY</TableHead>
+              <TableHead>STATUS</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

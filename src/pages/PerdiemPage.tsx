@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/ui/date-field";
-import { Search, ArrowRight, Calendar } from "lucide-react";
+import { Search, Calendar } from "lucide-react";
 import { placesService } from "@/services/placesService";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { Expense, Policy, PolicyCategory } from "@/types/expense";
@@ -25,7 +25,7 @@ interface PerdiemPageProps {
   expenseData?: Expense;
 }
 
-  export const calculateDays = (startDate: string, endDate: string): number => {
+export const calculateDays = (startDate: string, endDate: string): number => {
   if (!startDate || !endDate) return 0
 
   const start = new Date(startDate)
@@ -75,9 +75,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
-  const { startDate, endDate } = formData
-  setDays(calculateDays(startDate, endDate))
-}, [formData.startDate, formData.endDate])
+    const { startDate, endDate } = formData
+    setDays(calculateDays(startDate, endDate))
+  }, [formData.startDate, formData.endDate])
 
 
   // Pre-fill form data when in view mode
@@ -302,32 +302,8 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
             </div>
           </div>
 
-          {/* Details Section */}
-          <div className="mb-4">
+          <div className="mb-4 ">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="location"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Location
-                </Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    id="location"
-                    type="text"
-                    placeholder="e.g., Mumbai, Delhi, Bangalore"
-                    value={formData.location}
-                    onChange={(e) =>
-                      handleInputChange("location", e.target.value)
-                    }
-                    className="pl-10"
-                    disabled={mode === "view"}
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <Label
                   htmlFor="days"
@@ -347,7 +323,10 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                 </div>
               </div>
             </div>
+          </div>
 
+          {/* Details Section */}
+          <div className="mb-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
               <div className="space-y-2">
                 <Label
@@ -402,6 +381,33 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
               </div>
             </div>
 
+            <div className="mb-4 ">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="location"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Location
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    id="location"
+                    type="text"
+                    placeholder="e.g., Mumbai, Delhi, Bangalore"
+                    value={formData.location}
+                    onChange={(e) =>
+                      handleInputChange("location", e.target.value)
+                    }
+                    className="pl-10"
+                    disabled={mode === "view"}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
             <div className="grid grid-cols-1 gap-4 mt-4">
               <div className="space-y-2">
                 <Label
@@ -437,8 +443,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6"
               >
-                {mode === "create" ? "Create" : "Edit"} Expense
-                <ArrowRight className="ml-2 h-4 w-4" />
+                {mode === "create" ? "Create" : "Update"} Expense
               </Button>
             )}
           </div>

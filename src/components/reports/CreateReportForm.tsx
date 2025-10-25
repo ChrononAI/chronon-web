@@ -86,9 +86,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
   const additionalFields: AdditionalFieldMeta[] = [];
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>([]);
   const [formSchema, setFormSchema] = useState(createReportSchema([]));
-  // const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  // const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
-  // const [apiLoading, setApiLoading] = useState(false);
+  const [markedExpenses, setMarkedExpenses] = useState<Expense[]>([]);
 
   // Determine if Hospital Name and Campaign Code should be shown
   const userDept = user?.department?.toLowerCase() || '';
@@ -194,88 +192,12 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
     setSelectedAvailableExpenses(newSelected);
   };
 
-  // const selectAllAvailableExpenses = () => {
-  //   const allExpenseIds = new Set(availableExpenses.map(expense => expense.id));
-  //   setSelectedAvailableExpenses(allExpenseIds);
-  // };
-
-  // const removeExpenseFromReport = (expenseId: string) => {
-  //   const expenseToRemove = expenses.find(expense => expense.id === expenseId);
-  //   if (expenseToRemove) {
-  //     setExpenseToDelete(expenseToRemove);
-  //     setShowDeleteDialog(true);
-  //   }
-  // };
-
-  // const confirmDeleteExpense = async () => {
-  //   if (!expenseToDelete) return;
-
-  //   if (!editMode) {
-  //     const newExpenses = expenses.filter((expense) => expense.id !== expenseToDelete.id);
-  //     setExpenses(newExpenses);
-
-  //     setAvailableExpenses((prev) => [...prev, expenseToDelete]);
-  //     toast.success("Expense removed from report");
-  //     setShowDeleteDialog(false);
-  //     setExpenseToDelete(null);
-  //     return;
-  //   }
-  //   if (!reportData) return
-
-  //   setApiLoading(true);
-  //   try {
-  //     const response = await reportService.removeExpensesFromReport(reportData.id, [expenseToDelete.id]);
-
-  //     if (response.success) {
-  //       // Remove from current expenses
-  //       const newExpenses = expenses.filter(expense => expense.id !== expenseToDelete.id);
-  //       setExpenses(newExpenses);
-
-
-  //       // Add to available expenses
-  //       setAvailableExpenses(prev => [...prev, expenseToDelete]);
-
-  //       toast.success(response.message || 'Expense removed from report');
-  //     } else {
-  //       toast.error(response.message || 'Failed to remove expense from report');
-  //     }
-  //   } catch (error) {
-  //     console.error('Error removing expense from report:', error);
-  //     toast.error('Failed to remove expense from report');
-  //   } finally {
-  //     setApiLoading(false);
-  //     setShowDeleteDialog(false);
-  //     setExpenseToDelete(null);
-  //   }
-  // };
-
-  // const addExpenseToReport = async (expense: Expense) => {
-  //   if (!editMode) {
-  //     setAvailableExpenses(prev => prev.filter(exp => exp.id !== expense.id));
-  //     setExpenses(prev => [...prev, expense]);
-  //   }
-  //   if (!reportData) return;
-  //   setApiLoading(true);
-  //   try {
-  //     const response = await reportService.addExpensesToReport(reportData.id, [expense.id]);
-  //     console.log(response);
-  //     setAvailableExpenses(prev => prev.filter(exp => exp.id !== expense.id));
-  //     setExpenses(prev => [...prev, expense]);
-  //     toast.success('Expense added to report');
-  //   } catch (error) {
-  //     console.log(error);
-  //     toast.error('Error adding expense to report');
-  //   } finally {
-  //     setApiLoading(false);
-  //   }
-  // }
-
   const getFieldMeta = (fieldName: string) => {
     return additionalFields.find(field => field.name === fieldName);
   };
 
   const onSave = async () => {
-    if (expenses.length === 0) {
+    if (markedExpenses.length === 0) {
       toast.error('Please add at least one expense to the report');
       return;
     }
@@ -459,8 +381,6 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
     }
   };
 
-  const [markedExpenses, setMarkedExpenses] = useState<Expense[]>([]);
-
   const markExpense = (expense: Expense) => {
     if (markedExpenses.some(exp => exp.id === expense.id)) {
       setMarkedExpenses(prev => prev.filter((exp) => exp.id !== expense.id))
@@ -468,43 +388,6 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       setMarkedExpenses(prev => [...prev, expense]);
     }
   }
-
-  // const renderDropdownField = (fieldName: string, formFieldName: string) => {
-  //   const fieldMeta = getFieldMeta(fieldName);
-  //   if (!fieldMeta) return null;
-
-  //   const isRequired = fieldName === 'Cost Center' || fieldName === 'Expense Head';
-
-  //   return (
-  //     <FormField
-  //       key={fieldMeta.id}
-  //       control={form.control}
-  //       name={formFieldName}
-  //       render={({ field }) => (
-  //         <FormItem>
-  //           <FormLabel>
-  //             {fieldMeta.metadata.label}{isRequired ? ' *' : ''}
-  //           </FormLabel>
-  //           <Select onValueChange={field.onChange} defaultValue={field.value}>
-  //             <FormControl>
-  //               <SelectTrigger>
-  //                 <SelectValue placeholder={fieldMeta.metadata.placeholder} />
-  //               </SelectTrigger>
-  //             </FormControl>
-  //             <SelectContent>
-  //               {fieldMeta.metadata.options.map((option) => (
-  //                 <SelectItem key={option.key} value={option.value}>
-  //                   {option.value}
-  //                 </SelectItem>
-  //               ))}
-  //             </SelectContent>
-  //           </Select>
-  //           <FormMessage />
-  //         </FormItem>
-  //       )}
-  //     />
-  //   );
-  // };
 
   return (
     <div className="space-y-6">

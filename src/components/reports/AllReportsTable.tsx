@@ -44,13 +44,13 @@ export function AllReportsTable({ reports, handleDownloadGeneratedReport }: AllR
             <Table>
                 <TableHeader>
                     <TableRow className="bg-gray-100">
-                        <TableHead>Title</TableHead>
-                        <TableHead>Date Range</TableHead>
-                        <TableHead>Records</TableHead>
-                        <TableHead>Size</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead>Action</TableHead>
+                        <TableHead>TITLE</TableHead>
+                        <TableHead>DATE RANGE</TableHead>
+                        <TableHead>RECORDS</TableHead>
+                        <TableHead>SIZE</TableHead>
+                        <TableHead>STATUS</TableHead>
+                        <TableHead>CREATED ON</TableHead>
+                        <TableHead>ACTION</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -78,7 +78,7 @@ export function AllReportsTable({ reports, handleDownloadGeneratedReport }: AllR
                                 <TableCell className="whitespace-nowrap">
                                     {report.created_at ? new Date(report.created_at).toLocaleDateString() : 'N/A'}
                                 </TableCell>
-                                <TableCell className='text-right'>
+                                <TableCell className='text-center'>
                                     <Button
                                         variant="ghost"
                                         size="sm"
