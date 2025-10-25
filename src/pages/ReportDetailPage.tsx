@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +18,6 @@ import {
   Eye,
   FileText,
   Calendar,
-  User,
   Building,
   CheckCircle,
   Clock,
@@ -39,11 +38,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { approvalService } from '@/services/approvalService';
 import { reportService } from '@/services/reportService';
-import { ReportWithExpenses, ApprovalWorkflow } from '@/types/expense';
+import { ReportWithExpenses, ApprovalWorkflow, Expense } from '@/types/expense';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { WorkflowTimeline } from '@/components/expenses/WorkflowTimeline';
+import { ViewExpenseWindow } from '@/components/expenses/ViewExpenseWindow';
 
 export function ReportDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -59,7 +59,8 @@ export function ReportDetailPage() {
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
   const [comments, setComments] = useState('');
   const [showActionDialog, setShowActionDialog] = useState(false);
-  console.log(report);
+  const [showViewExpense, setShowViewExpense] = useState(false);
+  const [expenseToView, setExpenseToView] = useState<Expense | null>(null);
 
   const getUserSpecificStatus = (): string => {
     if (!user || !approvalWorkflow || !approvalWorkflow.approval_steps) {
@@ -214,9 +215,6 @@ export function ReportDetailPage() {
     }
   };
 
-
-
-
   if (loading) {
     return (
       <Layout>
@@ -255,8 +253,8 @@ export function ReportDetailPage() {
   const totalAmount = report.expenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0);
 
   // Calculate expense statistics
-  const approvedExpenses = report.expenses.filter(exp => exp.status === 'APPROVED' || exp.status === 'FULLY_APPROVED').length;
-  const rejectedExpenses = report.expenses.filter(exp => exp.status === 'REJECTED').length;
+  // const approvedExpenses = report.expenses.filter(exp => exp.status === 'APPROVED' || exp.status === 'FULLY_APPROVED').length;
+  // const rejectedExpenses = report.expenses.filter(exp => exp.status === 'REJECTED').length;
   const pendingExpenses = report.expenses.filter(exp => exp.status === 'PENDING' || exp.status === 'PENDING_APPROVAL').length;
 
   // const steps = approvalWorkflow?.approval_steps;
@@ -265,6 +263,13 @@ export function ReportDetailPage() {
   // ).length;
   // const totalSteps = steps?.length;
   // const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
+
+  const handleViewExpense = async (expense: Expense) => {
+    console.log(expense);
+    setShowViewExpense(true);
+    console.log(expense);
+    setExpenseToView(expense);
+  }
 
   return (
     <Layout>
@@ -276,7 +281,7 @@ export function ReportDetailPage() {
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-semibold text-gray-700">Report: {report?.title}</h1>
+                <h1 className="text-2xl font-semibold text-gray-700">{report?.title}</h1>
                 <div className="flex items-center gap-3 mt-2">
                   {getStatusIcon(getUserSpecificStatus())}
                   <Badge className={`${getStatusColor(getUserSpecificStatus())} text-sm px-3 py-1`}>
@@ -322,9 +327,9 @@ export function ReportDetailPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <FileText className="h-4 w-4" />
-                      Report Title
+                      Submitted By
                     </div>
-                    <p className="text-lg font-semibold">{report.title}</p>
+                    <p className="text-lg font-semibold">{report.created_by.email}</p>
                   </div>
 
                   <div className="space-y-2">
@@ -446,20 +451,16 @@ export function ReportDetailPage() {
                               {formatDate(expense.expense_date)}
                             </div>
                           </TableCell>
-                          <TableCell>{expense.vendor}</TableCell>
+                          <TableCell>{expense.expense_type === "MILEAGE_BASED" ? "Mileage Reimbursement" : expense.expense_type === "PER_DIEM" ? "Per Diem" : expense.vendor}</TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(expense.status)}>
                               {expense.status.replace('_', ' ')}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" asChild>
-                              <Link
-                                to={`/expenses/${expense.id}?from=${isFromApprovals ? 'approvals' : 'report'}&reportId=${report.id}`}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Link>
-                            </Button>
+                          <TableCell className="text-center">
+                            {/* <Button variant="ghost" size="sm" asChild onClick={() => handleViewExpense(expense)}> */}
+                              <Eye className="h-4 w-4 cursor-pointer" onClick={() => handleViewExpense(expense)} />
+                            {/* </Button> */}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -469,124 +470,24 @@ export function ReportDetailPage() {
               </CardContent>
             </Card>
           </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Creator Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Report Creator
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                    <User className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold">{report.created_by.email}</p>
-                    <p className="text-sm text-muted-foreground">Organization ID: {report.org_id}</p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Created:</span>
-                    <span className="font-medium">{formatDate(report.created_at)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Updated:</span>
-                    <span className="font-medium">{formatDate(report.updated_at)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Submitted:</span>
-                    <span className="font-medium">{report.submitted_at ? formatDate(report.submitted_at) : 'Not submitted'}</span>
-                  </div>
-                  {report.approved_at && <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Approved:</span>
-                    <span className="font-medium">{report.approved_at && formatDate(report.approved_at)}</span>
-                  </div>}
-                </div>
-              </CardContent>
-            </Card>
-
-
-            {/* Progress Overview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Progress Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Completion</span>
-                    <span className="font-medium">
-                      {progress}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="bg-gradient-to-r from-blue-500 to-primary h-3 rounded-full transition-all duration-500"
-                      style={{ 
-                        width: `${progress}%` 
-                      }}
-                    />
-                  </div>
-                </div> */}
-
-                <div className="pt-2 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <span>Approved</span>
-                    </div>
-                    <span className="font-medium">{approvedExpenses}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                      <span>Pending</span>
-                    </div>
-                    <span className="font-medium">{pendingExpenses}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                      <span>Rejected</span>
-                    </div>
-                    <span className="font-medium">{rejectedExpenses}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Workflow Timeline */}
+          {approvalWorkflow && approvalWorkflow.approval_steps && (
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5" />
+                    Approval Workflow Timeline
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
 
-        {/* Workflow Timeline */}
-        {approvalWorkflow && approvalWorkflow.approval_steps && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Approval Workflow Timeline
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
-            </CardContent>
-          </Card>
-        )}
       </div>
 
       {/* Action Dialog */}
@@ -664,10 +565,10 @@ export function ReportDetailPage() {
                     onClick={executeAction}
                     disabled={actionLoading || !comments.trim()}
                     className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-200 ${actionType === 'approve'
-                        ? 'bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md'
-                        : actionType === 'reject'
-                          ? 'bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md'
-                          : 'bg-orange-600 hover:bg-orange-700 text-white shadow-sm hover:shadow-md'
+                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md'
+                      : actionType === 'reject'
+                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md'
+                        : 'bg-orange-600 hover:bg-orange-700 text-white shadow-sm hover:shadow-md'
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {actionLoading ? (
@@ -692,7 +593,7 @@ export function ReportDetailPage() {
           )}
         </DialogContent>
       </Dialog>
-
+          <ViewExpenseWindow open={showViewExpense} onOpenChange={setShowViewExpense} data={expenseToView} />
     </Layout>
   );
 }

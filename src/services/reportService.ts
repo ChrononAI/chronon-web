@@ -32,6 +32,7 @@ export interface TemplatesResponse {
 export interface GeneratedReport {
   id: number;
   report_template_id: number;
+  report_name: string;
   status: string;
   number_of_records: number;
   report_size: number;
@@ -72,24 +73,18 @@ class ReportService {
 
   async getUnassignedExpenses(): Promise<Expense[]> {
     try {
-      console.log("Fetching unassigned expenses...");
       const orgId = getOrgIdFromToken();
       if (!orgId) {
         throw new Error('Organization ID not found in token');
       }
       const response = await api.get(`/expenses/expenses?org_id=${orgId}&page=1&per_page=100`);
-      console.log("API Response:", response.data);
 
       if (response.data.data && Array.isArray(response.data.data)) {
-        console.log("Total expenses found:", response.data.data.length);
-        console.log("Sample expense:", response.data.data[0]);
         
         // Filter expenses: only show COMPLETE status and not assigned to any report
         const availableExpenses = response.data.data.filter((expense: Expense) => 
           expense.status === 'COMPLETE' && !expense.report_id
         );
-        console.log("Available expenses found:", availableExpenses.length);
-        console.log("Sample available expense:", availableExpenses[0]);
         return availableExpenses;
       }
 
@@ -449,6 +444,7 @@ class ReportService {
     report_template_id: number;
     start_date: string;
     end_date: string;
+    report_name: string;
   }): Promise<{
     success: boolean;
     data?: {
@@ -473,6 +469,7 @@ class ReportService {
           start_date: data.start_date,
           end_date: data.end_date,
         },
+        report_name: data.report_name
       });
 
       if (response.data.status === 'success') {

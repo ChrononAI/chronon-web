@@ -312,6 +312,22 @@ export const expenseService = {
     }
   },
 
+  async getAllPolicies(): Promise<Policy[]> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        console.warn("No org_id found, returning empty policies");
+        return [];
+      }
+
+      const allPolicies = await this.getAllPoliciesWithCategories();
+      return allPolicies;
+    } catch (error) {
+      console.log(error);
+      return [];
+    }
+  },
+
   async calculatePerDiemAmount({
     orgId,
     policyId,

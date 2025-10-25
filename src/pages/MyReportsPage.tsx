@@ -5,14 +5,26 @@ import { ReportTable } from '@/components/reports/ReportTable';
 import { ReportTabs } from '@/components/reports/ReportTabs';
 import { FilterControls } from '@/components/reports/FilterControls';
 import { expenseService } from '@/services/expenseService';
-import { Report, ReportsResponse } from '@/types/expense';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { useReportsStore } from '@/store/reportsStore';
 
 export function MyReportsPage() {
-  const [reports, setReports] = useState<Report[]>([]);
+  const {
+    allReports,
+    unsubmittedReports,
+    submittedReports,
+    setAllReports,
+    setUnsubmittedReports,
+    setSubmittedReports,
+    setAllReportsPagination,
+    setUnsubmittedReportsPagination,
+    setSubmittedReportsPagination,
+    allReportsPagination,
+    unsubmittedReportsPagination,
+    submittedReportsPagination
+  } = useReportsStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const perPage = 10;
@@ -20,33 +32,46 @@ export function MyReportsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [activeTab, setActiveTab] = useState('unsubmitted');
+  const [activeTab, setActiveTab] = useState('all');
+  const reportsArr = activeTab === 'all' ? allReports : activeTab === 'unsubmitted' ? unsubmittedReports : submittedReports;
+  const pagination = activeTab === 'all' ? allReportsPagination : activeTab === 'unsubmitted' ? unsubmittedReportsPagination : submittedReportsPagination;
 
-  const fetchReports = async (page: number) => {
+  const fetchAllReports = async (page: number) => {
     try {
-      setLoading(true);
-      let response: ReportsResponse;
-      
-      if (activeTab === 'unsubmitted') {
-        response = await expenseService.getReportsByStatus('DRAFT', page, perPage);
-      } else if (activeTab === 'submitted') {
-        response = await expenseService.getReportsByStatus('UNDER_REVIEW,APPROVED,REJECTED', page, perPage);
-      } else {
-        response = await expenseService.getMyReports(page, perPage);
-      }
-      
-      setReports(response.reports);
+      const response = await expenseService.getMyReports(page, perPage);
+      setAllReports(response.reports);
+      setAllReportsPagination(response.pagination);
     } catch (error) {
-      console.error('Failed to fetch reports', error);
-      toast.error('Failed to fetch reports');
-    } finally {
-      setLoading(false);
+      console.log(error);
+    }
+  };
+
+  const fetchUnsubmittedReports = async (page: number) => {
+    try {
+      const response = await expenseService.getReportsByStatus('DRAFT', page, perPage);
+      setUnsubmittedReports(response.reports);
+      setUnsubmittedReportsPagination(response.pagination);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const fetchSubmittedReports = async (page: number) => {
+    try {
+      const response = await expenseService.getReportsByStatus('UNDER_REVIEW,APPROVED,REJECTED', page, perPage);
+      setSubmittedReports(response.reports);
+      setSubmittedReportsPagination(response.pagination);
+    } catch (error) {
+      console.log(error);
     }
   };
 
   useEffect(() => {
-    fetchReports(currentPage);
-  }, [currentPage, activeTab]);
+    fetchAllReports(currentPage);
+    fetchUnsubmittedReports(currentPage);
+    fetchSubmittedReports(currentPage);
+    setLoading(false);
+  }, [currentPage]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -58,7 +83,7 @@ export function MyReportsPage() {
   };
 
   const filteredReports = useMemo(() => {
-    let filtered = reports;
+    let filtered = reportsArr;
 
     // Search filter
     if (searchTerm) {
@@ -82,24 +107,8 @@ export function MyReportsPage() {
         return reportDate === filterDate;
       });
     }
-
-    // Tab filter
-    if (activeTab === 'unsubmitted') {
-      filtered = filtered.filter(report => report.status === 'DRAFT');
-    } else if (activeTab === 'submitted') {
-      filtered = filtered.filter(report => 
-        report.status === 'UNDER_REVIEW' || 
-        report.status === 'APPROVED' || 
-        report.status === 'REJECTED'
-      );
-    }
-
     return filtered;
-  }, [reports, searchTerm, statusFilter, selectedDate, activeTab]);
-
-  const totalPages = Math.ceil(filteredReports.length / perPage);
-  const hasNext = currentPage < totalPages;
-  const hasPrev = currentPage > 1;
+  }, [reportsArr, searchTerm, statusFilter, selectedDate]);
 
   if (loading) {
     return (
@@ -127,8 +136,9 @@ export function MyReportsPage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         tabs={[
-          { key: 'unsubmitted', label: 'Unsubmitted Reports', count: 0 },
-          { key: 'submitted', label: 'Submitted Reports', count: 0 }
+          { key: 'all', label: 'All', count: allReportsPagination.total },
+          { key: 'unsubmitted', label: 'Unsubmitted', count: unsubmittedReportsPagination.total },
+          { key: 'submitted', label: 'Submitted', count: submittedReportsPagination.total }
         ]}
         className="mb-8"
       />
@@ -162,55 +172,55 @@ export function MyReportsPage() {
             : "There are currently no reports."
           }
         </p>
-      </div></Card> :<>
-      <ReportTable reports={filteredReports} />
-      
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-6">
-          <div className="text-sm text-gray-600">
-            Showing {((currentPage - 1) * perPage) + 1} to {Math.min(currentPage * perPage, filteredReports.length)} of {filteredReports.length} reports
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={!hasPrev}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
-            </Button>
-            
-            <div className="flex items-center space-x-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={pageNum === currentPage ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePageChange(pageNum)}
-                    className="w-8 h-8 p-0"
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
+      </div></Card> : <>
+        <ReportTable reports={filteredReports} />
+
+        {pagination && pagination.pages > 1 && (
+          <div className="flex items-center justify-between mt-6">
+            <div className="text-sm text-gray-600">
+              Showing {((currentPage - 1) * perPage) + 1} to {Math.min(currentPage * perPage, activeTab === 'all' ? allReportsPagination.total : activeTab === 'unsubmitted' ? unsubmittedReportsPagination.total : submittedReportsPagination.total)} of {activeTab === 'all' ? allReportsPagination.total : activeTab === 'unsubmitted' ? unsubmittedReportsPagination.total : submittedReportsPagination.total} reports
             </div>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={!hasNext}
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={!pagination.has_prev}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(3, pagination.pages) }, (_, i) => {
+                  const pageNum = Math.max(1, Math.min(pagination.pages - 2, currentPage - 1)) + i;
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={pageNum === currentPage ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePageChange(pageNum)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={!pagination.has_next}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </>}
     </Layout>
   );

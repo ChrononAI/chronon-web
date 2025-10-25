@@ -9,7 +9,6 @@ import {
   FileText,
   Calendar,
   Building,
-  X,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -23,23 +22,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 import { reportService } from '@/services/reportService';
@@ -88,10 +73,9 @@ interface CreateReportFormProps {
 }
 
 export function CreateReportForm({ editMode = false, reportData }: CreateReportFormProps) {
-  console.log(editMode, reportData);
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingExpenses, setLoadingExpenses] = useState(true);
@@ -102,9 +86,9 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
   const additionalFields: AdditionalFieldMeta[] = [];
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>([]);
   const [formSchema, setFormSchema] = useState(createReportSchema([]));
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
-  const [apiLoading, setApiLoading] = useState(false);
+  // const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  // const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  // const [apiLoading, setApiLoading] = useState(false);
 
   // Determine if Hospital Name and Campaign Code should be shown
   const userDept = user?.department?.toLowerCase() || '';
@@ -116,21 +100,21 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       reportName: editMode && reportData ? reportData.title : '',
       description: editMode && reportData ? reportData.description : '',
     };
-    
+
     // Set custom attribute values if in edit mode
     if (editMode && reportData?.custom_attributes) {
       Object.entries(reportData.custom_attributes).forEach(([key, value]) => {
         defaults[key] = value;
       });
     }
-    
+
     // Set default empty values for other attributes
     attributes.forEach(attr => {
       if (defaults[attr.name] === undefined) {
-      defaults[attr.name] = '';
+        defaults[attr.name] = '';
       }
     });
-    
+
     return defaults;
   };
 
@@ -148,13 +132,13 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
     if (customAttributes.length > 0) {
       const newSchema = createReportSchema(customAttributes);
       setFormSchema(newSchema);
-      
+
       // Reset form with new default values
       const newDefaultValues = createDefaultValues(customAttributes);
       form.reset(newDefaultValues);
     }
   }, [customAttributes, form]);
-
+  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
   const fetchData = async () => {
     try {
       setLoadingExpenses(true);
@@ -165,32 +149,26 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
         const fullReportResponse = await reportService.getReportWithExpenses(reportData.id);
         const reportExpenses = fullReportResponse.success ? (fullReportResponse.data?.expenses || []) : (reportData.expenses || []);
         setExpenses(reportExpenses);
-        
+        setMarkedExpenses([...reportExpenses]);
+
         // Fetch all available expenses (unassigned)
         const unassignedExpenses = await reportService.getUnassignedExpenses();
         setAvailableExpenses(unassignedExpenses);
+        setAllExpenses([...reportExpenses, ...unassignedExpenses]);
       } else {
         // In create mode, fetch unassigned expenses
         const unassignedExpenses = await reportService.getUnassignedExpenses();
         setAvailableExpenses(unassignedExpenses);
+        setAllExpenses(unassignedExpenses);
         setExpenses([]);
       }
 
-      // Fetch metadata and custom attributes
-      const [customAttrs] = await Promise.all([
-        reportService.getCustomAttributes(user?.organization?.id?.toString() || '5')
-      ]);
-
+      const customAttrs = await reportService.getCustomAttributes(user?.organization?.id?.toString() || '5')
       setCustomAttributes(customAttrs);
 
       // Update form schema with custom attributes
       const newSchema = createReportSchema(customAttrs);
       setFormSchema(newSchema);
-
-      // Set additional fields from metadata
-      // if (orgMeta && orgMeta.additionalFieldsMeta?.expense_reports_fields) {
-      //   setAdditionalFields(orgMeta.additionalFieldsMeta.expense_reports_fields);
-      // }
 
       // Reset form with new default values if in edit mode
       if (editMode && reportData) {
@@ -206,7 +184,6 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
     }
   };
 
-
   const toggleAvailableExpenseSelection = (expenseId: string) => {
     const newSelected = new Set(selectedAvailableExpenses);
     if (newSelected.has(expenseId)) {
@@ -217,81 +194,81 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
     setSelectedAvailableExpenses(newSelected);
   };
 
-  const selectAllAvailableExpenses = () => {
-    const allExpenseIds = new Set(availableExpenses.map(expense => expense.id));
-    setSelectedAvailableExpenses(allExpenseIds);
-  };
+  // const selectAllAvailableExpenses = () => {
+  //   const allExpenseIds = new Set(availableExpenses.map(expense => expense.id));
+  //   setSelectedAvailableExpenses(allExpenseIds);
+  // };
 
-  const removeExpenseFromReport = (expenseId: string) => {
-    const expenseToRemove = expenses.find(expense => expense.id === expenseId);
-    if (expenseToRemove) {
-      setExpenseToDelete(expenseToRemove);
-      setShowDeleteDialog(true);
-    }
-  };
+  // const removeExpenseFromReport = (expenseId: string) => {
+  //   const expenseToRemove = expenses.find(expense => expense.id === expenseId);
+  //   if (expenseToRemove) {
+  //     setExpenseToDelete(expenseToRemove);
+  //     setShowDeleteDialog(true);
+  //   }
+  // };
 
-  const confirmDeleteExpense = async () => {
-    if (!expenseToDelete) return;
+  // const confirmDeleteExpense = async () => {
+  //   if (!expenseToDelete) return;
 
-    if (!editMode) {
-      const newExpenses = expenses.filter((expense) => expense.id !== expenseToDelete.id);
-      setExpenses(newExpenses);
+  //   if (!editMode) {
+  //     const newExpenses = expenses.filter((expense) => expense.id !== expenseToDelete.id);
+  //     setExpenses(newExpenses);
 
-      setAvailableExpenses((prev) => [...prev, expenseToDelete]);
-      toast.success("Expense removed from report");
-      setShowDeleteDialog(false);
-      setExpenseToDelete(null);
-      return;
-    }
-    if(!reportData)return
+  //     setAvailableExpenses((prev) => [...prev, expenseToDelete]);
+  //     toast.success("Expense removed from report");
+  //     setShowDeleteDialog(false);
+  //     setExpenseToDelete(null);
+  //     return;
+  //   }
+  //   if (!reportData) return
 
-    setApiLoading(true);
-    try {
-      const response = await reportService.removeExpensesFromReport(reportData.id, [expenseToDelete.id]);
-      
-      if (response.success) {
-        // Remove from current expenses
-        const newExpenses = expenses.filter(expense => expense.id !== expenseToDelete.id);
-        setExpenses(newExpenses);
-        
-        
-        // Add to available expenses
-        setAvailableExpenses(prev => [...prev, expenseToDelete]);
-        
-        toast.success(response.message || 'Expense removed from report');
-      } else {
-        toast.error(response.message || 'Failed to remove expense from report');
-      }
-    } catch (error) {
-      console.error('Error removing expense from report:', error);
-      toast.error('Failed to remove expense from report');
-    } finally {
-      setApiLoading(false);
-      setShowDeleteDialog(false);
-      setExpenseToDelete(null);
-    }
-  };
+  //   setApiLoading(true);
+  //   try {
+  //     const response = await reportService.removeExpensesFromReport(reportData.id, [expenseToDelete.id]);
 
-  const addExpenseToReport = async (expense: Expense) => {
-    if (!editMode) {
-      setAvailableExpenses(prev => prev.filter(exp => exp.id !== expense.id));
-      setExpenses(prev => [...prev, expense]);
-    }
-    if (!reportData) return;
-    setApiLoading(true);
-    try {
-      const response = await reportService.addExpensesToReport(reportData.id, [expense.id]);
-      console.log(response);
-      setAvailableExpenses(prev => prev.filter(exp => exp.id !== expense.id));
-      setExpenses(prev => [...prev, expense]);
-      toast.success('Expense added to report');
-    } catch (error) {
-      console.log(error);
-      toast.error('Error adding expense to report');
-    } finally {
-      setApiLoading(false);
-    }
-  }
+  //     if (response.success) {
+  //       // Remove from current expenses
+  //       const newExpenses = expenses.filter(expense => expense.id !== expenseToDelete.id);
+  //       setExpenses(newExpenses);
+
+
+  //       // Add to available expenses
+  //       setAvailableExpenses(prev => [...prev, expenseToDelete]);
+
+  //       toast.success(response.message || 'Expense removed from report');
+  //     } else {
+  //       toast.error(response.message || 'Failed to remove expense from report');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error removing expense from report:', error);
+  //     toast.error('Failed to remove expense from report');
+  //   } finally {
+  //     setApiLoading(false);
+  //     setShowDeleteDialog(false);
+  //     setExpenseToDelete(null);
+  //   }
+  // };
+
+  // const addExpenseToReport = async (expense: Expense) => {
+  //   if (!editMode) {
+  //     setAvailableExpenses(prev => prev.filter(exp => exp.id !== expense.id));
+  //     setExpenses(prev => [...prev, expense]);
+  //   }
+  //   if (!reportData) return;
+  //   setApiLoading(true);
+  //   try {
+  //     const response = await reportService.addExpensesToReport(reportData.id, [expense.id]);
+  //     console.log(response);
+  //     setAvailableExpenses(prev => prev.filter(exp => exp.id !== expense.id));
+  //     setExpenses(prev => [...prev, expense]);
+  //     toast.success('Expense added to report');
+  //   } catch (error) {
+  //     console.log(error);
+  //     toast.error('Error adding expense to report');
+  //   } finally {
+  //     setApiLoading(false);
+  //   }
+  // }
 
   const getFieldMeta = (fieldName: string) => {
     return additionalFields.find(field => field.name === fieldName);
@@ -306,7 +283,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
     setSaving(true);
     try {
       const formData = form.getValues();
-      
+
       // Check if required fields are selected
       const costCenterField = getFieldMeta('Cost Center');
       const expenseHeadField = getFieldMeta('Expense Head');
@@ -324,7 +301,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       // Always send all additional fields, with empty string if not shown/selected
       const allFieldNames = ['Cost Center', 'Expense Head', 'Hospital Name', 'Campaign Code'];
       const additionalFieldsData: Record<string, string> = {};
-      
+
       for (const name of allFieldNames) {
         const meta = getFieldMeta(name);
         if (meta) {
@@ -361,9 +338,9 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
           custom_attributes: customAttributesData,
         };
         console.log('inside if editmode && reportData');
-        
+
         const updateResponse = await reportService.updateReport(reportData.id, updateData);
-        
+
         if (updateResponse.success) {
           toast.success('Report updated successfully');
           navigate('/reports');
@@ -373,21 +350,21 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       } else {
         // Create new report
         const newReportData = {
-        reportName: formData.reportName,
-        description: formData.description,
+          reportName: formData.reportName,
+          description: formData.description,
           expenseIds: expenses.map(expense => expense.id),
-        additionalFields: additionalFieldsData,
-        customAttributes: customAttributesData,
-      };
-      console.log('inside else');
+          additionalFields: additionalFieldsData,
+          customAttributes: customAttributesData,
+        };
+        console.log('inside else');
 
         const createResponse = await reportService.createReport(newReportData);
-      
-      if (createResponse.success) {
-        toast.success('Report saved as draft');
-        navigate('/reports');
-      } else {
-        toast.error(createResponse.message);
+
+        if (createResponse.success) {
+          toast.success('Report saved as draft');
+          navigate('/reports');
+        } else {
+          toast.error(createResponse.message);
         }
       }
     } catch (error) {
@@ -399,7 +376,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
   };
 
   const onSubmit = async (data: ReportFormValues) => {
-    if (expenses.length === 0) {
+    if (markedExpenses.length === 0) {
       toast.error('Please add at least one expense to the report');
       return;
     }
@@ -409,7 +386,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       // Always send all additional fields, with empty string if not shown/selected
       const allFieldNames = ['Cost Center', 'Expense Head', 'Hospital Name', 'Campaign Code'];
       const additionalFieldsData: Record<string, string> = {};
-      
+
       for (const name of allFieldNames) {
         const meta = getFieldMeta(name);
         if (meta) {
@@ -441,7 +418,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       const reportData2 = {
         reportName: data.reportName,
         description: data.description,
-        expenseIds: expenses.map(expense => expense.id),
+        expenseIds: markedExpenses.map(expense => expense.id),
         additionalFields: additionalFieldsData,
         customAttributes: customAttributesData,
       };
@@ -460,20 +437,20 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
         if (createResponse.success && createResponse.reportId) {
           // 2. Submit report immediately
           const submitResponse = await reportService.submitReport(createResponse.reportId);
-          
+
           if (submitResponse.success) {
             toast.success('Report created and submitted successfully!');
           } else {
             toast.success('Report created successfully!');
           }
-          
+
           // 3. Navigate to reports page (this will refresh the table)
           navigate('/reports');
         } else {
           toast.error(createResponse.message);
         }
       }
-      
+
     } catch (error) {
       console.error('Failed to create report', error);
       toast.error('Failed to create report');
@@ -482,42 +459,52 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
     }
   };
 
-  const renderDropdownField = (fieldName: string, formFieldName: string) => {
-    const fieldMeta = getFieldMeta(fieldName);
-    if (!fieldMeta) return null;
+  const [markedExpenses, setMarkedExpenses] = useState<Expense[]>([]);
 
-    const isRequired = fieldName === 'Cost Center' || fieldName === 'Expense Head';
+  const markExpense = (expense: Expense) => {
+    if (markedExpenses.some(exp => exp.id === expense.id)) {
+      setMarkedExpenses(prev => prev.filter((exp) => exp.id !== expense.id))
+    } else {
+      setMarkedExpenses(prev => [...prev, expense]);
+    }
+  }
 
-    return (
-      <FormField
-        key={fieldMeta.id}
-        control={form.control}
-        name={formFieldName}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              {fieldMeta.metadata.label}{isRequired ? ' *' : ''}
-            </FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder={fieldMeta.metadata.placeholder} />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {fieldMeta.metadata.options.map((option) => (
-                  <SelectItem key={option.key} value={option.value}>
-                    {option.value}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    );
-  };
+  // const renderDropdownField = (fieldName: string, formFieldName: string) => {
+  //   const fieldMeta = getFieldMeta(fieldName);
+  //   if (!fieldMeta) return null;
+
+  //   const isRequired = fieldName === 'Cost Center' || fieldName === 'Expense Head';
+
+  //   return (
+  //     <FormField
+  //       key={fieldMeta.id}
+  //       control={form.control}
+  //       name={formFieldName}
+  //       render={({ field }) => (
+  //         <FormItem>
+  //           <FormLabel>
+  //             {fieldMeta.metadata.label}{isRequired ? ' *' : ''}
+  //           </FormLabel>
+  //           <Select onValueChange={field.onChange} defaultValue={field.value}>
+  //             <FormControl>
+  //               <SelectTrigger>
+  //                 <SelectValue placeholder={fieldMeta.metadata.placeholder} />
+  //               </SelectTrigger>
+  //             </FormControl>
+  //             <SelectContent>
+  //               {fieldMeta.metadata.options.map((option) => (
+  //                 <SelectItem key={option.key} value={option.value}>
+  //                   {option.value}
+  //                 </SelectItem>
+  //               ))}
+  //             </SelectContent>
+  //           </Select>
+  //           <FormMessage />
+  //         </FormItem>
+  //       )}
+  //     />
+  //   );
+  // };
 
   return (
     <div className="space-y-6">
@@ -530,9 +517,9 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
         </h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Form Section */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle>Report Details</CardTitle>
@@ -572,38 +559,31 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
                     )}
                   />
 
-                  <Separator />
-
-                  {loadingMeta ? (
+                  {loadingMeta && (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
                       <span className="text-muted-foreground">Loading additional fields...</span>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Additional Fields</h3>
-                      {renderDropdownField('Cost Center', 'costCenter')}
-                      {renderDropdownField('Expense Head', 'expenseHead')}
-                      {showHospitalAndCampaign && renderDropdownField('Hospital Name', 'hospitalName')}
-                      {showHospitalAndCampaign && renderDropdownField('Campaign Code', 'campaignCode')}
                     </div>
                   )}
 
                   {/* Dynamic Custom Fields */}
                   {customAttributes.length > 0 && (
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Custom Fields</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {customAttributes.map((attribute) => (
-                          <DynamicCustomField
-                            key={attribute.id}
-                            control={form.control}
-                            name={attribute.name as any}
-                            attribute={attribute}
-                          />
-                        ))}
+                    <>
+                      <Separator />
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Custom Fields</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {customAttributes.map((attribute) => (
+                            <DynamicCustomField
+                              key={attribute.id}
+                              control={form.control}
+                              name={attribute.name as any}
+                              attribute={attribute}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )}
 
                 </form>
@@ -612,86 +592,29 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
           </Card>
         </div>
 
-        {/* Expense Selection Section */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Current Expenses Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Current Expenses ({expenses.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="max-h-80 overflow-y-auto">
-              {expenses.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">No expenses in this report yet</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {expenses.map((expense) => (
-                    <div
-                      key={expense.id}
-                      className="border rounded-lg p-3 transition-colors bg-white"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="font-medium text-sm truncate">
-                              {expense.vendor}
-                            </p>
-                            <p className="font-semibold text-sm text-primary">
-                              {formatCurrency(expense.amount, 'INR')}
-                            </p>
-                          </div>
-                          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                            <span className="flex items-center gap-1">
-                              <Building className="h-3 w-3" />
-                              {expense.category}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {formatDate(expense.expense_date)}
-                            </span>
-                          </div>
-                          {expense.description && (
-                            <p className="text-xs text-muted-foreground italic truncate">
-                              {expense.description}
-                            </p>
-                          )}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeExpenseFromReport(expense.id)}
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Available Expenses Section */}
+        <div className="lg:col-span-1">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Available Expenses ({availableExpenses.length})
+                  Expenses ({allExpenses.length})
                 </CardTitle>
-                {availableExpenses.length > 0 && (
-                  <button
-                    onClick={selectAllAvailableExpenses}
-                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                  >
-                    Select All
-                  </button>
+                {allExpenses.length > 0 && (
+                  <>
+                    {markedExpenses.length !== allExpenses.length && <button
+                      onClick={() => setMarkedExpenses(allExpenses)}
+                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      Select All
+                    </button>}
+                    {markedExpenses.length === allExpenses.length && <button
+                      onClick={() => setMarkedExpenses([])}
+                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      Deselect All
+                    </button>}
+                  </>
                 )}
               </div>
             </CardHeader>
@@ -704,30 +627,30 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
               ) : availableExpenses.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">No available expenses found</p>
+                  <p className="text-muted-foreground">No expenses found</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {availableExpenses.map((expense) => (
+                  {allExpenses.map((expense) => (
                     <div
                       key={expense.id}
-                      className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                        selectedAvailableExpenses.has(expense.id)
+                      className={`border rounded-lg p-3 cursor-pointer transition-colors ${selectedAvailableExpenses.has(expense.id)
                           ? 'border-primary bg-primary/5'
                           : 'border-border hover:border-primary/50'
-                      }`}
-                      onClick={() => addExpenseToReport(expense)}
+                        }`}
+                      onClick={() => markExpense(expense)}
                     >
                       <div className="flex items-start gap-3">
                         <Checkbox
-                          checked={selectedAvailableExpenses.has(expense.id)}
+                          // checked={selectedAvailableExpenses.has(expense.id)}
+                          checked={markedExpenses.some(exp => exp.id === expense.id)}
                           onChange={() => toggleAvailableExpenseSelection(expense.id)}
                           className="mt-1"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
                             <p className="font-medium text-sm truncate">
-                              {expense.vendor}
+                              {expense.expense_type === "MILEAGE_BASED" ? "Mileage Expense" : expense.expense_type === "PER_DIEM" ? "Per Diem Expense" : expense.vendor}
                             </p>
                             <p className="font-semibold text-sm text-primary">
                               {formatCurrency(expense.amount, 'INR')}
@@ -760,26 +683,25 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       </div>
 
       {/* Total Amount Display */}
-      {expenses.length > 0 && (
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <span className="text-lg font-semibold">Total Amount:</span>
             <span className="text-xl font-bold text-primary">
-              {formatCurrency(
-                expenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0),
+              {markedExpenses.length > 0 ? formatCurrency(
+                markedExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0),
                 'INR'
-              )}
+              ) : formatCurrency(0)}
             </span>
           </div>
         </div>
-      )}
+      
 
       {/* Action Buttons - At the very bottom of the page */}
       <div className="sticky bottom-0 bg-white border-t pt-6 pb-4">
         <div className="flex justify-end gap-4">
-          <Button 
-            onClick={onSave} 
-            disabled={saving} 
+          <Button
+            onClick={onSave}
+            disabled={saving}
             variant="outline"
             className="px-10 py-3 border-blue-500 text-blue-500 hover:bg-blue-50"
           >
@@ -792,9 +714,9 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
               editMode ? 'Update Report' : 'Save Draft'
             )}
           </Button>
-          <Button 
-            onClick={form.handleSubmit(onSubmit)} 
-            disabled={loading} 
+          <Button
+            onClick={form.handleSubmit(onSubmit)}
+            disabled={loading}
             className="px-10 py-3"
           >
             {loading ? (
@@ -808,77 +730,6 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
           </Button>
         </div>
       </div>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <X className="h-5 w-5 text-red-600" />
-              Remove Expense
-            </DialogTitle>
-          </DialogHeader>
-          
-          {expenseToDelete && (
-            <div className="space-y-4">
-              <div className="bg-muted/30 rounded-lg p-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Vendor:</span>
-                    <span className="text-sm font-medium">{expenseToDelete.vendor}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Amount:</span>
-                    <span className="text-sm font-medium">
-                      {formatCurrency(expenseToDelete.amount, 'INR')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Category:</span>
-                    <span className="text-sm font-medium">{expenseToDelete.category}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Date:</span>
-                    <span className="text-sm font-medium">{formatDate(expenseToDelete.expense_date)}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <p className="text-sm text-muted-foreground">
-                Are you sure you want to remove this expense from the report? This action cannot be undone.
-              </p>
-            </div>
-          )}
-          
-          <DialogFooter className="flex flex-row gap-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowDeleteDialog(false);
-                setExpenseToDelete(null);
-              }}
-              disabled={apiLoading}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmDeleteExpense}
-              disabled={apiLoading}
-              className="flex-1 bg-red-600 hover:bg-red-700"
-            >
-              {apiLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Removing...
-                </>
-              ) : (
-                'Remove Expense'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

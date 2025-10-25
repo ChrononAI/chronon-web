@@ -65,7 +65,6 @@ export function MyExpensesPage() {
   }
 
   useEffect(() => {
-    // fetchExpenses(currentPage);
     fetchAllExpenses(currentPage);
     fetchDraftExpenses(currentPage);
     fetchCompletedExpenses(currentPage);
@@ -111,16 +110,6 @@ export function MyExpensesPage() {
 
     return filtered;
   }, [expensesArr, searchTerm, statusFilter, selectedDate]);
-
-  // Calculate counts for tabs
-  // const draftCount = expenses.filter(expense =>
-  //   expense.status === 'COMPLETE' || expense.status === 'INCOMPLETE'
-  // ).length;
-  // const reportedCount = expenses.filter(expense =>
-  //   expense.status === 'PENDING_APPROVAL' ||
-  //   expense.status === 'APPROVED' ||
-  //   expense.status === 'REJECTED'
-  // ).length;
 
   const tabs = [
     { key: 'all', label: 'All', count: allExpensesPagination.total },

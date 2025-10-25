@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Calendar } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { LocationAutocomplete } from "@/components/ui/location-autocomplete";
 import { placesService, PlaceSuggestion } from "@/services/placesService";
 import { expenseService } from "@/services/expenseService";
@@ -21,6 +21,7 @@ import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { Expense, Policy, PolicyCategory } from "@/types/expense";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { DateField } from "@/components/ui/date-field";
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -31,6 +32,15 @@ interface MileagePageProps {
   saving?: boolean;
   onCancel?: () => void;
 }
+
+ export const getVehicleType = (
+    type: "FOUR_WHEELERS" | "TWO_WHEELERS" | "PUBLIC_TRANSPORT" | string
+  ) => {
+    if (type === "FOUR_WHEELERS") return "car";
+    if (type === "TWO_WHEELERS") return "bike";
+    if (type === "PUBLIC_TRANSPORT") return "public_transport";
+    return "";
+  };
 
 const MileagePage = ({
   mode = "create",
@@ -58,15 +68,6 @@ const MileagePage = ({
     categoryId: "",
   });
 
-  const getVehicleType = (
-    type: "FOUR_WHEELERS" | "TWO_WHEELERS" | "PUBLIC_TRANSPORT" | string
-  ) => {
-    if (type === "FOUR_WHEELERS") return "car";
-    if (type === "TWO_WHEELERS") return "bike";
-    if (type === "PUBLIC_TRANSPORT") return "public_transport";
-    return "";
-  };
-
   const [isCalculating, setIsCalculating] = useState(false);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
@@ -74,6 +75,7 @@ const MileagePage = ({
   const [editMode, setEditMode] = useState(false);
   const [startLocation, setStartLocation] = useState<PlaceSuggestion | null>();
   const [endLocation, setEndLocation] = useState<PlaceSuggestion | null>();
+  const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
     if (expenseData) {
@@ -225,6 +227,7 @@ const MileagePage = ({
       } else if (mode === "edit" && onUpdate) {
         await onUpdate(submitData);
       }
+      toast.success("Successfully created mileage expense")
       navigate("/expenses");
     } catch (error) {
       console.error(error);
@@ -335,28 +338,21 @@ const MileagePage = ({
     }
   };
 
-  // useEffect(() => {
-  //   console.log("start or end location changed");
-  // }, [formData.startLocation, formData.endLocation]);
-
   return (
-    <div className="max-w-full mx-auto px-6 pt-1 pb-6">
-      <div className="mb-3">
+    <div className="max-w-full mx-auto pt-1 pb-6">
+      {mode === "view" && <div className="mb-3">
         <h1 className="text-2xl font-bold text-gray-800">
-          {mode === "create"
-            ? "Create New Mileage Expense"
-            : "Mileage Expense Details"}
+          Mileage Expense Details
         </h1>
-      </div>
+      </div>}
 
       <form onSubmit={handleSubmit}>
         <Card>
           <CardContent className="px-6 py-4 space-y-4">
             {/* 🚗 Route Section */}
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-gray-700">Route</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div className="space-y-2">
                   <Label>Start Location *</Label>
                   <LocationAutocomplete
                     value={formData.startLocation}
@@ -365,7 +361,7 @@ const MileagePage = ({
                     disabled={mode === "view" && !editMode}
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label>End Location *</Label>
                   <LocationAutocomplete
                     value={formData.endLocation}
@@ -377,7 +373,7 @@ const MileagePage = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div className="space-y-2">
                   <Label>Vehicle *</Label>
                   <Select
                     value={formData.vehiclesType}
@@ -397,7 +393,7 @@ const MileagePage = ({
                   </Select>
                 </div>
 
-                <div className="flex flex-col justify-center space-y-2">
+                <div className="flex flex-col justify-center space-y-3">
                   <Label>Round Trip</Label>
                   <div className="flex items-center space-x-2">
                     <Switch
@@ -414,8 +410,6 @@ const MileagePage = ({
 
             {/* 🧾 Details Section */}
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-gray-700">Details</h3>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label
@@ -485,7 +479,7 @@ const MileagePage = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div className="space-y-2">
                   <Label>Policy *</Label>
                   <Select
                     value={formData.policyId}
@@ -509,7 +503,7 @@ const MileagePage = ({
                   </Select>
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label>Category *</Label>
                   <Select
                     value={formData.categoryId}
@@ -530,29 +524,25 @@ const MileagePage = ({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="expenseDate"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Date *
-                </Label>
-                <div className="relative w-fit">
-                  <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    id="expenseDate"
-                    type="date"
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="expenseDate"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Date *
+                  </Label>
+                  <DateField
+                    id="startDate"
                     value={formData.expenseDate}
-                    onChange={(e) =>
-                      handleInputChange("expenseDate", e.target.value)
-                    }
-                    className="h-10 pl-8 w-40"
-                    disabled={mode === "view" && !editMode}
+                    onChange={(value) => handleInputChange("expenseDate", value)}
+                    disabled={mode === "view"}
+                    maxDate={today}
                   />
                 </div>
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label>Purpose of Travel *</Label>
                 <Textarea
                   value={formData.description}

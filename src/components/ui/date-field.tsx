@@ -8,15 +8,19 @@ interface DateFieldProps {
   disabled?: boolean;
   className?: string;
   placeholder?: string;
+  minDate?: string;
+  maxDate?: string;
 }
 
-export function DateField({ 
-  id, 
-  value, 
-  onChange, 
-  disabled = false, 
+export function DateField({
+  id,
+  value,
+  onChange,
+  disabled = false,
   className = "",
-  placeholder 
+  placeholder,
+  minDate,
+  maxDate
 }: DateFieldProps) {
   const handleIconClick = () => {
     if (!disabled) {
@@ -28,16 +32,17 @@ export function DateField({
   };
 
   return (
-    <div className="relative">
-      <Calendar 
-        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 cursor-pointer hover:text-gray-600 transition-colors" 
-        onClick={handleIconClick}
+    <div className="relative" onClick={handleIconClick}>
+      <Calendar
+        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 hover:text-gray-600 transition-colors"
       />
       <Input
         id={id}
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        min={minDate}
+        max={maxDate}
         className={`pl-10 input-date ${className}`}
         disabled={disabled}
         placeholder={placeholder}
