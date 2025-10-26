@@ -932,16 +932,6 @@ export function ExpenseDetailsStep({
                       <div className="relative overflow-auto max-h-96 bg-gray-100">
                         <div className="flex items-center justify-center p-4">
                           {(() => {
-                            // Determine the source URL and file type
-                            let sourceUrl: string | null;
-                            if (readOnly && receiptUrls.length > 0) {
-                              sourceUrl = receiptUrls[0];
-                            } else if (duplicateReceiptUrl) {
-                              sourceUrl = duplicateReceiptUrl;
-                            } else {
-                              sourceUrl = previewUrl;
-                            }
-
                             // Show loading state if we're fetching the duplicate receipt URL
                             if (duplicateReceiptLoading) {
                               return (
