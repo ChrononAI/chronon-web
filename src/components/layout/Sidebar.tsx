@@ -7,7 +7,8 @@ import {
   ListCheck,
   Banknote,
   ReceiptText,
-  FileChartColumn
+  FileChartColumn,
+  User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,16 @@ interface NavigationItem {
   disabled?: boolean;
   children?: NavigationItem[];
 }
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuthStore } from '@/store/authStore';
 
 const navigation: NavigationItem[] = [
   {
@@ -41,9 +52,7 @@ const navigation: NavigationItem[] = [
     href: '/approvals/reports',
     icon: ListCheck,
   },
-  { name: 'Reports', href: '/all-reports', isBold: false, icon: FileChartColumn },
-
-
+  { name: 'Reports', href: '/all-reports', isBold: false, icon: FileChartColumn }
 ];
 
 export function Sidebar() {
@@ -56,6 +65,11 @@ export function Sidebar() {
     }
     return [];
   });
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+  };
 
   // Save to localStorage whenever openItems changes
   useEffect(() => {
@@ -193,18 +207,68 @@ export function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-card border-r h-full overflow-y-auto">
+    <div className="w-64 bg-card border-r h-full overflow-y-auto flex flex-col">
       <div className="flex items-center space-x-4 p-4">
         <div>
-        <Link to="/" className="flex items-center space-x-2">
-          <span className="text-3xl font-bold text-primary">∞</span>
-          <h1 className="text-2xl font-bold text-primary">CHRONON</h1>
-        </Link>
+          <Link to="/" className="flex items-center space-x-2">
+            <span className="text-3xl font-bold text-primary">∞</span>
+            <h1 className="text-2xl font-bold text-primary">CHRONON</h1>
+          </Link>
         </div>
       </div>
       <nav className="px-2 space-y-2">
         {navigation.map((item) => renderNavigationItem(item))}
       </nav>
+      <div className="p-4 mt-auto">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild> 
+            <div className="flex items-center justify-between cursor-pointer">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {user?.email}
+                </p>
+              </div>
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src="" alt={user?.firstName} />
+                  <AvatarFallback>
+                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56 ml-4" side="right" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {user?.email}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer" asChild>
+              <Link to="/profile" className="flex items-center">
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer text-red-600 focus:text-red-600"
+              onClick={handleLogout}
+            >
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 }
