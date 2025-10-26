@@ -140,7 +140,6 @@ export function MyExpensesPage() {
   return (
     <ReportsPageWrapper
       title="Expenses"
-      description="Manage your expense entries and track their status."
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={(tabId) => setActiveTab(tabId as "all" | "draft" | "reported")}

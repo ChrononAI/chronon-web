@@ -98,23 +98,10 @@ export function AllReportsPage() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header Section */}
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-lg p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <FileText className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">Reports</h1>
-              <p className="text-muted-foreground">View and manage all expense reports in the system</p>
-            </div>
-          </div>
-        </div>
-
         {/* Report Templates */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Report Templates</h2>
+            <h2 className="text-2xl font-semibold">Report Templates</h2>
             <span className="text-sm text-muted-foreground">
               {totalTemplates} template{totalTemplates !== 1 ? 's' : ''} available
             </span>

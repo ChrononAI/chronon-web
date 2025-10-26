@@ -103,7 +103,6 @@ export function ApprovalsReportsPage() {
   return (
     <ReportsPageWrapper
       title="Approver Dashboard"
-      description="Review and manage pending expense reports."
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={(tabId) => setActiveTab(tabId as "unsubmitted" | "submitted")}
@@ -136,13 +135,13 @@ export function ApprovalsReportsPage() {
           ) : (
             <div className="overflow-hidden">
               <Table>
-                <TableHeader>
+                <TableHeader className="text-[#64748B]">
                   <TableRow className="bg-gray-100">
-                    <TableHead className="font-medium text-gray-700">REPORT NAME</TableHead>
-                    <TableHead className="font-medium text-gray-700">SUBMITTER</TableHead>
-                    <TableHead className="font-medium text-gray-700">AMOUNT</TableHead>
-                    <TableHead className="font-medium text-gray-700">SUBMITTED</TableHead>
-                    <TableHead className="font-medium text-gray-700">EXPENSES</TableHead>
+                    <TableHead className="font-medium">REPORT NAME</TableHead>
+                    <TableHead className="font-medium">SUBMITTER</TableHead>
+                    <TableHead className="font-medium">AMOUNT</TableHead>
+                    <TableHead className="font-medium">SUBMITTED</TableHead>
+                    <TableHead className="font-medium">EXPENSES</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

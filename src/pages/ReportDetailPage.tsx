@@ -419,15 +419,15 @@ export function ReportDetailPage() {
               <CardContent>
                 <div className="rounded-lg border overflow-hidden">
                   <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="font-semibold">Expense ID</TableHead>
-                        <TableHead className="font-semibold">Category</TableHead>
-                        <TableHead className="font-semibold">Amount</TableHead>
-                        <TableHead className="font-semibold">Date</TableHead>
-                        <TableHead className="font-semibold">Vendor</TableHead>
-                        <TableHead className="font-semibold">Status</TableHead>
-                        <TableHead className="text-right font-semibold">Actions</TableHead>
+                    <TableHeader className="text-[#64748B]">
+                      <TableRow className="bg-gray-100">
+                        <TableHead>EXPENSE ID</TableHead>
+                        <TableHead>CATEGORY</TableHead>
+                        <TableHead>AMOUNT</TableHead>
+                        <TableHead>DATE</TableHead>
+                        <TableHead>VENDOR</TableHead>
+                        <TableHead>STATUS</TableHead>
+                        <TableHead>ACTION</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

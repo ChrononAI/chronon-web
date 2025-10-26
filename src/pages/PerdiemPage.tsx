@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -342,6 +342,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                           field.onChange(value);
                         }}
                         disabled={mode === "view"}
+                        minDate={formData.startDate}
                         maxDate={today}
                       />
                     </FormControl>
