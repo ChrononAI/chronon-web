@@ -1,4 +1,3 @@
-import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 
 interface LayoutProps {
@@ -17,8 +16,6 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </main>
       </div>
-      {/* Vertical line extending from sidebar up into header */}
-      <div className="absolute top-0 left-64 w-px h-full bg-border z-10"></div>
     </div>
   );
 }
