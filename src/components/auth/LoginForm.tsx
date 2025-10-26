@@ -194,21 +194,6 @@ export function LoginForm({ onLogin }: LoginProps) {
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                      />
-                      <span className="text-sm text-gray-700">Remember me</span>
-                    </label>
-                    <a
-                      href="#"
-                      className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-                    >
-                      Forgot password?
-                    </a>
-                  </div>
                   {error && (
                     <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
                       <AlertCircle className="w-4 h-4 text-red-500" />
