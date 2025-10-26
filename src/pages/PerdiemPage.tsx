@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -19,6 +22,14 @@ import {
 } from "@/components/ui/select";
 import { useAuthStore } from "@/store/authStore";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 interface PerdiemPageProps {
   mode?: "create" | "view" | "edit";
@@ -31,21 +42,41 @@ export const calculateDays = (startDate: string, endDate: string): number => {
   const start = new Date(startDate)
   const end = new Date(endDate)
 
-  // Ensure valid dates
   if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0
 
   const diffTime = end.getTime() - start.getTime()
 
-  // +1 if you want to include both start and end dates as full days
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
 
   return diffDays > 0 ? diffDays : 0
 }
 
+const perdiemSchema = z.object({
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  location: z.string().min(1, "Location is required"),
+  purpose: z.string().min(1, "Purpose is required"),
+  categoryId: z.string().min(1, "Category is required"),
+});
+
+type PerdiemFormValues = z.infer<typeof perdiemSchema>;
+
 const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+
+  const form = useForm<PerdiemFormValues>({
+    resolver: zodResolver(perdiemSchema),
+    defaultValues: {
+      startDate: "",
+      endDate: "",
+      location: "",
+      purpose: "",
+      categoryId: "",
+    },
+  });
+
   const [formData, setFormData] = useState<{
     startDate: string;
     endDate: string;
@@ -139,6 +170,12 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
       if (perDiemPolicies.length > 0) {
         setCategories(perDiemPolicies[0].categories);
         setFormData((prev) => ({ ...prev, policyId: perDiemPolicies[0].id }));
+        
+        if (perDiemPolicies[0].categories && perDiemPolicies[0].categories.length > 0) {
+          const firstCategory = perDiemPolicies[0].categories[0];
+          setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
+          form.setValue("categoryId", firstCategory.id);
+        }
       }
     } catch (error) {
       console.log(error);
@@ -156,40 +193,41 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
       ...prev,
       [field]: field === "totalAmount" ? Number(value) : value,
     }));
+    
+    if (field === "categoryId" && typeof value === "string") {
+      form.setValue("categoryId", value);
+    } else if (field === "location" && typeof value === "string") {
+      form.setValue("location", value);
+    } else if (field === "purpose" && typeof value === "string") {
+      form.setValue("purpose", value);
+    } else if (field === "startDate" && typeof value === "string") {
+      form.setValue("startDate", value);
+    } else if (field === "endDate" && typeof value === "string") {
+      form.setValue("endDate", value);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (
-      !formData.startDate ||
-      !formData.endDate ||
-      !formData.location ||
-      !formData.purpose
-    ) {
-      toast.error("Please fill in all required fields");
+  const handleSubmit = async (values: PerdiemFormValues) => {
+    const orgId = getOrgIdFromToken();
+    if (!orgId) {
+      toast.error("Organization ID not found");
       return;
     }
 
     const submitData = {
-      expense_policy_id: formData.policyId, // Hardcoded policy ID
-      category_id: formData.categoryId,
+      expense_policy_id: formData.policyId,
+      category_id: values.categoryId,
       amount: formData.totalAmount,
-      expense_date: formData.startDate,
-      description: formData.purpose,
+      expense_date: values.startDate,
+      description: values.purpose,
       per_diem_info: {
-        start_date: formData.startDate,
-        end_date: formData.endDate,
-        location: formData.location,
+        start_date: values.startDate,
+        end_date: values.endDate,
+        location: values.location,
       },
     };
 
     try {
-      const orgId = getOrgIdFromToken();
-      if (!orgId) {
-        toast.error("Organization ID not found. Please login again.");
-        return;
-      }
       if (mode === "create") {
         await placesService.createPerDiemExpense(submitData, orgId);
       } else if (mode === "edit" && id) {
@@ -261,44 +299,56 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
   return (
     <div className="w-full pt-1">
-
-      <form onSubmit={handleSubmit}>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)}>
         <div className="bg-white border rounded-lg p-6">
-          {/* Date Section */}
           <div className="mb-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="startDate"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Start Date
-                </Label>
-                <DateField
-                  id="startDate"
-                  value={formData.startDate}
-                  onChange={(value) => handleInputChange("startDate", value)}
-                  disabled={mode === "view"}
-                  maxDate={today}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Date *</FormLabel>
+                    <FormControl>
+                      <DateField
+                        id="startDate"
+                        value={formData.startDate}
+                        onChange={(value) => {
+                          handleInputChange("startDate", value);
+                          field.onChange(value);
+                        }}
+                        disabled={mode === "view"}
+                        maxDate={today}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="endDate"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  End Date
-                </Label>
-                <DateField
-                  id="endDate"
-                  value={formData.endDate}
-                  onChange={(value) => handleInputChange("endDate", value)}
-                  disabled={mode === "view"}
-                  minDate={formData.startDate}
-                  maxDate={today}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>End Date *</FormLabel>
+                    <FormControl>
+                      <DateField
+                        id="endDate"
+                        value={formData.endDate}
+                        onChange={(value) => {
+                          handleInputChange("endDate", value);
+                          field.onChange(value);
+                        }}
+                        disabled={mode === "view"}
+                        maxDate={today}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
           </div>
 
@@ -343,86 +393,102 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                   disabled
                 />
               </div>
-              <div className="space-y-2">
-                <Label
-                  htmlFor="category"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Category
-                </Label>
-                <Select
-                  value={formData.categoryId}
-                  onValueChange={(value) =>
-                    handleInputChange("categoryId", value)
-                  }
-                  disabled={
-                    (mode === "view" && !editMode) ||
-                    !selectedPolicy ||
-                    loadingPolicies
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        !selectedPolicy
-                          ? "Select policy first"
-                          : "Select category"
+              <FormField
+                control={form.control}
+                name="categoryId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category *</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        handleInputChange("categoryId", value);
+                        field.onChange(value);
+                      }}
+                      disabled={
+                        (mode === "view" && !editMode) ||
+                        !selectedPolicy ||
+                        loadingPolicies
                       }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              !selectedPolicy
+                                ? "Select policy first"
+                                : "Select category"
+                            }
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
-            <div className="mb-4 ">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="location"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Location
-                </Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    id="location"
-                    type="text"
-                    placeholder="e.g., Mumbai, Delhi, Bangalore"
-                    value={formData.location}
-                    onChange={(e) =>
-                      handleInputChange("location", e.target.value)
-                    }
-                    className="pl-10"
-                    disabled={mode === "view"}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-            <div className="grid grid-cols-1 gap-4 mt-4">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="purpose"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Purpose
-                </Label>
-                <Textarea
-                  value={formData.purpose}
-                  placeholder="e.g. Annual Sales Conference"
-                  onChange={(e) => handleInputChange("purpose", e.target.value)}
-                  disabled={mode === "view"}
+            <div className="mb-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location *</FormLabel>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10" />
+                        <FormControl>
+                          <Input
+                            type="text"
+                            placeholder="e.g., Mumbai, Delhi, Bangalore"
+                            value={formData.location}
+                            onChange={(e) => {
+                              handleInputChange("location", e.target.value);
+                              field.onChange(e.target.value);
+                            }}
+                            className="pl-10"
+                            disabled={mode === "view"}
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 mt-4">
+              <FormField
+                control={form.control}
+                name="purpose"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Purpose *</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        value={formData.purpose}
+                        placeholder="e.g. Annual Sales Conference"
+                        onChange={(e) => {
+                          handleInputChange("purpose", e.target.value);
+                          field.onChange(e.target.value);
+                        }}
+                        disabled={mode === "view"}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
           </div>
 
@@ -448,7 +514,8 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
             )}
           </div>
         </div>
-      </form>
+        </form>
+      </Form>
     </div>
   );
 };
