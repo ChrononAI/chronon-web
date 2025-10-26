@@ -17,6 +17,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { LucideIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface NavigationItem {
   name: string;
@@ -41,8 +42,8 @@ const navigation: NavigationItem[] = [
     icon: ListCheck,
   },
   { name: 'Reports', href: '/all-reports', isBold: false, icon: FileChartColumn },
-  
- 
+
+
 ];
 
 export function Sidebar() {
@@ -73,10 +74,10 @@ export function Sidebar() {
     navigation.forEach(item => {
       if (item.children) {
         // If any child's href matches the current path, ensure parent is open
-        const hasActiveChild = item.children.some(child => 
+        const hasActiveChild = item.children.some(child =>
           child.href && path.startsWith(child.href)
         );
-        
+
         if (hasActiveChild && !newOpenItems.has(item.name)) {
           newOpenItems.add(item.name);
           hasChanges = true;
@@ -104,9 +105,9 @@ export function Sidebar() {
     if (item.children) {
       const isOpen = openItems.includes(item.name);
       return (
-        <Collapsible 
-          key={item.name} 
-          open={isOpen} 
+        <Collapsible
+          key={item.name}
+          open={isOpen}
           onOpenChange={() => {
             toggleItem(item.name);
           }}
@@ -142,7 +143,7 @@ export function Sidebar() {
     if (item.href) {
       if (isDisabled || item.href === '#') {
         return (
-          <div 
+          <div
             key={item.name}
             className={cn(
               'flex items-center py-2 text-sm rounded-md transition-colors',
@@ -156,7 +157,7 @@ export function Sidebar() {
           </div>
         );
       }
-      
+
       return (
         <NavLink
           key={item.name}
@@ -193,7 +194,15 @@ export function Sidebar() {
 
   return (
     <div className="w-64 bg-card border-r h-full overflow-y-auto">
-      <nav className="p-4 space-y-2">
+      <div className="flex items-center space-x-4 p-4">
+        <div>
+        <Link to="/" className="flex items-center space-x-2">
+          <span className="text-3xl font-bold text-primary">∞</span>
+          <h1 className="text-2xl font-bold text-primary">CHRONON</h1>
+        </Link>
+        </div>
+      </div>
+      <nav className="px-2 space-y-2">
         {navigation.map((item) => renderNavigationItem(item))}
       </nav>
     </div>

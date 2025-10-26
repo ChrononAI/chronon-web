@@ -26,7 +26,7 @@ export function ReportTabs({
           key={tab.key}
           onClick={() => onTabChange(tab.key)}
           className={cn(
-            "relative flex items-center gap-2 font-medium transition-colors pb-4",
+            "relative flex items-center gap-2 font-medium transition-colors pb-2",
             activeTab === tab.key 
               ? "text-blue-600 border-b-2 border-blue-600" 
               : "text-gray-500 hover:text-gray-700"

@@ -28,7 +28,7 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
   return (
     <div className="border rounded-lg bg-white">
         <Table>
-          <TableHeader>
+          <TableHeader className='text-[#64748B]'>
             <TableRow className="bg-gray-100">
               <TableHead>EXPENSE ID</TableHead>
               <TableHead>TYPE</TableHead>

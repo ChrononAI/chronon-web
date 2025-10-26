@@ -7,7 +7,6 @@ import { ExpenseDetailsStep } from '@/components/expenses/ExpenseDetailsStep';
 import MileagePage from '@/pages/MileagePage';
 import PerdiemPage from '@/pages/PerdiemPage';
 import {
-  BanknoteArrowDown,
   CheckCircle,
   Clock,
   AlertCircle,
@@ -236,22 +235,9 @@ export function ExpenseDetailPage() {
     <Layout>
       <div className="space-y-6">
         <Breadcrumb items={breadcrumbItems} />
-
-        {/* Header Section */}
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-lg p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <BanknoteArrowDown className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold">Expense Details</h1>
-                  <p className="text-muted-foreground">{expense.sequence_number || expense.receipt_id}</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-2">
+        <div className="flex items-center justify-between">
+          <div className='text-2xl font-bold'>Expense Details</div>
+          <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-3">
                 {getStatusIcon(expense.status)}
                 <Badge className={`${getStatusColor(expense.status)} text-sm px-3 py-1`}>
@@ -259,7 +245,6 @@ export function ExpenseDetailPage() {
                 </Badge>
               </div>
             </div>
-          </div>
         </div>
 
         {isMileageExpense(expense) ? (

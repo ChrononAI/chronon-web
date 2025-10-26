@@ -20,7 +20,6 @@ interface StatusOption {
 interface ReportsPageWrapperProps {
   // Page configuration
   title: string;
-  description?: string;
   showCreateButton?: boolean;
   createButtonText?: string;
   createButtonLink?: string;
@@ -47,7 +46,6 @@ interface ReportsPageWrapperProps {
 
 export function ReportsPageWrapper({
   title,
-  description,
   showCreateButton = false,
   createButtonText = "Create New Report",
   createButtonLink = "/reports/create",
@@ -77,9 +75,6 @@ export function ReportsPageWrapper({
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
-          {description && (
-            <p className="text-gray-600 mt-1">{description}</p>
-          )}
         </div>
         {showCreateButton && (
           <Button asChild>
