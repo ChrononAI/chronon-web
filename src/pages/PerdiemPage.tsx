@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/ui/date-field";
-import { Search, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { placesService } from "@/services/placesService";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { Expense, Policy, PolicyCategory } from "@/types/expense";
@@ -446,7 +446,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                     <FormItem>
                       <FormLabel>Location *</FormLabel>
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10" />
                         <FormControl>
                           <Input
                             type="text"
@@ -456,7 +455,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                               handleInputChange("location", e.target.value);
                               field.onChange(e.target.value);
                             }}
-                            className="pl-10"
                             disabled={mode === "view"}
                           />
                         </FormControl>

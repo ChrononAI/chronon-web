@@ -546,6 +546,7 @@ class ReportService {
     title?: string;
     description?: string;
     custom_attributes?: Record<string, string>;
+    expense_ids?: string[];
   }): Promise<{ success: boolean; message: string; data?: any }> {
     try {
       const response = await api.put(`/reports/reports/${reportId}`, updateData);
