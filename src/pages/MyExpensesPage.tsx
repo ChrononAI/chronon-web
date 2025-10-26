@@ -24,7 +24,23 @@ export function MyExpensesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   // const [loading, setLoading] = useState(false);
   const loading = false;
-  const [perPage] = useState(10);
+  const [perPage, setPerPage] = useState<number | null>(null);
+
+    useEffect(() => {
+    const calculateRows = () => {
+      // Get available height for table area
+      const availableHeight = window.innerHeight - 300; // adjust 300px for header/footer, etc.
+      const rowHeight = 42; // typical table row height in px
+      const possibleRows = Math.floor(availableHeight / rowHeight);
+      setPerPage(Math.max(3, possibleRows)); // minimum 3 rows
+    };
+
+    calculateRows();
+    window.addEventListener("resize", calculateRows);
+
+    return () => window.removeEventListener("resize", calculateRows);
+
+  }, []);
 
   // Tab and filter states
   const [activeTab, setActiveTab] = useState<"all" | "draft" | "reported">("all");
@@ -35,6 +51,7 @@ export function MyExpensesPage() {
   const pagination = activeTab === "all" ? allExpensesPagination : activeTab === "draft" ? draftExpensesPagination : reportedExpensesPagination;
 
   const fetchAllExpenses = async (page: number) => {
+    if (!perPage) return;
     try {
       const response = await expenseService.fetchAllExpenses(page, perPage);
       setAllExpenses(response.data);
@@ -45,6 +62,7 @@ export function MyExpensesPage() {
   }
 
   const fetchDraftExpenses = async (page: number) => {
+    if (!perPage) return;
     try {
       const response = await expenseService.getExpensesByStatus('COMPLETE,INCOMPLETE', page, perPage);
       setDraftExpenses(response.data);
@@ -55,6 +73,7 @@ export function MyExpensesPage() {
   }
 
   const fetchCompletedExpenses = async (page: number) => {
+    if (!perPage) return;
     try {
       const response = await expenseService.getExpensesByStatus('APPROVED,REJECTED,PENDING_APPROVAL', page, perPage);
       setReportedExpenses(response.data);
@@ -65,10 +84,12 @@ export function MyExpensesPage() {
   }
 
   useEffect(() => {
-    fetchAllExpenses(currentPage);
-    fetchDraftExpenses(currentPage);
-    fetchCompletedExpenses(currentPage);
-  }, [currentPage]);
+    if (perPage) {
+      fetchAllExpenses(currentPage);
+      fetchDraftExpenses(currentPage);
+      fetchCompletedExpenses(currentPage);
+    }
+  }, [currentPage, perPage]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -170,7 +191,7 @@ export function MyExpensesPage() {
       </div></Card> : <>
         <ExpenseTable expenses={filteredExpenses} />
 
-        {pagination && pagination.pages > 1 && (
+        {pagination && pagination.pages > 1 && perPage && (
           <div className="flex items-center justify-between mt-6">
             <div className="text-sm text-gray-600">
               Showing {((currentPage - 1) * perPage) + 1} to {Math.min(currentPage * perPage, activeTab === 'all' ? allExpensesPagination.total : activeTab === 'draft' ? draftExpensesPagination.total : reportedExpensesPagination.total)} of {activeTab === 'all' ? allExpensesPagination.total : activeTab === 'draft' ? draftExpensesPagination.total : reportedExpensesPagination.total} expenses

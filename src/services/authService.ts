@@ -33,11 +33,11 @@ export const authService = {
     return { user, token: access_token };
   },
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await api.post(`/users/${userId}/password`, {
-        currentPassword,
-        newPassword
+      const response = await api.post(`/auth/change-password`, {
+        current_password: currentPassword,
+        new_password: newPassword
       });
 
       return {

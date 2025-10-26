@@ -32,7 +32,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -211,7 +210,6 @@ export function Sidebar() {
       <div className="flex items-center space-x-4 p-4">
         <div>
           <Link to="/" className="flex items-center space-x-2">
-            <span className="text-3xl font-bold text-primary">∞</span>
             <h1 className="text-2xl font-bold text-primary">CHRONON</h1>
           </Link>
         </div>
@@ -242,16 +240,6 @@ export function Sidebar() {
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56 ml-4" side="right" align="end" forceMount>
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  {user?.firstName} {user?.lastName}
-                </p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {user?.email}
-                </p>
-              </div>
-            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer" asChild>
               <Link to="/profile" className="flex items-center">
