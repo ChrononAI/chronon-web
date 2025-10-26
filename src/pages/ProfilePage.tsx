@@ -13,7 +13,6 @@ import {
   Eye,
   EyeOff,
   Save,
-  Edit3,
 } from 'lucide-react';
 
 import { Layout } from '@/components/layout/Layout';
@@ -76,7 +75,6 @@ export function ProfilePage() {
     setIsChangingPassword(true);
     try {
       const response = await authService.changePassword(
-        user.id.toString(),
         data.currentPassword,
         data.newPassword
       );
@@ -88,6 +86,8 @@ export function ProfilePage() {
       } else {
         toast.error(response.message);
       }
+      setShowChangePassword(false);
+      form.reset();
     } catch (error) {
       console.error('Failed to change password', error);
       toast.error('Failed to change password. Please try again.');
@@ -170,10 +170,6 @@ export function ProfilePage() {
                   <User className="h-5 w-5" />
                   Personal Information
                 </CardTitle>
-                <Button variant="outline" size="sm">
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">

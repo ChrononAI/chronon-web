@@ -66,19 +66,19 @@ export function ReportTable({ reports }: ReportTableProps) {
                 }
               }}
             >
-              <TableCell className="font-medium">
+              <TableCell className="font-medium whitespace-nowrap">
                 <span className="hover:underline">
-                  {report.title}
+                  {report.title} 
                 </span>
               </TableCell>
-              <TableCell>{report.description}</TableCell>
+              <TableCell className="whitespace-nowrap">{report.description}</TableCell>
               <TableCell>
                 <Badge className={getStatusColor(report.status)}>
                   {report.status}
                 </Badge>
               </TableCell>
               <TableCell>₹{Number(report.total_amount).toFixed(2)}</TableCell>
-              <TableCell>{report.created_by.email}</TableCell>
+              <TableCell className="whitespace-nowrap">{report.created_by.email}</TableCell>
               <TableCell>{formatDate(report.created_at)}</TableCell>
             </TableRow>
           ))}

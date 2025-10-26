@@ -27,7 +27,24 @@ export function MyReportsPage() {
   } = useReportsStore();
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const perPage = 10;
+  // const perPage = 10;
+  const [perPage, setPerPageRows] = useState<number | null>(null);
+
+  useEffect(() => {
+    const calculateRows = () => {
+      // Get available height for table area
+      const availableHeight = window.innerHeight - 300; // adjust 300px for header/footer, etc.
+      const rowHeight = 42; // typical table row height in px
+      const possibleRows = Math.floor(availableHeight / rowHeight);
+      setPerPageRows(Math.max(3, possibleRows)); // minimum 3 rows
+    };
+
+    calculateRows();
+    window.addEventListener("resize", calculateRows);
+
+    return () => window.removeEventListener("resize", calculateRows);
+
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -37,6 +54,7 @@ export function MyReportsPage() {
   const pagination = activeTab === 'all' ? allReportsPagination : activeTab === 'unsubmitted' ? unsubmittedReportsPagination : submittedReportsPagination;
 
   const fetchAllReports = async (page: number) => {
+    if (!perPage) return;
     try {
       const response = await expenseService.getMyReports(page, perPage);
       setAllReports(response.reports);
@@ -47,6 +65,7 @@ export function MyReportsPage() {
   };
 
   const fetchUnsubmittedReports = async (page: number) => {
+    if (!perPage) return;
     try {
       const response = await expenseService.getReportsByStatus('DRAFT', page, perPage);
       setUnsubmittedReports(response.reports);
@@ -57,6 +76,7 @@ export function MyReportsPage() {
   };
 
   const fetchSubmittedReports = async (page: number) => {
+    if (!perPage) return;
     try {
       const response = await expenseService.getReportsByStatus('UNDER_REVIEW,APPROVED,REJECTED', page, perPage);
       setSubmittedReports(response.reports);
@@ -67,11 +87,13 @@ export function MyReportsPage() {
   };
 
   useEffect(() => {
-    fetchAllReports(currentPage);
-    fetchUnsubmittedReports(currentPage);
-    fetchSubmittedReports(currentPage);
-    setLoading(false);
-  }, [currentPage]);
+    if (perPage) {
+      fetchAllReports(currentPage);
+      fetchUnsubmittedReports(currentPage);
+      fetchSubmittedReports(currentPage);
+      setLoading(false);
+    }
+  }, [currentPage, perPage]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -175,7 +197,7 @@ export function MyReportsPage() {
       </div></Card> : <>
         <ReportTable reports={filteredReports} />
 
-        {pagination && pagination.pages > 1 && (
+        {pagination && pagination.pages > 1 && perPage && (
           <div className="flex items-center justify-between mt-6">
             <div className="text-sm text-gray-600">
               Showing {((currentPage - 1) * perPage) + 1} to {Math.min(currentPage * perPage, activeTab === 'all' ? allReportsPagination.total : activeTab === 'unsubmitted' ? unsubmittedReportsPagination.total : submittedReportsPagination.total)} of {activeTab === 'all' ? allReportsPagination.total : activeTab === 'unsubmitted' ? unsubmittedReportsPagination.total : submittedReportsPagination.total} reports

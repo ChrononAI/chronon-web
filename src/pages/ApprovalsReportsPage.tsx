@@ -14,41 +14,41 @@ import {
 import { approvalService } from "@/services/approvalService";
 import { Report } from "@/types/expense";
 import { formatDate, formatCurrency } from "@/lib/utils";
-import { toast } from "sonner";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 
 export function ApprovalsReportsPage() {
   const navigate = useNavigate();
-  const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"unsubmitted" | "submitted">("unsubmitted");
   // const [statusFilter, setStatusFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [pendingReports, setPendingReports] = useState<Report[]>([]);
+  const [processedRedports, setProcessedReports] = useState<Report[]>([]);
+  
+  const fetchUnsubmittedReports = async () => {
+    try { 
+      const response = await approvalService.getReportsByStatus('IN_PROGRESS');
+      setPendingReports(response);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+   const fetchSubmittedReports = async () => {
+    try { 
+      const response = await approvalService.getReportsByStatus('APPROVED,REJECTED');
+      setProcessedReports(response);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   useEffect(() => {
-    fetchReportsForApproval();
-  }, [activeTab]);
-
-  const fetchReportsForApproval = async () => {
-    setLoading(true);
-    try {
-      let data;
-      if (activeTab === "unsubmitted") {
-        // Pending tab - show IN_PROGRESS reports (these are UNDER_REVIEW in the response)
-        data = await approvalService.getReportsByStatus("IN_PROGRESS");
-      } else {
-        // Processed tab - show APPROVED and REJECTED reports
-        data = await approvalService.getReportsByStatus("APPROVED,REJECTED");
-      }
-      setReports(data);
-    } catch (error) {
-      console.error("Failed to fetch reports for approval", error);
-      toast.error("Failed to fetch reports for approval");
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchSubmittedReports();
+    fetchUnsubmittedReports();
+    setLoading(false);
+  }, []);
 
   const handleViewDetails = (reportId: string) => {
     // Navigate to report details with approval context
@@ -57,7 +57,7 @@ export function ApprovalsReportsPage() {
 
 
   // Filter reports based on search term and filters
-  const filteredReports = (reports || []).filter((report) => {
+  const filteredReports = (activeTab === "submitted" ? processedRedports : pendingReports).filter((report) => {
     const matchesSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.created_by.email.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -74,8 +74,8 @@ export function ApprovalsReportsPage() {
 
 
   const tabs = [
-    { key: "unsubmitted", label: "Pending", count: 0 },
-    { key: "submitted", label: "Processed", count: 0 }
+    { key: "unsubmitted", label: "Pending", count: pendingReports.length },
+    { key: "submitted", label: "Processed", count: processedRedports.length }
   ];
 
   const statusOptions = [

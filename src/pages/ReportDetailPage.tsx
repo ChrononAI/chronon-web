@@ -437,7 +437,7 @@ export function ReportDetailPage() {
                             {expense.sequence_number}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 whitespace-nowrap">
                               <Building className="h-4 w-4 text-muted-foreground" />
                               {expense.category}
                             </div>
@@ -451,16 +451,14 @@ export function ReportDetailPage() {
                               {formatDate(expense.expense_date)}
                             </div>
                           </TableCell>
-                          <TableCell>{expense.expense_type === "MILEAGE_BASED" ? "Mileage Reimbursement" : expense.expense_type === "PER_DIEM" ? "Per Diem" : expense.vendor}</TableCell>
+                          <TableCell className="whitespace-nowrap">{expense.expense_type === "MILEAGE_BASED" ? "Mileage Reimbursement" : expense.expense_type === "PER_DIEM" ? "Per Diem" : expense.vendor}</TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(expense.status)}>
                               {expense.status.replace('_', ' ')}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center">
-                            {/* <Button variant="ghost" size="sm" asChild onClick={() => handleViewExpense(expense)}> */}
                               <Eye className="h-4 w-4 cursor-pointer" onClick={() => handleViewExpense(expense)} />
-                            {/* </Button> */}
                           </TableCell>
                         </TableRow>
                       ))}
