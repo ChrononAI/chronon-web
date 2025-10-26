@@ -80,8 +80,6 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
   const [saving, setSaving] = useState(false);
   const [loadingExpenses, setLoadingExpenses] = useState(true);
   const [loadingMeta, setLoadingMeta] = useState(true);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [availableExpenses, setAvailableExpenses] = useState<Expense[]>([]);
   const [selectedAvailableExpenses, setSelectedAvailableExpenses] = useState<Set<string>>(new Set());
   const additionalFields: AdditionalFieldMeta[] = [];
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>([]);
@@ -146,19 +144,16 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
         // In edit mode, fetch the full report with expenses
         const fullReportResponse = await reportService.getReportWithExpenses(reportData.id);
         const reportExpenses = fullReportResponse.success ? (fullReportResponse.data?.expenses || []) : (reportData.expenses || []);
-        setExpenses(reportExpenses);
         setMarkedExpenses([...reportExpenses]);
 
         // Fetch all available expenses (unassigned)
         const unassignedExpenses = await reportService.getUnassignedExpenses();
-        setAvailableExpenses(unassignedExpenses);
         setAllExpenses([...reportExpenses, ...unassignedExpenses]);
       } else {
         // In create mode, fetch unassigned expenses
         const unassignedExpenses = await reportService.getUnassignedExpenses();
-        setAvailableExpenses(unassignedExpenses);
         setAllExpenses(unassignedExpenses);
-        setExpenses([]);
+        setMarkedExpenses([]);
       }
 
       const customAttrs = await reportService.getCustomAttributes(user?.organization?.id?.toString() || '5')
@@ -258,10 +253,12 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
           title: formData.reportName,
           description: formData.description,
           custom_attributes: customAttributesData,
+          expense_ids: markedExpenses.map(exp => exp.id)
         };
-        console.log('inside if editmode && reportData');
-
+        const expIds = markedExpenses.map(expense => expense.id)
+        console.log(expIds);
         const updateResponse = await reportService.updateReport(reportData.id, updateData);
+        // await reportService.addExpensesToReport(reportData.id, expIds);
 
         if (updateResponse.success) {
           toast.success('Report updated successfully');
@@ -274,7 +271,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
         const newReportData = {
           reportName: formData.reportName,
           description: formData.description,
-          expenseIds: expenses.map(expense => expense.id),
+          expenseIds: markedExpenses.map(expense => expense.id),
           additionalFields: additionalFieldsData,
           customAttributes: customAttributesData,
         };
@@ -347,6 +344,13 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
 
       // 1. Create report
       if (editMode && reportData) {
+        await reportService.updateReport(reportData.id, {
+          title: data.reportName,
+          description: data.description,
+          custom_attributes: customAttributesData,
+          expense_ids: markedExpenses.map(exp => exp.id)
+        });
+        // await reportService.addExpensesToReport(reportData.id, markedExpenses.map(expense => expense.id))
         const submitReport = await reportService.submitReport(reportData.id);
         if (submitReport.success) {
           toast.success('Report submitted successfully');
@@ -507,7 +511,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
                   <Loader2 className="h-6 w-6 animate-spin mr-2" />
                   <span className="text-muted-foreground">Loading expenses...</span>
                 </div>
-              ) : availableExpenses.length === 0 ? (
+              ) : allExpenses.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-muted-foreground">No expenses found</p>
@@ -608,7 +612,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
                 Submitting...
               </>
             ) : (
-              'Create & Submit'
+              'Submit'
             )}
           </Button>
         </div>
