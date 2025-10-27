@@ -3,7 +3,7 @@ import { Expense } from "@/types/expense";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
-interface PaginationInfo {
+export interface PaginationInfo {
   has_next: boolean;
   has_prev: boolean;
   page: number;

@@ -79,7 +79,7 @@ export function ReportTable({ reports }: ReportTableProps) {
               </TableCell>
               <TableCell>₹{Number(report.total_amount).toFixed(2)}</TableCell>
               <TableCell className="whitespace-nowrap">{report.created_by.email}</TableCell>
-              <TableCell>{formatDate(report.created_at)}</TableCell>
+              <TableCell className="whitespace-nowrap">{formatDate(report.created_at)}</TableCell>
             </TableRow>
           ))}
         </TableBody>

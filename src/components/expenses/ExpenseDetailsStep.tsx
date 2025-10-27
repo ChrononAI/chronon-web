@@ -240,7 +240,7 @@ export function ExpenseDetailsStep({
         }
       }
     }
-  }, [expenseData, form, policies]);
+  }, [form, policies]);
 
   // Auto-fill fields from parsed data
   useEffect(() => {
@@ -265,7 +265,7 @@ export function ExpenseDetailsStep({
 
       if (ocrData.date) {
         // Parse the date string and convert to Date object
-        const parsedDate = new Date(ocrData.date);
+        const parsedDate = new Date(parsedData.extracted_date || "");
         if (!isNaN(parsedDate.getTime())) {
           form.setValue("dateOfExpense", parsedDate);
         }
@@ -479,12 +479,16 @@ export function ExpenseDetailsStep({
                                   className="w-full justify-between"
                                   disabled={!selectedPolicy || readOnly}
                                 >
+                                  <>
+                                  <span className="truncate max-w-[85%] overflow-hidden text-ellipsis inline-block text-left">
                                   {selectedCategory
                                     ? selectedCategory.name
                                     : !selectedPolicy
                                       ? "Select policy first"
                                       : "Select a category"}
+                                  </span>
                                   <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </>
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>

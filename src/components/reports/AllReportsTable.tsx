@@ -61,7 +61,7 @@ export function AllReportsTable({ reports, handleDownloadGeneratedReport }: AllR
                                 key={report.id}
                                 className="group cursor-pointer hover:bg-muted/50"
                             >
-                                <TableCell className="font-medium">
+                                <TableCell className="font-medium whitespace-nowrap">
                                     {report.report_name}
                                 </TableCell>
                                 <TableCell>{criteria.start_date} to {criteria.end_date}</TableCell>

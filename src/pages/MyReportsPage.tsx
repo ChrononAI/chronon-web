@@ -98,14 +98,14 @@ export function MyReportsPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, selectedDate, activeTab]);
+  }, [activeTab]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
-
   const filteredReports = useMemo(() => {
     let filtered = reportsArr;
+    console.log(reportsArr);
 
     // Search filter
     if (searchTerm) {
@@ -118,6 +118,7 @@ export function MyReportsPage() {
 
     // Status filter
     if (statusFilter !== 'all') {
+      console.log(filtered, statusFilter);
       filtered = filtered.filter(report => report.status === statusFilter);
     }
 
