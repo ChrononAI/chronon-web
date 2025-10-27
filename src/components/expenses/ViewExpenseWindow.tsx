@@ -101,7 +101,7 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[80%] max-w-full">
+            <DialogContent className="w-[80%] max-w-full max-h-[80%] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center justify-between">
                         <div>
