@@ -50,7 +50,7 @@ export function MyReportsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [activeTab, setActiveTab] = useState('all');
-  const reportsArr = activeTab === 'all' ? allReports : activeTab === 'unsubmitted' ? unsubmittedReports : submittedReports;
+  const reportsArr = (activeTab === 'all' ? allReports : activeTab === 'unsubmitted' ? unsubmittedReports : submittedReports) || [];
   const pagination = activeTab === 'all' ? allReportsPagination : activeTab === 'unsubmitted' ? unsubmittedReportsPagination : submittedReportsPagination;
 
   const fetchAllReports = async (page: number) => {

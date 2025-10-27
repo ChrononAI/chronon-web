@@ -101,7 +101,7 @@ export function ApprovalsReportsPage() {
   };
 
   // Filter reports based on search term and filters
-  const filteredReports = (activeTab === "submitted" ? processedRedports : activeTab === "all" ? allReports : pendingReports).filter((report) => {
+  const filteredReports = ((activeTab === "submitted" ? processedRedports : activeTab === "all" ? allReports : pendingReports) || []).filter((report) => {
     const matchesSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.created_by.email.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -167,7 +167,7 @@ export function ApprovalsReportsPage() {
                 <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">
                   {searchTerm ? "No reports found" :
-                    activeTab === "unsubmitted" ? "No Pending Reports" : "No Processed Reports"}
+                    activeTab === "unsubmitted" ? "No Pending Reports" : activeTab === "submitted" ? "No Processed Reports" : "No Reports"}
                 </h3>
                 <p className="text-muted-foreground">
                   {searchTerm

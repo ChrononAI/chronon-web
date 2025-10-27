@@ -5,7 +5,7 @@ import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
-import { FileText, Loader2, Maximize2, RefreshCw, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
+import { FileText, Loader2, RefreshCw, RotateCw, ZoomIn, ZoomOut } from "lucide-react";
 import { toast } from "sonner";
 import { expenseService } from "@/services/expenseService";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
@@ -57,10 +57,9 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
         }
     }, [data?.start_date, data?.end_date])
 
-    const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
+    // const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
     const [receiptZoom, setReceiptZoom] = useState(1);
     const [receiptRotation, setReceiptRotation] = useState(0);
-    console.log(isReceiptFullscreen);
 
     const handleReceiptZoomIn = () => {
         setReceiptZoom((prev) => Math.min(prev + 0.25, 3));
@@ -79,15 +78,14 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
         setReceiptRotation(0);
     };
 
-    const handleReceiptFullscreen = () => {
-        setIsReceiptFullscreen(true);
-    };
+    // const handleReceiptFullscreen = () => {
+    //     setIsReceiptFullscreen(true);
+    // };
 
     const fetchReceipt = async (id: string) => {
         if (!orgId) return;
         try {
             const response: any = await expenseService.fetchReceiptPreview(id, orgId);
-            console.log(response);
             setReceiptUrl(response.data.data.signed_url);
         } catch (error) {
             console.log(error);
@@ -125,7 +123,7 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[14px] font-medium">Category *</label>
-                                        <Input value={data?.category_id} disabled />
+                                        <Input value={data?.category} disabled />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -235,17 +233,6 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
                                                             <RefreshCw className="h-4 w-4" />
                                                         </Button>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={handleReceiptFullscreen}
-                                                            className="h-8 px-3 text-xs"
-                                                        >
-                                                            <Maximize2 className="h-4 w-4 mr-1" />
-                                                            Fullscreen
-                                                        </Button>
-                                                    </div>
                                                 </div>
 
                                                 {/* Receipt Display */}
@@ -292,7 +279,7 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
                                                                             maxHeight: "100%",
                                                                             objectFit: "contain",
                                                                         }}
-                                                                        onClick={handleReceiptFullscreen}
+                                                                        // onClick={handleReceiptFullscreen}
                                                                         onError={(e) => {
                                                                             // Fallback: if image fails to load, show download option
                                                                             e.currentTarget.style.display = "none";
