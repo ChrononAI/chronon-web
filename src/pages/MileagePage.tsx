@@ -113,15 +113,18 @@ const MileagePage = ({
   const [isCalculating, setIsCalculating] = useState(false);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
+  const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [startLocation, setStartLocation] = useState<PlaceSuggestion | null>();
   const [endLocation, setEndLocation] = useState<PlaceSuggestion | null>();
+  const [isLoadingExistingData, setIsLoadingExistingData] = useState(false);
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
-    if (expenseData) {
-      setFormData({
+    if (expenseData && policies.length > 0) {
+      setIsLoadingExistingData(true);
+      const data = {
         startLocation: expenseData.start_location || "",
         startLocationId: "",
         endLocation: expenseData.end_location || "",
@@ -135,9 +138,34 @@ const MileagePage = ({
         isRoundTrip: expenseData.is_round_trip,
         policyId: expenseData.expense_policy_id || "",
         categoryId: expenseData.category_id || "",
-      });
+      };
+      
+      setFormData(data);
+      
+      // Set form values
+      form.setValue("startLocation", data.startLocation);
+      form.setValue("endLocation", data.endLocation);
+      form.setValue("distance", data.distance);
+      form.setValue("amount", data.amount);
+      form.setValue("description", data.description);
+      form.setValue("vehiclesType", data.vehiclesType);
+      form.setValue("expenseDate", data.expenseDate);
+      form.setValue("isRoundTrip", data.isRoundTrip);
+      form.setValue("policyId", data.policyId);
+      form.setValue("categoryId", data.categoryId);
+      
+      // Update categories based on selected policy
+      const policy = policies.find(p => p.id === data.policyId);
+      if (policy) {
+        setSelectedPolicy(policy);
+        if (policy.categories) {
+          setCategories(policy.categories);
+        }
+      }
+      
+      setTimeout(() => setIsLoadingExistingData(false), 100);
     }
-  }, [expenseData, policies]);
+  }, [expenseData, policies, form]);
 
   useEffect(() => {
     if (mode === "view" && isEditable && !isEditing) {
@@ -234,7 +262,8 @@ const MileagePage = ({
   };
 
   useEffect(() => {
-    if (startLocation && endLocation) {
+    // Only calculate if we're creating a new expense, not loading existing data
+    if (startLocation && endLocation && !isLoadingExistingData && mode === "create") {
       calculateMileageCost(
         startLocation?.place_id,
         endLocation?.place_id,
@@ -242,7 +271,7 @@ const MileagePage = ({
         formData.isRoundTrip
       );
     }
-  }, [startLocation, endLocation]);
+  }, [startLocation, endLocation, isLoadingExistingData, mode]);
 
   const handleSubmit = async (values: MileageFormValues) => {
     const orgId = getOrgIdFromToken();
@@ -324,15 +353,14 @@ const MileagePage = ({
       
       if (mileagePolicies.length > 0) {
         const firstPolicy = mileagePolicies[0];
+        setSelectedPolicy(firstPolicy);
         setFormData((prev) => ({ ...prev, policyId: firstPolicy.id }));
-        
         
         form.setValue("policyId", firstPolicy.id);
 
         if (firstPolicy.categories && firstPolicy.categories.length > 0) {
           const firstCategory = firstPolicy.categories[0];
           setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
-          
         }
       }
     } catch (error) {
@@ -525,7 +553,7 @@ const MileagePage = ({
                               field.onChange(e.target.value);
                             }}
                             className="bg-gray-50 text-gray-500"
-                            disabled={isCalculating || (mode === "view" && !editMode)}
+                            disabled={true}
                           />
                         </FormControl>
                         {isCalculating && (
@@ -534,7 +562,7 @@ const MileagePage = ({
                       </div>
                       {mode === "create" && (
                         <p className="text-xs text-gray-500">
-                          Manual adjustment is possible.
+                          Auto-calculated based on location.
                         </p>
                       )}
                       <FormMessage />
@@ -562,7 +590,7 @@ const MileagePage = ({
                               field.onChange(e.target.value);
                             }}
                             className="bg-gray-50 text-gray-500"
-                            disabled={isCalculating || (mode === "view" && !editMode)}
+                            disabled={true}
                           />
                         </FormControl>
                         {isCalculating && (
@@ -571,7 +599,7 @@ const MileagePage = ({
                       </div>
                       {mode === "create" && (
                         <p className="text-xs text-gray-500">
-                          Based on policy rate.
+                          Auto-calculated based on policy rate.
                         </p>
                       )}
                       <FormMessage />
@@ -581,41 +609,17 @@ const MileagePage = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="policyId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Policy *</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={(v) => {
-                          handleInputChange("policyId", v);
-                          field.onChange(v);
-                        }}
-                        disabled={loadingPolicies || (mode === "view" && !editMode)}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue
-                              placeholder={
-                                loadingPolicies ? "Loading..." : "Select Policy"
-                              }
-                            />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {policies.map((p) => (
-                            <SelectItem key={p.id} value={p.id}>
-                              {p.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Policy
+                  </Label>
+                  <Input
+                    type="text"
+                    value={selectedPolicy?.name || ""}
+                    className="bg-gray-50 text-gray-500"
+                    disabled
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
