@@ -127,8 +127,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         }
       };
 
-      setFormData((prev) => ({
-        ...prev,
+      const data = {
         startDate: formatDate(
           expenseData.start_date ||
           expenseData.per_diem_info?.start_date ||
@@ -143,21 +142,36 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
           expenseData.location || expenseData.per_diem_info?.location || "",
         purpose: expenseData.description || "",
         totalAmount: parseFloat(String(expenseData.amount)) || 0,
+        categoryId: expenseData.category_id || "",
+        policyId: expenseData.expense_policy_id || "",
+      };
+
+      setFormData((prev) => ({
+        ...prev,
+        ...data,
       }));
+      
+      // Set form values
+      form.setValue("startDate", data.startDate);
+      form.setValue("endDate", data.endDate);
+      form.setValue("location", data.location);
+      form.setValue("purpose", data.purpose);
+      form.setValue("categoryId", data.categoryId);
     }
-  }, [mode, expenseData]);
+  }, [mode, expenseData, form]);
 
   useEffect(() => {
     if (expenseData && categories.length > 0) {
-      const category = categories.find((cat) => cat.name === expenseData.category);
+      const category = categories.find((cat) => cat.id === expenseData.category_id);
       if (category) {
         setFormData((prev) => ({
           ...prev,
           categoryId: category.id
-        }))
+        }));
+        form.setValue("categoryId", category.id);
       }
     }
-  }, [formData.categoryId, expenseData?.category, categories]);
+  }, [expenseData?.category_id, categories, form]);
 
   const loadPerDiemPolicies = async () => {
     setLoadingPolicies(true);
@@ -171,7 +185,8 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         setCategories(perDiemPolicies[0].categories);
         setFormData((prev) => ({ ...prev, policyId: perDiemPolicies[0].id }));
         
-        if (perDiemPolicies[0].categories && perDiemPolicies[0].categories.length > 0) {
+        // Only set default category if we're creating new (no expenseData)
+        if (!expenseData && perDiemPolicies[0].categories && perDiemPolicies[0].categories.length > 0) {
           const firstCategory = perDiemPolicies[0].categories[0];
           setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
           form.setValue("categoryId", firstCategory.id);
