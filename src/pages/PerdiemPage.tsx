@@ -170,12 +170,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
       if (perDiemPolicies.length > 0) {
         setCategories(perDiemPolicies[0].categories);
         setFormData((prev) => ({ ...prev, policyId: perDiemPolicies[0].id }));
-        
-        if (perDiemPolicies[0].categories && perDiemPolicies[0].categories.length > 0) {
-          const firstCategory = perDiemPolicies[0].categories[0];
-          setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
-          form.setValue("categoryId", firstCategory.id);
-        }
       }
     } catch (error) {
       console.log(error);
