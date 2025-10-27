@@ -10,18 +10,30 @@ const handleApiResponse = async (response: AxiosResponse) => {
 
 export const approvalService = {
 
-  async getReportsByStatus(status: string): Promise<Report[]> {
+  async getAllReports(page: number, perPage: number) {
+  try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        throw new Error('Organization ID not found in token');
+      }
+      const response = await api.get(`/reports/approvers/reports?org_id=${orgId}&status=APPROVED,REJECTED,IN_PROGRESS&page=${page}&per_page=${perPage}`);
+      // const reports = response.data.data.data || [];
+      return response.data.data
+    } catch (error) {
+      console.error(`Error fetching reports with status ${status}:`, error);
+    }
+  },
+
+  async getReportsByStatus(page: number, perPage: number, status: string) {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
         throw new Error('Organization ID not found in token');
       }
-      const response = await api.get(`/reports/approvers/reports?org_id=${orgId}&status=${status}`);
-      const reports = response.data.data.data || [];
-      return Array.isArray(reports) ? reports : [];
+      const response = await api.get(`/reports/approvers/reports?org_id=${orgId}&status=${status}&page=${page}&per_page=${perPage}`);
+      return response.data.data;
     } catch (error) {
       console.error(`Error fetching reports with status ${status}:`, error);
-      return [];
     }
   },
 

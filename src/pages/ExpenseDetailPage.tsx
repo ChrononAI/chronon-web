@@ -113,6 +113,7 @@ export function ExpenseDetailPage() {
 
 
   const handleExpenseSubmit = async (formData: any) => {
+    console.log(formData);
     if (!expense || !id) return;
 
     setSaving(true);
