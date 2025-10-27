@@ -15,7 +15,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
-  Eye,
   FileText,
   Calendar,
   Building,
@@ -421,21 +420,20 @@ export function ReportDetailPage() {
                   <Table>
                     <TableHeader className="text-[#64748B]">
                       <TableRow className="bg-gray-100">
-                        <TableHead>EXPENSE ID</TableHead>
                         <TableHead>CATEGORY</TableHead>
                         <TableHead>AMOUNT</TableHead>
                         <TableHead>DATE</TableHead>
                         <TableHead>VENDOR</TableHead>
                         <TableHead>STATUS</TableHead>
-                        <TableHead>ACTION</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {report.expenses.map((expense) => (
-                        <TableRow key={expense.id} className="hover:bg-muted/30 transition-colors">
-                          <TableCell className="font-medium">
-                            {expense.sequence_number}
-                          </TableCell>
+                        <TableRow
+                          key={expense.id}
+                          className="hover:bg-muted/30 transition-colors cursor-pointer"
+                          onClick={() => handleViewExpense(expense)}
+                        >
                           <TableCell>
                             <div className="flex items-center gap-2 whitespace-nowrap">
                               <Building className="h-4 w-4 text-muted-foreground" />
@@ -446,19 +444,16 @@ export function ReportDetailPage() {
                             ₹{parseFloat(expense.amount.toString()).toFixed(2)}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 whitespace-nowrap">
                               <Calendar className="h-4 w-4 text-muted-foreground" />
                               {formatDate(expense.expense_date)}
                             </div>
                           </TableCell>
                           <TableCell className="whitespace-nowrap">{expense.expense_type === "MILEAGE_BASED" ? "Mileage Reimbursement" : expense.expense_type === "PER_DIEM" ? "Per Diem" : expense.vendor}</TableCell>
                           <TableCell>
-                            <Badge className={getStatusColor(expense.status)}>
+                            <Badge className={`${getStatusColor(expense.status)} whitespace-nowrap`}>
                               {expense.status.replace('_', ' ')}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                              <Eye className="h-4 w-4 cursor-pointer" onClick={() => handleViewExpense(expense)} />
                           </TableCell>
                         </TableRow>
                       ))}

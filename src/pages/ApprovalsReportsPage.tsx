@@ -49,7 +49,6 @@ export function ApprovalsReportsPage() {
     window.addEventListener("resize", calculateRows);
 
     return () => window.removeEventListener("resize", calculateRows);
-
   }, []);
 
   const fetchAllReports = async () => {
@@ -90,7 +89,7 @@ export function ApprovalsReportsPage() {
     fetchSubmittedReports();
     fetchUnsubmittedReports();
     setLoading(false);
-  }, [perPage]);
+  }, [currentPage, perPage]);
 
   const handleViewDetails = (reportId: string) => {
     // Navigate to report details with approval context
@@ -116,7 +115,6 @@ export function ApprovalsReportsPage() {
     return matchesSearch && matchesDate;
   });
 
-
   const tabs = [
     { key: "all", label: "All", count: allReportsPagination?.total || 0 },
     { key: "unsubmitted", label: "Pending", count: pendingReportsPagination?.total || 0 },
@@ -129,8 +127,6 @@ export function ApprovalsReportsPage() {
     { value: "approved", label: "Approved" },
     { value: "rejected", label: "Rejected" }
   ];
-
-
 
   if (loading) {
     return (
