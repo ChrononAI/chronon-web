@@ -47,7 +47,7 @@ export function MyExpensesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const expensesArr = activeTab === "all" ? allExpenses : activeTab === "draft" ? draftExpenses : reportedExpenses;
+  const expensesArr = (activeTab === "all" ? allExpenses : activeTab === "draft" ? draftExpenses : reportedExpenses) || [];
   const pagination = activeTab === "all" ? allExpensesPagination : activeTab === "draft" ? draftExpensesPagination : reportedExpensesPagination;
 
   const fetchAllExpenses = async (page: number) => {

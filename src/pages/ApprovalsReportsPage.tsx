@@ -101,7 +101,7 @@ export function ApprovalsReportsPage() {
   };
 
   // Filter reports based on search term and filters
-  const filteredReports = (activeTab === "submitted" ? processedRedports : activeTab === "all" ? allReports : pendingReports).filter((report) => {
+  const filteredReports = ((activeTab === "submitted" ? processedRedports : activeTab === "all" ? allReports : pendingReports) || []).filter((report) => {
     const matchesSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.created_by.email.toLowerCase().includes(searchTerm.toLowerCase());
 
