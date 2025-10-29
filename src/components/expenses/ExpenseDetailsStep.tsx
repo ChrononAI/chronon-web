@@ -62,6 +62,8 @@ import { fileParseService, ParsedInvoiceData } from "@/services/fileParseService
 import { useExpenseStore } from "@/store/expenseStore";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Copy, ExternalLink } from "lucide-react";
 
 // Form schema
 const expenseSchema = z.object({
@@ -119,6 +121,7 @@ interface ExpenseDetailsStepProps {
   expenseData?: ExpenseFormValues;
   receiptUrls?: string[];
   isEditMode?: boolean;
+  expense?: any; // Full expense object with original_expense_id
 }
 
 export function ExpenseDetailsStep({
@@ -135,6 +138,7 @@ export function ExpenseDetailsStep({
   expenseData,
   receiptUrls = [],
   isEditMode = false,
+  expense,
 }: ExpenseDetailsStepProps) {
   const navigate = useNavigate();
   const orgId = getOrgIdFromToken();
@@ -394,6 +398,24 @@ export function ExpenseDetailsStep({
             Fill in the expense details and submit your request
           </p>
         </div>
+      )}
+
+      {/* Duplicate Expense Indicator */}
+      {expense?.original_expense_id && (
+        <Alert className="bg-yellow-50 border-yellow-200">
+          <Copy className="h-4 w-4 text-yellow-600" />
+          <AlertTitle className="text-yellow-800">Duplicate Expense Detected</AlertTitle>
+          <AlertDescription className="text-yellow-700">
+            This expense has been flagged as a duplicate. 
+            <Button
+              variant="link"
+              className="p-0 h-auto text-yellow-700 underline ml-1"
+              onClick={() => navigate(`/expenses/${expense.original_expense_id}`)}
+            >
+              View original expense <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
+          </AlertDescription>
+        </Alert>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

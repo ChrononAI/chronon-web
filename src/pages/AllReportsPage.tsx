@@ -1,24 +1,31 @@
-import { useCallback, useEffect, useState } from 'react';
-import { FileText, Search, Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
+import { FileText, Loader2, CalendarIcon } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Label } from '@/components/ui/label';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { GenerateReportDialog } from '@/components/reports/GenerateReportDialog';
 import { reportService, ReportTemplate, GeneratedReport } from '@/services/reportService';
 import { AllReportsTable } from '@/components/reports/AllReportsTable';
+import { FilterControls } from '@/components/reports/FilterControls';
 
 export function AllReportsPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
-
-  // Template states
+  const [fromDate, setFromDate] = useState<Date | undefined>();
+  const [toDate, setToDate] = useState<Date | undefined>();
+  const [fromDateOpen, setFromDateOpen] = useState(false);
+  const [toDateOpen, setToDateOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [templates, setTemplates] = useState<ReportTemplate[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
-  const [totalTemplates, setTotalTemplates] = useState(0);
-
-  // Generated reports states
   const [generatedReports, setGeneratedReports] = useState<GeneratedReport[]>([]);
   const [generatedReportsLoading, setGeneratedReportsLoading] = useState(true);
 
@@ -30,7 +37,6 @@ export function AllReportsPage() {
       
       if (response.success && response.data) {
         setTemplates(response.data);
-        setTotalTemplates(response.total || 0);
       } else {
         toast.error(response.message || 'Failed to fetch templates');
       }
@@ -65,14 +71,16 @@ export function AllReportsPage() {
     fetchGeneratedReports();
   }, [fetchTemplates, fetchGeneratedReports]);
 
-  const handleReportGenerated = () => {
-    // Refresh generated reports list after new report is created
-    setTimeout(() => {
-      fetchGeneratedReports();
-    }, 300);
-    
-    toast.success('Report generated and downloaded successfully!');
-  };
+  useEffect(() => {
+    if (templates.length > 0 && !selectedTemplateId) {
+      setSelectedTemplateId(templates[0].id);
+    }
+    const today = new Date();
+    const lastMonth = new Date();
+    lastMonth.setMonth(today.getMonth() - 1);
+    if (!fromDate) setFromDate(lastMonth);
+    if (!toDate) setToDate(today);
+  }, [templates, selectedTemplateId, fromDate, toDate]);
 
   const handleDownloadGeneratedReport = async (id: number) => {
     try {
@@ -85,44 +93,128 @@ export function AllReportsPage() {
   };
 
 
-  const handleTemplateSelect = (templateId: number) => {
-    setSelectedTemplateId(templateId);
-    setIsGenerateDialogOpen(true);
+  const handleGenerateReport = async () => {
+    if (!selectedTemplateId) {
+      toast.error('Please select a report template');
+      return;
+    }
+
+    if (!fromDate || !toDate) {
+      toast.error('Please select both from and to dates');
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const fromDateOnly = new Date(fromDate);
+    fromDateOnly.setHours(0, 0, 0, 0);
+    const toDateOnly = new Date(toDate);
+    toDateOnly.setHours(0, 0, 0, 0);
+
+    if (fromDateOnly > today) {
+      toast.error('From date cannot be in the future');
+      return;
+    }
+
+    if (toDateOnly > today) {
+      toast.error('To date cannot be in the future');
+      return;
+    }
+
+    if (fromDateOnly > toDateOnly) {
+      toast.error('From date cannot be after to date');
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      
+      const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+      const reportName = selectedTemplate ? `${selectedTemplate.name} - ${format(fromDate, 'MMM dd')} to ${format(toDate, 'MMM dd')}` : 'Report';
+      
+      const formattedFromDate = format(fromDate, 'yyyy-MM-dd');
+      const formattedToDate = format(toDate, 'yyyy-MM-dd');
+      
+      const response = await reportService.generateReportWithTemplate({
+        report_template_id: selectedTemplateId,
+        start_date: formattedFromDate,
+        end_date: formattedToDate,
+        report_name: reportName
+      });
+
+      if (response.success && response.data) {
+        toast.success(response.message || 'Report generated successfully!');
+        
+        try {
+          toast.info('Downloading report...');
+          await reportService.downloadGeneratedReport(response.data.report_id);
+          toast.success(`Report "${response.data.filename}" downloaded successfully!`);
+        } catch (downloadError) {
+          console.error('Auto-download failed:', downloadError);
+          toast.error('Report generated but download failed. You can download it from the reports list below.');
+        }
+        
+        setTimeout(() => {
+          fetchGeneratedReports();
+        }, 300);
+      } else {
+        toast.error(response.message || 'Failed to generate report');
+      }
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast.error('Failed to generate report');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const truncateDescription = (description: string, maxLength: number = 80) => {
-    if (description.length <= maxLength) return description;
-    return description.substring(0, maxLength) + '...';
+  const handleFromDateSelect = (date: Date | undefined) => {
+    setFromDate(date);
+    setFromDateOpen(false);
   };
+
+  const handleToDateSelect = (date: Date | undefined) => {
+    setToDate(date);
+    setToDateOpen(false);
+  };
+
+  const filteredReports = useMemo(() => {
+    let filtered = generatedReports;
+
+    if (searchTerm) {
+      filtered = filtered.filter(report =>
+        report.report_name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(report => report.status === statusFilter);
+    }
+
+    if (selectedDate) {
+      const filterDate = selectedDate.toISOString().split('T')[0];
+      filtered = filtered.filter(report => {
+        if (!report.created_at) return false;
+        const reportDate = new Date(report.created_at).toISOString().split('T')[0];
+        return reportDate === filterDate;
+      });
+    }
+
+    return filtered;
+  }, [generatedReports, searchTerm, statusFilter, selectedDate]);
 
   return (
     <Layout>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Report</h1>
+      </div>
+
       <div className="space-y-6">
-        {/* Report Templates */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">Report Templates</h2>
-            <span className="text-sm text-muted-foreground">
-              {totalTemplates} template{totalTemplates !== 1 ? 's' : ''} available
-            </span>
-          </div>
-          
+        <Card className="shadow-none">
+          <CardContent className="p-6">
           {templatesLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, index) => (
-                <Card key={index} className="animate-pulse">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-muted rounded-lg"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-muted rounded w-3/4"></div>
-                        <div className="h-3 bg-muted rounded w-full"></div>
-                        <div className="h-3 bg-muted rounded w-2/3"></div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              <div className="animate-pulse space-y-4">
+                <div className="h-10 bg-muted rounded"></div>
             </div>
           ) : templates.length === 0 ? (
             <div className="text-center py-8">
@@ -131,85 +223,161 @@ export function AllReportsPage() {
               <p className="text-muted-foreground">Contact your administrator to add report templates.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto">
-              {templates.map((template) => (
-                <Card 
-                  key={template.id}
-                  className="my-2 bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200 cursor-pointer hover:shadow-lg transition-all duration-200 min-w-[280px]"
-                  onClick={() => handleTemplateSelect(template.id)}
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="min-w-[600px] w-full sm:w-auto">
+                <Label className="mb-2 block">Select Report</Label>
+                <Select
+                  value={selectedTemplateId?.toString() || ''}
+                  onValueChange={(value) => setSelectedTemplateId(Number(value))}
+                  disabled={isGenerating}
                 >
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-teal-100 rounded-lg flex-shrink-0">
-                        <FileText className="h-6 w-6 text-teal-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-teal-900 mb-2">{template.name}</h3>
-                        <p className="text-sm text-teal-700 leading-relaxed">
-                          {truncateDescription(template.description)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-        
-        {/* Generate Report Dialog */}
-        <GenerateReportDialog
-          open={isGenerateDialogOpen}
-          onOpenChange={(open) => {
-            setIsGenerateDialogOpen(open);
-            if (!open) {
-              setSelectedTemplateId(null);
-            }
-          }}
-          onReportGenerated={handleReportGenerated}
-          selectedTemplateId={selectedTemplateId}
-        />
-
-        {/* Generated Reports */}
-        {templates.length !== 0 && <Card>
-          <CardHeader className="border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-muted-foreground" />
-                <CardTitle>Generated Reports</CardTitle>
+                  <SelectTrigger className="bg-white h-10 w-full">
+                    <SelectValue placeholder="Select report" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id.toString()}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search reports..."
-                    className="pl-9 w-[250px]"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+
+              <div className="flex flex-col sm:flex-row gap-4 items-end sm:ml-auto">
+                <div className="min-w-[160px] w-full sm:w-auto">
+                  <Label className="mb-2 block">From</Label>
+                  <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-white h-10",
+                          !fromDate && "text-muted-foreground"
+                        )}
+                        disabled={isGenerating}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {fromDate ? format(fromDate, 'MMM dd, yyyy') : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={fromDate}
+                        onSelect={handleFromDateSelect}
+                        initialFocus
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(23, 59, 59, 999);
+                          const isAfterToday = date > today;
+                          const isAfterToDate = toDate ? date > toDate : false;
+                          return isAfterToday || isAfterToDate;
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="min-w-[160px] w-full sm:w-auto">
+                  <Label className="mb-2 block">TO</Label>
+                  <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-white h-10",
+                          !toDate && "text-muted-foreground"
+                        )}
+                        disabled={isGenerating}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {toDate ? format(toDate, 'MMM dd, yyyy') : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={toDate}
+                        onSelect={handleToDateSelect}
+                        initialFocus
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(23, 59, 59, 999);
+                          const isAfterToday = date > today;
+                          const isBeforeFromDate = fromDate ? date < fromDate : false;
+                          return isAfterToday || isBeforeFromDate;
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="min-w-[100px] w-full sm:w-auto">
+                  <div className="mb-2 h-[20px]"></div>
+                  <Button
+                    onClick={handleGenerateReport}
+                    disabled={isGenerating || !selectedTemplateId || !fromDate || !toDate}
+                    className="w-full sm:w-auto bg-white h-10 text-gray-900 border border-gray-300 hover:bg-gray-50"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      'Generate'
+                    )}
+                  </Button>
                 </div>
               </div>
             </div>
-          </CardHeader>
+          )}
+        </CardContent>
+      </Card>
+
+      {templates.length > 0 && (
+        <div className="space-y-4">
+          <FilterControls
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              searchPlaceholder="Search reports..."
+              statusFilter={statusFilter}
+              onStatusChange={setStatusFilter}
+              statusOptions={[
+                { value: 'all', label: 'All' },
+                { value: 'GENERATED', label: 'Generated' },
+                { value: 'PENDING', label: 'Pending' }
+              ]}
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+            className="mt-6 mb-4"
+          />
+
+          <Card>
           <CardContent className="p-0">
             {generatedReportsLoading && generatedReports.length === 0 ? (
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 <span className="ml-2">Loading generated reports...</span>
               </div>
-            ) : generatedReports.length === 0 ? (
+              ) : filteredReports.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center p-6">
                 <FileText className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium">No generated reports found</h3>
                 <p className="text-sm text-muted-foreground">
-                  Generate a new report using the templates above to get started.
+                    {searchTerm || statusFilter !== 'all' || selectedDate
+                      ? "Try adjusting your search terms"
+                      : "Generate a new report using the templates above to get started."}
                 </p>
               </div>
             ) : (
-              <AllReportsTable reports={generatedReports} handleDownloadGeneratedReport={handleDownloadGeneratedReport} />
+                <AllReportsTable reports={filteredReports} handleDownloadGeneratedReport={handleDownloadGeneratedReport} />
             )}
           </CardContent>
-        </Card>}
+          </Card>
+        </div>
+      )}
       </div>
     </Layout>
   );

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -8,6 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Expense } from '@/types/expense';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
 
@@ -45,11 +47,30 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
             {expenses.map((expense) => (
               <TableRow 
                 key={expense.id}
-                className="group cursor-pointer hover:bg-muted/50"
+                className={`group cursor-pointer hover:bg-muted/50 ${
+                  expense.original_expense_id ? 'bg-yellow-50' : ''
+                }`}
                 onClick={() => navigate(`/expenses/${expense.id}`)}
               >
                 <TableCell className="font-medium whitespace-nowrap">
-                  {expense.sequence_number}
+                  <div className="flex items-center gap-2">
+                    {expense.original_expense_id && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="relative cursor-help">
+                              <AlertTriangle className="h-4 w-4 text-yellow-400" fill="currentColor" stroke="none" />
+                              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-800 text-[8px] font-bold">!</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-yellow-100 border-yellow-300 text-yellow-800">
+                            <p>Duplicate expense</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    <span>{expense.sequence_number}</span>
+                  </div>
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{getExpenseType(expense.expense_type)}</TableCell>
                 <TableCell className="font-medium whitespace-nowrap">
