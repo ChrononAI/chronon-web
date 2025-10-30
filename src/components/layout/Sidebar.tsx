@@ -8,7 +8,8 @@ import {
   Banknote,
   ReceiptText,
   FileChartColumn,
-  User
+  User,
+  SquareCheckBig
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -39,19 +40,31 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/store/authStore';
 
 const navigation: NavigationItem[] = [
-  {
-    name: 'Dashboard',
-    href: '#',
-    icon: LayoutDashboard,
-  },
+  { name: 'Dashboard', href: '#', icon: LayoutDashboard },
   { name: 'Expenses', href: '/expenses', icon: Banknote },
   { name: 'Expense Reports', href: '/reports', icon: ReceiptText },
   {
-    name: 'Approvals',
-    href: '/approvals/reports',
-    icon: ListCheck,
+    name: 'Approvals', href: '/approvals/reports', icon: ListCheck, children: [
+      {
+        name: 'Expense',
+        href: '/approvals/reports',
+        icon: ListCheck
+      },
+      {
+        name: 'Pre Approval',
+        href: '/approvals/pre-approvals',
+        icon: ListCheck
+      },
+      {
+        name: 'Advance',
+        href: '/approvals/advances',
+        icon: ListCheck
+      }
+    ]
   },
-  { name: 'Reports', href: '/all-reports', isBold: false, icon: FileChartColumn }
+  { name: 'Reports', href: '/all-reports', isBold: false, icon: FileChartColumn },
+  { name: 'Pre Approval', href: '/pre-approvals', icon: SquareCheckBig },
+  { name: 'Advances', href: '/advances', icon: SquareCheckBig }
 ];
 
 export function Sidebar() {
@@ -135,14 +148,14 @@ export function Sidebar() {
               style={{ paddingLeft: `${paddingLeft}px` }}
               disabled={isDisabled}
             >
-              <div className="flex items-center">
+              <div className="flex items-center text-muted-foreground">
                 {item.icon && <item.icon className="mr-3 h-4 w-4" />}
                 {item.name}
               </div>
               {isOpen ? (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               ) : (
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               )}
             </Button>
           </CollapsibleTrigger>
@@ -219,7 +232,7 @@ export function Sidebar() {
       </nav>
       <div className="p-4 mt-auto">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild> 
+          <DropdownMenuTrigger asChild>
             <div className="flex items-center justify-between cursor-pointer">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">

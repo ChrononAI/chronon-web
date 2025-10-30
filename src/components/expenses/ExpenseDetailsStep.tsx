@@ -62,6 +62,8 @@ import { fileParseService, ParsedInvoiceData } from "@/services/fileParseService
 import { useExpenseStore } from "@/store/expenseStore";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
+import { preApprovalService, PreApprovalType } from "@/services/preApprovalService";
+import { AdvanceService, AdvanceType } from "@/services/advanceService";
 
 // Form schema
 const expenseSchema = z.object({
@@ -78,6 +80,8 @@ const expenseSchema = z.object({
   city: z.string().optional(),
   source: z.string().optional(),
   destination: z.string().optional(),
+  pre_approval_id: z.string().nullable().optional(),
+  advance_id: z.string().nullable().optional()
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -145,11 +149,15 @@ export function ExpenseDetailsStep({
   );
   const [duplicateReceiptLoading, setDuplicateReceiptLoading] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
-  const [selectedCategory, setSelectedCategory] =
-  useState<PolicyCategory | null>(null);
+  const showPreApproval = selectedPolicy?.is_pre_approval_required;
+  const [selectedPreApproval, setSelectedPreApproval] = useState<PreApprovalType | null>(null);
+  const [preApprovals, setPreApprovals] = useState<PreApprovalType[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [replaceRecLoading, setReplaceRecLoading] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [advances, setAdvances] = useState<AdvanceType[]>([]);
+  const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
 
   // Fetch signed URL for duplicate receipts
   const fetchDuplicateReceiptUrl = async (receiptId: string) => {
@@ -169,6 +177,22 @@ export function ExpenseDetailsStep({
       setDuplicateReceiptLoading(false);
     }
   };
+
+  const getApprovedPreApprovals = async () => {
+    try {
+      const response: any = await preApprovalService.getPreApprovalsByStatus({ status: "APPROVED", page: 1, perPage: 25 });
+      console.log(response);
+      setPreApprovals(response?.data.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedPolicy && selectedPolicy.is_pre_approval_required) {
+      getApprovedPreApprovals();
+    }
+  }, [selectedPolicy]);
 
   // Receipt viewer states
   const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
@@ -210,11 +234,23 @@ export function ExpenseDetailsStep({
         city: "",
         source: "",
         destination: "",
+        pre_approval_id: "",
+        advance_id: ""
       },
   });
+  
+  const getApprovedAdvances = async () => {
+    try {
+      const res: any = await AdvanceService.getAdvancesByStatus({ status: "APPROVED", page: 1, perPage: 25 });
+      setAdvances(res.data.data);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   useEffect(() => {
     loadPoliciesWithCategories();
+    getApprovedAdvances();
   }, []);
 
   // Update form values when expenseData changes
@@ -239,8 +275,22 @@ export function ExpenseDetailsStep({
           }
         }
       }
+      if (expenseData.advance_id && advances.length > 0) {
+        const adv = advances.find((a) => a.id === expenseData.advance_id);
+        if (adv) {
+          setSelectedAdvance(adv)
+          form.setValue('advance_id', expenseData.advance_id);
+        };
+      }
+      if (expenseData.pre_approval_id && preApprovals.length > 0) {
+        const preApp = preApprovals.find((a) => a.id === expenseData.pre_approval_id);
+        if (preApp) {
+          setSelectedPreApproval(preApp)
+          form.setValue('pre_approval_id', expenseData.pre_approval_id);
+        };
+      }
     }
-  }, [form, policies]);
+  }, [form, policies, preApprovals, advances]);
 
   // Auto-fill fields from parsed data
   useEffect(() => {
@@ -480,14 +530,14 @@ export function ExpenseDetailsStep({
                                   disabled={!selectedPolicy || readOnly}
                                 >
                                   <>
-                                  <span className="truncate max-w-[85%] overflow-hidden text-ellipsis inline-block text-left">
-                                  {selectedCategory
-                                    ? selectedCategory.name
-                                    : !selectedPolicy
-                                      ? "Select policy first"
-                                      : "Select a category"}
-                                  </span>
-                                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    <span className="truncate max-w-[85%] overflow-hidden text-ellipsis inline-block text-left">
+                                      {selectedCategory
+                                        ? selectedCategory.name
+                                        : !selectedPolicy
+                                          ? "Select policy first"
+                                          : "Select a category"}
+                                    </span>
+                                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                   </>
                                 </Button>
                               </FormControl>
@@ -764,7 +814,94 @@ export function ExpenseDetailsStep({
                     />
                   </div>
 
-                  {/* Calculation Info for Conveyance */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                        control={form.control}
+                        name="advance_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Advance</FormLabel>
+                            <Select
+                              value={field.value || ""}
+                              onValueChange={(value) => {
+                                const adv = advances.find(
+                                  (a) => a.id === value
+                                );
+                                if (adv) setSelectedAdvance(adv);
+                                form.setValue('advance_id', value)
+                              }}
+                              disabled={readOnly}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select advance">
+                                    {field.value && selectedAdvance
+                                      ? selectedAdvance.title
+                                      : "Select advance"}
+                                  </SelectValue>
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {advances.length > 0 ? advances.map((adv) => (
+                                  <SelectItem key={adv.id} value={adv.id}>
+                                    <div>
+                                      <div className="font-medium">
+                                        {adv.title}
+                                      </div>
+                                    </div>
+                                  </SelectItem>
+                                )) : <SelectItem value="no advances" disabled>No advances</SelectItem>}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    {showPreApproval &&
+                      <FormField
+                        control={form.control}
+                        name="pre_approval_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Pre Approval</FormLabel>
+                            <Select
+                              value={field.value || ""}
+                              onValueChange={(value) => {
+                                const preApp = preApprovals.find(
+                                  (p) => p.id === value
+                                );
+                                if (preApp) setSelectedPreApproval(preApp);
+                                form.setValue('pre_approval_id', value)
+                              }}
+                              disabled={readOnly}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select pre appproval">
+                                    {field.value && selectedPreApproval
+                                      ? selectedPreApproval.title
+                                      : "Select pre approval"}
+                                  </SelectValue>
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {preApprovals.length > 0 ? preApprovals.map((preApproval) => (
+                                  <SelectItem key={preApproval.id} value={preApproval.id}>
+                                    <div>
+                                      <div className="font-medium">
+                                        {preApproval.title}
+                                      </div>
+                                    </div>
+                                  </SelectItem>
+                                )) : <SelectItem value="no pre approvals" disabled>No pre approvals</SelectItem>}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    }
+                  </div>
 
                   {/* Comments - Full Width */}
                   <FormField

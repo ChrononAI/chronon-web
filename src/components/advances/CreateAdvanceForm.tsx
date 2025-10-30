@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ArrowLeft, Loader2, Info } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -15,17 +15,18 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { expenseService, CreateAdvanceData } from '@/services/expenseService';
+import { expenseService } from '@/services/expenseService';
+import { Policy } from '@/types/expense';
+import { AdvanceService } from '@/services/advanceService';
 
 interface Currency {
   code: string;
@@ -41,7 +42,7 @@ const currencies: Currency[] = [
 
 // Form schema
 const advanceSchema = z.object({
-  description: z.string().min(1, 'Description is required').max(500, 'Description must be less than 500 characters'),
+  description: z.string().min(1, 'Description is required'),
   amount: z.string().min(1, 'Amount is required').refine(
     (val) => {
       const num = parseFloat(val);
@@ -50,13 +51,17 @@ const advanceSchema = z.object({
     { message: 'Please enter a valid amount greater than 0' }
   ),
   currency: z.string().min(1, 'Please select a currency'),
+  title: z.string().min(1, "Title is required"),
+  policy_id: z.string().min(1, "Policy is required"),
 });
 
 type AdvanceFormValues = z.infer<typeof advanceSchema>;
 
-export function CreateAdvanceForm() {
+export function CreateAdvanceForm({ mode = "create" }: { mode?: "create" | "view" | "edit" }) {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const loading = false;
+
+  const { id } = useParams<{ id: string }>();
 
   const form = useForm<AdvanceFormValues>({
     resolver: zodResolver(advanceSchema),
@@ -67,15 +72,32 @@ export function CreateAdvanceForm() {
     },
   });
 
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
+
+  const loadPoliciesWithCategories = async () => {
+    try {
+      const policiesData = await expenseService.getAllPoliciesWithCategories();
+      const expensePolicies = policiesData.filter((pol) => {
+        if (pol.name !== 'Mileage' && pol.name !== 'Per Diem') {
+          return pol;
+        }
+      })
+      setPolicies(expensePolicies);
+    } catch (error) {
+      console.error("Error loading policies:", error);
+    }
+  };
+
   const selectedCurrency = currencies.find(
     (currency) => currency.code === form.watch('currency')
   ) || currencies[0];
 
   const handleCancel = () => {
-    const hasChanges = Object.values(form.getValues()).some(value => 
+    const hasChanges = Object.values(form.getValues()).some(value =>
       typeof value === 'string' ? value.trim() : value
     );
-    
+
     if (hasChanges) {
       const confirmDiscard = window.confirm(
         'Are you sure you want to discard your changes?'
@@ -88,48 +110,42 @@ export function CreateAdvanceForm() {
     }
   };
 
-  const createAdvance = async (data: CreateAdvanceData): Promise<{ success: boolean; message: string }> => {
-    return await expenseService.createAdvance(data);
-  };
-
   const onSubmit = async (values: AdvanceFormValues) => {
-    setLoading(true);
-    
+       try {
+         const response: any = await AdvanceService.createAdvance(values);
+         await AdvanceService.submitAdvance(response.data.data.id);
+         toast.success('Advance created successfully');
+         setTimeout(() => {
+           navigate('/advances')
+         }, 200)
+       } catch (error) {
+         console.log(error);
+       }
+  };
+
+  const getAdvancebyId = async (id: string) => {
     try {
-      const advanceData: CreateAdvanceData = {
-        description: values.description.trim(),
-        amount: parseFloat(values.amount),
-        currency: values.currency,
-      };
-
-      const response = await createAdvance(advanceData);
-      
-      if (response.success) {
-        toast.success('Advance request created successfully');
-        navigate('/advances');
-      } else {
-        toast.error(response.message || 'Failed to create advance request');
-      }
+      const res: any = await AdvanceService.getAdvanceById(id);
+      form.reset(res.data.data[0]);
+      const selectedPol = policies.find((pol) => pol.id === res?.data?.data[0]?.policy_id);
+      if (selectedPol) setSelectedPolicy(selectedPol);
     } catch (error) {
-      console.error('Error creating advance:', error);
-      toast.error('Failed to create advance request');
-    } finally {
-      setLoading(false);
+      console.log(error);
     }
-  };
+  }
 
-  const formatAmount = (amount: string) => {
-    const num = parseFloat(amount);
-    if (isNaN(num)) return '';
-    
-    return num.toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  };
+  useEffect(() => {
+    if (id && policies.length > 0) {
+      getAdvancebyId(id);
+    };
+  }, [id, policies]);
+
+  useEffect(() => {
+    loadPoliciesWithCategories()
+  }, []);
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-2xl">
+    <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
       {/* Header */}
       <div className="flex items-center mb-6">
         <Button
@@ -140,152 +156,189 @@ export function CreateAdvanceForm() {
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">Create Advance Request</h1>
+        <h1 className="text-2xl font-bold">Create Advance</h1>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Create Advance Request</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Submit a request for advance payment. All fields marked with * are required.
-          </p>
-        </CardHeader>
-        
-        <CardContent>
+        <CardContent className='p-6'>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Title"
+                        {...field}
+                        disabled={mode === "view"}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Description Field */}
               <FormField
                 control={form.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description *</FormLabel>
+                    <FormLabel>Purpose *</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Enter the purpose and details of your advance request"
-                        className="min-h-[100px] resize-none"
-                        maxLength={500}
+                      <Input
+                        placeholder="Purpose"
                         {...field}
-                        disabled={loading}
+                        disabled={mode === "view"}
                       />
                     </FormControl>
-                    <div className="flex justify-between items-center">
-                      <FormMessage />
-                      <span className="text-xs text-muted-foreground">
-                        {field.value.length}/500 characters
-                      </span>
-                    </div>
-                  </FormItem>
-                )}
-              />
-
-              {/* Currency Field */}
-              <FormField
-                control={form.control}
-                name="currency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Currency *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={loading}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <div className="flex items-center">
-                            <span className="text-lg font-bold text-primary mr-2 min-w-[24px]">
-                              {selectedCurrency.symbol}
-                            </span>
-                            <span className="flex-1 text-left">
-                              {selectedCurrency.code} - {selectedCurrency.name}
-                            </span>
-                          </div>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {currencies.map((currency) => (
-                          <SelectItem key={currency.code} value={currency.code}>
-                            <div className="flex items-center">
-                              <span className="text-lg font-bold text-primary mr-2 min-w-[24px]">
-                                {currency.symbol}
-                              </span>
-                              <span>
-                                {currency.code} - {currency.name}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              {/* Amount Field */}
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amount *</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-primary">
-                          {selectedCurrency.symbol}
-                        </span>
-                        <Input
-                          placeholder="0.00"
-                          className="pl-12 text-lg font-semibold"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          {...field}
-                          disabled={loading}
-                        />
-                      </div>
-                    </FormControl>
-                    <div className="flex justify-between items-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Currency Field */}
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Currency *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={mode === "view"}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <div className="flex items-center">
+                              <span className="text-lg mr-2 min-w-[24px]">
+                                {selectedCurrency.symbol}
+                              </span>
+                              <span className="flex-1 text-left">
+                                {selectedCurrency.code} - {selectedCurrency.name}
+                              </span>
+                            </div>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {currencies.map((currency) => (
+                            <SelectItem key={currency.code} value={currency.code}>
+                              <div className="flex items-center">
+                                <span className="text-lg mr-2 min-w-[24px]">
+                                  {currency.symbol}
+                                </span>
+                                <span>
+                                  {currency.code} - {currency.name}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
-                      {field.value && !isNaN(parseFloat(field.value)) && (
-                        <span className="text-sm text-primary font-medium">
-                          Amount: {selectedCurrency.symbol}{formatAmount(field.value)}
-                        </span>
-                      )}
-                    </div>
-                  </FormItem>
-                )}
-              />
+                    </FormItem>
+                  )}
+                />
 
-              {/* Information Section */}
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  <div className="space-y-1">
-                    <p className="font-semibold">Important Information</p>
-                    <ul className="text-sm space-y-1 ml-4">
-                      <li>• Advance requests are subject to approval workflow</li>
-                      <li>• Processing time may vary based on amount and policy</li>
-                      <li>• You will be notified once your request is processed</li>
-                      <li>• Approved advances will be credited to your account</li>
-                    </ul>
-                  </div>
-                </AlertDescription>
-              </Alert>
+                {/* Amount Field */}
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount *</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg">
+                            {selectedCurrency.symbol}
+                          </span>
+                          <Input
+                            placeholder="0.00"
+                            className="pl-12"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            {...field}
+                            disabled={mode === "view"}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div>
+                <FormField
+                  control={form.control}
+                  name="policy_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Policy *
+                      </FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            const policy = policies.find(
+                              (p) => p.id === value
+                            );
+                            setSelectedPolicy(policy || null);
+                          }}
+                          disabled={mode === "view"}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a policy">
+                                {field.value && selectedPolicy
+                                  ? selectedPolicy.name
+                                  : "Select a policy"}
+                              </SelectValue>
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {policies.map((policy) => (
+                              <SelectItem key={policy.id} value={policy.id}>
+                                <div>
+                                  <div className="font-medium">
+                                    {policy.name}
+                                  </div>
+                                  {policy.description && (
+                                    <div className="text-sm text-muted-foreground">
+                                      {policy.description}
+                                    </div>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-4 pt-4">
-                <Button
+              <div className="flex justify-end gap-2 pt-4">
+                {mode === "edit" && <Button
                   type="button"
                   variant="outline"
                   onClick={handleCancel}
                   disabled={loading}
-                  className="flex-1"
+                  className="px-6 py-2"
                 >
                   Cancel
-                </Button>
+                </Button>}
                 <Button
                   type="submit"
-                  disabled={loading || !form.formState.isValid}
-                  className="flex-1"
+                  disabled={!form.formState.isValid}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
                 >
                   {loading ? (
                     <>
@@ -293,7 +346,7 @@ export function CreateAdvanceForm() {
                       Creating...
                     </>
                   ) : (
-                    'Submit Request'
+                    'Create'
                   )}
                 </Button>
               </div>

@@ -19,6 +19,8 @@ export interface CreateExpenseData {
   vendor: string;
   receipt_id?: string;
   invoice_number?: string | null;
+  advance_id?: string;
+  pre_approval_id?: string;
 }
 
 export interface UpdateExpenseData {

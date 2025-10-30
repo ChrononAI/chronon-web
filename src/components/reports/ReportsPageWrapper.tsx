@@ -39,7 +39,8 @@ interface ReportsPageWrapperProps {
   selectedDate?: Date;
   onDateChange?: (date: Date | undefined) => void;
   showDateFilter?: boolean;
-  
+  showFilters?: boolean;
+
   // Content
   children: ReactNode;
 }
@@ -66,6 +67,7 @@ export function ReportsPageWrapper({
   ],
   selectedDate,
   onDateChange,
+  showFilters = true,
   showDateFilter = true,
   children
 }: ReportsPageWrapperProps) {
@@ -95,7 +97,7 @@ export function ReportsPageWrapper({
       />
 
       {/* Filter Controls Section */}
-      <FilterControls
+      {showFilters && <FilterControls
         searchTerm={searchTerm}
         onSearchChange={onSearchChange}
         searchPlaceholder={searchPlaceholder}
@@ -105,7 +107,7 @@ export function ReportsPageWrapper({
         selectedDate={selectedDate}
         onDateChange={showDateFilter ? onDateChange : undefined}
         className="mt-6 mb-4"
-      />
+      />}
 
       {/* Content */}
       {children}

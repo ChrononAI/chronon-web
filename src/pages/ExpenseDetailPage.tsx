@@ -44,6 +44,8 @@ const transformExpenseToFormData = (expense: Expense) => {
     city: '',
     source: '',
     destination: '',
+    advance_id: expense.advance_id || null,
+    pre_approval_id: expense.pre_approval_id || null
   };
 };
 
@@ -59,15 +61,12 @@ export function ExpenseDetailPage() {
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [receiptUrlStr, setReceiptUrlStr] = useState<string | null>();
 
   const searchParams = new URLSearchParams(location.search);
   const isFromReport = searchParams.get('from') === 'report';
   const isFromApprovals = searchParams.get('from') === 'approvals';
   const reportId = searchParams.get('reportId');
   const returnTo = searchParams.get('returnTo');
-
-  console.log(receiptUrlStr);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,11 +99,9 @@ export function ExpenseDetailPage() {
   }, [id]);
 
   const fetchReceipt = async (receiptId: string, orgId: string) => {
-    console.log(receiptId, orgId)
     try {
       const response: any = await expenseService.fetchReceiptPreview(receiptId, orgId);
       setReceiptSignedUrl(response.data.data.signed_url);
-      setReceiptUrlStr(response.data.data.signed_url);
     } catch (error) {
       console.log(error);
       toast.error('Failed to fetch receipt image');
@@ -139,7 +136,6 @@ export function ExpenseDetailPage() {
         is_round_trip: formData.is_round_trip === "true" ? true : false,
         custom_attributes: {},
       };
-      console.log(expenseData);
 
       const response = await expenseService.updateExpense(id, expenseData);
       if (response.success) {

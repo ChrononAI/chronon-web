@@ -23,6 +23,8 @@ type ExpenseFormValues = {
   city?: string;
   source?: string;
   destination?: string;
+  pre_approval_id?: string | null;
+  advance_id?: string | null;
 };
 
 export function CreateExpenseForm() {
@@ -130,7 +132,9 @@ export function CreateExpenseForm() {
         expense_policy_id: data.policyId,
         vendor: data.merchant,
         receipt_id: parsedData?.id || undefined,
-        invoice_number: data.invoiceNumber || parsedData?.ocr_result?.invoice_number || null
+        invoice_number: data.invoiceNumber || parsedData?.ocr_result?.invoice_number || null,
+        advance_id: data.advance_id || undefined,
+        pre_approval_id: data.pre_approval_id || undefined
       };
       const result = await expenseService.createExpense(expenseData);
       if (result.success) {
@@ -165,7 +169,7 @@ export function CreateExpenseForm() {
           stepTitles={stepTitles}
           isManualEntry={currentStep === 2 && !uploadedFile}
         />
-                             </div>
+      </div>
 
       {/* Step Content */}
       {currentStep === 1 ? (

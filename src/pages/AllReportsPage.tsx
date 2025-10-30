@@ -101,7 +101,7 @@ export function AllReportsPage() {
         {/* Report Templates */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">Report Templates</h2>
+            <h2 className="text-2xl font-bold">Report Templates</h2>
             <span className="text-sm text-muted-foreground">
               {totalTemplates} template{totalTemplates !== 1 ? 's' : ''} available
             </span>

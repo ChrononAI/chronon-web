@@ -1,7 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
-import { toast } from 'sonner';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { LoginPage } from '@/pages/LoginPage';
 import { ExpenseDetailPage } from '@/pages/ExpenseDetailPage';
@@ -22,18 +20,14 @@ import { NotFoundPage } from '@/pages/NotFoundPage';
 import { PermissionDeniedPage } from '@/pages/PermissionDeniedPage';
 import { MyExpensesPage } from '@/pages/MyExpensesPage';
 import { UnifiedExpensesPage } from "@/pages/UnifiedExpensesPage"
-
-// Simple redirect component with toast notification
-function AdvancesRedirect() {
-  const navigate = useNavigate();
-  
-  React.useEffect(() => {
-    toast.info('Advances management is now part of My Expenses');
-    navigate('/expenses', { replace: true });
-  }, [navigate]);
-  
-  return null;
-}
+import PreApprovalPage from './pages/PreApprovalPage';
+import CreatePreApprovalPage from './pages/CreatePreApprovalPage';
+import PreApprovalDetailsPage from './pages/PreApprovalDetailsPage';
+import ApprovalsPreApprovalsPage from './pages/ApprovalsPreApprovalsPage';
+import ProcessPreApprovalPage from './pages/ProcessPreApprovalPage';
+import AdvanceDetailsPage from './pages/AdvanceDetailsPage';
+import ApprovalsAdvancesPage from './pages/ApprovalsAdvancesPage';
+import ProcessAdvancePage from './pages/ProcessAdvancePage';
 
 function App() {
   return (
@@ -90,6 +84,14 @@ function App() {
             }
           />
           <Route
+            path="/pre-approvals"
+            element={
+              <ProtectedRoute>
+                <PreApprovalPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/advances"
             element={
               <ProtectedRoute>
@@ -106,6 +108,14 @@ function App() {
             }
           />
           <Route
+            path="/advances/:id"
+            element={
+              <ProtectedRoute>
+                <AdvanceDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/approvals/reports"
             element={
               <ProtectedRoute>
@@ -117,7 +127,31 @@ function App() {
             path="/approvals/advances"
             element={
               <ProtectedRoute>
-                <AdvancesRedirect />
+                <ApprovalsAdvancesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/approvals/advances/:id"
+            element={
+              <ProtectedRoute>
+                <ProcessAdvancePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/approvals/pre-approvals"
+            element={
+              <ProtectedRoute>
+                <ApprovalsPreApprovalsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/approvals/pre-approvals/:id"
+            element={
+              <ProtectedRoute>
+                <ProcessPreApprovalPage />
               </ProtectedRoute>
             }
           />
@@ -174,6 +208,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pre-approvals/create"
+            element={
+              <ProtectedRoute>
+                <CreatePreApprovalPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pre-approvals/:id"
+            element={
+              <ProtectedRoute>
+                <PreApprovalDetailsPage />
               </ProtectedRoute>
             }
           />
