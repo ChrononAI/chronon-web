@@ -95,9 +95,13 @@ export function ExpenseDetailPage() {
         // setPolicies(policiesData);
         setParsedData(null);
 
-        if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase()) && !isFromApprovals && !isFromReport) {
-          setIsEditing(true);
-        }
+        setIsEditing(false);
+
+if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase()) 
+  && !isFromApprovals 
+  && !isFromReport ) { 
+  setIsEditing(true);
+}
 
         if (expenseData.receipt_id) {
           fetchReceipt(expenseData.receipt_id, expenseData.created_by.org_id);

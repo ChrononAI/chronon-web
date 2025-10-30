@@ -1,4 +1,3 @@
-import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import QueryBuilder from './components/QueryBuilder';
 import AdvancedQueryBuilder from './components/AdvancedQueryBuilder';

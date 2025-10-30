@@ -570,7 +570,7 @@ export function ExpenseDetailsStep({
                                       ? "bg-white border-green-300 text-gray-900"
                                       : ""
                                   }
-                                  readOnly={readOnly}
+                                  disabled={readOnly}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -600,7 +600,7 @@ export function ExpenseDetailsStep({
                                       ? "bg-white border-green-300 text-gray-900"
                                       : ""
                                   }
-                                  readOnly={readOnly}
+                                  disabled={readOnly}
                                 />
                               </FormControl>
                               <FormMessage />
