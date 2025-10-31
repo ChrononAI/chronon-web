@@ -1,3 +1,4 @@
+import { CreateAdvanceForm } from "@/components/advances/CreateAdvanceForm";
 import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
 import { Layout } from "@/components/layout/Layout";
 import { Badge } from "@/components/ui/badge";
@@ -106,7 +107,7 @@ function ProcessAdvancePage() {
                                 className="bg-green-600 hover:bg-green-700"
                             >
                                 <CheckCircle className="h-4 w-4 mr-2" />
-                                Approve Expense
+                                Approve
                             </Button>
                             <Button
                                 onClick={() => handleAction('reject')}
@@ -114,7 +115,7 @@ function ProcessAdvancePage() {
                                 className="bg-red-600 hover:bg-red-700"
                             >
                                 <XCircle className="h-4 w-4 mr-2" />
-                                Reject Expense
+                                Reject
                             </Button>
                         </div>
                     </div>
@@ -195,6 +196,7 @@ function ProcessAdvancePage() {
                         </div>
                     )}
                 </div>
+                <CreateAdvanceForm mode="view" showHeader={false} />
             </div>
         </Layout>
     )

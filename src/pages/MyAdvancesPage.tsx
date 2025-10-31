@@ -1,19 +1,56 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layout } from '@/components/layout/Layout';
 import { ReportsPageWrapper } from '@/components/reports/ReportsPageWrapper';
-import { DataGrid, GridColDef, GridPaginationModel, GridRowModel } from '@mui/x-data-grid';
-import { Box } from '@mui/material';
+import { DataGrid, GridColDef, GridOverlay, GridPaginationModel, GridRowModel } from '@mui/x-data-grid';
+import { Box, CircularProgress } from '@mui/material';
 import { formatDate, getStatusColor } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { AdvanceService } from '@/services/advanceService';
 import { useAdvanceStore } from '@/store/advanceStore';
 import { PaginationInfo } from '@/store/expenseStore';
+import { CheckCircle } from 'lucide-react';
+
+function CustomLoader() {
+  return (
+    <GridOverlay>
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'rgba(255,255,255,0.6)',
+        }}
+      >
+        <CircularProgress size={28} thickness={4} />
+      </Box>
+    </GridOverlay>
+  );
+}
+
+function CustomNoRows() {
+  return (
+    <GridOverlay>
+      <Box className='w-full'><div className="text-center">
+          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">
+            No advances found
+          </h3>
+          <p className="text-muted-foreground">
+          There are currently no expenses.
+          </p>
+        </div></Box>
+    </GridOverlay>
+  );
+}
+
 
 export function MyAdvancesPage() {
   const navigate = useNavigate();
   const { setSelectedAdvance } = useAdvanceStore();
-  const loading = false;
 
   const [activeTab, setActiveTab] = useState<"all" | "pending" | "approved">("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -135,19 +172,26 @@ export function MyAdvancesPage() {
     }
   }
 
-  useEffect(() => {
-    getAllAdvances({ page: paginationModel.page + 1, perPage: paginationModel.pageSize });
-    getPendingAdvances({ page: paginationModel.page + 1, perPage: paginationModel.pageSize });
-    getProcessedAdvances({ page: paginationModel.page + 1, perPage: paginationModel.pageSize });
-  }, []);
+  const [loading, setLoading] = useState(true);
 
-  if (loading) {
-    return (
-      <Layout>
-        <div>Loading...</div>
-      </Layout>
-    );
-  }
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        await Promise.all([
+          getAllAdvances({ page: paginationModel.page + 1, perPage: paginationModel.pageSize }),
+          getPendingAdvances({ page: paginationModel.page + 1, perPage: paginationModel.pageSize }),
+          getProcessedAdvances({ page: paginationModel.page + 1, perPage: paginationModel.pageSize }),
+        ]);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <ReportsPageWrapper
@@ -169,29 +213,41 @@ export function MyAdvancesPage() {
       createButtonText="Create Advance"
       createButtonLink="/advances/create"
     >
-      <Box sx={{ height: "calc(100vh - 160px)", width: "100%", marginTop: '-32px' }}>
+      <Box sx={{ height: "calc(100vh - 160px)", width: "100%", marginTop: '-32px', color: '#2E2E2E' }}>
         <DataGrid
-          className="rounded border h-full"
+          className="rounded border border-[#F1F3F4] h-full"
           columns={columns}
           rows={rows}
+          loading={loading}
+          slots={{
+            loadingOverlay: CustomLoader,
+            noRowsOverlay: CustomNoRows   
+          }}
           sx={{
             border: 0,
-            "& .MuiDataGrid-columnSeparator": {
-              // display: "none",
-            },
             "& .MuiDataGrid-columnHeaderTitle": {
-              fontWeight: 400,
+              color: '#9AA0A6',
+              fontWeight: 505,
               fontSize: "14px"
             },
-            "& .MuiDataGrid-toolbarContainer": {
-              // border: "none"
+            "& .MuiDataGrid-main": {
+              border: '1px solid #F1F3F4'
+            },
+            "& .MuiDataGrid-columnHeader": {
+              backgroundColor: '#f3f4f6'
+            },
+            "& .MuiCheckbox-root": {
+              color: '#9AA0A6'
             },
             "& .MuiDataGrid-row:hover": {
               cursor: "pointer",
               backgroundColor: "#f5f5f5",
             },
+            "& .MuiDataGrid-cell": {
+              color: '#2E2E2E'
+            },
             "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none", // removes blue focus ring
+              outline: "none",
             },
             "& .MuiDataGrid-cell:focus-within": {
               outline: "none",

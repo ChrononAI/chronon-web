@@ -6,8 +6,6 @@ import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import api from "@/lib/api";
 import {
   ArrowLeft,
-  MapPin,
-  Navigation,
   Calendar,
   Loader2,
   FileText,
@@ -54,7 +52,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
@@ -81,33 +79,12 @@ const expenseSchema = z.object({
   source: z.string().optional(),
   destination: z.string().optional(),
   pre_approval_id: z.string().nullable().optional(),
-  advance_id: z.string().nullable().optional()
+  advance_id: z.string().nullable().optional(),
+  foreign_currency: z.string().optional().default("INR").nullable(),
+  foreign_amount: z.string().optional().nullable()
 });
 
-type ExpenseFormValues = z.infer<typeof expenseSchema>;
-
-const cities = [
-  "Mumbai",
-  "Delhi",
-  "Bengaluru",
-  "Hyderabad",
-  "Ahmedabad",
-  "Chennai",
-  "Kolkata",
-  "Pune",
-  "Jaipur",
-  "Lucknow",
-  "Kanpur",
-  "Nagpur",
-  "Indore",
-  "Thane",
-  "Bhopal",
-  "Visakhapatnam",
-  "Pimpri-Chinchwad",
-  "Patna",
-  "Vadodara",
-  "Ghaziabad",
-];
+type ExpenseFormValues = z.infer<typeof expenseSchema>
 
 interface ExpenseDetailsStepProps {
   onBack: () => void;
@@ -123,6 +100,7 @@ interface ExpenseDetailsStepProps {
   expenseData?: ExpenseFormValues;
   receiptUrls?: string[];
   isEditMode?: boolean;
+  foreign_currency?: string | null;
 }
 
 export function ExpenseDetailsStep({
@@ -142,7 +120,7 @@ export function ExpenseDetailsStep({
 }: ExpenseDetailsStepProps) {
   const navigate = useNavigate();
   const orgId = getOrgIdFromToken();
-  const { parsedData, setParsedData } = useExpenseStore();
+  const { parsedData, setParsedData, selectedPreApproval, setSelectedPreApproval } = useExpenseStore();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(
     null
@@ -150,7 +128,7 @@ export function ExpenseDetailsStep({
   const [duplicateReceiptLoading, setDuplicateReceiptLoading] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const showPreApproval = selectedPolicy?.is_pre_approval_required;
-  const [selectedPreApproval, setSelectedPreApproval] = useState<PreApprovalType | null>(null);
+  // const [selectedPreApproval, setSelectedPreApproval] = useState<PreApprovalType | null>(null);
   const [preApprovals, setPreApprovals] = useState<PreApprovalType[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
@@ -158,6 +136,33 @@ export function ExpenseDetailsStep({
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [advances, setAdvances] = useState<AdvanceType[]>([]);
   const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState('INR');
+  // const [conversionRates, setConversionRates] = useState<CurrencyConversionRate[]>([]);
+  const conversionRates = selectedPreApproval?.currency_conversion_rates || [];
+
+  const selectedConversion = conversionRates?.find((con) => con.currency === selectedCurrency);
+
+  const form = useForm<ExpenseFormValues>({
+    resolver: zodResolver(expenseSchema),
+    defaultValues: expenseData
+      ? expenseData
+      : {
+        policyId: "",
+        categoryId: "",
+        invoiceNumber: "",
+        merchant: "",
+        amount: "",
+        dateOfExpense: new Date(),
+        comments: "",
+        city: "",
+        source: "",
+        destination: "",
+        pre_approval_id: "",
+        advance_id: ""
+      },
+  });
+
+  const baseAmount = selectedConversion && (+form.getValues('amount') * +selectedConversion?.rate);
 
   // Fetch signed URL for duplicate receipts
   const fetchDuplicateReceiptUrl = async (receiptId: string) => {
@@ -181,7 +186,6 @@ export function ExpenseDetailsStep({
   const getApprovedPreApprovals = async () => {
     try {
       const response: any = await preApprovalService.getPreApprovalsByStatus({ status: "APPROVED", page: 1, perPage: 25 });
-      console.log(response);
       setPreApprovals(response?.data.data);
     } catch (error) {
       console.log(error);
@@ -219,26 +223,6 @@ export function ExpenseDetailsStep({
     fetchDuplicateReceiptUrl,
   ]);
 
-  const form = useForm<ExpenseFormValues>({
-    resolver: zodResolver(expenseSchema),
-    defaultValues: expenseData
-      ? expenseData
-      : {
-        policyId: "",
-        categoryId: "",
-        invoiceNumber: "",
-        merchant: "",
-        amount: "",
-        dateOfExpense: new Date(),
-        comments: "",
-        city: "",
-        source: "",
-        destination: "",
-        pre_approval_id: "",
-        advance_id: ""
-      },
-  });
-  
   const getApprovedAdvances = async () => {
     try {
       const res: any = await AdvanceService.getAdvancesByStatus({ status: "APPROVED", page: 1, perPage: 25 });
@@ -258,6 +242,10 @@ export function ExpenseDetailsStep({
     if (expenseData && !isReceiptReplaced) {
       form.reset(expenseData);
       // Set selected policy and category based on form data
+      if (expenseData.foreign_amount && expenseData.foreign_currency) {
+        form.setValue('amount', expenseData.foreign_amount);
+        form.setValue('foreign_currency', expenseData.foreign_currency);
+      }
       if (expenseData.policyId && policies.length > 0) {
         const policy = policies.find((p) => p.id === expenseData.policyId);
         if (policy) {
@@ -274,6 +262,9 @@ export function ExpenseDetailsStep({
             }
           }
         }
+      }
+      if (expenseData.foreign_currency) {
+        setSelectedCurrency(expenseData.foreign_currency);
       }
       if (expenseData.advance_id && advances.length > 0) {
         const adv = advances.find((a) => a.id === expenseData.advance_id);
@@ -583,21 +574,11 @@ export function ExpenseDetailsStep({
                             <FormItem>
                               <FormLabel>
                                 Receipt Number *
-                                {parsedData?.ocr_result?.invoice_number && (
-                                  <span className="text-green-600 text-xs ml-2">
-                                    (Auto-filled)
-                                  </span>
-                                )}
                               </FormLabel>
                               <FormControl>
                                 <Input
                                   {...field}
                                   placeholder="Invoice Number"
-                                  className={
-                                    parsedData?.ocr_result?.invoice_number
-                                      ? "bg-white border-green-300 text-gray-900"
-                                      : ""
-                                  }
                                   readOnly={readOnly}
                                 />
                               </FormControl>
@@ -613,102 +594,13 @@ export function ExpenseDetailsStep({
                             <FormItem>
                               <FormLabel>
                                 Vendor *
-                                {parsedData?.ocr_result?.vendor && (
-                                  <span className="text-green-600 text-xs ml-2">
-                                    (Auto-filled)
-                                  </span>
-                                )}
                               </FormLabel>
                               <FormControl>
                                 <Input
                                   {...field}
                                   placeholder="Vendor"
-                                  className={
-                                    parsedData?.ocr_result?.vendor
-                                      ? "bg-white border-green-300 text-gray-900"
-                                      : ""
-                                  }
                                   readOnly={readOnly}
                                 />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </>
-                    )}
-
-                    {/* Conveyance 2W Specific Fields */}
-                    {isConveyanceCategory && (
-                      <>
-                        <FormField
-                          control={form.control}
-                          name="city"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Select City *</FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select city" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {cities.map((city) => (
-                                    <SelectItem key={city} value={city}>
-                                      {city}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="source"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Source *</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                  <Input
-                                    {...field}
-                                    placeholder="Enter source location"
-                                    className="pl-10"
-                                    readOnly={readOnly}
-                                    onChange={field.onChange}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="destination"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Destination *</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Navigation className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                  <Input
-                                    {...field}
-                                    placeholder="Enter destination location"
-                                    className="pl-10"
-                                    readOnly={readOnly}
-                                    onChange={field.onChange}
-                                  />
-                                </div>
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -720,18 +612,41 @@ export function ExpenseDetailsStep({
                     {/* Amount */}
                     <FormField
                       control={form.control}
+                      name="foreign_currency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Currency *</FormLabel>
+                          <FormControl>
+                            <Select
+                              value={field.value || "INR"}
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                setSelectedCurrency(value);
+                              }}
+                              disabled={readOnly || !form.getValues('pre_approval_id')}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a currency" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="INR">INR (₹)</SelectItem>
+                                <SelectItem value="USD">USD ($)</SelectItem>
+                                <SelectItem value="EUR">EUR (€)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
                       name="amount"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>
                             Amount *
-                            {parsedData?.ocr_result?.amount && (
-                              <span className="text-green-600 text-xs ml-2">
-                                (Auto-
-                                {isConveyanceCategory ? "calculated" : "filled"}
-                                )
-                              </span>
-                            )}
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -742,16 +657,17 @@ export function ExpenseDetailsStep({
                                   : "Amount"
                               }
                               type="number"
-                              className={
-                                parsedData?.ocr_result?.amount
-                                  ? "bg-white border-green-300 text-gray-900"
-                                  : ""
-                              }
                               // readOnly={readOnly}
                               disabled={readOnly}
                             />
                           </FormControl>
-                          <FormMessage />
+                          {baseAmount ? (
+                            <p className="text-[12px] text-gray-500 ml-2">
+                              {formatCurrency(baseAmount)}
+                            </p>
+                          ) : (
+                            <FormMessage />
+                          )}
                         </FormItem>
                       )}
                     />
@@ -764,23 +680,13 @@ export function ExpenseDetailsStep({
                         <FormItem>
                           <FormLabel>
                             Date *
-                            {parsedData?.ocr_result?.date && (
-                              <span className="text-green-600 text-xs ml-2">
-                                (Auto-filled)
-                              </span>
-                            )}
                           </FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
                                   variant="outline"
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground",
-                                    parsedData?.ocr_result?.date &&
-                                    "bg-white border-green-300 text-gray-900"
-                                  )}
+                                  className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                                   disabled={readOnly}
                                 >
                                   {field.value ? (
@@ -801,7 +707,7 @@ export function ExpenseDetailsStep({
                                 selected={field.value}
                                 onSelect={field.onChange}
                                 disabled={(date) =>
-                                  date > new Date() ||
+                                  // date > new Date() ||
                                   date < new Date("1900-01-01")
                                 }
                                 initialFocus
@@ -812,51 +718,51 @@ export function ExpenseDetailsStep({
                         </FormItem>
                       )}
                     />
-                  </div>
+                  
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> */}
                     <FormField
-                        control={form.control}
-                        name="advance_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Advance</FormLabel>
-                            <Select
-                              value={field.value || ""}
-                              onValueChange={(value) => {
-                                const adv = advances.find(
-                                  (a) => a.id === value
-                                );
-                                if (adv) setSelectedAdvance(adv);
-                                form.setValue('advance_id', value)
-                              }}
-                              disabled={readOnly}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select advance">
-                                    {field.value && selectedAdvance
-                                      ? selectedAdvance.title
-                                      : "Select advance"}
-                                  </SelectValue>
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {advances.length > 0 ? advances.map((adv) => (
-                                  <SelectItem key={adv.id} value={adv.id}>
-                                    <div>
-                                      <div className="font-medium">
-                                        {adv.title}
-                                      </div>
+                      control={form.control}
+                      name="advance_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Advance</FormLabel>
+                          <Select
+                            value={field.value || ""}
+                            onValueChange={(value) => {
+                              const adv = advances.find(
+                                (a) => a.id === value
+                              );
+                              if (adv) setSelectedAdvance(adv);
+                              form.setValue('advance_id', value)
+                            }}
+                            disabled={readOnly}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select advance">
+                                  {field.value && selectedAdvance
+                                    ? selectedAdvance.title
+                                    : "Select advance"}
+                                </SelectValue>
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {advances.length > 0 ? advances.map((adv) => (
+                                <SelectItem key={adv.id} value={adv.id}>
+                                  <div>
+                                    <div className="font-medium">
+                                      {adv.title}
                                     </div>
-                                  </SelectItem>
-                                )) : <SelectItem value="no advances" disabled>No advances</SelectItem>}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                                  </div>
+                                </SelectItem>
+                              )) : <SelectItem value="no advances" disabled>No advances</SelectItem>}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     {showPreApproval &&
                       <FormField
                         control={form.control}
@@ -877,7 +783,7 @@ export function ExpenseDetailsStep({
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select pre appproval">
+                                  <SelectValue placeholder="Select pre approval">
                                     {field.value && selectedPreApproval
                                       ? selectedPreApproval.title
                                       : "Select pre approval"}

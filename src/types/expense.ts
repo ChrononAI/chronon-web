@@ -60,6 +60,8 @@ export interface Expense {
   };
   advance_id?: string | null;
   pre_approval_id?: string | null;
+  foreign_currency?: string | null;
+  foreign_amount?: string | null;
 }
 
 export interface PaginationMeta {

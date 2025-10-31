@@ -1,5 +1,6 @@
 import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
 import { Layout } from "@/components/layout/Layout";
+import CreatePreApprovalForm from "@/components/pre-approval/CreatePreApprovalForm";
 import { AlertDialog, AlertDialogHeader, AlertDialogContent, AlertDialogTitle, AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ const currencyConversionSchema = z.object({
     eur: z.string({ required_error: "This field is required" }),
 });
 
-type CurrencyConversionRate = {
+export interface CurrencyConversionRate {
     currency: string;
     rate: number;
 };
@@ -152,14 +153,14 @@ function ProcessPreApprovalPage() {
                                 className="bg-green-600 hover:bg-green-700"
                             >
                                 <CheckCircle className="h-4 w-4 mr-2" />
-                                Approve Expense
+                                Approve
                             </Button>
                             <Button
                                 onClick={() => handleAction('reject')}
                                 className="bg-red-600 hover:bg-red-700"
                             >
                                 <XCircle className="h-4 w-4 mr-2" />
-                                Reject Expense
+                                Reject
                             </Button>
                         </div>
                     </div>
@@ -240,6 +241,7 @@ function ProcessPreApprovalPage() {
                         </div>
                     )}
                 </div>
+                <CreatePreApprovalForm mode="view" showHeader={false} />
             </div>
             <AlertDialog open={showCurrencyAlert} onOpenChange={setShowCurrencyAlert}>
                 <AlertDialogContent className="max-w-md">

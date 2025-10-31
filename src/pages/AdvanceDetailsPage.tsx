@@ -69,7 +69,7 @@ function AdvanceDetailsPage() {
     return (
         <Layout>
             {(report?.status === "COMPLETE" || report?.status === "INCOMPLETE") ? <CreateAdvanceForm mode="view" /> :
-                <>
+                <div className="space-y-6">
                     <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
                         <div className="flex items-center justify-between">
                             <div>
@@ -159,7 +159,8 @@ function AdvanceDetailsPage() {
                             </div>
                         )}
                     </div>
-                </>}
+                    <CreateAdvanceForm mode="view" showHeader={false} /> 
+                </div>}
         </Layout>
     )
 }

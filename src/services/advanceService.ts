@@ -28,7 +28,7 @@ interface CreateAdvancePayloadType {
     description: string;
     currency: string;
     amount: string;
-    policy_id: string;
+    policy_id?: string;
 }
 
 export const AdvanceService = {

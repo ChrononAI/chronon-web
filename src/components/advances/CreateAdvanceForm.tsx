@@ -52,12 +52,12 @@ const advanceSchema = z.object({
   ),
   currency: z.string().min(1, 'Please select a currency'),
   title: z.string().min(1, "Title is required"),
-  policy_id: z.string().min(1, "Policy is required"),
+  policy_id: z.string().optional(),
 });
 
 type AdvanceFormValues = z.infer<typeof advanceSchema>;
 
-export function CreateAdvanceForm({ mode = "create" }: { mode?: "create" | "view" | "edit" }) {
+export function CreateAdvanceForm({ mode = "create", showHeader = true }: { mode?: "create" | "view" | "edit"; showHeader?: boolean; }) {
   const navigate = useNavigate();
   const loading = false;
 
@@ -145,9 +145,9 @@ export function CreateAdvanceForm({ mode = "create" }: { mode?: "create" | "view
   }, []);
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
+    <div className="container max-w-4xl space-y-6">
       {/* Header */}
-      <div className="flex items-center mb-6">
+      {showHeader && <div className="flex items-center mb-6">
         <Button
           variant="ghost"
           size="sm"
@@ -157,7 +157,7 @@ export function CreateAdvanceForm({ mode = "create" }: { mode?: "create" | "view
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold">Create Advance</h1>
-      </div>
+      </div>}
 
       <Card>
         <CardContent className='p-6'>
@@ -277,7 +277,7 @@ export function CreateAdvanceForm({ mode = "create" }: { mode?: "create" | "view
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        Policy *
+                        Policy
                       </FormLabel>
                       <FormControl>
                         <Select

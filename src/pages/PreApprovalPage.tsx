@@ -179,22 +179,29 @@ function PreApprovalPage() {
                     rows={rows}
                     sx={{
                         border: 0,
-                        "& .MuiDataGrid-columnSeparator": {
-                            // display: "none",
-                        },
                         "& .MuiDataGrid-columnHeaderTitle": {
-                            fontWeight: 600,
+                            color: '#9AA0A6',
+                            fontWeight: 505,
                             fontSize: "14px"
                         },
-                        "& .MuiDataGrid-toolbarContainer": {
-                            // border: "none"
+                        "& .MuiDataGrid-main": {
+                            border: '1px solid #F1F3F4'
+                        },
+                        "& .MuiDataGrid-columnHeader": {
+                            backgroundColor: '#f3f4f6'
+                        },
+                        "& .MuiCheckbox-root": {
+                            color: '#9AA0A6'
                         },
                         "& .MuiDataGrid-row:hover": {
                             cursor: "pointer",
                             backgroundColor: "#f5f5f5",
                         },
+                        "& .MuiDataGrid-cell": {
+                            color: '#2E2E2E'
+                        },
                         "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-                            outline: "none", // removes blue focus ring
+                            outline: "none",
                         },
                         "& .MuiDataGrid-cell:focus-within": {
                             outline: "none",

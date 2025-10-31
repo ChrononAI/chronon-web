@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import { CurrencyConversionPayload } from "@/pages/ProcessPreApprovalPage";
+import { CurrencyConversionPayload, CurrencyConversionRate } from "@/pages/ProcessPreApprovalPage";
 import { toast } from "sonner";
 
 export interface PreApprovalType {
@@ -26,6 +26,7 @@ export interface PreApprovalType {
         org_id: string;
         user_id: string;
     };
+    currency_conversion_rates?: CurrencyConversionRate[];
 }
 
 interface CreatePreApprovalPayloadType {

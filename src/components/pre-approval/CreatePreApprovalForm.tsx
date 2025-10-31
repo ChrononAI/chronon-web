@@ -40,9 +40,10 @@ type PreApprovalFormValues = z.infer<typeof preApprovalSchema>;
 interface CreatePreApprovalFormProps {
   mode?: 'create' | 'view' | 'edit';
   data?: PreApprovalType;
+  showHeader?: boolean;
 }
 
-function CreatePreApprovalForm({ mode = "create" }: CreatePreApprovalFormProps) {
+function CreatePreApprovalForm({ mode = "create", showHeader = true }: CreatePreApprovalFormProps) {
   const navigate = useNavigate();
 
   const { id } = useParams<{ id: string }>();
@@ -117,15 +118,15 @@ function CreatePreApprovalForm({ mode = "create" }: CreatePreApprovalFormProps) 
   }, []);
 
   return (
-    <div className="mx-auto space-y-6 max-w-4xl">
-      <div className="flex items-center gap-4">
+    <div className="space-y-6 max-w-4xl">
+      {showHeader && <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl font-bold">
           {mode === "create" ? "Create Pre Approval" : mode === "edit" ? "Edit Pre Approval" : "Pre Approval Details"}
         </h1>
-      </div>
+      </div>}
       <Card>
         <CardContent className="p-6">
           <Form {...form}>
