@@ -7,15 +7,27 @@ import { ExpenseDetailsStep } from '@/components/expenses/ExpenseDetailsStep';
 import MileagePage from '@/pages/MileagePage';
 import PerdiemPage from '@/pages/PerdiemPage';
 import {
-  CheckCircle,
-  Clock,
   AlertCircle,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import { expenseService, UpdateExpenseData } from '@/services/expenseService';
 import { Expense } from '@/types/expense';
 import { getStatusColor } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useExpenseStore } from '@/store/expenseStore';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 
 const EDITABLE_STATUSES = ['DRAFT', 'INCOMPLETE', 'COMPLETE'];
 
@@ -60,6 +72,8 @@ export function ExpenseDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [receiptUrlStr, setReceiptUrlStr] = useState<string | null>();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const searchParams = new URLSearchParams(location.search);
   const isFromReport = searchParams.get('from') === 'report';
@@ -81,9 +95,13 @@ export function ExpenseDetailPage() {
         // setPolicies(policiesData);
         setParsedData(null);
 
-        if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase()) && !isFromApprovals && !isFromReport) {
-          setIsEditing(true);
-        }
+        setIsEditing(false);
+
+if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase()) 
+  && !isFromApprovals 
+  && !isFromReport ) { 
+  setIsEditing(true);
+}
 
         if (expenseData.receipt_id) {
           fetchReceipt(expenseData.receipt_id, expenseData.created_by.org_id);
@@ -156,6 +174,28 @@ export function ExpenseDetailPage() {
     }
   };
 
+  const handleDeleteExpense = async () => {
+    if (!expense || !id) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await expenseService.deleteExpense(id);
+      if (response.success) {
+        toast.success('Expense deleted successfully');
+        navigate('/expenses');
+      } else {
+        toast.error(response.message || 'Failed to delete expense');
+        setShowDeleteDialog(false);
+      }
+    } catch (error) {
+      console.error('Failed to delete expense:', error);
+      toast.error('Failed to delete expense');
+      setShowDeleteDialog(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -217,35 +257,72 @@ export function ExpenseDetailPage() {
     ];
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status.toUpperCase()) {
-      case 'APPROVED':
-      case 'FULLY_APPROVED':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case 'PENDING':
-      case 'PENDING_APPROVAL':
-        return <Clock className="h-5 w-5 text-yellow-600" />;
-      case 'REJECTED':
-        return <AlertCircle className="h-5 w-5 text-red-600" />;
-      default:
-        return <Clock className="h-5 w-5 text-blue-600" />;
-    }
-  };
 
   return (
     <Layout>
       <div className="space-y-6">
         <Breadcrumb items={breadcrumbItems} />
         <div className="flex items-center justify-between">
-          <div className='text-2xl font-bold'>Expense Details</div>
-          <div className="flex flex-col items-end gap-2">
-              <div className="flex items-center gap-3">
-                {getStatusIcon(expense.status)}
-                <Badge className={`${getStatusColor(expense.status)} text-sm px-3 py-1`}>
-                  {expense.status.replace('_', ' ')}
-                </Badge>
-              </div>
+          <div>
+            <div className='text-2xl font-bold'>Expense Details</div>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge className={`${getStatusColor(expense.status)} text-xs px-2 py-0.5`}>
+                {expense.status.replace('_', ' ')}
+              </Badge>
             </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Delete Button - Only show for COMPLETE and INCOMPLETE status */}
+            {(expense.status === 'COMPLETE' || expense.status === 'INCOMPLETE') && (
+              <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="px-6 py-2 border-red-500 text-red-600 hover:bg-red-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteDialog(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this expense? This action cannot be undone.
+                      {expense.sequence_number && (
+                        <span className="block mt-2 font-medium">
+                          Expense ID: {expense.sequence_number}
+                        </span>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteExpense}
+                      disabled={isDeleting}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
 
         {isMileageExpense(expense) ? (
@@ -280,6 +357,7 @@ export function ExpenseDetailPage() {
             expenseData={transformExpenseToFormData(expense)}
             receiptUrls={receiptSignedUrl ? [receiptSignedUrl] : []}
             isEditMode={isEditing}
+            expense={expense}
           />
         )}
       </div>

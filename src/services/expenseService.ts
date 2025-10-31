@@ -461,5 +461,25 @@ export const expenseService = {
       console.log(error);
       return error;
     }
+  },
+
+  async deleteExpense(id: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        throw new Error("Organization ID not found in token");
+      }
+      const response = await api.delete(`/em/expenses/delete/${id}?org_id=${orgId}`);
+      return {
+        success: true,
+        message: response.data.message || "Expense deleted successfully",
+      };
+    } catch (error: any) {
+      console.error("Error deleting expense:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || "Failed to delete expense",
+      };
+    }
   }
 };

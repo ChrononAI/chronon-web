@@ -57,30 +57,25 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
         }
     }, [data?.start_date, data?.end_date])
 
-    // const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
-    const [receiptZoom, setReceiptZoom] = useState(1);
-    const [receiptRotation, setReceiptRotation] = useState(0);
+    const [mapZoom, setMapZoom] = useState(1);
+    const [mapRotation, setMapRotation] = useState(0);
 
-    const handleReceiptZoomIn = () => {
-        setReceiptZoom((prev) => Math.min(prev + 0.25, 3));
+    const handleMapZoomIn = () => {
+        setMapZoom((prev) => Math.min(prev + 0.25, 3));
     };
 
-    const handleReceiptZoomOut = () => {
-        setReceiptZoom((prev) => Math.max(prev - 0.25, 0.5));
+    const handleMapZoomOut = () => {
+        setMapZoom((prev) => Math.max(prev - 0.25, 0.5));
     };
 
-    const handleReceiptRotate = () => {
-        setReceiptRotation((prev) => (prev + 90) % 360);
+    const handleMapRotate = () => {
+        setMapRotation((prev) => (prev + 90) % 360);
     };
 
-    const handleReceiptReset = () => {
-        setReceiptZoom(1);
-        setReceiptRotation(0);
+    const handleMapReset = () => {
+        setMapZoom(1);
+        setMapRotation(0);
     };
-
-    // const handleReceiptFullscreen = () => {
-    //     setIsReceiptFullscreen(true);
-    // };
 
     const fetchReceipt = async (id: string) => {
         if (!orgId) return;
@@ -197,20 +192,20 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={handleReceiptZoomOut}
-                                                            disabled={receiptZoom <= 0.5}
+                                                            onClick={handleMapZoomOut}
+                                                            disabled={mapZoom <= 0.5}
                                                             className="h-8 w-8 p-0"
                                                         >
                                                             <ZoomOut className="h-4 w-4" />
                                                         </Button>
                                                         <span className="text-xs text-gray-600 min-w-[3rem] text-center">
-                                                            {Math.round(receiptZoom * 100)}%
+                                                            {Math.round(mapZoom * 100)}%
                                                         </span>
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={handleReceiptZoomIn}
-                                                            disabled={receiptZoom >= 3}
+                                                            onClick={handleMapZoomIn}
+                                                            disabled={mapZoom >= 3}
                                                             className="h-8 w-8 p-0"
                                                         >
                                                             <ZoomIn className="h-4 w-4" />
@@ -219,7 +214,7 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={handleReceiptRotate}
+                                                            onClick={handleMapRotate}
                                                             className="h-8 w-8 p-0"
                                                         >
                                                             <RotateCw className="h-4 w-4" />
@@ -227,7 +222,7 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={handleReceiptReset}
+                                                            onClick={handleMapReset}
                                                             className="h-8 w-8 p-0"
                                                         >
                                                             <RefreshCw className="h-4 w-4" />
@@ -259,7 +254,7 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
                                                                                 type="application/pdf"
                                                                                 className="w-full h-full border-0 rounded"
                                                                                 style={{
-                                                                                    transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
+                                                                                    transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
                                                                                     transformOrigin: "center",
                                                                                 }}
                                                                             />
@@ -274,7 +269,7 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
                                                                         alt="Receipt preview"
                                                                         className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
                                                                         style={{
-                                                                            transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
+                                                                            transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
                                                                             transformOrigin: "center",
                                                                             maxHeight: "100%",
                                                                             objectFit: "contain",
@@ -372,41 +367,68 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
                         </Card>
                     </div>
                     :
-                    <div>
-                        <Card>
-                            <CardContent className="p-6 space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[14px] font-medium">Start Location *</label>
-                                        <Input value={data?.start_location} disabled />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[14px] font-medium">End Location *</label>
-                                        <Input value={data?.end_location} disabled />
-                                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div>
+                            <Card>
+                                <CardContent className="p-6 space-y-4">
+                                <div className="relative">
+                                    {data?.start_location && (
+                                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">A</span>
+                                    )}
+                                    <Input 
+                                        value={data?.start_location || ""} 
+                                        disabled 
+                                        placeholder="A Start Location"
+                                        className={`text-sm ${data?.start_location ? 'pl-8' : ''}`}
+                                    />
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[14px] font-medium">Vehicle *</label>
-                                        <Input value={getVehicleType(data?.vehicle_type || "")} disabled />
-                                    </div>
-                                    <div className="space-y-4 flex flex-col">
-                                        <label className="text-[14px] font-medium">Round Trip</label>
-                                        <Switch
-                                            checked={data?.is_round_trip}
-                                            disabled
-                                        />
-                                    </div>
+
+                                {/* Display stops if they exist */}
+                                {data?.mileage_meta?.stops && data.mileage_meta.stops.length > 0 && (
+                                    <>
+                                        {data.mileage_meta.stops.map((stop: any, index: number) => (
+                                            <div key={stop.id} className="relative">
+                                                {stop.location && (
+                                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">{String.fromCharCode(66 + index)}</span>
+                                                )}
+                                                <Input 
+                                                    value={stop.location || ""} 
+                                                    disabled 
+                                                    placeholder={`${String.fromCharCode(66 + index)} Stop ${index + 1}`}
+                                                    className={`text-sm ${stop.location ? 'pl-8' : ''}`}
+                                                />
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
+
+                                <div className="relative">
+                                    {data?.end_location && (
+                                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">{String.fromCharCode(65 + (data?.mileage_meta?.stops?.length || 0) + 1)}</span>
+                                    )}
+                                    <Input 
+                                        value={data?.end_location || ""} 
+                                        disabled 
+                                        placeholder={`${String.fromCharCode(65 + (data?.mileage_meta?.stops?.length || 0) + 1)} End Location`}
+                                        className={`text-sm ${data?.end_location ? 'pl-8' : ''}`}
+                                    />
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[14px] font-medium">Distance *</label>
-                                        <Input value={data?.distance} disabled />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[14px] font-medium">Amount *</label>
-                                        <Input value={data?.amount} disabled />
-                                    </div>
+
+                                <div className="flex items-center justify-end gap-3 my-2">
+                                    <label className="text-[14px] font-medium">Round Trip</label>
+                                    <Switch
+                                        checked={data?.is_round_trip}
+                                        disabled
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[14px] font-medium">Vehicle *</label>
+                                    <Input value={getVehicleType(data?.vehicle_type || "")} disabled />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[14px] font-medium">Distance *</label>
+                                    <Input value={data?.distance ? `${data.distance} km` : ""} disabled />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
@@ -426,17 +448,116 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
                                     <label className="text-[14px] font-medium">Purpose *</label>
                                     <Textarea value={data?.description} disabled />
                                 </div>
+
+                                {/* Display notes if available */}
+                                {data?.mileage_meta?.notes && (
+                                    <div className="space-y-2">
+                                        <label className="text-[14px] font-medium">Notes</label>
+                                        <Textarea value={data.mileage_meta.notes} disabled />
+                                    </div>
+                                )}
+
                                 <div>
                                     <Label className="text-sm font-medium text-gray-700">
-                                        Total Per Diem
+                                        Total Amount
                                     </Label>
                                     <div className="text-2xl font-bold text-blue-600 mt-1">
                                         ₹{(Number(data?.amount) || 0).toFixed(2)}
                                     </div>
-                                    <p className="text-sm text-gray-500">{days} days</p>
+                                    {data?.distance && (
+                                        <p className="text-sm text-gray-500">{data.distance} km</p>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
+                        </div>
+
+                        {/* Map Display Card */}
+                        {data?.mileage_meta?.map_url && (
+                            <div>
+                                <Card>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between my-4">
+                                                <h3 className="text-lg font-semibold text-gray-900">
+                                                    Route Map
+                                                </h3>
+                                            </div>
+
+                                            <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                                                {/* Map Controls */}
+                                                <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={handleMapZoomOut}
+                                                            disabled={mapZoom <= 0.5}
+                                                            className="h-8 w-8 p-0"
+                                                        >
+                                                            <ZoomOut className="h-4 w-4" />
+                                                        </Button>
+                                                        <span className="text-xs text-gray-600 min-w-[3rem] text-center">
+                                                            {Math.round(mapZoom * 100)}%
+                                                        </span>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={handleMapZoomIn}
+                                                            disabled={mapZoom >= 3}
+                                                            className="h-8 w-8 p-0"
+                                                        >
+                                                            <ZoomIn className="h-4 w-4" />
+                                                        </Button>
+                                                        <div className="w-px h-6 bg-gray-300 mx-2" />
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={handleMapRotate}
+                                                            className="h-8 w-8 p-0"
+                                                        >
+                                                            <RotateCw className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={handleMapReset}
+                                                            className="h-8 w-8 p-0"
+                                                        >
+                                                            <RefreshCw className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Map Display */}
+                                                <div className="relative overflow-auto max-h-96 bg-gray-100">
+                                                    <div className="flex items-center justify-center p-4">
+                                                        <img
+                                                            src={data.mileage_meta.map_url}
+                                                            alt="Route map"
+                                                            className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                                                            style={{
+                                                                transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
+                                                                transformOrigin: "center",
+                                                                maxHeight: "100%",
+                                                                objectFit: "contain",
+                                                            }}
+                                                            onError={(e) => {
+                                                                e.currentTarget.style.display = "none";
+                                                                const fallbackDiv = document.createElement("div");
+                                                                fallbackDiv.className = "flex flex-col items-center justify-center h-full text-center p-4";
+                                                                fallbackDiv.innerHTML = `<p class="text-gray-600 mb-4">Map preview not available.</p>`;
+                                                                e.currentTarget.parentNode?.appendChild(fallbackDiv);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
                     </div>
                 }
             </DialogContent>
