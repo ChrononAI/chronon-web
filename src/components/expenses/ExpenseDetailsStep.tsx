@@ -739,7 +739,7 @@ export function ExpenseDetailsStep({
                                 selected={field.value}
                                 onSelect={field.onChange}
                                 disabled={(date) =>
-                                  // date > new Date() ||
+                                  date > new Date() ||
                                   date < new Date("1900-01-01")
                                 }
                                 initialFocus
@@ -753,7 +753,7 @@ export function ExpenseDetailsStep({
                   
 
                   {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> */}
-                    <FormField
+                    {advances.length > 0 && <FormField
                       control={form.control}
                       name="advance_id"
                       render={({ field }) => (
@@ -794,7 +794,7 @@ export function ExpenseDetailsStep({
                           <FormMessage />
                         </FormItem>
                       )}
-                    />
+                    />}
                     {showPreApproval &&
                       <FormField
                         control={form.control}

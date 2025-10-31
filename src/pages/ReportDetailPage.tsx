@@ -264,7 +264,6 @@ export function ReportDetailPage() {
   // const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
 
   const handleViewExpense = async (expense: Expense) => {
-    console.log(expense);
     setShowViewExpense(true);
     console.log(expense);
     setExpenseToView(expense);

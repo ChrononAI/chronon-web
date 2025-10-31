@@ -75,7 +75,6 @@ export function ExpenseDetailPage() {
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [receiptUrlStr, setReceiptUrlStr] = useState<string | null>();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
