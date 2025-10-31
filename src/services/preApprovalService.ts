@@ -117,10 +117,11 @@ export const preApprovalService = {
     processPreApproval: async ({ id, action, payload }: { id: string; action: string; payload?: CurrencyConversionPayload }) => {
         try {
             const url = `/api/v1/pre_approvals/${id}/${action}`;
+            console.log(payload);
 
             const response = payload
                 ? await api.post(url, payload)
-                : await api.post(url);
+                : await api.post(url, {});
 
             return response;
         } catch (error) {

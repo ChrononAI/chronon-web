@@ -112,22 +112,23 @@ function ProcessPreApprovalPage() {
         if (!selectedPreApprovalToApprove?.id) return;
         try {
             await preApprovalService.processPreApproval({ id: selectedPreApprovalToApprove.id, action, payload });
-            setTimeout(() => {
-                navigate('/approvals/pre-approvals');
-            }, 100);
             if (action === 'approve') {
                 toast.success('Expense approved successfully');
             } else {
                 toast.success('Expense rejected successfully');
             }
+            setTimeout(() => {
+                navigate('/approvals/pre-approvals');
+            }, 100);
         } catch (error) {
             console.log(error);
             toast.error('Failed to process expense');
         }
     }
-
+    console.log(approvalWorkflow);
     const handleAction = async (action: string) => {
         if (approvalWorkflow?.current_step === approvalWorkflow?.total_steps) {
+            console.log(approvalWorkflow);
             setShowCurrencyAlert(true);
         } else {
             processAdvance(action);
@@ -149,7 +150,7 @@ function ProcessPreApprovalPage() {
                         </div>
                         <div className="flex gap-2">
                             <Button
-                                onClick={() => setShowCurrencyAlert(true)}
+                                onClick={() => handleAction('approve')}
                                 className="bg-green-600 hover:bg-green-700"
                             >
                                 <CheckCircle className="h-4 w-4 mr-2" />
