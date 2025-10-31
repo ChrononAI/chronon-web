@@ -28,6 +28,7 @@ import ProcessPreApprovalPage from './pages/ProcessPreApprovalPage';
 import AdvanceDetailsPage from './pages/AdvanceDetailsPage';
 import ApprovalsAdvancesPage from './pages/ApprovalsAdvancesPage';
 import ProcessAdvancePage from './pages/ProcessAdvancePage';
+import AdminPage from './pages/admin/AdminPage';
 
 function App() {
   return (
@@ -227,14 +228,16 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* <Route
-            path="/report/expenses/:id"
+          {/* Admin Pages */}
+          <Route
+            path="/admin"
             element={
               <ProtectedRoute>
-                <ExpenseDetailPage />
+                <AdminPage />
               </ProtectedRoute>
             }
-          /> */}
+          />
+
           <Route path="/" element={<Navigate to="/expenses" replace />} />
           <Route path="/404" element={<NotFoundPage />} />
           <Route path="/permission-denied" element={<PermissionDeniedPage />} />

@@ -8,7 +8,8 @@ import {
   ReceiptText,
   FileChartColumn,
   User,
-  SquareCheckBig
+  SquareCheckBig,
+  ChevronLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,7 @@ const navigation: NavigationItem[] = [
     ]
   },
   { name: 'Reports', href: '/all-reports', isBold: false, icon: FileChartColumn },
+  { name: 'Admin', href: '/admin', isBold: false, icon: FileChartColumn },
 ];
 
 export function Sidebar() {
@@ -75,6 +77,7 @@ export function Sidebar() {
     }
     return [];
   });
+  const [collapsed, setCollapsed] = useState(location.pathname.includes('admin'));
   const { user, logout } = useAuthStore();
 
   const handleLogout = () => {
@@ -127,7 +130,7 @@ export function Sidebar() {
     const isDisabled = item.disabled;
 
     if (item.children) {
-      const isOpen = openItems.includes(item.name);
+      const isOpen = !collapsed && openItems.includes(item.name);
       return (
         <Collapsible
           key={item.name}
@@ -139,6 +142,7 @@ export function Sidebar() {
           <CollapsibleTrigger asChild>
             <Button
               variant="ghost"
+              onClick={() => setCollapsed(false)} 
               className={cn(
                 'w-full justify-between h-auto font-normal',
                 isDisabled && 'opacity-50 cursor-not-allowed hover:bg-transparent'
@@ -217,55 +221,99 @@ export function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-card border-r h-full overflow-y-auto flex flex-col">
-      <div className="flex items-center space-x-4 p-4">
-        <div>
+    <div
+      className={cn(
+        "bg-card border-r h-full overflow-y-auto flex flex-col transition-all duration-300 ease-in-out",
+        collapsed ? "w-12" : "w-64"
+      )}
+    >
+      {/* Header Section */}
+      <div className="flex items-center justify-between p-4">
+        {!collapsed && (
           <Link to="/" className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-primary">CHRONON</h1>
+            <h1 className="text-2xl font-bold text-primary truncate">CHRONON</h1>
           </Link>
-        </div>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setCollapsed((prev) => !prev)}
+          className="ml-auto"
+        >
+          {collapsed ? (
+            <ChevronRight className="h-5 w-5" />
+          ) : (
+            <ChevronLeft className="h-5 w-5" />
+          )}
+        </Button>
       </div>
-      <nav className="px-2 space-y-2">
-        {navigation.map((item) => renderNavigationItem(item))}
+
+      {/* Navigation */}
+      <nav className={cn("px-2 space-y-2 flex-1 transition-all duration-300", collapsed && "px-1")}>
+        {navigation.map((item) => (
+          <div key={item.name}>
+            {renderNavigationItem(
+              {
+                ...item,
+                name: collapsed ? "" : item.name, // Hide text if collapsed
+              },
+              0
+            )}
+          </div>
+        ))}
       </nav>
+
+      {/* Footer (User Menu) */}
       <div className="p-4 mt-auto">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="flex items-center justify-between cursor-pointer">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  {user?.firstName} {user?.lastName}
-                </p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {user?.email}
-                </p>
-              </div>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <div
+                className={cn(
+                  "flex items-center space-x-2 transition-all duration-300",
+                  collapsed && "justify-center w-full"
+                )}
+              >
                 <Avatar className="h-10 w-10">
                   <AvatarImage src="" alt={user?.firstName} />
                   <AvatarFallback>
-                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                    {user?.firstName?.[0]}
+                    {user?.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
-              </Button>
+
+                {!collapsed && (
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56 ml-4" side="right" align="end" forceMount>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer" asChild>
-              <Link to="/profile" className="flex items-center">
-                <User className="mr-2 h-4 w-4" />
-                Profile
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="cursor-pointer text-red-600 focus:text-red-600"
-              onClick={handleLogout}
-            >
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+
+          {!collapsed && (
+            <DropdownMenuContent className="w-56 ml-4" side="right" align="end" forceMount>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link to="/profile" className="flex items-center">
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer text-red-600 focus:text-red-600"
+                onClick={handleLogout}
+              >
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          )}
         </DropdownMenu>
       </div>
     </div>
