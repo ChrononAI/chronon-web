@@ -13,6 +13,8 @@ import { calculateDays } from "@/pages/PerdiemPage";
 import { Label } from "../ui/label";
 import { getVehicleType } from "@/pages/MileagePage";
 import { Switch } from "../ui/switch";
+import { preApprovalService, PreApprovalType } from "@/services/preApprovalService";
+import { AdvanceService, AdvanceType } from "@/services/advanceService";
 
 const formatDate = (date: string) => {
     if (date) {
@@ -34,6 +36,9 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
     const loading = false;
     const [days, setDays] = useState<number>();
     const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>();
+    const [selectedPreApproval, setSelectedPreApproval] = useState<PreApprovalType | null>(null);
+    const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
+    console.log(data);
 
     const loadPoliciesWithCategories = async () => {
         try {
@@ -88,9 +93,37 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
         }
     }
 
+    const fetchApprovedPreApproval = async () => {
+        try {
+            const res: any = await preApprovalService.getPreApprovalsByStatus({ status: 'APPROVED', page: 1, perPage: 100 });
+            console.log(res);
+            const selected = res.data.data.find((preApp: PreApprovalType) => preApp.id === data?.pre_approval_id)
+            if (selected) setSelectedPreApproval(selected);
+        } catch (error) {
+            console.log(error);
+            setSelectedPreApproval(null);
+        }
+    };
+
+    const fetchAdvance = async () => {
+        try {
+            const res: any = await AdvanceService.getAdvancesByStatus({ status: 'APPROVED', page: 1, perPage: 100 });
+            console.log(res);
+            const selected = res.data.data.find((adv: AdvanceType) => adv.id === data?.advance_id);
+            if (selected) setSelectedAdvance(selected);
+        } catch (error) {
+            console.log(error);
+            setSelectedAdvance(null);
+        }
+    }
+
     useEffect(() => {
         if (open && data?.receipt_id) {
             fetchReceipt(data.receipt_id);
+        }
+        if (open && data?.pre_approval_id) {
+            fetchApprovedPreApproval();
+            fetchAdvance();
         }
     }, [open, data])
 
@@ -140,6 +173,16 @@ export function ViewExpenseWindow({ open, onOpenChange, data }: { open: boolean;
                                         <label className="text-[14px] font-medium">Date *</label>
                                         <Input value={formatDate(data?.expense_date || "")} disabled />
                                     </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {selectedAdvance && <div className="space-y-2">
+                                        <label className="text-[14px] font-medium">Advance</label>
+                                        <Input value={selectedAdvance?.title} disabled />
+                                    </div>}
+                                    {selectedPreApproval && <div className="space-y-2">
+                                        <label className="text-[14px] font-medium">Pre Approval</label>
+                                        <Input value={selectedPreApproval?.title} disabled />
+                                    </div>}
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[14px] font-medium">Description *</label>
