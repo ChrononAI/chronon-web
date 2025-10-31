@@ -601,11 +601,6 @@ export function ExpenseDetailsStep({
                                 <Input
                                   {...field}
                                   placeholder="Invoice Number"
-                                  className={
-                                    parsedData?.ocr_result?.invoice_number
-                                      ? "bg-white border-green-300 text-gray-900"
-                                      : ""
-                                  }
                                   disabled={readOnly}
                                 />
                               </FormControl>
@@ -626,11 +621,6 @@ export function ExpenseDetailsStep({
                                 <Input
                                   {...field}
                                   placeholder="Vendor"
-                                  className={
-                                    parsedData?.ocr_result?.vendor
-                                      ? "bg-white border-green-300 text-gray-900"
-                                      : ""
-                                  }
                                   disabled={readOnly}
                                 />
                               </FormControl>
