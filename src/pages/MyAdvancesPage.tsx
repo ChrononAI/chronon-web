@@ -191,7 +191,7 @@ export function MyAdvancesPage() {
     };
 
     fetchData();
-  }, []);
+  }, [paginationModel.page, paginationModel.pageSize]);
 
   return (
     <ReportsPageWrapper
@@ -262,7 +262,7 @@ export function MyAdvancesPage() {
           paginationMode='server'
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          rowCount={activeTab === "all" ? allPagination?.total : activeTab === "pending" ? pendingPagination?.total : processedPagination?.total}
+          rowCount={(activeTab === "all" ? allPagination?.total : activeTab === "pending" ? pendingPagination?.total : processedPagination?.total) || 0}
           autoPageSize
         />
       </Box>

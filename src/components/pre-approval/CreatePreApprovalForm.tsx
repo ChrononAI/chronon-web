@@ -116,7 +116,6 @@ function CreatePreApprovalForm({ mode = "create", showHeader = true }: CreatePre
   useEffect(() => {
     loadPoliciesWithCategories()
   }, []);
-
   return (
     <div className="space-y-6 max-w-4xl">
       {showHeader && <div className="flex items-center gap-4">

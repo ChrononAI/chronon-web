@@ -3,7 +3,7 @@ import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper"
 import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { preApprovalService, PreApprovalType } from "@/services/preApprovalService";
+import { PreApprovalType } from "@/services/preApprovalService";
 import { useNavigate } from "react-router-dom";
 import { PaginationInfo } from "@/store/expenseStore";
 import { useAdvanceStore } from "@/store/advanceStore";
@@ -91,9 +91,9 @@ function ApprovalsAdvancesPage() {
         navigate(`/approvals/advances/${row.id}`);
     }
 
-    const getAllAdvancesToApprove = async () => {
+    const getAllAdvancesToApprove = async ({ page, perPage }: { page: number; perPage: number }) => {
         try {
-            const res: any = await AdvanceService.getAdvanceToApprove();
+            const res: any = await AdvanceService.getAdvanceToApprove({ page, perPage });
             setAllRows(res.data.data);
             setAllPagination(res.data.pagination);
         } catch (error) {
@@ -101,9 +101,9 @@ function ApprovalsAdvancesPage() {
         }
     }
 
-    const getPendingAdvancesToApprove = async () => {
+    const getPendingAdvancesToApprove = async ({ page, perPage }: { page: number; perPage: number }) => {
         try {
-            const res: any = await preApprovalService.getPreApprovalToApproveByStatus('IN_PROGRESS');
+            const res: any = await AdvanceService.getAdvanceToApproveByStatus({ status: 'IN_PROGRESS', page, perPage });
             setPendingRows(res.data.data);
             setPendingPagination(res.data.pagination);
         } catch (error) {
@@ -111,9 +111,9 @@ function ApprovalsAdvancesPage() {
         }
     }
 
-    const getProcessedAdvances = async () => {
+    const getProcessedAdvances = async ({ page, perPage }: { page: number; perPage: number }) => {
         try {
-            const res: any = await preApprovalService.getPreApprovalToApproveByStatus('APPROVED,REJECTED');
+            const res: any = await AdvanceService.getAdvanceToApproveByStatus({ status: 'APPROVED,REJECTED', page, perPage });
             setProcessedRows(res.data.data);
             setProcessedPagination(res.data.pagination);
         } catch (error) {
@@ -122,10 +122,20 @@ function ApprovalsAdvancesPage() {
     }
 
     useEffect(() => {
-        getAllAdvancesToApprove();
-        getPendingAdvancesToApprove()
-        getProcessedAdvances();
-    }, [activeTab]);
+        const fetchData = async () => {
+            try {
+                await Promise.all([
+                    getAllAdvancesToApprove({ page: paginationModel.page + 1, perPage: paginationModel.pageSize }),
+                    getPendingAdvancesToApprove({ page: paginationModel.page + 1, perPage: paginationModel.pageSize }),
+                    getProcessedAdvances({ page: paginationModel.page + 1, perPage: paginationModel.pageSize }),
+                ]);
+            } catch (error) {
+                console.error("Error fetching advances:", error);
+            }
+        };
+
+        fetchData();
+    }, [paginationModel.page, paginationModel.pageSize]);
     return (
         <ReportsPageWrapper
             title="Approver Dashboard"
@@ -183,7 +193,7 @@ function ApprovalsAdvancesPage() {
                     paginationMode='server'
                     paginationModel={paginationModel}
                     onPaginationModelChange={setPaginationModel}
-                    rowCount={activeTab === "all" ? allPagination?.total : activeTab === "pending" ? pendingPagination?.total : processedPagination?.total}
+                    rowCount={(activeTab === "all" ? allPagination?.total : activeTab === "pending" ? pendingPagination?.total : processedPagination?.total) || 0}
                     autoPageSize
                 />
             </Box>

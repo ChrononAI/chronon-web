@@ -93,17 +93,17 @@ export const AdvanceService = {
         }
     },
 
-    getAdvanceToApprove: async () => {
+    getAdvanceToApprove: async ({ page, perPage }: { page: number; perPage: number; }) => {
         try {
-            return await api.get('/api/v1/advances/approvers'); 
+            return await api.get(`/api/v1/advances/approvers?page=${page}&perPage=${perPage}`); 
         } catch (error) {
             return error;
         }
     },
 
-    getAdvanceToApproveByStatus: async (status: string) => {
+    getAdvanceToApproveByStatus: async ({ status, page, perPage }: { status: string; page: number; perPage: number}) => {
         try {
-            return await api.get(`/api/v1/advances/approvers?status=${status}`)
+            return await api.get(`/api/v1/advances/approvers?status=${status}&page=${page}&perPage=${perPage}`)
         } catch (error) {
             return error;
         }

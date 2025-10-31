@@ -95,6 +95,20 @@ function ProcessPreApprovalPage() {
         }
     };
 
+    const canApprove = () => {
+        if (!user || !approvalWorkflow || !approvalWorkflow.approval_steps) {
+            return false;
+        };
+
+        const currentUserId = user.id.toString();
+        const userStep = approvalWorkflow.approval_steps.find(step =>
+            step.approvers.some(approver => approver.user_id === currentUserId)
+        );
+        if (userStep?.status === "IN_PROGRESS") return true;
+
+        return false;
+    };
+
     const getApprovalWorkflow = async (id: string) => {
         try {
             const approvalWorkflowRes: any = await preApprovalService.getPreApprovalWorkflow(id);
@@ -125,7 +139,6 @@ function ProcessPreApprovalPage() {
             toast.error('Failed to process expense');
         }
     }
-    console.log(approvalWorkflow);
     const handleAction = async (action: string) => {
         if (approvalWorkflow?.current_step === approvalWorkflow?.total_steps) {
             console.log(approvalWorkflow);
@@ -148,7 +161,7 @@ function ProcessPreApprovalPage() {
                                 </Badge>
                             </div>
                         </div>
-                        <div className="flex gap-2">
+                       {canApprove() && <div className="flex gap-2">
                             <Button
                                 onClick={() => handleAction('approve')}
                                 className="bg-green-600 hover:bg-green-700"
@@ -163,7 +176,7 @@ function ProcessPreApprovalPage() {
                                 <XCircle className="h-4 w-4 mr-2" />
                                 Reject
                             </Button>
-                        </div>
+                        </div>}
                     </div>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
