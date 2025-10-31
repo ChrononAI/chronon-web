@@ -335,7 +335,7 @@ export function CreateAdvanceForm({ mode = "create", showHeader = true }: { mode
                 >
                   Cancel
                 </Button>}
-                <Button
+                {mode !== "view" && <Button
                   type="submit"
                   disabled={!form.formState.isValid}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
@@ -348,7 +348,7 @@ export function CreateAdvanceForm({ mode = "create", showHeader = true }: { mode
                   ) : (
                     'Create'
                   )}
-                </Button>
+                </Button>}
               </div>
             </form>
           </Form>

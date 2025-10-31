@@ -146,11 +146,23 @@ function PreApprovalPage() {
         }
     }
 
-    useEffect(() => {
-        getAllPreApprovals({ page: 1, perPage: 10 });
-        getPendingPreApprovals({ page: 1, perPage: 10 });
-        getProcessedPreApprovals({ page: 1, perPage: 10 });
-    }, [])
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      await Promise.all([
+        getAllPreApprovals({ page: paginationModel.page + 1, perPage: paginationModel.pageSize }),
+        getPendingPreApprovals({ page: paginationModel.page + 1, perPage: paginationModel.pageSize }),
+        getProcessedPreApprovals({ page: paginationModel.page + 1, perPage: paginationModel.pageSize }),
+      ]);
+
+    } catch (error) {
+      console.error("Error fetching pre-approvals:", error);
+    }
+  };
+
+  fetchData();
+}, [paginationModel.page, paginationModel.pageSize]);
+
 
     return (
         <ReportsPageWrapper
@@ -174,21 +186,27 @@ function PreApprovalPage() {
         >
             <Box sx={{ height: "calc(100vh - 160px)", width: "100%", marginTop: '-32px' }}>
                 <DataGrid
-                    className="rounded border h-full"
+                    className="rounded border-[0.2px] border-[#f3f4f6] h-full"
                     columns={columns}
                     rows={rows}
                     sx={{
                         border: 0,
                         "& .MuiDataGrid-columnHeaderTitle": {
                             color: '#9AA0A6',
-                            fontWeight: 505,
-                            fontSize: "14px"
+                            fontWeight: 'bold',
+                            fontSize: "12px"
                         },
                         "& .MuiDataGrid-main": {
-                            border: '1px solid #F1F3F4'
+                            border: '0.2px solid #f3f4f6'
                         },
                         "& .MuiDataGrid-columnHeader": {
-                            backgroundColor: '#f3f4f6'
+                            backgroundColor: '#f3f4f6',
+                            border: 'none'
+                        },
+                        "& .MuiDataGrid-columnHeaders": {
+                            border: 'none',
+                            borderTop: "none",
+                            borderBottom: "none",
                         },
                         "& .MuiCheckbox-root": {
                             color: '#9AA0A6'
@@ -198,7 +216,8 @@ function PreApprovalPage() {
                             backgroundColor: "#f5f5f5",
                         },
                         "& .MuiDataGrid-cell": {
-                            color: '#2E2E2E'
+                            color: '#2E2E2E',
+                            border: '0.2px solid #f3f4f6'
                         },
                         "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
                             outline: "none",
@@ -206,17 +225,21 @@ function PreApprovalPage() {
                         "& .MuiDataGrid-cell:focus-within": {
                             outline: "none",
                         },
+                        '& .MuiDataGrid-columnSeparator': {
+                            color: '#f3f4f6'
+                        },
                     }}
                     showToolbar
                     density="compact"
                     checkboxSelection
                     disableRowSelectionOnClick
+                    showCellVerticalBorder
                     onRowClick={handleRowClick}
                     pagination
                     paginationMode='server'
                     paginationModel={paginationModel}
                     onPaginationModelChange={setPaginationModel}
-                    rowCount={activeTab === "all" ? allPagination?.total : activeTab === "pending" ? pendingPagination?.total : processedPagination?.total}
+                    rowCount={(activeTab === "all" ? allPagination?.total : activeTab === "pending" ? pendingPagination?.total : processedPagination?.total) || 0}
                     autoPageSize
                 />
             </Box>

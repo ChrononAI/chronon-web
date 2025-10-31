@@ -3,7 +3,6 @@ import { useLocation, NavLink } from 'react-router-dom';
 import {
   ChevronDown,
   ChevronRight,
-  LayoutDashboard,
   ListCheck,
   Banknote,
   ReceiptText,
@@ -40,7 +39,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/store/authStore';
 
 const navigation: NavigationItem[] = [
-  { name: 'Dashboard', href: '#', icon: LayoutDashboard },
+  { name: 'Pre Approval', href: '/pre-approvals', icon: SquareCheckBig },
+  { name: 'Advances', href: '/advances', icon: SquareCheckBig },
   { name: 'Expenses', href: '/expenses', icon: Banknote },
   { name: 'Expense Reports', href: '/reports', icon: ReceiptText },
   {
@@ -63,8 +63,6 @@ const navigation: NavigationItem[] = [
     ]
   },
   { name: 'Reports', href: '/all-reports', isBold: false, icon: FileChartColumn },
-  { name: 'Pre Approval', href: '/pre-approvals', icon: SquareCheckBig },
-  { name: 'Advances', href: '/advances', icon: SquareCheckBig }
 ];
 
 export function Sidebar() {

@@ -140,7 +140,7 @@ function ApprovalsPreApprovalsPage() {
         getAllPreApprovalsToApprove();
         getPendingPreApprovalsToApprove()
         getProcessedApprovals();
-    }, [activeTab]);
+    }, []);
     return (
         <ReportsPageWrapper
             title="Approver Dashboard"
@@ -198,7 +198,7 @@ function ApprovalsPreApprovalsPage() {
                     paginationMode='server'
                     paginationModel={paginationModel}
                     onPaginationModelChange={setPaginationModel}
-                    rowCount={activeTab === "all" ? allPagination?.total : activeTab === "pending" ? pendingPagination?.total : processedPagination?.total}
+                    rowCount={(activeTab === "all" ? allPagination?.total : activeTab === "pending" ? pendingPagination?.total : processedPagination?.total) || 0}
                     autoPageSize
                 />
             </Box>
