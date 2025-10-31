@@ -66,6 +66,10 @@ export interface Expense {
     end_date: string;
     location: string;
   };
+  advance_id?: string | null;
+  pre_approval_id?: string | null;
+  foreign_currency?: string | null;
+  foreign_amount?: string | null;
 }
 
 export interface PaginationMeta {
@@ -203,6 +207,7 @@ export interface Policy {
   is_cumulative: boolean;
   effective_from: string | null;
   effective_until: string | null;
+  is_pre_approval_required?: boolean;
   notes: string | null;
   workflow_config_id: string | null;
   org_id: string;

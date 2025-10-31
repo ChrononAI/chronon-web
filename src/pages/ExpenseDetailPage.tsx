@@ -56,11 +56,15 @@ const transformExpenseToFormData = (expense: Expense) => {
     city: '',
     source: '',
     destination: '',
+    advance_id: expense.advance_id || null,
+    pre_approval_id: expense.pre_approval_id || null,
+    foreign_currency: expense.foreign_currency || null,
+    foreign_amount: expense.foreign_amount || null
   };
 };
 
 export function ExpenseDetailPage() {
-  const { parsedData, setParsedData } = useExpenseStore();
+  const { parsedData, setParsedData, selectedPreApproval } = useExpenseStore();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -80,8 +84,6 @@ export function ExpenseDetailPage() {
   const isFromApprovals = searchParams.get('from') === 'approvals';
   const reportId = searchParams.get('reportId');
   const returnTo = searchParams.get('returnTo');
-
-  console.log(receiptUrlStr);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -118,11 +120,9 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
   }, [id]);
 
   const fetchReceipt = async (receiptId: string, orgId: string) => {
-    console.log(receiptId, orgId)
     try {
       const response: any = await expenseService.fetchReceiptPreview(receiptId, orgId);
       setReceiptSignedUrl(response.data.data.signed_url);
-      setReceiptUrlStr(response.data.data.signed_url);
     } catch (error) {
       console.log(error);
       toast.error('Failed to fetch receipt image');
@@ -134,11 +134,18 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
     console.log(formData);
     if (!expense || !id) return;
 
+    const copiedData = JSON.parse(JSON.stringify(formData));
+    let isForeign = false;
+    const curr = selectedPreApproval?.currency_conversion_rates?.find((cur) => cur.currency === copiedData.foreign_currency);
+    if (copiedData.foreign_currency !== "INR" && selectedPreApproval?.currency_conversion_rates) {
+      isForeign = true;
+    }
+
     setSaving(true);
     try {
       // Transform form data to UpdateExpenseData format
       const expenseData: UpdateExpenseData = {
-        amount: parseFloat(formData.amount).toFixed(2),
+        amount: isForeign ? (+copiedData.amount * (curr ? +curr.rate : 0)) : parseFloat(formData.amount),
         category_id: formData.categoryId,
         description: formData.description,
         expense_date: formData.expense_date,
@@ -156,7 +163,10 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
         mileage_meta: formData.mileage_meta || null,
         is_round_trip: formData.is_round_trip === "true" ? true : false,
         custom_attributes: {},
+        foreign_amount: isForeign ? parseFloat(formData.amount) : null,
+        foreign_currency: isForeign ? formData.foreign_currency : null,
       };
+
       console.log(expenseData);
 
       const response = await expenseService.updateExpense(id, expenseData);

@@ -1,4 +1,5 @@
 import { ParsedInvoiceData } from "@/services/fileParseService";
+import { PreApprovalType } from "@/services/preApprovalService";
 import { Expense } from "@/types/expense";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
@@ -24,6 +25,8 @@ interface ExpenseState {
   reportedExpenses: Expense[];
   reportedExpensesPagination: PaginationInfo;
 
+  selectedPreApproval: PreApprovalType | null;
+
   // Methods
   setParsedData: (data: ParsedInvoiceData | null) => void;
 
@@ -35,6 +38,8 @@ interface ExpenseState {
 
   setReportedExpenses: (data: Expense[]) => void;
   setReportedExpensesPagination: (pagination: PaginationInfo) => void;
+
+  setSelectedPreApproval: (data: PreApprovalType) => void;
 }
 
 export const useExpenseStore = create<ExpenseState>()(
@@ -69,6 +74,7 @@ export const useExpenseStore = create<ExpenseState>()(
           per_page: 10,
           total: 0,
         },
+        selectedPreApproval: null,
 
         setParsedData: (data) =>
           set({ parsedData: data }, false, 'expense/setParsedData'),
@@ -102,6 +108,11 @@ export const useExpenseStore = create<ExpenseState>()(
             false,
             "expense/setCompletedExpensesPagination"
           ),
+
+          setSelectedPreApproval: (data) =>
+            set({
+              selectedPreApproval: data
+            }, false, 'expense/setSelectedPreApproval')
       }),
       {
         name: 'expense-storage',

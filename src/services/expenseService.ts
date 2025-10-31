@@ -19,6 +19,10 @@ export interface CreateExpenseData {
   vendor: string;
   receipt_id?: string;
   invoice_number?: string | null;
+  advance_id?: string;
+  pre_approval_id?: string;
+  foreign_amount?: number | null;
+  foreign_currency?: string | null;
 }
 
 export interface UpdateExpenseData {
@@ -38,6 +42,10 @@ export interface UpdateExpenseData {
   mileage_meta?: any;
   custom_attributes?: any;
   is_round_trip?: boolean;
+  advance_id?: string;
+  pre_approval_id?: string;
+  foreign_amount?: number | null;
+  foreign_currency?: string | null;
 }
 
 export interface CreateExpenseResponse {
@@ -387,7 +395,6 @@ export const expenseService = {
           error.response?.data?.message ||
           error.message ||
           "Failed to create expense",
-        validation_details: error.response?.data?.validation_details,
       };
     }
   },

@@ -23,12 +23,15 @@ type ExpenseFormValues = {
   city?: string;
   source?: string;
   destination?: string;
+  pre_approval_id?: string | null;
+  advance_id?: string | null;
+  foreign_currency?: string | null;
 };
 
 export function CreateExpenseForm() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { parsedData, setParsedData } = useExpenseStore();
+  const { parsedData, setParsedData, selectedPreApproval } = useExpenseStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -118,19 +121,29 @@ export function CreateExpenseForm() {
   };
 
   const actuallySubmit = async (data: ExpenseFormValues) => {
-    setLoading(true);
+    // setLoading(true);
+    const copiedData = JSON.parse(JSON.stringify(data));
+    let isForeign = false;
+    const curr = selectedPreApproval?.currency_conversion_rates?.find((cur) => cur.currency === copiedData.foreign_currency);
+    if (copiedData.foreign_currency !== "INR" && selectedPreApproval?.currency_conversion_rates) {
+      isForeign = true;
+    }
     try {
       const formattedDate = format(data.dateOfExpense, 'yyyy-MM-dd');
 
       const expenseData: CreateExpenseData = {
-        amount: parseFloat(data.amount),
+        amount: isForeign ? (+copiedData.amount * (curr ? +curr.rate : 0)) : parseFloat(data.amount),
+        foreign_amount: isForeign ? parseFloat(data.amount) : null,
+        foreign_currency: isForeign ? data.foreign_currency : null,
         category_id: data.categoryId,
         description: data.comments || data.merchant || 'Expense description',
         expense_date: formattedDate,
         expense_policy_id: data.policyId,
         vendor: data.merchant,
         receipt_id: parsedData?.id || undefined,
-        invoice_number: data.invoiceNumber || parsedData?.ocr_result?.invoice_number || null
+        invoice_number: data.invoiceNumber || parsedData?.ocr_result?.invoice_number || null,
+        advance_id: data.advance_id || undefined,
+        pre_approval_id: data.pre_approval_id || undefined
       };
       const result = await expenseService.createExpense(expenseData);
       if (result.success) {
@@ -165,7 +178,7 @@ export function CreateExpenseForm() {
           stepTitles={stepTitles}
           isManualEntry={currentStep === 2 && !uploadedFile}
         />
-                             </div>
+      </div>
 
       {/* Step Content */}
       {currentStep === 1 ? (

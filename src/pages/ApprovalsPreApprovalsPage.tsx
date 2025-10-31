@@ -1,0 +1,209 @@
+import { useEffect, useState } from "react";
+import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper"
+import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
+import { formatDate, getStatusColor } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { preApprovalService, PreApprovalType } from "@/services/preApprovalService";
+import { useNavigate } from "react-router-dom";
+import { usePreApprovalStore } from "@/store/preApprovalStore";
+import { PaginationInfo } from "@/store/expenseStore";
+import { Box } from "@mui/material";
+
+function ApprovalsPreApprovalsPage() {
+    const navigate = useNavigate();
+    const { setSelectedPreApprovalToApprove } = usePreApprovalStore()
+
+    const columns: GridColDef[] = [
+        {
+            field: "sequence_number",
+            headerName: "PRE APPROVAL ID",
+            width: 160
+        },
+        {
+            field: "title",
+            headerName: "TITLE",
+            width: 200
+        },
+        {
+            field: 'start_date',
+            headerName: 'START',
+            width: 120,
+            renderCell: ({ value }) => {
+                return formatDate(value)
+            }
+        },
+        {
+            field: 'end_date',
+            headerName: 'END',
+            width: 120,
+            renderCell: ({ value }) => {
+                return formatDate(value)
+            }
+        },
+        {
+            field: 'policy_name',
+            headerName: 'POLICY',
+            width: 150
+        },
+        {
+            field: 'status',
+            headerName: 'STATUS',
+            width: 170,
+            renderCell: ({ value }) => {
+                return (
+                    <Badge className={getStatusColor(value)}>
+                        {value.replace('_', ' ')}
+                    </Badge>
+                )
+            }
+        },
+        {
+            field: 'created_by',
+            headerName: 'CREATED BY',
+            width: 150,
+            renderCell: ({ value }) => {
+                return value.email;
+            }
+        },
+        {
+            field: 'created_at',
+            headerName: 'CREATED AT',
+            width: 150,
+            renderCell: ({ value }) => {
+                return formatDate(value)
+            }
+        },
+        {
+            field: 'description',
+            headerName: 'PURPOSE',
+            flex: 1,
+            minWidth: 150
+        }
+    ];
+
+    const [allRows, setAllRows] = useState([]);
+    const [allPagination, setAllPagination] = useState<PaginationInfo | null>(null);
+    const [pendingRows, setPendingRows] = useState([]);
+    const [pendingPagination, setPendingPagination] = useState<PaginationInfo | null>(null);
+    const [processedRows, setProcessedRows] = useState([]);
+    const [processedPagination, setProcessedPagination] = useState<PaginationInfo | null>(null);
+
+    const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+        page: 0,
+        pageSize: 10,
+    });
+
+    const [activeTab, setActiveTab] = useState<"pending" | "processed" | "all">("all");
+    const rows = activeTab === "all" ? allRows : activeTab === "pending" ? pendingRows : processedRows;
+    const tabs = [
+        { key: "all", label: "All", count: allPagination?.total || 0 },
+        { key: "pending", label: "Pending", count: pendingPagination?.total || 0 },
+        { key: "processed", label: "Processed", count: processedPagination?.total || 0 }
+    ];
+
+    const onRowClick = ({ row }: { row: PreApprovalType }) => {
+        setSelectedPreApprovalToApprove(row);
+        navigate(`/approvals/pre-approvals/${row.id}`);
+    }
+
+    const getAllPreApprovalsToApprove = async () => {
+        try {
+            const res: any = await preApprovalService.getPreApprovalToApprove();
+            setAllRows(res.data.data);
+            setAllPagination(res.data.pagination);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    const getPendingPreApprovalsToApprove = async () => {
+        try {
+            const res: any = await preApprovalService.getPreApprovalToApproveByStatus('IN_PROGRESS');
+            setPendingRows(res.data.data);
+            setPendingPagination(res.data.pagination);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    const getProcessedApprovals = async () => {
+        try {
+            const res: any = await preApprovalService.getPreApprovalToApproveByStatus('APPROVED,REJECTED');
+            setProcessedRows(res.data.data);
+            setProcessedPagination(res.data.pagination);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    useEffect(() => {
+        getAllPreApprovalsToApprove();
+        getPendingPreApprovalsToApprove()
+        getProcessedApprovals();
+    }, [activeTab]);
+    return (
+        <ReportsPageWrapper
+            title="Approver Dashboard"
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={(tabId) => setActiveTab(tabId as "all" | "pending" | "processed")}
+            showDateFilter={true}
+            showFilters={false}
+            searchTerm={""}
+            onSearchChange={function (): void {
+                throw new Error("Function not implemented.");
+            }}
+        >
+            <Box sx={{ height: "calc(100vh - 160px)", width: "100%", marginTop: '-32px' }}>
+                <DataGrid
+                    className="rounded border h-full"
+                    columns={columns}
+                    rows={rows}
+                    sx={{
+                        border: 0,
+                        "& .MuiDataGrid-columnHeaderTitle": {
+                            color: '#9AA0A6',
+                            fontWeight: 505,
+                            fontSize: "14px"
+                        },
+                        "& .MuiDataGrid-main": {
+                            border: '1px solid #F1F3F4'
+                        },
+                        "& .MuiDataGrid-columnHeader": {
+                            backgroundColor: '#f3f4f6'
+                        },
+                        "& .MuiCheckbox-root": {
+                            color: '#9AA0A6'
+                        },
+                        "& .MuiDataGrid-row:hover": {
+                            cursor: "pointer",
+                            backgroundColor: "#f5f5f5",
+                        },
+                        "& .MuiDataGrid-cell": {
+                            color: '#2E2E2E'
+                        },
+                        "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
+                            outline: "none",
+                        },
+                        "& .MuiDataGrid-cell:focus-within": {
+                            outline: "none",
+                        },
+                    }}
+                    showToolbar
+                    density="compact"
+                    checkboxSelection
+                    disableRowSelectionOnClick
+                    onRowClick={onRowClick}
+                    pagination
+                    paginationMode='server'
+                    paginationModel={paginationModel}
+                    onPaginationModelChange={setPaginationModel}
+                    rowCount={activeTab === "all" ? allPagination?.total : activeTab === "pending" ? pendingPagination?.total : processedPagination?.total}
+                    autoPageSize
+                />
+            </Box>
+        </ReportsPageWrapper>
+    )
+}
+
+export default ApprovalsPreApprovalsPage

@@ -295,7 +295,7 @@ export function ReportDetailPage() {
                   className="bg-green-600 hover:bg-green-700"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Approve Report
+                  Approve
                 </Button>
                 <Button
                   onClick={() => handleAction('reject')}
@@ -303,7 +303,7 @@ export function ReportDetailPage() {
                   className="bg-red-600 hover:bg-red-700"
                 >
                   <XCircle className="h-4 w-4 mr-2" />
-                  Reject Report
+                  Reject
                 </Button>
               </div>
             </div>

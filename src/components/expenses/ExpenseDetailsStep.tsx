@@ -6,8 +6,6 @@ import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import api from "@/lib/api";
 import {
   ArrowLeft,
-  MapPin,
-  Navigation,
   Calendar,
   Loader2,
   FileText,
@@ -54,7 +52,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
@@ -62,6 +60,8 @@ import { fileParseService, ParsedInvoiceData } from "@/services/fileParseService
 import { useExpenseStore } from "@/store/expenseStore";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
+import { preApprovalService, PreApprovalType } from "@/services/preApprovalService";
+import { AdvanceService, AdvanceType } from "@/services/advanceService";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Copy, ExternalLink } from "lucide-react";
 
@@ -80,32 +80,13 @@ const expenseSchema = z.object({
   city: z.string().optional(),
   source: z.string().optional(),
   destination: z.string().optional(),
+  pre_approval_id: z.string().nullable().optional(),
+  advance_id: z.string().nullable().optional(),
+  foreign_currency: z.string().optional().default("INR").nullable(),
+  foreign_amount: z.string().optional().nullable()
 });
 
-type ExpenseFormValues = z.infer<typeof expenseSchema>;
-
-const cities = [
-  "Mumbai",
-  "Delhi",
-  "Bengaluru",
-  "Hyderabad",
-  "Ahmedabad",
-  "Chennai",
-  "Kolkata",
-  "Pune",
-  "Jaipur",
-  "Lucknow",
-  "Kanpur",
-  "Nagpur",
-  "Indore",
-  "Thane",
-  "Bhopal",
-  "Visakhapatnam",
-  "Pimpri-Chinchwad",
-  "Patna",
-  "Vadodara",
-  "Ghaziabad",
-];
+type ExpenseFormValues = z.infer<typeof expenseSchema>
 
 interface ExpenseDetailsStepProps {
   onBack: () => void;
@@ -121,6 +102,7 @@ interface ExpenseDetailsStepProps {
   expenseData?: ExpenseFormValues;
   receiptUrls?: string[];
   isEditMode?: boolean;
+  foreign_currency?: string | null;
   expense?: any; // Full expense object with original_expense_id
 }
 
@@ -142,18 +124,49 @@ export function ExpenseDetailsStep({
 }: ExpenseDetailsStepProps) {
   const navigate = useNavigate();
   const orgId = getOrgIdFromToken();
-  const { parsedData, setParsedData } = useExpenseStore();
+  const { parsedData, setParsedData, selectedPreApproval, setSelectedPreApproval } = useExpenseStore();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(
     null
   );
   const [duplicateReceiptLoading, setDuplicateReceiptLoading] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
-  const [selectedCategory, setSelectedCategory] =
-  useState<PolicyCategory | null>(null);
+  const showPreApproval = selectedPolicy?.is_pre_approval_required;
+  // const [selectedPreApproval, setSelectedPreApproval] = useState<PreApprovalType | null>(null);
+  const [preApprovals, setPreApprovals] = useState<PreApprovalType[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [replaceRecLoading, setReplaceRecLoading] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [advances, setAdvances] = useState<AdvanceType[]>([]);
+  const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState('INR');
+  // const [conversionRates, setConversionRates] = useState<CurrencyConversionRate[]>([]);
+  const conversionRates = selectedPreApproval?.currency_conversion_rates || [];
+
+  const selectedConversion = conversionRates?.find((con) => con.currency === selectedCurrency);
+
+  const form = useForm<ExpenseFormValues>({
+    resolver: zodResolver(expenseSchema),
+    defaultValues: expenseData
+      ? expenseData
+      : {
+        policyId: "",
+        categoryId: "",
+        invoiceNumber: "",
+        merchant: "",
+        amount: "",
+        dateOfExpense: new Date(),
+        comments: "",
+        city: "",
+        source: "",
+        destination: "",
+        pre_approval_id: "",
+        advance_id: ""
+      },
+  });
+
+  const baseAmount = selectedConversion && (+form.getValues('amount') * +selectedConversion?.rate);
 
   // Fetch signed URL for duplicate receipts
   const fetchDuplicateReceiptUrl = async (receiptId: string) => {
@@ -173,6 +186,21 @@ export function ExpenseDetailsStep({
       setDuplicateReceiptLoading(false);
     }
   };
+
+  const getApprovedPreApprovals = async () => {
+    try {
+      const response: any = await preApprovalService.getPreApprovalsByStatus({ status: "APPROVED", page: 1, perPage: 25 });
+      setPreApprovals(response?.data.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedPolicy && selectedPolicy.is_pre_approval_required) {
+      getApprovedPreApprovals();
+    }
+  }, [selectedPolicy]);
 
   // Receipt viewer states
   const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
@@ -199,26 +227,18 @@ export function ExpenseDetailsStep({
     fetchDuplicateReceiptUrl,
   ]);
 
-  const form = useForm<ExpenseFormValues>({
-    resolver: zodResolver(expenseSchema),
-    defaultValues: expenseData
-      ? expenseData
-      : {
-        policyId: "",
-        categoryId: "",
-        invoiceNumber: "",
-        merchant: "",
-        amount: "",
-        dateOfExpense: new Date(),
-        comments: "",
-        city: "",
-        source: "",
-        destination: "",
-      },
-  });
+  const getApprovedAdvances = async () => {
+    try {
+      const res: any = await AdvanceService.getAdvancesByStatus({ status: "APPROVED", page: 1, perPage: 25 });
+      setAdvances(res.data.data);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   useEffect(() => {
     loadPoliciesWithCategories();
+    getApprovedAdvances();
   }, []);
 
   // Update form values when expenseData changes
@@ -226,6 +246,10 @@ export function ExpenseDetailsStep({
     if (expenseData && !isReceiptReplaced) {
       form.reset(expenseData);
       // Set selected policy and category based on form data
+      if (expenseData.foreign_amount && expenseData.foreign_currency) {
+        form.setValue('amount', expenseData.foreign_amount);
+        form.setValue('foreign_currency', expenseData.foreign_currency);
+      }
       if (expenseData.policyId && policies.length > 0) {
         const policy = policies.find((p) => p.id === expenseData.policyId);
         if (policy) {
@@ -243,8 +267,25 @@ export function ExpenseDetailsStep({
           }
         }
       }
+      if (expenseData.foreign_currency) {
+        setSelectedCurrency(expenseData.foreign_currency);
+      }
+      if (expenseData.advance_id && advances.length > 0) {
+        const adv = advances.find((a) => a.id === expenseData.advance_id);
+        if (adv) {
+          setSelectedAdvance(adv)
+          form.setValue('advance_id', expenseData.advance_id);
+        };
+      }
+      if (expenseData.pre_approval_id && preApprovals.length > 0) {
+        const preApp = preApprovals.find((a) => a.id === expenseData.pre_approval_id);
+        if (preApp) {
+          setSelectedPreApproval(preApp)
+          form.setValue('pre_approval_id', expenseData.pre_approval_id);
+        };
+      }
     }
-  }, [form, policies]);
+  }, [form, policies, preApprovals, advances]);
 
   // Auto-fill fields from parsed data
   useEffect(() => {
@@ -502,14 +543,14 @@ export function ExpenseDetailsStep({
                                   disabled={!selectedPolicy || readOnly}
                                 >
                                   <>
-                                  <span className="truncate max-w-[85%] overflow-hidden text-ellipsis inline-block text-left">
-                                  {selectedCategory
-                                    ? selectedCategory.name
-                                    : !selectedPolicy
-                                      ? "Select policy first"
-                                      : "Select a category"}
-                                  </span>
-                                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    <span className="truncate max-w-[85%] overflow-hidden text-ellipsis inline-block text-left">
+                                      {selectedCategory
+                                        ? selectedCategory.name
+                                        : !selectedPolicy
+                                          ? "Select policy first"
+                                          : "Select a category"}
+                                    </span>
+                                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                   </>
                                 </Button>
                               </FormControl>
@@ -555,11 +596,6 @@ export function ExpenseDetailsStep({
                             <FormItem>
                               <FormLabel>
                                 Receipt Number *
-                                {parsedData?.ocr_result?.invoice_number && (
-                                  <span className="text-green-600 text-xs ml-2">
-                                    (Auto-filled)
-                                  </span>
-                                )}
                               </FormLabel>
                               <FormControl>
                                 <Input
@@ -585,11 +621,6 @@ export function ExpenseDetailsStep({
                             <FormItem>
                               <FormLabel>
                                 Vendor *
-                                {parsedData?.ocr_result?.vendor && (
-                                  <span className="text-green-600 text-xs ml-2">
-                                    (Auto-filled)
-                                  </span>
-                                )}
                               </FormLabel>
                               <FormControl>
                                 <Input
@@ -610,86 +641,37 @@ export function ExpenseDetailsStep({
                       </>
                     )}
 
-                    {/* Conveyance 2W Specific Fields */}
-                    {isConveyanceCategory && (
-                      <>
-                        <FormField
-                          control={form.control}
-                          name="city"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Select City *</FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select city" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {cities.map((city) => (
-                                    <SelectItem key={city} value={city}>
-                                      {city}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="source"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Source *</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                  <Input
-                                    {...field}
-                                    placeholder="Enter source location"
-                                    className="pl-10"
-                                    readOnly={readOnly}
-                                    onChange={field.onChange}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="destination"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Destination *</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Navigation className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                  <Input
-                                    {...field}
-                                    placeholder="Enter destination location"
-                                    className="pl-10"
-                                    readOnly={readOnly}
-                                    onChange={field.onChange}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </>
-                    )}
-
                     {/* Amount */}
+                    <FormField
+                      control={form.control}
+                      name="foreign_currency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Currency *</FormLabel>
+                          <FormControl>
+                            <Select
+                              value={field.value || "INR"}
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                setSelectedCurrency(value);
+                              }}
+                              disabled={readOnly || !form.getValues('pre_approval_id')}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a currency" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="INR">INR (₹)</SelectItem>
+                                <SelectItem value="USD">USD ($)</SelectItem>
+                                <SelectItem value="EUR">EUR (€)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <FormField
                       control={form.control}
                       name="amount"
@@ -697,13 +679,6 @@ export function ExpenseDetailsStep({
                         <FormItem>
                           <FormLabel>
                             Amount *
-                            {parsedData?.ocr_result?.amount && (
-                              <span className="text-green-600 text-xs ml-2">
-                                (Auto-
-                                {isConveyanceCategory ? "calculated" : "filled"}
-                                )
-                              </span>
-                            )}
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -714,16 +689,17 @@ export function ExpenseDetailsStep({
                                   : "Amount"
                               }
                               type="number"
-                              className={
-                                parsedData?.ocr_result?.amount
-                                  ? "bg-white border-green-300 text-gray-900"
-                                  : ""
-                              }
                               // readOnly={readOnly}
                               disabled={readOnly}
                             />
                           </FormControl>
-                          <FormMessage />
+                          {baseAmount ? (
+                            <p className="text-[12px] text-gray-500 ml-2">
+                              {formatCurrency(baseAmount)}
+                            </p>
+                          ) : (
+                            <FormMessage />
+                          )}
                         </FormItem>
                       )}
                     />
@@ -736,23 +712,13 @@ export function ExpenseDetailsStep({
                         <FormItem>
                           <FormLabel>
                             Date *
-                            {parsedData?.ocr_result?.date && (
-                              <span className="text-green-600 text-xs ml-2">
-                                (Auto-filled)
-                              </span>
-                            )}
                           </FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
                                   variant="outline"
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground",
-                                    parsedData?.ocr_result?.date &&
-                                    "bg-white border-green-300 text-gray-900"
-                                  )}
+                                  className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                                   disabled={readOnly}
                                 >
                                   {field.value ? (
@@ -773,7 +739,7 @@ export function ExpenseDetailsStep({
                                 selected={field.value}
                                 onSelect={field.onChange}
                                 disabled={(date) =>
-                                  date > new Date() ||
+                                  // date > new Date() ||
                                   date < new Date("1900-01-01")
                                 }
                                 initialFocus
@@ -784,9 +750,96 @@ export function ExpenseDetailsStep({
                         </FormItem>
                       )}
                     />
-                  </div>
+                  
 
-                  {/* Calculation Info for Conveyance */}
+                  {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> */}
+                    <FormField
+                      control={form.control}
+                      name="advance_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Advance</FormLabel>
+                          <Select
+                            value={field.value || ""}
+                            onValueChange={(value) => {
+                              const adv = advances.find(
+                                (a) => a.id === value
+                              );
+                              if (adv) setSelectedAdvance(adv);
+                              form.setValue('advance_id', value)
+                            }}
+                            disabled={readOnly}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select advance">
+                                  {field.value && selectedAdvance
+                                    ? selectedAdvance.title
+                                    : "Select advance"}
+                                </SelectValue>
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {advances.length > 0 ? advances.map((adv) => (
+                                <SelectItem key={adv.id} value={adv.id}>
+                                  <div>
+                                    <div className="font-medium">
+                                      {adv.title}
+                                    </div>
+                                  </div>
+                                </SelectItem>
+                              )) : <SelectItem value="no advances" disabled>No advances</SelectItem>}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {showPreApproval &&
+                      <FormField
+                        control={form.control}
+                        name="pre_approval_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Pre Approval</FormLabel>
+                            <Select
+                              value={field.value || ""}
+                              onValueChange={(value) => {
+                                const preApp = preApprovals.find(
+                                  (p) => p.id === value
+                                );
+                                if (preApp) setSelectedPreApproval(preApp);
+                                form.setValue('pre_approval_id', value)
+                              }}
+                              disabled={readOnly}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select pre approval">
+                                    {field.value && selectedPreApproval
+                                      ? selectedPreApproval.title
+                                      : "Select pre approval"}
+                                  </SelectValue>
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {preApprovals.length > 0 ? preApprovals.map((preApproval) => (
+                                  <SelectItem key={preApproval.id} value={preApproval.id}>
+                                    <div>
+                                      <div className="font-medium">
+                                        {preApproval.title}
+                                      </div>
+                                    </div>
+                                  </SelectItem>
+                                )) : <SelectItem value="no pre approvals" disabled>No pre approvals</SelectItem>}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    }
+                  </div>
 
                   {/* Comments - Full Width */}
                   <FormField
