@@ -1,0 +1,1 @@
+Add folders for the components required for admin pages.

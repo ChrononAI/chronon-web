@@ -1,0 +1,1 @@
+// Add types for the admin pages in this file
