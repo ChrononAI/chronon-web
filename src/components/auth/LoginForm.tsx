@@ -17,9 +17,10 @@ import { toast } from "sonner";
 
 interface LoginProps {
   onLogin?: () => void;
+  onForgotPassword?: () => void;
 }
 
-export function LoginForm({ onLogin }: LoginProps) {
+export function LoginForm({ onLogin, onForgotPassword }: LoginProps) {
   const navigate = useNavigate()
   const login = useAuthStore((state) => state.login);
   const [email, setEmail] = useState("");
@@ -200,6 +201,21 @@ export function LoginForm({ onLogin }: LoginProps) {
                       <span className="text-sm text-red-700">{error}</span>
                     </div>
                   )}
+                <div className="flex justify-end -mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onForgotPassword) {
+                        onForgotPassword();
+                      } else {
+                        navigate('/account/password-reset');
+                      }
+                    }}
+                    className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                   <Button
                     type="submit"
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 px-4 rounded-lg font-medium transition-colors text-sm"

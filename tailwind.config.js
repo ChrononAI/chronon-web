@@ -75,11 +75,26 @@ export default {
             height: '0',
           },
         },
+        'success-pop': {
+          '0%': {
+            transform: 'scale(0.6)',
+            opacity: '0.2',
+          },
+          '60%': {
+            transform: 'scale(1.15)',
+            opacity: '1',
+          },
+          '100%': {
+            transform: 'scale(1)',
+            opacity: '1',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'fade-in': 'fade-in 0.3s ease-out',
+        'success-pop': 'success-pop 0.6s cubic-bezier(0.4,0,0.2,1) both',
       },
       transitionProperty: {
         'height': 'height',

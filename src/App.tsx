@@ -22,6 +22,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage';
 import { PermissionDeniedPage } from '@/pages/PermissionDeniedPage';
 import { MyExpensesPage } from '@/pages/MyExpensesPage';
 import { UnifiedExpensesPage } from "@/pages/UnifiedExpensesPage"
+import { AccountPage } from '@/pages/AccountPage';
 
 // Simple redirect component with toast notification
 function AdvancesRedirect() {
@@ -177,6 +178,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          <Route path="/account/password-reset" element={<AccountPage />} />
           {/* <Route
             path="/report/expenses/:id"
             element={

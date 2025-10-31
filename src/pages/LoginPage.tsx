@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { useAuthStore } from '@/store/authStore';
@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 export function LoginPage() {
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -13,5 +14,10 @@ export function LoginPage() {
     }
   }, [isAuthenticated, navigate]);
 
-  return <LoginForm />;
+  return (
+    <LoginForm
+      onForgotPassword={() => navigate('/account/password-reset')
+      }
+    />
+  );
 }
