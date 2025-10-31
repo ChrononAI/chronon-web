@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/table';
 import { GeneratedReport } from '@/services/reportService';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { Download } from 'lucide-react';
 
 interface AllReportTableProps {
@@ -42,15 +43,15 @@ export function AllReportsTable({ reports, handleDownloadGeneratedReport }: AllR
     return (
         <div className="border rounded-lg bg-white">
             <Table>
-                <TableHeader>
+                <TableHeader className="text-[#64748B]">
                     <TableRow className="bg-gray-100">
-                        <TableHead>TITLE</TableHead>
-                        <TableHead>DATE RANGE</TableHead>
-                        <TableHead>RECORDS</TableHead>
-                        <TableHead>SIZE</TableHead>
-                        <TableHead>STATUS</TableHead>
-                        <TableHead>CREATED ON</TableHead>
-                        <TableHead>ACTION</TableHead>
+                        <TableHead className="font-medium whitespace-nowrap">TITLE</TableHead>
+                        <TableHead className="font-medium">DATE RANGE</TableHead>
+                        <TableHead className="font-medium">RECORDS</TableHead>
+                        <TableHead className="font-medium">SIZE</TableHead>
+                        <TableHead className="font-medium">STATUS</TableHead>
+                        <TableHead className="font-medium">CREATED ON</TableHead>
+                        <TableHead className="font-medium">ACTION</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -64,21 +65,23 @@ export function AllReportsTable({ reports, handleDownloadGeneratedReport }: AllR
                                 <TableCell className="font-medium whitespace-nowrap">
                                     {report.report_name}
                                 </TableCell>
-                                <TableCell>{criteria.start_date} to {criteria.end_date}</TableCell>
+                                <TableCell className="whitespace-nowrap">{criteria.start_date} to {criteria.end_date}</TableCell>
                                 <TableCell className="font-medium whitespace-nowrap">
                                     {report.number_of_records}
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap">{formatFileSize(report.report_size)}</TableCell>
-                                <TableCell className="whitespace-nowrap"><span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${report.status === 'GENERATED'
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                    }`}>
-                                    {report.status}
-                                </span></TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                    <Badge className={report.status === 'GENERATED'
+                                        ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                                        : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+                                    }>
+                                        {report.status}
+                                    </Badge>
+                                </TableCell>
                                 <TableCell className="whitespace-nowrap">
                                     {report.created_at ? new Date(report.created_at).toLocaleDateString() : 'N/A'}
                                 </TableCell>
-                                <TableCell className='text-center'>
+                                <TableCell className="whitespace-nowrap">
                                     <Button
                                         variant="ghost"
                                         size="sm"

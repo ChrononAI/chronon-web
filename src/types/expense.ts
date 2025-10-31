@@ -39,6 +39,7 @@ export interface Expense {
   store_id: string | null;
   updated_at: string;
   vendor: string;
+  original_expense_id?: string | null;
   // Mileage-specific fields
   distance?: number | string;
   distance_unit?: string;
@@ -48,6 +49,13 @@ export interface Expense {
   mileage_meta?: {
     trip_purpose?: string;
     notes?: string;
+    map_url?: string;
+    stops?: Array<{
+      id: string;
+      location: string;
+      locationId: string;
+      distance?: number;
+    }>;
   };
   // Per diem-specific fields
   location?: string;

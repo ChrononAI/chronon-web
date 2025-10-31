@@ -606,6 +606,23 @@ class ReportService {
       };
     }
   }
+
+  async deleteReport(reportId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await api.delete(`/reports/reports/${reportId}`);
+      
+      return {
+        success: response.data.status === 'success',
+        message: response.data.message || 'Report deleted successfully'
+      };
+    } catch (error: any) {
+      console.error('Error deleting report:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to delete report'
+      };
+    }
+  }
 }
 
 export const reportService = new ReportService();

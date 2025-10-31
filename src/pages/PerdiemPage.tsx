@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/ui/date-field";
-import { Calendar } from "lucide-react";
+import { Calendar, Copy, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { placesService } from "@/services/placesService";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { Expense, Policy, PolicyCategory } from "@/types/expense";
@@ -307,6 +308,24 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
   return (
     <div className="w-full pt-1">
+      {/* Duplicate Expense Indicator */}
+      {expenseData?.original_expense_id && (
+        <Alert className="bg-yellow-50 border-yellow-200 mb-4">
+          <Copy className="h-4 w-4 text-yellow-600" />
+          <AlertTitle className="text-yellow-800">Duplicate Expense Detected</AlertTitle>
+          <AlertDescription className="text-yellow-700">
+            This expense has been flagged as a duplicate. 
+            <Button
+              variant="link"
+              className="p-0 h-auto text-yellow-700 underline ml-1"
+              onClick={() => navigate(`/expenses/${expenseData.original_expense_id}`)}
+            >
+              View original expense <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
         <div className="bg-white border rounded-lg p-6">

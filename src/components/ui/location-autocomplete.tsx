@@ -9,6 +9,7 @@ interface LocationAutocompleteProps {
   onSelect: (place: PlaceSuggestion) => void;
   placeholder?: string;
   disabled?: boolean;
+  customIcon?: React.ReactNode | null;
 }
 
 export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
@@ -17,11 +18,13 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   onSelect,
   placeholder = "e.g., 123 Main St, Anytown",
   disabled = false,
+  customIcon,
 }) => {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [userInteracted, setUserInteracted] = useState(false);
+  const [hasSelected, setHasSelected] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +72,8 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUserInteracted(true);
+    // Reset hasSelected when user starts typing again
+    setHasSelected(false);
     onChange(e.target.value);
   };
 
@@ -76,6 +81,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     onChange(suggestion.description);
     onSelect(suggestion);
     setShowSuggestions(false);
+    setHasSelected(true);
   };
 
   const [isAutoSelected, setIsAutoSelected] = useState(false);
@@ -101,7 +107,13 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   return (
     <div className="relative">
       <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        {customIcon !== null && customIcon !== undefined ? (
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 flex items-center justify-center text-xs font-bold">
+            {customIcon}
+          </div>
+        ) : customIcon === null ? null : (
+          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        )}
         <Input
           ref={inputRef}
           type="text"
@@ -109,10 +121,10 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
           value={value}
           onChange={handleInputChange}
           onFocus={() => {
-            if (!disabled && userInteracted)
+            if (!disabled && userInteracted && !hasSelected)
               setShowSuggestions(suggestions.length > 0);
           }}
-          className="pl-10"
+          className={customIcon !== null && customIcon !== undefined ? "pl-10" : customIcon === null ? "" : "pl-10"}
           disabled={disabled}
         />
         {isLoading && (
@@ -120,7 +132,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
         )}
       </div>
 
-      {!disabled && userInteracted && showSuggestions && suggestions.length > 0 && (
+      {!disabled && userInteracted && showSuggestions && suggestions.length > 0 && !hasSelected && (
         <div
           ref={suggestionsRef}
           className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto"

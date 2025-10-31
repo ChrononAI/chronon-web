@@ -9,6 +9,7 @@ import {
   FileText,
   Calendar,
   Building,
+  Trash2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,25 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 import { reportService } from '@/services/reportService';
 import { Expense } from '@/types/expense';
@@ -85,6 +104,9 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>([]);
   const [formSchema, setFormSchema] = useState(createReportSchema([]));
   const [markedExpenses, setMarkedExpenses] = useState<Expense[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   // Determine if Hospital Name and Campaign Code should be shown
   const userDept = user?.department?.toLowerCase() || '';
@@ -135,6 +157,33 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
     }
   }, [customAttributes, form]);
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
+  
+  // Get unique categories from expenses
+  const getUniqueCategories = (expenses: Expense[]): string[] => {
+    const categories = expenses
+      .map(exp => exp.category)
+      .filter((cat): cat is string => Boolean(cat && cat.trim()))
+      .filter((cat, index, self) => self.indexOf(cat) === index)
+      .sort();
+    return categories;
+  };
+
+  // Truncate category name for display
+  const truncateCategory = (category: string, maxLength: number = 15): string => {
+    if (category.length <= maxLength) return category;
+    return category.substring(0, maxLength) + '...';
+  };
+
+  // Filter expenses based on selected category
+  const getFilteredExpenses = (): Expense[] => {
+    if (categoryFilter === 'all') {
+      return allExpenses;
+    }
+    return allExpenses.filter(exp => exp.category === categoryFilter);
+  };
+
+  const filteredExpenses = getFilteredExpenses();
+
   const fetchData = async () => {
     try {
       setLoadingExpenses(true);
@@ -291,6 +340,28 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       toast.error('Failed to save report');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteReport = async () => {
+    if (!reportData?.id) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await reportService.deleteReport(reportData.id);
+      if (response.success) {
+        toast.success('Report deleted successfully');
+        navigate('/reports');
+      } else {
+        toast.error(response.message || 'Failed to delete report');
+        setShowDeleteDialog(false);
+      }
+    } catch (error) {
+      console.error('Failed to delete report:', error);
+      toast.error('Failed to delete report');
+      setShowDeleteDialog(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -485,27 +556,50 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Expenses ({allExpenses.length})
+                  Expenses ({filteredExpenses.length})
                 </CardTitle>
                 {allExpenses.length > 0 && (
                   <>
-                    {markedExpenses.length !== allExpenses.length && <button
-                      onClick={() => setMarkedExpenses(allExpenses)}
-                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                      Select All
-                    </button>}
-                    {markedExpenses.length === allExpenses.length && <button
-                      onClick={() => setMarkedExpenses([])}
-                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                      Deselect All
-                    </button>}
+                    <div className="flex items-center gap-3">
+                      {getUniqueCategories(allExpenses).length > 0 && (
+                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                          <SelectTrigger className="w-[140px] h-auto py-1.5 text-sm [&>span]:truncate [&>span]:max-w-[120px]">
+                            <SelectValue placeholder="Filter" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            {getUniqueCategories(allExpenses).map((category) => (
+                              <SelectItem key={category} value={category} title={category}>
+                                {truncateCategory(category, 15)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {filteredExpenses.filter(exp => !markedExpenses.some(marked => marked.id === exp.id)).length > 0 && <button
+                        onClick={() => {
+                          const toAdd = filteredExpenses.filter(exp => !markedExpenses.some(marked => marked.id === exp.id));
+                          setMarkedExpenses([...markedExpenses, ...toAdd]);
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        Select All
+                      </button>}
+                      {filteredExpenses.length > 0 && filteredExpenses.every(exp => markedExpenses.some(marked => marked.id === exp.id)) && <button
+                        onClick={() => {
+                          const filteredIds = new Set(filteredExpenses.map(exp => exp.id));
+                          setMarkedExpenses(markedExpenses.filter(exp => !filteredIds.has(exp.id)));
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        Deselect All
+                      </button>}
+                    </div>
                   </>
                 )}
               </div>
             </CardHeader>
-            <CardContent className="max-h-80 overflow-y-auto">
+            <CardContent className="max-h-[600px] overflow-y-auto">
               {loadingExpenses ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -516,9 +610,14 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
                   <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-muted-foreground">No expenses found</p>
                 </div>
+              ) : filteredExpenses.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">No expenses found for selected category</p>
+                </div>
               ) : (
                 <div className="space-y-3">
-                  {allExpenses.map((expense) => (
+                  {filteredExpenses.map((expense) => (
                     <div
                       key={expense.id}
                       className={`border rounded-lg p-3 cursor-pointer transition-colors ${selectedAvailableExpenses.has(expense.id)
@@ -570,10 +669,10 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       </div>
 
       {/* Total Amount Display */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-semibold">Total Amount:</span>
-            <span className="text-xl font-bold text-primary">
+        <div className="flex justify-end">
+          <div className="bg-gray-50 rounded-lg px-8 py-3 min-w-[680px] flex items-center justify-between">
+            <span className="text-sm text-gray-600">Total Amount:</span>
+            <span className="text-lg font-bold text-primary">
               {markedExpenses.length > 0 ? formatCurrency(
                 markedExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0),
                 'INR'
@@ -586,6 +685,53 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
       {/* Action Buttons - At the very bottom of the page */}
       <div className="sticky bottom-0 bg-white border-t pt-6 pb-4">
         <div className="flex justify-end gap-4">
+          {/* Delete Button - Only show in edit mode for draft reports */}
+          {editMode && reportData && (
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="px-10 py-3 border-red-500 text-red-600 hover:bg-red-50"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Report</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this report? This action cannot be undone.
+                    {reportData.title && (
+                      <span className="block mt-2 font-medium">
+                        Report: {reportData.title}
+                      </span>
+                    )}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeleting}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteReport}
+                    disabled={isDeleting}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      'Delete'
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button
             onClick={onSave}
             disabled={saving}

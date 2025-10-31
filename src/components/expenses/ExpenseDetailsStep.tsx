@@ -62,6 +62,8 @@ import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHea
 import { useNavigate } from "react-router-dom";
 import { preApprovalService, PreApprovalType } from "@/services/preApprovalService";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Copy, ExternalLink } from "lucide-react";
 
 // Form schema
 const expenseSchema = z.object({
@@ -101,6 +103,7 @@ interface ExpenseDetailsStepProps {
   receiptUrls?: string[];
   isEditMode?: boolean;
   foreign_currency?: string | null;
+  expense?: any; // Full expense object with original_expense_id
 }
 
 export function ExpenseDetailsStep({
@@ -117,6 +120,7 @@ export function ExpenseDetailsStep({
   expenseData,
   receiptUrls = [],
   isEditMode = false,
+  expense,
 }: ExpenseDetailsStepProps) {
   const navigate = useNavigate();
   const orgId = getOrgIdFromToken();
@@ -437,6 +441,24 @@ export function ExpenseDetailsStep({
         </div>
       )}
 
+      {/* Duplicate Expense Indicator */}
+      {expense?.original_expense_id && (
+        <Alert className="bg-yellow-50 border-yellow-200">
+          <Copy className="h-4 w-4 text-yellow-600" />
+          <AlertTitle className="text-yellow-800">Duplicate Expense Detected</AlertTitle>
+          <AlertDescription className="text-yellow-700">
+            This expense has been flagged as a duplicate. 
+            <Button
+              variant="link"
+              className="p-0 h-auto text-yellow-700 underline ml-1"
+              onClick={() => navigate(`/expenses/${expense.original_expense_id}`)}
+            >
+              View original expense <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left Section - Form Fields */}
         <div className="space-y-6">
@@ -579,7 +601,12 @@ export function ExpenseDetailsStep({
                                 <Input
                                   {...field}
                                   placeholder="Invoice Number"
-                                  readOnly={readOnly}
+                                  className={
+                                    parsedData?.ocr_result?.invoice_number
+                                      ? "bg-white border-green-300 text-gray-900"
+                                      : ""
+                                  }
+                                  disabled={readOnly}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -599,7 +626,12 @@ export function ExpenseDetailsStep({
                                 <Input
                                   {...field}
                                   placeholder="Vendor"
-                                  readOnly={readOnly}
+                                  className={
+                                    parsedData?.ocr_result?.vendor
+                                      ? "bg-white border-green-300 text-gray-900"
+                                      : ""
+                                  }
+                                  disabled={readOnly}
                                 />
                               </FormControl>
                               <FormMessage />
