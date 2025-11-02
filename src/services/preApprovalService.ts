@@ -46,7 +46,7 @@ export const preApprovalService = {
             return await api.get(`/api/v1/pre_approvals?page=${page}&per_page=${perPage}`)
         } catch (error) {
             console.log(error);
-            return error
+            throw error
         }
     },
 
@@ -58,7 +58,7 @@ export const preApprovalService = {
         try {
             return await api.get(`/api/v1/pre_approvals?status=${status}&page=${page}&per_page=${perPage}`);
         } catch (error) {
-            return error;
+            throw error;
         }
     },
 
@@ -68,7 +68,7 @@ export const preApprovalService = {
         } catch (error) {
             console.log(error);
             toast.error('Error creating pre approval');
-            return error
+            throw error
         }
     },
 
@@ -78,7 +78,7 @@ export const preApprovalService = {
                 pre_approval_id
             })
         } catch (error) {
-            return error;
+            throw error;
         }
     },
 
@@ -86,7 +86,7 @@ export const preApprovalService = {
         try {
             return api.get(`/api/v1/pre_approvals?id=${id}`);
         } catch (error) {
-            return error
+            throw error
         }
     },
 
@@ -94,7 +94,7 @@ export const preApprovalService = {
         try {
             return await api.get(`/api/v1/pre_approvals/${id}/approvers`)
         } catch (error) {
-            return error;
+            throw error;
         }
     },
 
@@ -102,7 +102,7 @@ export const preApprovalService = {
         try {
             return await api.get('/api/v1/pre_approvals/approvers');
         } catch (error) {
-            return error;
+            throw error;
         }
     },
 
@@ -110,7 +110,7 @@ export const preApprovalService = {
         try {
             return await api.get(`/api/v1/pre_approvals/approvers?status=${status}`)
         } catch (error) {
-            return error;
+            throw error;
         }
     },
 
@@ -125,7 +125,7 @@ export const preApprovalService = {
 
             return response;
         } catch (error) {
-            return error;
+            throw error;
         }
     }
 }

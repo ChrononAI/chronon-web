@@ -40,7 +40,7 @@ export const AdvanceService = {
             return await api.get(`/api/v1/advances?page=${page}&per_page=${perPage}`)
         } catch (error) {
             console.log(error);
-            return error
+            throw error
         }
     },
 
@@ -53,7 +53,7 @@ export const AdvanceService = {
             return await api.get(`/api/v1/advances?status=${status}&page=${page}&per_page=${perPage}`)
         } catch (error) {
             console.log(error);
-            return error
+            throw error
         }
     },
 
@@ -62,8 +62,8 @@ export const AdvanceService = {
             return await api.post('/api/v1/advances', payload);
         } catch (error) {
             console.log(error);
-            toast.error('Error creating pre approval');
-            return error
+            toast.error('Error creating advance');
+            throw error
         }
     },
 
@@ -73,7 +73,7 @@ export const AdvanceService = {
                 advance_id
             })
         } catch (error) {
-            return error;
+            throw error;
         }
     },
 
@@ -81,7 +81,7 @@ export const AdvanceService = {
         try {
             return api.get(`/api/v1/advances?id=${id}`);
         } catch (error) {
-            return error
+            throw error
         }
     },
 
@@ -89,7 +89,7 @@ export const AdvanceService = {
         try {
             return await api.get(`/api/v1/advances/${id}/approvers`)
         } catch (error) {
-            return error;
+            throw error;
         }
     },
 
@@ -97,7 +97,7 @@ export const AdvanceService = {
         try {
             return await api.get(`/api/v1/advances/approvers?page=${page}&perPage=${perPage}`); 
         } catch (error) {
-            return error;
+            throw error;
         }
     },
 
@@ -105,7 +105,7 @@ export const AdvanceService = {
         try {
             return await api.get(`/api/v1/advances/approvers?status=${status}&page=${page}&perPage=${perPage}`)
         } catch (error) {
-            return error;
+            throw error;
         }
     },
 
@@ -113,7 +113,7 @@ export const AdvanceService = {
         try {
             return await api.post(`/api/v1/advances/${id}/${action}`);
         } catch (error) {
-            return error;
+            throw error;
         }
     }
 }

@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { LoginPage } from '@/pages/LoginPage';
+import { LoginPage } from '@/pages/auth/LoginPage';
 import { ExpenseDetailPage } from '@/pages/ExpenseDetailPage';
 import { MyReportsPage } from '@/pages/MyReportsPage';
 import { ReportDetailPage } from '@/pages/ReportDetailPage';
@@ -29,6 +29,13 @@ import AdvanceDetailsPage from './pages/AdvanceDetailsPage';
 import ApprovalsAdvancesPage from './pages/ApprovalsAdvancesPage';
 import ProcessAdvancePage from './pages/ProcessAdvancePage';
 import AdminPage from './pages/admin/AdminPage';
+import AdminExpenseCategories from './pages/admin/AdminExpenseCategories';
+import CreateExpenseCategoryPage from './pages/admin/CreateExpenseCategoryPage';
+import AdminExpensePolicies from './pages/admin/AdminExpensePolicies';
+import CreateExpensePolicyPage from './pages/admin/CreateExpensePolicyPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPassword from './pages/auth/ResetPassword';
+import VerifyEmail from './pages/auth/VerifyEmail';
 
 function App() {
   return (
@@ -36,6 +43,9 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/accounts/forgot_password" element={<ForgotPasswordPage />} />
+          <Route path="/accounts/reset_password" element={<ResetPassword />} />
+          <Route path="/accounts/verify_email" element={<VerifyEmail />} />
           <Route
             path="/expenses"
             element={
@@ -122,6 +132,12 @@ function App() {
               <ProtectedRoute>
                 <ApprovalsReportsPage />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/approvals/reports/:id"
+            element={
+                <ReportDetailPage />
             }
           />
           <Route
@@ -237,7 +253,38 @@ function App() {
               </ProtectedRoute>
             }
           />
-
+          <Route
+            path='/admin/product-config/expense-categories'
+            element={
+              <ProtectedRoute>
+                <AdminExpenseCategories />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path='/admin/product-config/expense-categories/create'
+            element={
+              <ProtectedRoute>
+                <CreateExpenseCategoryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path='/admin/product-config/expense-policies'
+            element={
+              <ProtectedRoute>
+                <AdminExpensePolicies />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path='/admin/product-config/expense-policies/create'
+            element={
+              <ProtectedRoute>
+                <CreateExpensePolicyPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/" element={<Navigate to="/expenses" replace />} />
           <Route path="/404" element={<NotFoundPage />} />
           <Route path="/permission-denied" element={<PermissionDeniedPage />} />

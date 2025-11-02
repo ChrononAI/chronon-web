@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { useAuthStore } from '@/store/authStore';
+import AuthLayout from '@/components/layout/AuthLayout';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -9,9 +10,13 @@ export function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/expenses');
+      navigate('/pre-approvals');
     }
   }, [isAuthenticated, navigate]);
 
-  return <LoginForm />;
+  return (
+    <AuthLayout>
+      <LoginForm />
+    </AuthLayout>
+  );
 }
