@@ -132,7 +132,6 @@ export function ExpenseDetailPage() {
   };
 
   const handleExpenseSubmit = async (formData: any) => {
-    console.log(formData);
     if (!expense || !id) return;
 
     const copiedData = JSON.parse(JSON.stringify(formData));
@@ -141,7 +140,7 @@ export function ExpenseDetailPage() {
       (cur) => cur.currency === copiedData.foreign_currency
     );
     if (
-      copiedData.foreign_currenccy && copiedData.foreign_currency !== "INR" &&
+      copiedData.foreign_currency && copiedData.foreign_currency !== "INR" &&
       selectedPreApproval?.currency_conversion_rates
     ) {
       isForeign = true;
@@ -176,15 +175,13 @@ export function ExpenseDetailPage() {
       };
       console.log(formData);
 
-      console.log(expenseData);
-
-      // const response = await expenseService.updateExpense(id, expenseData);
-      // if (response.success) {
-      //   toast.success("Expense updated successfully");
-      //   navigate("/expenses");
-      // } else {
-      //   toast.error(response.message || "Failed to update expense");
-      // }
+      const response = await expenseService.updateExpense(id, expenseData);
+      if (response.success) {
+        toast.success("Expense updated successfully");
+        navigate("/expenses");
+      } else {
+        toast.error(response.message || "Failed to update expense");
+      }
     } catch (error) {
       console.error("Failed to update expense:", error);
       toast.error("Failed to update expense");
