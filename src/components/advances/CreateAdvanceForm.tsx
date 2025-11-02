@@ -26,7 +26,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { expenseService } from '@/services/expenseService';
 import { Policy } from '@/types/expense';
-import { AdvanceService } from '@/services/advanceService';
+import { AdvanceService, AdvanceType } from '@/services/advanceService';
 
 interface Currency {
   code: string;
@@ -71,7 +71,7 @@ export function CreateAdvanceForm({ mode = "create", showHeader = true }: { mode
       currency: 'INR', // Default to INR
     },
   });
-
+  const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType>();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
 
@@ -111,6 +111,15 @@ export function CreateAdvanceForm({ mode = "create", showHeader = true }: { mode
   };
 
   const onSubmit = async (values: AdvanceFormValues) => {
+    if (selectedAdvance && selectedAdvance?.status === 'COMPLETE') {
+      try {
+        await AdvanceService.submitAdvance(selectedAdvance.id);
+        toast.success('Advance resubmitted successfully')
+        navigate('/advances')
+      } catch (error: any) {
+        toast.error(error.response.data.message || error.message || 'Failed to resubmit advance');
+      }
+    } else {
        try {
          const response: any = await AdvanceService.createAdvance(values);
          await AdvanceService.submitAdvance(response.data.data.id);
@@ -121,12 +130,14 @@ export function CreateAdvanceForm({ mode = "create", showHeader = true }: { mode
        } catch (error) {
          console.log(error);
        }
+    }
   };
 
   const getAdvancebyId = async (id: string) => {
     try {
       const res: any = await AdvanceService.getAdvanceById(id);
       form.reset(res.data.data[0]);
+      setSelectedAdvance(res.data.data[0]);
       const selectedPol = policies.find((pol) => pol.id === res?.data?.data[0]?.policy_id);
       if (selectedPol) setSelectedPolicy(selectedPol);
     } catch (error) {
@@ -335,7 +346,7 @@ export function CreateAdvanceForm({ mode = "create", showHeader = true }: { mode
                 >
                   Cancel
                 </Button>}
-                {mode !== "view" && <Button
+                {(selectedAdvance?.status === "COMPLETE" || mode !== "view") && <Button
                   type="submit"
                   disabled={!form.formState.isValid}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
@@ -345,7 +356,7 @@ export function CreateAdvanceForm({ mode = "create", showHeader = true }: { mode
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Creating...
                     </>
-                  ) : (
+                  ) : selectedAdvance?.status === 'COMPLETE' ? 'Resubmit' : (
                     'Create'
                   )}
                 </Button>}
