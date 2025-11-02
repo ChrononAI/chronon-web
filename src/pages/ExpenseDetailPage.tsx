@@ -130,7 +130,6 @@ export function ExpenseDetailPage() {
       toast.error("Failed to fetch receipt image");
     }
   };
-  console.log(selectedPreApproval);
 
   const handleExpenseSubmit = async (formData: any) => {
     if (!expense || !id) return;
@@ -174,6 +173,7 @@ export function ExpenseDetailPage() {
         foreign_amount: isForeign ? parseFloat(formData.amount) : null,
         foreign_currency: isForeign ? formData.foreign_currency : null,
       };
+      console.log(formData);
 
       const response = await expenseService.updateExpense(id, expenseData);
       if (response.success) {
