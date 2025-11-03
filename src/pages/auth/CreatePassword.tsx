@@ -60,7 +60,7 @@ function CreatePassword() {
     }
   };
 
-  const createPassword = async (payload: { password: string }) => {
+  const createPassword = async (payload: { password: string; token: string; }) => {
     setIsLoading(true);
     try {
       const res: any = await authService.createPassword(payload);
@@ -114,6 +114,7 @@ function CreatePassword() {
     }
     const payload = {
       password,
+      token
     };
     console.log(payload);
     createPassword(payload);
