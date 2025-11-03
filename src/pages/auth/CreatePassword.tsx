@@ -13,12 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { decodeJwtToken } from "@/lib/jwtUtils";
-import { User } from "@/types/auth";
-import { useAuthStore } from "@/store/authStore";
 
 function CreatePassword() {
-  const login = useAuthStore((state) => state.login);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   let email = searchParams.get("email");
@@ -65,29 +61,7 @@ function CreatePassword() {
     try {
       const res: any = await authService.createPassword(payload);
       console.log(res);
-      if (tokens) {
-        const { access_token, user_details } = tokens;
-        const jwtData = decodeJwtToken(tokens?.access_token);
-
-        const user: User = {
-          id: parseInt(jwtData.user_id),
-          username: user_details.username,
-          email: user_details.email,
-          firstName: user_details.first_name,
-          lastName: user_details.last_name,
-          role: jwtData.role,
-          phone: "",
-          department: "",
-          location: "",
-          organization: {
-            id: parseInt(jwtData.org_id),
-            name: "",
-            orgCode: "",
-          },
-        };
-        login(user, access_token);
-      }
-      toast.success("Password reset successful");
+      toast.success(res.data.message || "Password created successfully");
       navigate("/login");
     } catch (error: any) {
       console.log(error);
