@@ -114,7 +114,7 @@ function CreatePassword() {
     }
     const payload = {
       password,
-      token
+      token: tokens?.access_token || ""
     };
     console.log(payload);
     createPassword(payload);
