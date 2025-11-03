@@ -36,6 +36,8 @@ import CreateExpensePolicyPage from './pages/admin/CreateExpensePolicyPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPassword from './pages/auth/ResetPassword';
 import VerifyEmail from './pages/auth/VerifyEmail';
+import CreatePassword from './pages/auth/CreatePassword';
+import ResendVerificationMail from './pages/auth/ResendVerificationMail';
 
 function App() {
   return (
@@ -46,6 +48,8 @@ function App() {
           <Route path="/accounts/forgot_password" element={<ForgotPasswordPage />} />
           <Route path="/accounts/reset_password" element={<ResetPassword />} />
           <Route path="/accounts/verify_email" element={<VerifyEmail />} />
+          <Route path="/accounts/create_password" element={<CreatePassword />} />
+          <Route path='/accounts/resend_verification' element={<ResendVerificationMail />} />
           <Route
             path="/expenses"
             element={
