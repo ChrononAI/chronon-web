@@ -1,21 +1,17 @@
-import { useEffect, useState } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { Layout } from '@/components/layout/Layout';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { Badge } from '@/components/ui/badge';
-import { ExpenseDetailsStep } from '@/components/expenses/ExpenseDetailsStep';
-import MileagePage from '@/pages/MileagePage';
-import PerdiemPage from '@/pages/PerdiemPage';
-import {
-  AlertCircle,
-  Trash2,
-  Loader2,
-} from 'lucide-react';
-import { expenseService, UpdateExpenseData } from '@/services/expenseService';
-import { Expense } from '@/types/expense';
-import { getStatusColor } from '@/lib/utils';
-import { toast } from 'sonner';
-import { useExpenseStore } from '@/store/expenseStore';
+import { useEffect, useState } from "react";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { Layout } from "@/components/layout/Layout";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { Badge } from "@/components/ui/badge";
+import { ExpenseDetailsStep } from "@/components/expenses/ExpenseDetailsStep";
+import MileagePage from "@/pages/MileagePage";
+import PerdiemPage from "@/pages/PerdiemPage";
+import { AlertCircle, Trash2, Loader2 } from "lucide-react";
+import { expenseService, UpdateExpenseData } from "@/services/expenseService";
+import { Expense } from "@/types/expense";
+import { getStatusColor } from "@/lib/utils";
+import { toast } from "sonner";
+import { useExpenseStore } from "@/store/expenseStore";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,10 +22,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
-const EDITABLE_STATUSES = ['DRAFT', 'INCOMPLETE', 'COMPLETE'];
+const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE"];
 
 // Check if expense is a mileage expense
 const isMileageExpense = (expense: Expense): boolean => {
@@ -38,9 +34,11 @@ const isMileageExpense = (expense: Expense): boolean => {
 
 // Check if expense is a per diem expense
 const isPerDiemExpense = (expense: Expense): boolean => {
-  return expense.expense_type === 'PER_DIEM' ||
+  return (
+    expense.expense_type === "PER_DIEM" ||
     !!(expense.location && (expense.start_date || expense.end_date)) ||
-    !!expense.per_diem_info;
+    !!expense.per_diem_info
+  );
 };
 
 // Transform Expense data to form format
@@ -52,14 +50,14 @@ const transformExpenseToFormData = (expense: Expense) => {
     merchant: expense.vendor,
     amount: expense.amount.toString(),
     dateOfExpense: new Date(expense.expense_date),
-    comments: expense.description || '',
-    city: '',
-    source: '',
-    destination: '',
+    comments: expense.description || "",
+    city: "",
+    source: "",
+    destination: "",
     advance_id: expense.advance_id || null,
     pre_approval_id: expense.pre_approval_id || null,
     foreign_currency: expense.foreign_currency || null,
-    foreign_amount: expense.foreign_amount || null
+    foreign_amount: expense.foreign_amount || null,
   };
 };
 
@@ -79,10 +77,10 @@ export function ExpenseDetailPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const searchParams = new URLSearchParams(location.search);
-  const isFromReport = searchParams.get('from') === 'report';
-  const isFromApprovals = searchParams.get('from') === 'approvals';
-  const reportId = searchParams.get('reportId');
-  const returnTo = searchParams.get('returnTo');
+  const isFromReport = searchParams.get("from") === "report";
+  const isFromApprovals = searchParams.get("from") === "approvals";
+  const reportId = searchParams.get("reportId");
+  const returnTo = searchParams.get("returnTo");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,7 +88,7 @@ export function ExpenseDetailPage() {
       try {
         const [expenseData] = await Promise.all([
           expenseService.getExpenseById(id),
-          expenseService.getAllPoliciesWithCategories()
+          expenseService.getAllPoliciesWithCategories(),
         ]);
         setExpense(expenseData);
         // setPolicies(policiesData);
@@ -98,18 +96,20 @@ export function ExpenseDetailPage() {
 
         setIsEditing(false);
 
-if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase()) 
-  && !isFromApprovals 
-  && !isFromReport ) { 
-  setIsEditing(true);
-}
+        if (
+          EDITABLE_STATUSES.includes(expenseData.status.toUpperCase()) &&
+          !isFromApprovals &&
+          !isFromReport
+        ) {
+          setIsEditing(true);
+        }
 
         if (expenseData.receipt_id) {
           fetchReceipt(expenseData.receipt_id, expenseData.created_by.org_id);
         }
       } catch (error) {
-        console.error('Failed to fetch expense details', error);
-        toast.error('Failed to fetch expense details');
+        console.error("Failed to fetch expense details", error);
+        toast.error("Failed to fetch expense details");
       } finally {
         setLoading(false);
       }
@@ -120,23 +120,29 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
 
   const fetchReceipt = async (receiptId: string, orgId: string) => {
     try {
-      const response: any = await expenseService.fetchReceiptPreview(receiptId, orgId);
+      const response: any = await expenseService.fetchReceiptPreview(
+        receiptId,
+        orgId
+      );
       setReceiptSignedUrl(response.data.data.signed_url);
     } catch (error) {
       console.log(error);
-      toast.error('Failed to fetch receipt image');
+      toast.error("Failed to fetch receipt image");
     }
-  }
-
+  };
 
   const handleExpenseSubmit = async (formData: any) => {
-    console.log(formData);
     if (!expense || !id) return;
 
     const copiedData = JSON.parse(JSON.stringify(formData));
     let isForeign = false;
-    const curr = selectedPreApproval?.currency_conversion_rates?.find((cur) => cur.currency === copiedData.foreign_currency);
-    if (copiedData.foreign_currency !== "INR" && selectedPreApproval?.currency_conversion_rates) {
+    const curr = selectedPreApproval?.currency_conversion_rates?.find(
+      (cur) => cur.currency === copiedData.foreign_currency
+    );
+    if (
+      copiedData.foreign_currency && copiedData.foreign_currency !== "INR" &&
+      selectedPreApproval?.currency_conversion_rates
+    ) {
       isForeign = true;
     }
 
@@ -144,7 +150,9 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
     try {
       // Transform form data to UpdateExpenseData format
       const expenseData: UpdateExpenseData = {
-        amount: isForeign ? (+copiedData.amount * (curr ? +curr.rate : 0)) : parseFloat(formData.amount),
+        amount: isForeign
+          ? +copiedData.amount * (curr ? +curr.rate : 0)
+          : parseFloat(formData.amount),
         category_id: formData.categoryId,
         description: formData.description,
         expense_date: formData.expense_date,
@@ -165,19 +173,18 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
         foreign_amount: isForeign ? parseFloat(formData.amount) : null,
         foreign_currency: isForeign ? formData.foreign_currency : null,
       };
-
-      console.log(expenseData);
+      console.log(formData);
 
       const response = await expenseService.updateExpense(id, expenseData);
       if (response.success) {
-        toast.success('Expense updated successfully');
-        navigate('/expenses');
+        toast.success("Expense updated successfully");
+        navigate("/expenses");
       } else {
-        toast.error(response.message || 'Failed to update expense');
+        toast.error(response.message || "Failed to update expense");
       }
     } catch (error) {
-      console.error('Failed to update expense:', error);
-      toast.error('Failed to update expense');
+      console.error("Failed to update expense:", error);
+      toast.error("Failed to update expense");
     } finally {
       setSaving(false);
     }
@@ -190,15 +197,15 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
     try {
       const response = await expenseService.deleteExpense(id);
       if (response.success) {
-        toast.success('Expense deleted successfully');
-        navigate('/expenses');
+        toast.success("Expense deleted successfully");
+        navigate("/expenses");
       } else {
-        toast.error(response.message || 'Failed to delete expense');
+        toast.error(response.message || "Failed to delete expense");
         setShowDeleteDialog(false);
       }
     } catch (error) {
-      console.error('Failed to delete expense:', error);
-      toast.error('Failed to delete expense');
+      console.error("Failed to delete expense:", error);
+      toast.error("Failed to delete expense");
       setShowDeleteDialog(false);
     } finally {
       setIsDeleting(false);
@@ -226,7 +233,9 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
             <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto" />
             <div>
               <h3 className="text-lg font-semibold">Expense Not Found</h3>
-              <p className="text-muted-foreground">The expense you're looking for doesn't exist.</p>
+              <p className="text-muted-foreground">
+                The expense you're looking for doesn't exist.
+              </p>
             </div>
           </div>
         </div>
@@ -238,34 +247,33 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
 
   if (isFromApprovals) {
     breadcrumbItems = [
-      { label: 'Requests for Approval', href: '/approvals/reports' },
+      { label: "Requests for Approval", href: "/approvals/reports" },
       {
-        label: 'View Report',
-        href: reportId ? `/reports/${reportId}?from=approvals` : '#'
+        label: "View Report",
+        href: reportId ? `/reports/${reportId}?from=approvals` : "#",
       },
-      { label: 'View Expense' },
+      { label: "View Expense" },
     ];
   } else if (isFromReport && reportId) {
     breadcrumbItems = [
-      { label: 'Expenses Reports', href: '/reports' },
+      { label: "Expenses Reports", href: "/reports" },
       {
-        label: 'View Report',
-        href: `/reports/${reportId}`
+        label: "View Report",
+        href: `/reports/${reportId}`,
       },
-      { label: 'View Expense' },
+      { label: "View Expense" },
     ];
-  } else if (returnTo === 'create') {
+  } else if (returnTo === "create") {
     breadcrumbItems = [
-      { label: 'Create Expense', href: '/expenses/create' },
-      { label: 'View Expense' },
+      { label: "Create Expense", href: "/expenses/create" },
+      { label: "View Expense" },
     ];
   } else {
     breadcrumbItems = [
-      { label: 'My Expenses', href: '/expenses' },
-      { label: 'View Expense' },
+      { label: "My Expenses", href: "/expenses" },
+      { label: "View Expense" },
     ];
   }
-
 
   return (
     <Layout>
@@ -273,17 +281,25 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
         <Breadcrumb items={breadcrumbItems} />
         <div className="flex items-center justify-between">
           <div>
-            <div className='text-2xl font-bold'>Expense Details</div>
+            <div className="text-2xl font-bold">Expense Details</div>
             <div className="flex items-center gap-2 mt-2">
-              <Badge className={`${getStatusColor(expense.status)} text-xs px-2 py-0.5`}>
-                {expense.status.replace('_', ' ')}
+              <Badge
+                className={`${getStatusColor(
+                  expense.status
+                )} text-xs px-2 py-0.5`}
+              >
+                {expense.status.replace("_", " ")}
               </Badge>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {/* Delete Button - Only show for COMPLETE and INCOMPLETE status */}
-            {(expense.status === 'COMPLETE' || expense.status === 'INCOMPLETE') && (
-              <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            {(expense.status === "COMPLETE" ||
+              expense.status === "INCOMPLETE") && (
+              <AlertDialog
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+              >
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="outline"
@@ -301,7 +317,8 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete Expense</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to delete this expense? This action cannot be undone.
+                      Are you sure you want to delete this expense? This action
+                      cannot be undone.
                       {expense.sequence_number && (
                         <span className="block mt-2 font-medium">
                           Expense ID: {expense.sequence_number}
@@ -324,7 +341,7 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
                           Deleting...
                         </>
                       ) : (
-                        'Delete'
+                        "Delete"
                       )}
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -336,25 +353,42 @@ if (EDITABLE_STATUSES.includes(expenseData.status.toUpperCase())
 
         {isMileageExpense(expense) ? (
           <MileagePage
-            mode={(expense.status === "INCOMPLETE" || expense.status === "COMPLETE") ? "edit" : "view"}
+            mode={
+              expense.status === "INCOMPLETE" || expense.status === "COMPLETE"
+                ? "edit"
+                : "view"
+            }
             expenseData={expense}
-            isEditable={EDITABLE_STATUSES.includes(expense.status.toUpperCase())}
+            isEditable={EDITABLE_STATUSES.includes(
+              expense.status.toUpperCase()
+            )}
             onUpdate={handleExpenseSubmit}
             isEditing={isEditing}
             saving={saving}
           />
         ) : isPerDiemExpense(expense) ? (
-          <PerdiemPage mode={(expense.status === "INCOMPLETE" || expense.status === "COMPLETE") ? "edit" : "view"} expenseData={expense} />
+          <PerdiemPage
+            mode={
+              expense.status === "INCOMPLETE" || expense.status === "COMPLETE"
+                ? "edit"
+                : "view"
+            }
+            expenseData={expense}
+          />
         ) : (
           <ExpenseDetailsStep
             onBack={() => {
-              if (returnTo === 'create') {
-                window.location.href = '/expenses/create';
+              if (returnTo === "create") {
+                window.location.href = "/expenses/create";
               } else {
                 window.history.back();
               }
             }}
-            mode={(expense.status === 'COMPLETE' || expense.status === 'INCOMPLETE') ? "edit" : "view"}
+            mode={
+              expense.status === "COMPLETE" || expense.status === "INCOMPLETE"
+                ? "edit"
+                : "view"
+            }
             onSubmit={handleExpenseSubmit}
             loading={saving}
             isReceiptReplaced={isReceiptReplaced}
