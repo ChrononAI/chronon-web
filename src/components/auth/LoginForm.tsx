@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -24,7 +24,7 @@ export function LoginForm() {
       login(user, token);
       toast.success("Login successful!");
     } catch (error: any) {
-      toast.error(error.message || "Login failed. Please try again.");
+      toast.error(error?.response?.data?.message || error?.message || "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -89,9 +89,6 @@ export function LoginForm() {
             <div className="flex justify-end mt-2">
             <button type="button" className="underline text-blue-500 hover:text-blue-700 text-[12px]" onClick={() => navigate('/accounts/forgot_password')}>Forgot Password?</button>
             </div>
-            {/* <div className="flex justify-end mt-2">
-            <button type="button" className="underline text-blue-500 hover:text-blue-700 text-[12px]" onClick={() => navigate('/accounts/forgot_password')}>Forgot Password?</button>
-            </div> */}
           </div>
           <Button
             type="submit"

@@ -6,37 +6,33 @@ export const authService = {
   async login(
     credentials: LoginCredentials
   ): Promise<{ user: User; token: string }> {
-    try {
-      const response = await api.post("auth/em/login", {
-        email: credentials.email,
-        password: credentials.password,
-      });
+    const response = await api.post("auth/em/login", {
+      email: credentials.email,
+      password: credentials.password,
+    });
 
-      const { access_token, user_details } = response.data.data;
+    const { access_token, user_details } = response.data.data;
 
-      const jwtData = decodeJwtToken(access_token);
+    const jwtData = decodeJwtToken(access_token);
 
-      const user: User = {
-        id: parseInt(jwtData.user_id),
-        username: user_details.username,
-        email: user_details.email,
-        firstName: user_details.first_name,
-        lastName: user_details.last_name,
-        role: jwtData.role,
-        phone: "",
-        department: "",
-        location: "",
-        organization: {
-          id: parseInt(jwtData.org_id),
-          name: "",
-          orgCode: "",
-        },
-      };
+    const user: User = {
+      id: parseInt(jwtData.user_id),
+      username: user_details.username,
+      email: user_details.email,
+      firstName: user_details.first_name,
+      lastName: user_details.last_name,
+      role: jwtData.role,
+      phone: "",
+      department: "",
+      location: "",
+      organization: {
+        id: parseInt(jwtData.org_id),
+        name: "",
+        orgCode: "",
+      },
+    };
 
-      return { user, token: access_token };
-    } catch (error) {
-      throw error;
-    }
+    return { user, token: access_token };
   },
 
   async changePassword(
