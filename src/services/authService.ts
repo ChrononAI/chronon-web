@@ -66,9 +66,17 @@ export const authService = {
     }
   },
 
-  async createPassword(payload: { password: string; token: string; }) {
+  async createPassword(payload: { password: string; token: string }) {
     try {
-      const res = await api.post("/auth/create_password", payload);
+      const res = await api.post(
+        "/auth/create_password",
+        { password: payload.password },
+        {
+          headers: {
+            Authorization: `Bearer ${payload.token}`,
+          },
+        }
+      );
       return res;
     } catch (error) {
       throw error;
