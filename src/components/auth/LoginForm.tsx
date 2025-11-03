@@ -89,6 +89,9 @@ export function LoginForm() {
             <div className="flex justify-end mt-2">
             <button type="button" className="underline text-blue-500 hover:text-blue-700 text-[12px]" onClick={() => navigate('/accounts/forgot_password')}>Forgot Password?</button>
             </div>
+            {/* <div className="flex justify-end mt-2">
+            <button type="button" className="underline text-blue-500 hover:text-blue-700 text-[12px]" onClick={() => navigate('/accounts/forgot_password')}>Forgot Password?</button>
+            </div> */}
           </div>
           <Button
             type="submit"
