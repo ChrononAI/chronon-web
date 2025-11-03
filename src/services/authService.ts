@@ -66,7 +66,7 @@ export const authService = {
     }
   },
 
-  async createPassword(payload: { password: string }) {
+  async createPassword(payload: { password: string; token: string; }) {
     try {
       const res = await api.post("/auth/create_password", payload);
       return res;
