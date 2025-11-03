@@ -10,7 +10,8 @@ import { authService } from "@/services/authService";
 function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const email = searchParams.get("email");
+  let email = searchParams.get("email");
+  if (email) email = email.replace(/ /g, "+");
   const token = searchParams.get("token");
 
   const [password, setPassword] = useState("");
