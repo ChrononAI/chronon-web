@@ -5,34 +5,23 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { authService } from "@/services/authService";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CircleCheck } from "lucide-react";
-import { DialogDescription } from "@radix-ui/react-dialog";
 
-function ForgotPasswordPage() {
+function ResendVerificationMail() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
 
-  const dialogClose = () => {
-    setShowDialog(false);
-    navigate("/login");
-  };
-
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!email) toast.error("Please enter registered mail");
     setIsLoading(true);
     try {
-      const res: any = await authService.resetPassword({ email });
-        toast.error(res.data.message);
-        if (res.data.message === "Email is not verified. Please verify email first") {
-          navigate('/accounts/resend_verification');
-        } else {
-          setShowDialog(true);
-        }
+      await authService.resetPassword({ email });
+      toast.success("Password reset link sent to mail");
     } catch (error: any) {
       toast.error(
         error?.response?.data.message ||
@@ -49,10 +38,10 @@ function ForgotPasswordPage() {
         <div className="bg-white rounded-xl shadow-lg p-10 w-full">
           <div className="text-center mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Forgot Password?
+              Email Verification Failed
             </h2>
             <p className="text-gray-600 text-base">
-              Enter your registered email address to get a password reset link.
+              Enter your email address to get a verification link.
             </p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -72,15 +61,6 @@ function ForgotPasswordPage() {
                 style={{ backgroundColor: "#f8fafc" }}
                 required
               />
-              <div className="flex justify-end mt-2">
-                <button
-                  type="button"
-                  className="underline text-blue-500 hover:text-blue-700 text-[12px]"
-                  onClick={() => navigate("/login")}
-                >
-                  Log In
-                </button>
-              </div>
             </div>
             <Button
               type="submit"
@@ -109,45 +89,23 @@ function ForgotPasswordPage() {
             </p>
           </div>
         </div>
-        <Dialog open={showDialog} onOpenChange={dialogClose}>
-          <DialogContent className="flex flex-col items-center py-10 pt-5 gap-6 max-w-md text-center">
-            <div
-              className="flex justify-center items-center mb-4"
-              style={{ width: 96, height: 96 }}
-            >
-              <CircleCheck
-                size={96}
-                className="text-green-600"
-                strokeWidth={2.5}
-              />
-            </div>
-            <div>
-              <DialogTitle className="hidden">verify email</DialogTitle>
-              <DialogHeader>
-                <div className="text-2xl font-bold mb-2">
-                  Verification request sent to your email ID.
-                </div>
-              </DialogHeader>
-              <DialogDescription>
-                <div className="text-gray-700 text-lg">
-                  Please check your email
-                </div>
-              </DialogDescription>
-            </div>
-            <Button
-              className="mt-2 w-40 mx-auto text-white bg-purple-600 hover:bg-purple-700 font-medium"
-              onClick={() => {
-                setShowDialog(false);
-                navigate("/login");
-              }}
-            >
-              Sign in
-            </Button>
-          </DialogContent>
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+              <DialogContent className="flex flex-col items-center py-10 pt-5 gap-6 max-w-md text-center">
+                <div className="flex justify-center items-center mb-4" style={{ width: 96, height: 96 }}>
+            <CircleCheck size={96} className="text-green-600" strokeWidth={2.5} />
+          </div>
+          <div>
+            <div className="text-2xl font-bold mb-2">Verification request sent to your email ID.</div>
+            <div className="text-gray-700 text-lg">Please check your email</div>
+          </div>
+          <Button className="mt-2 w-40 mx-auto text-white bg-purple-600 hover:bg-purple-700 font-medium" onClick={() => { setShowDialog(false); navigate('/login'); }}>
+            Sign in
+          </Button>
+              </DialogContent>
         </Dialog>
       </div>
     </AuthLayout>
   );
 }
 
-export default ForgotPasswordPage;
+export default ResendVerificationMail;

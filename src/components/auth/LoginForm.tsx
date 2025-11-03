@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/authStore";
 import { authService } from "@/services/authService";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export function LoginForm() {
   const login = useAuthStore((state) => state.login);
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -83,6 +85,9 @@ export function LoginForm() {
                   <Eye className="w-4 h-4" />
                 )}
               </button>
+            </div>
+            <div className="flex justify-end mt-2">
+            <button type="button" className="underline text-blue-500 hover:text-blue-700 text-[12px]" onClick={() => navigate('/accounts/forgot_password')}>Forgot Password?</button>
             </div>
             {/* <div className="flex justify-end mt-2">
             <button type="button" className="underline text-blue-500 hover:text-blue-700 text-[12px]" onClick={() => navigate('/accounts/forgot_password')}>Forgot Password?</button>

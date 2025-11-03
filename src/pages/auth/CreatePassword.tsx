@@ -1,16 +1,28 @@
-import { useState } from "react";
 import AuthLayout from "@/components/layout/AuthLayout";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { authService } from "@/services/authService";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { decodeJwtToken } from "@/lib/jwtUtils";
+import { User } from "@/types/auth";
+import { useAuthStore } from "@/store/authStore";
 
-function ResetPassword() {
+function CreatePassword() {
+  const login = useAuthStore((state) => state.login);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const email = searchParams.get("email");
+  let email = searchParams.get("email");
+  if (email) email = email.replace(/ /g, "+");
   const token = searchParams.get("token");
 
   const [password, setPassword] = useState("");
@@ -18,18 +30,65 @@ function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [verifying, setVerifying] = useState(true);
+  const [tokens, setTokens] = useState<{
+    access_token: string;
+    refresh_token: string;
+    user_details: any;
+  } | null>(null);
 
-  const verifyResetPassword = async (payload: {
-    email: string;
-    token: string;
-    password: string;
-  }) => {
+  const verifyEmail = async (payload: { token: string; email: string }) => {
+    setVerifying(true);
+    try {
+      const res: any = await authService.verifyEmail(payload);
+      toast.success(res.data.message || "Email verified");
+      setTokens(res.data.data);
+    } catch (error: any) {
+      console.log(error);
+      if (error?.response?.data.message === "Email already verified") {
+        navigate("/login");
+      } else {
+        navigate("/accounts/resend_verification");
+      }
+      toast.error(
+        error?.response?.data?.message ||
+          error.message ||
+          "Failed to verify email"
+      );
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const createPassword = async (payload: { password: string }) => {
     setIsLoading(true);
     try {
-      const res: any = await authService.verifyResetPassword(payload);
+      const res: any = await authService.createPassword(payload);
       console.log(res);
-      toast.success('Password reset successful');
-      navigate('/login');
+      if (tokens) {
+        const { access_token, user_details } = tokens;
+        const jwtData = decodeJwtToken(tokens?.access_token);
+
+        const user: User = {
+          id: parseInt(jwtData.user_id),
+          username: user_details.username,
+          email: user_details.email,
+          firstName: user_details.first_name,
+          lastName: user_details.last_name,
+          role: jwtData.role,
+          phone: "",
+          department: "",
+          location: "",
+          organization: {
+            id: parseInt(jwtData.org_id),
+            name: "",
+            orgCode: "",
+          },
+        };
+        login(user, access_token);
+      }
+      toast.success("Password reset successful");
+      navigate("/login");
     } catch (error: any) {
       console.log(error);
       toast.error(
@@ -44,21 +103,30 @@ function ResetPassword() {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    console.log(password, confirmPassword)
+    console.log(password, confirmPassword);
     if (password !== confirmPassword) {
-      toast.error('Password and confirm password must match');
+      toast.error("Password and confirm password must match");
       return;
     }
     if (!email || !token) {
-      toast.error('Eamil and token must be valid');
+      toast.error("Eamil and token must be valid");
       return;
-    };
-    const payload = {
-      password, token, email
     }
+    const payload = {
+      password,
+    };
     console.log(payload);
-    verifyResetPassword(payload);
+    createPassword(payload);
   };
+
+  useEffect(() => {
+    if (!token || !email) {
+      // Navigate to resend verification mail page
+      navigate("/accounts/resend_verification");
+      return;
+    }
+    verifyEmail({ token, email });
+  }, []);
 
   return (
     <AuthLayout>
@@ -66,7 +134,7 @@ function ResetPassword() {
         <div className="bg-white rounded-xl shadow-lg p-10 w-full">
           <div className="text-center mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Set New Password
+              Create Password
             </h2>
             <p className="text-gray-600 text-base">
               Enter and confirm your new password to continue.
@@ -78,7 +146,7 @@ function ResetPassword() {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                New Password
+                Password
               </label>
               <div className="relative">
                 <Input
@@ -108,7 +176,7 @@ function ResetPassword() {
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Confirm Password
+                Password
               </label>
               <div className="relative">
                 <Input
@@ -141,10 +209,10 @@ function ResetPassword() {
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Setting...
+                  Creating...
                 </div>
               ) : (
-                "Set Password"
+                "Create Password"
               )}
             </Button>
           </form>
@@ -160,9 +228,26 @@ function ResetPassword() {
             </p>
           </div>
         </div>
+        <Dialog open={verifying}>
+          <DialogContent className="[&>button[aria-label='Close']]:hidden flex flex-col items-center py-10 pt-5 gap-6 max-w-md text-center">
+            {/* Hidden title for accessibility */}
+            <DialogTitle className="hidden">Verifying email</DialogTitle>
+
+            {/* Spinner */}
+            <div className="w-20 h-20 border-8 border-gray-300 border-t-white rounded-full animate-spin"></div>
+
+            {/* Header + Description */}
+            <DialogHeader className="space-y-2">
+              <div className="text-2xl font-bold">Please wait!</div>
+              <DialogDescription className="text-gray-700 text-lg">
+                Verifying your email.
+              </DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
       </div>
     </AuthLayout>
   );
 }
 
-export default ResetPassword;
+export default CreatePassword;
