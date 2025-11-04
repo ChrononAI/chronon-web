@@ -1,8 +1,7 @@
-import AuthLayout from "@/components/layout/AuthLayout";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff } from "lucide-react";
+import { AlertCircle, CircleCheckBig, Eye, EyeOff } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { authService } from "@/services/authService";
@@ -25,6 +24,7 @@ function CreatePassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [verifying, setVerifying] = useState(true);
   const [tokens, setTokens] = useState<{
@@ -56,7 +56,10 @@ function CreatePassword() {
     }
   };
 
-  const createPassword = async (payload: { password: string; token: string; }) => {
+  const createPassword = async (payload: {
+    password: string;
+    token: string;
+  }) => {
     setIsLoading(true);
     try {
       const res: any = await authService.createPassword(payload);
@@ -65,7 +68,7 @@ function CreatePassword() {
       navigate("/login");
     } catch (error: any) {
       console.log(error);
-      toast.error(
+      setError(
         error?.response?.data?.message ||
           error.message ||
           "Failed to reset password"
@@ -77,20 +80,18 @@ function CreatePassword() {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    console.log(password, confirmPassword);
     if (password !== confirmPassword) {
-      toast.error("Password and confirm password must match");
+      setError("Password and confirm password must match");
       return;
     }
     if (!email || !token) {
-      toast.error("Eamil and token must be valid");
+      setError("Email and token must be valid");
       return;
     }
     const payload = {
       password,
-      token: tokens?.access_token || ""
+      token: tokens?.access_token || "",
     };
-    console.log(payload);
     createPassword(payload);
   };
 
@@ -104,24 +105,25 @@ function CreatePassword() {
   }, []);
 
   return (
-    <AuthLayout>
-      <div className="w-full max-w-md">
+    <div className="w-full h-screen mx-auto flex items-center max-w-md">
+      <div>
+        <div className="text-center mb-8">
+          <CircleCheckBig className="mx-auto w-16 h-16 my-4 text-green-500" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            Email Verified Successfully!
+          </h2>
+          <p className="text-gray-600 text-base">
+            Enter and confirm your new password to continue.
+          </p>
+        </div>
         <div className="bg-white rounded-xl shadow-lg p-10 w-full">
-          <div className="text-center mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Create Password
-            </h2>
-            <p className="text-gray-600 text-base">
-              Enter and confirm your new password to continue.
-            </p>
-          </div>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Password
+                New Password
               </label>
               <div className="relative">
                 <Input
@@ -176,6 +178,12 @@ function CreatePassword() {
                 </button>
               </div>
             </div>
+            {error && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <span className="text-sm text-red-700 capitalize">{error}</span>
+              </div>
+            )}
             <Button
               type="submit"
               className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 px-4 rounded-lg font-medium transition-colors text-sm"
@@ -203,25 +211,25 @@ function CreatePassword() {
             </p>
           </div>
         </div>
-        <Dialog open={verifying}>
-          <DialogContent className="[&>button[aria-label='Close']]:hidden flex flex-col items-center py-10 pt-5 gap-6 max-w-md text-center">
-            {/* Hidden title for accessibility */}
-            <DialogTitle className="hidden">Verifying email</DialogTitle>
-
-            {/* Spinner */}
-            <div className="w-20 h-20 border-8 border-gray-300 border-t-white rounded-full animate-spin"></div>
-
-            {/* Header + Description */}
-            <DialogHeader className="space-y-2">
-              <div className="text-2xl font-bold">Please wait!</div>
-              <DialogDescription className="text-gray-700 text-lg">
-                Verifying your email.
-              </DialogDescription>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
       </div>
-    </AuthLayout>
+      <Dialog open={verifying}>
+        <DialogContent className="flex flex-col items-center p-10 gap-6 max-w-md text-center">
+          {/* Hidden title for accessibility */}
+          <DialogTitle className="hidden">Verifying email</DialogTitle>
+
+          {/* Spinner */}
+          <div className="w-20 h-20 border-8 border-gray-300 border-t-white rounded-full animate-spin"></div>
+
+          {/* Header + Description */}
+          <DialogHeader className="space-y-2">
+            <div className="text-2xl text-center font-bold">Please wait!</div>
+            <DialogDescription className="text-gray-700">
+              Verifying your email.
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 

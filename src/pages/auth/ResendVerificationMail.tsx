@@ -1,12 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import AuthLayout from "@/components/layout/AuthLayout";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { authService } from "@/services/authService";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { CircleCheck } from "lucide-react";
+import { AlertCircle, CircleAlert, CircleCheck } from "lucide-react";
 
 function ResendVerificationMail() {
   const navigate = useNavigate();
@@ -14,16 +13,18 @@ function ResendVerificationMail() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
+    setError("");
     if (!email) toast.error("Please enter registered mail");
     setIsLoading(true);
     try {
       await authService.resetPassword({ email });
       toast.success("Password reset link sent to mail");
     } catch (error: any) {
-      toast.error(
+      setError(
         error?.response?.data.message ||
           error.message ||
           "Failed to send password reset link"
@@ -33,17 +34,18 @@ function ResendVerificationMail() {
     }
   };
   return (
-    <AuthLayout>
-      <div className="w-full max-w-md">
+    <div className="w-full h-screen flex items-center mx-auto max-w-md">
+      <div>
+        <div className="text-center mb-8">
+          <CircleAlert className="mx-auto w-16 h-16 my-4 text-red-500" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            Email Verification Failed
+          </h2>
+          <p className="text-gray-600 text-base">
+            Enter your email address to get a verification link.
+          </p>
+        </div>
         <div className="bg-white rounded-xl shadow-lg p-10 w-full">
-          <div className="text-center mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Email Verification Failed
-            </h2>
-            <p className="text-gray-600 text-base">
-              Enter your email address to get a verification link.
-            </p>
-          </div>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
@@ -62,6 +64,12 @@ function ResendVerificationMail() {
                 required
               />
             </div>
+            {error && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <span className="text-sm text-red-700 capitalize">{error}</span>
+              </div>
+            )}
             <Button
               type="submit"
               className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 px-4 rounded-lg font-medium transition-colors text-sm"
@@ -89,22 +97,37 @@ function ResendVerificationMail() {
             </p>
           </div>
         </div>
-        <Dialog open={showDialog} onOpenChange={setShowDialog}>
-              <DialogContent className="flex flex-col items-center py-10 pt-5 gap-6 max-w-md text-center">
-                <div className="flex justify-center items-center mb-4" style={{ width: 96, height: 96 }}>
-            <CircleCheck size={96} className="text-green-600" strokeWidth={2.5} />
+      </div>
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="flex flex-col items-center py-10 pt-5 gap-6 max-w-md text-center">
+          <div
+            className="flex justify-center items-center mb-4"
+            style={{ width: 96, height: 96 }}
+          >
+            <CircleCheck
+              size={96}
+              className="text-green-600"
+              strokeWidth={2.5}
+            />
           </div>
           <div>
-            <div className="text-2xl font-bold mb-2">Verification request sent to your email ID.</div>
+            <div className="text-2xl font-bold mb-2">
+              Verification request sent to your email ID.
+            </div>
             <div className="text-gray-700 text-lg">Please check your email</div>
           </div>
-          <Button className="mt-2 w-40 mx-auto text-white bg-purple-600 hover:bg-purple-700 font-medium" onClick={() => { setShowDialog(false); navigate('/login'); }}>
+          <Button
+            className="mt-2 w-40 mx-auto text-white bg-purple-600 hover:bg-purple-700 font-medium"
+            onClick={() => {
+              setShowDialog(false);
+              navigate("/login");
+            }}
+          >
             Sign in
           </Button>
-              </DialogContent>
-        </Dialog>
-      </div>
-    </AuthLayout>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
