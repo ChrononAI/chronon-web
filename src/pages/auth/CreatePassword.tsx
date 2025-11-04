@@ -26,7 +26,7 @@ function CreatePassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+  const [verifying, setVerifying] = useState(true);
   const [tokens, setTokens] = useState<{
     access_token: string;
     refresh_token: string;
