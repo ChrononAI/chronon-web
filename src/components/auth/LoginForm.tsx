@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/authStore";
@@ -12,19 +12,25 @@ export function LoginForm() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
     try {
       const { user, token } = await authService.login({ email, password });
       login(user, token);
       toast.success("Login successful!");
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || error?.message || "Login failed. Please try again.");
+      setError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Login failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -87,9 +93,21 @@ export function LoginForm() {
               </button>
             </div>
             <div className="flex justify-end mt-2">
-            <button type="button" className="underline text-blue-500 hover:text-blue-700 text-[12px]" onClick={() => navigate('/accounts/forgot_password')}>Forgot Password?</button>
+              <button
+                type="button"
+                className="underline text-purple-600 hover:text-purple-700 text-[12px]"
+                onClick={() => navigate("/accounts/forgot_password")}
+              >
+                Forgot Password?
+              </button>
             </div>
           </div>
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-red-500" />
+              <span className="text-sm text-red-700 capitalize">{error}</span>
+            </div>
+          )}
           <Button
             type="submit"
             className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 px-4 rounded-lg font-medium transition-colors text-sm"

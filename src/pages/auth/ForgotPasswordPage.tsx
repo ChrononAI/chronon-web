@@ -5,8 +5,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { authService } from "@/services/authService";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CircleCheck } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { AlertCircle, CircleCheck } from "lucide-react";
 import { DialogDescription } from "@radix-ui/react-dialog";
 
 function ForgotPasswordPage() {
@@ -15,6 +20,7 @@ function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [error, setError] = useState("");
 
   const dialogClose = () => {
     setShowDialog(false);
@@ -23,18 +29,21 @@ function ForgotPasswordPage() {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
+    setError("");
     if (!email) toast.error("Please enter registered mail");
     setIsLoading(true);
     try {
       const res: any = await authService.resetPassword({ email });
-        toast.error(res.data.message);
-        if (res.data.message === "Email is not verified. Please verify email first") {
-          navigate('/accounts/resend_verification');
-        } else {
-          setShowDialog(true);
-        }
+      toast.error(res.data.message);
+      if (
+        res.data.message === "Email is not verified. Please verify email first"
+      ) {
+        navigate("/accounts/resend_verification");
+      } else {
+        setShowDialog(true);
+      }
     } catch (error: any) {
-      toast.error(
+      setError(
         error?.response?.data.message ||
           error.message ||
           "Failed to send password reset link"
@@ -75,13 +84,19 @@ function ForgotPasswordPage() {
               <div className="flex justify-end mt-2">
                 <button
                   type="button"
-                  className="underline text-blue-500 hover:text-blue-700 text-[12px]"
+                  className="underline text-purple-600 hover:text-purple-700 text-[12px]"
                   onClick={() => navigate("/login")}
                 >
-                  Log In
+                  Sign In
                 </button>
               </div>
             </div>
+            {error && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <span className="text-sm text-red-700 capitalize">{error}</span>
+              </div>
+            )}
             <Button
               type="submit"
               className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 px-4 rounded-lg font-medium transition-colors text-sm"

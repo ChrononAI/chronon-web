@@ -1,43 +1,47 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from '@/components/ui/sonner';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { LoginPage } from '@/pages/auth/LoginPage';
-import { ExpenseDetailPage } from '@/pages/ExpenseDetailPage';
-import { MyReportsPage } from '@/pages/MyReportsPage';
-import { ReportDetailPage } from '@/pages/ReportDetailPage';
-import { MyAdvancesPage } from '@/pages/MyAdvancesPage';
-import { CreateAdvancePage } from '@/pages/CreateAdvancePage';
-import { CreateReportPage } from '@/pages/CreateReportPage';
-import { ProfilePage } from '@/pages/ProfilePage';
-import { ApprovalsReportsPage } from '@/pages/ApprovalsReportsPage';
-import { AllReportsPage } from '@/pages/AllReportsPage';
-import { ApprovalRulesPage } from '@/pages/ApprovalRulesPage';
-import { PaymentPage } from '@/pages/PaymentPage';
-import { OrganizationSetupPage } from '@/pages/OrganizationSetupPage';
-import UploadPolicyPage from '@/pages/UploadPolicyPage';
-import QueryBuilderDemoPage from '@/pages/QueryBuilderDemoPage';
-import { NotFoundPage } from '@/pages/NotFoundPage';
-import { PermissionDeniedPage } from '@/pages/PermissionDeniedPage';
-import { MyExpensesPage } from '@/pages/MyExpensesPage';
-import { UnifiedExpensesPage } from "@/pages/UnifiedExpensesPage"
-import PreApprovalPage from './pages/PreApprovalPage';
-import CreatePreApprovalPage from './pages/CreatePreApprovalPage';
-import PreApprovalDetailsPage from './pages/PreApprovalDetailsPage';
-import ApprovalsPreApprovalsPage from './pages/ApprovalsPreApprovalsPage';
-import ProcessPreApprovalPage from './pages/ProcessPreApprovalPage';
-import AdvanceDetailsPage from './pages/AdvanceDetailsPage';
-import ApprovalsAdvancesPage from './pages/ApprovalsAdvancesPage';
-import ProcessAdvancePage from './pages/ProcessAdvancePage';
-import AdminPage from './pages/admin/AdminPage';
-import AdminExpenseCategories from './pages/admin/AdminExpenseCategories';
-import CreateExpenseCategoryPage from './pages/admin/CreateExpenseCategoryPage';
-import AdminExpensePolicies from './pages/admin/AdminExpensePolicies';
-import CreateExpensePolicyPage from './pages/admin/CreateExpensePolicyPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-import ResetPassword from './pages/auth/ResetPassword';
-import VerifyEmail from './pages/auth/VerifyEmail';
-import CreatePassword from './pages/auth/CreatePassword';
-import ResendVerificationMail from './pages/auth/ResendVerificationMail';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { Toaster } from "@/components/ui/sonner";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { LoginPage } from "@/pages/auth/LoginPage";
+import { ExpenseDetailPage } from "@/pages/ExpenseDetailPage";
+import { MyReportsPage } from "@/pages/MyReportsPage";
+import { ReportDetailPage } from "@/pages/ReportDetailPage";
+import { MyAdvancesPage } from "@/pages/MyAdvancesPage";
+import { CreateAdvancePage } from "@/pages/CreateAdvancePage";
+import { CreateReportPage } from "@/pages/CreateReportPage";
+import { ProfilePage } from "@/pages/ProfilePage";
+import { ApprovalsReportsPage } from "@/pages/ApprovalsReportsPage";
+import { AllReportsPage } from "@/pages/AllReportsPage";
+import { ApprovalRulesPage } from "@/pages/ApprovalRulesPage";
+import { PaymentPage } from "@/pages/PaymentPage";
+import { OrganizationSetupPage } from "@/pages/OrganizationSetupPage";
+import UploadPolicyPage from "@/pages/UploadPolicyPage";
+import QueryBuilderDemoPage from "@/pages/QueryBuilderDemoPage";
+import { NotFoundPage } from "@/pages/NotFoundPage";
+import { PermissionDeniedPage } from "@/pages/PermissionDeniedPage";
+import { MyExpensesPage } from "@/pages/MyExpensesPage";
+import { UnifiedExpensesPage } from "@/pages/UnifiedExpensesPage";
+import PreApprovalPage from "./pages/PreApprovalPage";
+import CreatePreApprovalPage from "./pages/CreatePreApprovalPage";
+import PreApprovalDetailsPage from "./pages/PreApprovalDetailsPage";
+import ApprovalsPreApprovalsPage from "./pages/ApprovalsPreApprovalsPage";
+import ProcessPreApprovalPage from "./pages/ProcessPreApprovalPage";
+import AdvanceDetailsPage from "./pages/AdvanceDetailsPage";
+import ApprovalsAdvancesPage from "./pages/ApprovalsAdvancesPage";
+import ProcessAdvancePage from "./pages/ProcessAdvancePage";
+import AdminPage from "./pages/admin/AdminPage";
+import AdminExpenseCategories from "./pages/admin/AdminExpenseCategories";
+import CreateExpenseCategoryPage from "./pages/admin/CreateExpenseCategoryPage";
+import AdminExpensePolicies from "./pages/admin/AdminExpensePolicies";
+import CreateExpensePolicyPage from "./pages/admin/CreateExpensePolicyPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPassword from "./pages/auth/ResetPassword";
+import CreatePassword from "./pages/auth/CreatePassword";
+import ResendVerificationMail from "./pages/auth/ResendVerificationMail";
 
 function App() {
   return (
@@ -45,11 +49,19 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/accounts/forgot_password" element={<ForgotPasswordPage />} />
+          <Route
+            path="/accounts/forgot_password"
+            element={<ForgotPasswordPage />}
+          />
           <Route path="/accounts/reset_password" element={<ResetPassword />} />
-          <Route path="/accounts/verify_email" element={<VerifyEmail />} />
-          <Route path="/accounts/create_password" element={<CreatePassword />} />
-          <Route path='/accounts/resend_verification' element={<ResendVerificationMail />} />
+          <Route
+            path="/accounts/create_password"
+            element={<CreatePassword />}
+          />
+          <Route
+            path="/accounts/resend_verification"
+            element={<ResendVerificationMail />}
+          />
           <Route
             path="/expenses"
             element={
@@ -138,12 +150,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/approvals/reports/:id"
-            element={
-                <ReportDetailPage />
-            }
-          />
+          <Route path="/approvals/reports/:id" element={<ReportDetailPage />} />
           <Route
             path="/approvals/advances"
             element={
@@ -258,7 +265,7 @@ function App() {
             }
           />
           <Route
-            path='/admin/product-config/expense-categories'
+            path="/admin/product-config/expense-categories"
             element={
               <ProtectedRoute>
                 <AdminExpenseCategories />
@@ -266,7 +273,7 @@ function App() {
             }
           />
           <Route
-            path='/admin/product-config/expense-categories/create'
+            path="/admin/product-config/expense-categories/create"
             element={
               <ProtectedRoute>
                 <CreateExpenseCategoryPage />
@@ -274,7 +281,7 @@ function App() {
             }
           />
           <Route
-            path='/admin/product-config/expense-policies'
+            path="/admin/product-config/expense-policies"
             element={
               <ProtectedRoute>
                 <AdminExpensePolicies />
@@ -282,7 +289,7 @@ function App() {
             }
           />
           <Route
-            path='/admin/product-config/expense-policies/create'
+            path="/admin/product-config/expense-policies/create"
             element={
               <ProtectedRoute>
                 <CreateExpensePolicyPage />
