@@ -64,7 +64,7 @@ const navigation: NavigationItem[] = [
     ]
   },
   { name: 'Reports', href: '/all-reports', isBold: false, icon: FileChartColumn },
-  // { name: 'Admin', href: '/admin', isBold: false, icon: FileChartColumn },
+  { name: 'Admin', href: '/admin', isBold: false, icon: FileChartColumn },
 ];
 
 export function Sidebar() {

@@ -52,7 +52,7 @@ const navigation: NavigationItem[] = [
         children: [
             {
                 name: 'Roles & Access',
-                href: '/admin/product-config/roles-and-access'
+                href: '#'
             },
             {
                 name: 'Expense Categories',

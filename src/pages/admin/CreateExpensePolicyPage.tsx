@@ -67,7 +67,6 @@ function CreateExpensePolicyPage() {
   };
 
   const handleChange = (field: string, value: string | boolean) => {
-    console.log(field, value);
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -125,7 +124,7 @@ function CreateExpensePolicyPage() {
                       onChange={(e) =>
                         handleChange("description", e.target.value)
                       }
-                      placeholder="Enter name"
+                      placeholder="Enter description"
                     />
                   </div>
                 </div>
