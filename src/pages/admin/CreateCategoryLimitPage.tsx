@@ -322,7 +322,7 @@ function CreateCategoryLimitPage() {
   };
 
   return (
-    <Layout>
+    <Layout noPadding>
       <AdminLayout>
         <div className="space-y-6">
           <div className="space-y-6">

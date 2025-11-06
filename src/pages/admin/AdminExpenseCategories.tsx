@@ -58,7 +58,7 @@ function AdminExpenseCategories() {
     getCategories({ page: 1, perPage: 10 });
   }, []);
   return (
-    <Layout>
+    <Layout noPadding>
       <AdminLayout>
         <div>
           {/* HEADER */}
@@ -73,7 +73,7 @@ function AdminExpenseCategories() {
               Add New Categories
             </Button>
           </div>
-          <Box sx={{ height: "calc(100vh - 160px)", width: "100%" }}>
+          <Box sx={{ height: "calc(100vh - 100px)", width: "100%" }}>
             <DataGrid
               className="rounded border-[0.2px] border-[#f3f4f6] h-full"
               columns={columns}

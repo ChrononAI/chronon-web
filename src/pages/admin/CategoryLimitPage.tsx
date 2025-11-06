@@ -68,7 +68,7 @@ function CategoryLimitPage() {
   }, []);
 
   return (
-    <Layout>
+    <Layout noPadding>
       <AdminLayout>
         <div>
           {/* HEADER */}
@@ -85,9 +85,8 @@ function CategoryLimitPage() {
           </div>
           <Box
             sx={{
-              height: "calc(100vh - 160px)",
+              height: "calc(100vh - 100px)",
               width: "100%",
-              marginTop: "-32px",
             }}
           >
             <DataGrid
