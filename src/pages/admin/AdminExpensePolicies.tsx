@@ -73,7 +73,7 @@ function AdminExpensePolicies() {
     });
   }, [paginationModel.page, paginationModel.pageSize]);
   return (
-    <Layout>
+    <Layout noPadding>
       <AdminLayout>
         <div>
           {/* HEADER */}
@@ -88,7 +88,7 @@ function AdminExpensePolicies() {
               Add Policy
             </Button>
           </div>
-          <Box sx={{ height: "calc(100vh - 160px)", width: "100%" }}>
+          <Box sx={{ height: "calc(100vh - 100px)", width: "100%" }}>
             <DataGrid
               className="rounded border-[0.2px] border-[#f3f4f6] h-full"
               columns={columns}

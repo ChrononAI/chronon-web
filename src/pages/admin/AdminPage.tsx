@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout/Layout"
 
 function AdminPage() {
     return (
-        <Layout>
+        <Layout noPadding>
             <AdminLayout>
                 <div>abc</div>
             </AdminLayout>

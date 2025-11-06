@@ -64,7 +64,7 @@ const navigation: NavigationItem[] = [
     ]
   },
   { name: 'Reports', href: '/all-reports', isBold: false, icon: FileChartColumn },
-  // { name: 'Admin', href: '/admin', isBold: false, icon: FileChartColumn },
+  { name: 'Admin', href: '/admin', isBold: false, icon: FileChartColumn },
 ];
 
 export function Sidebar() {
@@ -79,6 +79,8 @@ export function Sidebar() {
   });
   const [collapsed, setCollapsed] = useState(location.pathname.includes('admin'));
   const { user, logout } = useAuthStore();
+
+  console.log(user);
 
   const handleLogout = () => {
     logout();

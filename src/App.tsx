@@ -42,6 +42,9 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPassword from "./pages/auth/ResetPassword";
 import CreatePassword from "./pages/auth/CreatePassword";
 import ResendVerificationMail from "./pages/auth/ResendVerificationMail";
+import CategoryLimitPage from "./pages/admin/CategoryLimitPage";
+import CreateCategoryLimitPage from "./pages/admin/CreateCategoryLimitPage";
+import EditCategoryLimitPage from "./pages/admin/EditCategoryLimitPage";
 
 function App() {
   return (
@@ -255,6 +258,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           {/* Admin Pages */}
           <Route
             path="/admin"
@@ -296,6 +300,31 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/product-config/category-limits"
+            element={
+              <ProtectedRoute>
+                <CategoryLimitPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+          path="/admin/product-config/category-limits/create"
+          element={
+            <ProtectedRoute>
+              <CreateCategoryLimitPage />
+            </ProtectedRoute>
+          }
+          />
+          <Route
+            path="/admin/product-config/category-limits/:id"
+            element={
+              <ProtectedRoute>
+                <EditCategoryLimitPage />
+              </ProtectedRoute>
+            }
+          />
+
           <Route path="/" element={<Navigate to="/expenses" replace />} />
           <Route path="/404" element={<NotFoundPage />} />
           <Route path="/permission-denied" element={<PermissionDeniedPage />} />
