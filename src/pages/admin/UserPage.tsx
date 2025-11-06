@@ -257,7 +257,7 @@ const UserPage = () => {
   }
 
   return (
-    <Layout>
+    <Layout noPadding>
       <AdminLayout>
         <div className="space-y-6">
           <div>

@@ -119,4 +119,13 @@ export const authService = {
       throw error;
     }
   },
+
+  async getOrgSetting() {
+    try {
+      const res = await api.get('/orgs/settings?org_id=26');
+      return res;
+    } catch (error) {
+      throw error;
+    }
+  }
 };

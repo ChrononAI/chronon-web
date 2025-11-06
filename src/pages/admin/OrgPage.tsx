@@ -1,8 +1,6 @@
-import { useState } from 'react'
 import AdminLayout from '@/components/layout/AdminLayout'
 import { Layout } from '@/components/layout/Layout'
 import { Button } from '@/components/ui/button'
-import { Link } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useForm } from 'react-hook-form'
@@ -37,7 +35,7 @@ const OrgPage = () => {
 	}
 
 	return (
-		<Layout>
+		<Layout noPadding>
 			<AdminLayout>
 				<div className="flex justify-between items-center mb-6">
 					<h1 className="text-2xl font-bold">Organization</h1>

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useLocation, NavLink } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useLocation, NavLink } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -9,21 +9,22 @@ import {
   FileChartColumn,
   User,
   SquareCheckBig,
-  ChevronLeft
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+  ChevronLeft,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { LucideIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+} from "@/components/ui/collapsible";
+import { LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface NavigationItem {
   name: string;
   href?: string;
+  permissions?: { allowed: boolean; enabled: boolean };
   icon?: LucideIcon;
   isBold?: boolean;
   disabled?: boolean;
@@ -35,61 +36,138 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuthStore } from '@/store/authStore';
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuthStore } from "@/store/authStore";
+import { authService } from "@/services/authService";
 
 const navigation: NavigationItem[] = [
-  { name: 'Pre Approval', href: '/pre-approvals', icon: SquareCheckBig },
-  { name: 'Advances', href: '/advances', icon: SquareCheckBig },
-  { name: 'Expenses', href: '/expenses', icon: Banknote },
-  { name: 'Expense Reports', href: '/reports', icon: ReceiptText },
+  { name: "Pre Approval", href: "/pre-approvals", icon: SquareCheckBig },
+  { name: "Advances", href: "/advances", icon: SquareCheckBig },
+  { name: "Expenses", href: "/expenses", icon: Banknote },
+  { name: "Expense Reports", href: "/reports", icon: ReceiptText },
   {
-    name: 'Approvals', href: '/approvals/reports', icon: ListCheck, children: [
+    name: "Approvals",
+    href: "/approvals/reports",
+    icon: ListCheck,
+    children: [
       {
-        name: 'Expense',
-        href: '/approvals/reports',
-        icon: ListCheck
+        name: "Expense",
+        href: "/approvals/reports",
+        icon: ListCheck,
       },
       {
-        name: 'Pre Approval',
-        href: '/approvals/pre-approvals',
-        icon: ListCheck
+        name: "Pre Approval",
+        href: "/approvals/pre-approvals",
+        icon: ListCheck,
       },
       {
-        name: 'Advance',
-        href: '/approvals/advances',
-        icon: ListCheck
-      }
-    ]
+        name: "Advance",
+        href: "/approvals/advances",
+        icon: ListCheck,
+      },
+    ],
   },
-  { name: 'Reports', href: '/all-reports', isBold: false, icon: FileChartColumn },
-  { name: 'Admin', href: '/admin/entities', isBold: false, icon: FileChartColumn },
+  {
+    name: "Reports",
+    href: "/all-reports",
+    isBold: false,
+    icon: FileChartColumn,
+  },
+  {
+    name: "Admin",
+    href: "/admin/entities",
+    isBold: false,
+    icon: FileChartColumn,
+  },
 ];
+
+const permissionMap: any = {
+  "Pre Approval": "pre_approval_settings",
+  Advances: "advance_settings",
+  Admin: "admin_dashboard_settings",
+};
 
 export function Sidebar() {
   const location = useLocation();
   const [openItems, setOpenItems] = useState<string[]>(() => {
     // Load from localStorage on initial render
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('sidebarOpenItems');
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("sidebarOpenItems");
       return saved ? JSON.parse(saved) : [];
     }
     return [];
   });
-  const [collapsed, setCollapsed] = useState(location.pathname.includes('admin'));
-  const { user, logout } = useAuthStore();
+  const [collapsed, setCollapsed] = useState(
+    location.pathname.includes("admin")
+  );
+  const [newNavItems, setNewNavItems] = useState<NavigationItem[]>([]);
+  const { user, orgSettings, logout, setOrgSettings } = useAuthStore();
 
-  console.log(user);
+  const mergePermissions = (items: any[], permissions: any): any[] => {
+    return items.map((item) => {
+      if (item?.name === "Reports") {
+        const permission = {
+          enabled: user ? user.role === "ADMIN" : false,
+          allowed: user ? user?.role === "ADMIN" : false,
+        };
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
+      } else {
+        const key = permissionMap[item.name];
+        const permission = key ? permissions[key] : undefined;
+
+        // Recursively apply to children
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
+      }
+    });
+  };
+
+  useEffect(() => {
+    if (orgSettings) {
+      const newNav: NavigationItem[] = mergePermissions(
+        navigation,
+        orgSettings
+      );
+      setNewNavItems(newNav);
+    }
+  }, [orgSettings]);
 
   const handleLogout = () => {
     logout();
   };
 
+  const getOrgSettings = async () => {
+    try {
+      const res = await authService.getOrgSetting();
+      setOrgSettings(res.data.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    getOrgSettings();
+  }, []);
+
   // Save to localStorage whenever openItems changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('sidebarOpenItems', JSON.stringify(openItems));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sidebarOpenItems", JSON.stringify(openItems));
     }
   }, [openItems]);
 
@@ -100,11 +178,11 @@ export function Sidebar() {
     let hasChanges = false;
 
     // Check each navigation item with children
-    navigation.forEach(item => {
+    navigation.forEach((item) => {
       if (item.children) {
         // If any child's href matches the current path, ensure parent is open
-        const hasActiveChild = item.children.some(child =>
-          child.href && path.startsWith(child.href)
+        const hasActiveChild = item.children.some(
+          (child) => child.href && path.startsWith(child.href)
         );
 
         if (hasActiveChild && !newOpenItems.has(item.name)) {
@@ -120,14 +198,16 @@ export function Sidebar() {
   }, [location.pathname, openItems]);
 
   const toggleItem = (name: string) => {
-    setOpenItems((prev) =>
-      prev.includes(name)
-        ? prev.filter((item) => item !== name) // Remove if exists (close)
-        : [...prev, name] // Add if not exists (open)
+    setOpenItems(
+      (prev) =>
+        prev.includes(name)
+          ? prev.filter((item) => item !== name) // Remove if exists (close)
+          : [...prev, name] // Add if not exists (open)
     );
   };
 
   const renderNavigationItem = (item: NavigationItem, level: number = 0) => {
+    if (item.permissions?.enabled === false) return null;
     const paddingLeft = level * 12 + 12; // 12px base + 12px per level
     const isDisabled = item.disabled;
 
@@ -144,10 +224,11 @@ export function Sidebar() {
           <CollapsibleTrigger asChild>
             <Button
               variant="ghost"
-              onClick={() => setCollapsed(false)} 
+              onClick={() => setCollapsed(false)}
               className={cn(
-                'w-full justify-between h-auto font-normal',
-                isDisabled && 'opacity-50 cursor-not-allowed hover:bg-transparent'
+                "w-full justify-between h-auto font-normal transition-all duration-200",
+                isDisabled &&
+                  "opacity-50 cursor-not-allowed hover:bg-transparent"
               )}
               style={{ paddingLeft: `${paddingLeft}px` }}
               disabled={isDisabled}
@@ -157,28 +238,30 @@ export function Sidebar() {
                 {item.name}
               </div>
               {isOpen ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
               )}
             </Button>
           </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-1 mt-1">
-            {item.children.map((child: NavigationItem) => renderNavigationItem(child, level + 1))}
+          <CollapsibleContent className="space-y-1 mt-1 overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+            {item.children.map((child: NavigationItem) =>
+              renderNavigationItem(child, level + 1)
+            )}
           </CollapsibleContent>
         </Collapsible>
       );
     }
 
     if (item.href) {
-      if (isDisabled || item.href === '#') {
+      if (isDisabled || item.href === "#") {
         return (
           <div
             key={item.name}
             className={cn(
-              'flex items-center py-2 text-sm rounded-md transition-colors',
-              item.isBold && 'font-bold',
-              'opacity-50 cursor-not-allowed text-muted-foreground'
+              "flex items-center py-2 text-sm rounded-md transition-colors",
+              item.isBold && "font-bold",
+              "opacity-50 cursor-not-allowed text-muted-foreground"
             )}
             style={{ paddingLeft: `${paddingLeft}px` }}
           >
@@ -194,11 +277,11 @@ export function Sidebar() {
           to={item.href}
           className={({ isActive }) =>
             cn(
-              'flex items-center py-2 text-sm rounded-md transition-colors',
-              item.isBold && 'font-bold',
+              "flex items-center py-2 text-sm rounded-md transition-colors",
+              item.isBold && "font-bold",
               isActive
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
             )
           }
           style={{ paddingLeft: `${paddingLeft}px` }}
@@ -233,7 +316,9 @@ export function Sidebar() {
       <div className="flex items-center justify-between p-4">
         {!collapsed && (
           <Link to="/" className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-primary truncate">CHRONON</h1>
+            <h1 className="text-2xl font-bold text-primary truncate">
+              CHRONON
+            </h1>
           </Link>
         )}
         <Button
@@ -251,18 +336,24 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className={cn("px-2 space-y-2 flex-1 transition-all duration-300", collapsed && "px-1")}>
-        {navigation.map((item) => (
-          <div key={item.name}>
-            {renderNavigationItem(
-              {
-                ...item,
-                name: collapsed ? "" : item.name, // Hide text if collapsed
-              },
-              0
-            )}
-          </div>
-        ))}
+      <nav
+        className={cn(
+          "px-2 space-y-2 flex-1 transition-all duration-300",
+          collapsed && "px-1"
+        )}
+      >
+        {newNavItems.length > 0 &&
+          newNavItems.map((item) => (
+            <div key={item.name}>
+              {renderNavigationItem(
+                {
+                  ...item,
+                  name: collapsed ? "" : item.name, // Hide text if collapsed
+                },
+                0
+              )}
+            </div>
+          ))}
       </nav>
 
       {/* Footer (User Menu) */}
@@ -299,7 +390,12 @@ export function Sidebar() {
           </DropdownMenuTrigger>
 
           {!collapsed && (
-            <DropdownMenuContent className="w-56 ml-4" side="right" align="end" forceMount>
+            <DropdownMenuContent
+              className="w-56 ml-4"
+              side="right"
+              align="end"
+              forceMount
+            >
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link to="/profile" className="flex items-center">

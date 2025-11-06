@@ -62,7 +62,7 @@ export const EntityPage = () => {
       load()
     }, [])
   return (
-    <Layout>
+    <Layout noPadding>
       <AdminLayout>
         
         <div className="flex justify-between items-center mb-6">
