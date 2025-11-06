@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { LoginPage } from '@/pages/LoginPage';
+import { LoginPage } from '@/pages/auth/LoginPage';
 import { ExpenseDetailPage } from '@/pages/ExpenseDetailPage';
 import { MyReportsPage } from '@/pages/MyReportsPage';
 import { ReportDetailPage } from '@/pages/ReportDetailPage';
@@ -39,53 +39,17 @@ import ExpenseRequestMaster from './pages/admin/ExpenseRequestMaster';
 import UserMaster from './pages/admin/UserMaster';
 import UserPage from './pages/admin/UserPage';
 import WorkFlowPage from './pages/admin/WorkFlowPage';
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import { Toaster } from "@/components/ui/sonner";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { LoginPage } from "@/pages/auth/LoginPage";
-import { ExpenseDetailPage } from "@/pages/ExpenseDetailPage";
-import { MyReportsPage } from "@/pages/MyReportsPage";
-import { ReportDetailPage } from "@/pages/ReportDetailPage";
-import { MyAdvancesPage } from "@/pages/MyAdvancesPage";
-import { CreateAdvancePage } from "@/pages/CreateAdvancePage";
-import { CreateReportPage } from "@/pages/CreateReportPage";
-import { ProfilePage } from "@/pages/ProfilePage";
-import { ApprovalsReportsPage } from "@/pages/ApprovalsReportsPage";
-import { AllReportsPage } from "@/pages/AllReportsPage";
-import { ApprovalRulesPage } from "@/pages/ApprovalRulesPage";
-import { PaymentPage } from "@/pages/PaymentPage";
-import { OrganizationSetupPage } from "@/pages/OrganizationSetupPage";
-import UploadPolicyPage from "@/pages/UploadPolicyPage";
-import QueryBuilderDemoPage from "@/pages/QueryBuilderDemoPage";
-import { NotFoundPage } from "@/pages/NotFoundPage";
-import { PermissionDeniedPage } from "@/pages/PermissionDeniedPage";
-import { MyExpensesPage } from "@/pages/MyExpensesPage";
-import { UnifiedExpensesPage } from "@/pages/UnifiedExpensesPage";
-import PreApprovalPage from "./pages/PreApprovalPage";
-import CreatePreApprovalPage from "./pages/CreatePreApprovalPage";
-import PreApprovalDetailsPage from "./pages/PreApprovalDetailsPage";
-import ApprovalsPreApprovalsPage from "./pages/ApprovalsPreApprovalsPage";
-import ProcessPreApprovalPage from "./pages/ProcessPreApprovalPage";
-import AdvanceDetailsPage from "./pages/AdvanceDetailsPage";
-import ApprovalsAdvancesPage from "./pages/ApprovalsAdvancesPage";
-import ProcessAdvancePage from "./pages/ProcessAdvancePage";
-import AdminPage from "./pages/admin/AdminPage";
-import AdminExpenseCategories from "./pages/admin/AdminExpenseCategories";
-import CreateExpenseCategoryPage from "./pages/admin/CreateExpenseCategoryPage";
-import AdminExpensePolicies from "./pages/admin/AdminExpensePolicies";
-import CreateExpensePolicyPage from "./pages/admin/CreateExpensePolicyPage";
-import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
-import ResetPassword from "./pages/auth/ResetPassword";
-import CreatePassword from "./pages/auth/CreatePassword";
-import ResendVerificationMail from "./pages/auth/ResendVerificationMail";
-import CategoryLimitPage from "./pages/admin/CategoryLimitPage";
-import CreateCategoryLimitPage from "./pages/admin/CreateCategoryLimitPage";
-import EditCategoryLimitPage from "./pages/admin/EditCategoryLimitPage";
+import AdminExpenseCategories from './pages/admin/AdminExpenseCategories';
+import CreateExpenseCategoryPage from './pages/admin/CreateExpenseCategoryPage';
+import AdminExpensePolicies from './pages/admin/AdminExpensePolicies';
+import CreateExpensePolicyPage from './pages/admin/CreateExpensePolicyPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPassword from './pages/auth/ResetPassword';
+import CreatePassword from './pages/auth/CreatePassword';
+import ResendVerificationMail from './pages/auth/ResendVerificationMail';
+import CategoryLimitPage from './pages/admin/CategoryLimitPage';
+import CreateCategoryLimitPage from './pages/admin/CreateCategoryLimitPage';
+import EditCategoryLimitPage from './pages/admin/EditCategoryLimitPage';
 
 function App() {
   return (
@@ -306,6 +270,86 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/entities"
+            element={
+              <ProtectedRoute>
+                <EntityPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/entities/create"
+            element={
+              <ProtectedRoute>
+                <CreateEntityPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/org"
+            element={
+              <ProtectedRoute>
+                <OrgPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/expense-masters"
+            element={
+              <ProtectedRoute>
+                <ExpenseMasterPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/masters/expense-reports-masters"
+            element={
+              <ProtectedRoute>
+                <ExpenseReportMaster />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/masters/advance-masters"
+            element={
+              <ProtectedRoute>
+                <AdvanceMaster />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/masters/expense-request-masters"
+            element={
+              <ProtectedRoute>
+                <ExpenseRequestMaster />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/masters/users-masters"
+            element={
+              <ProtectedRoute>
+                <UserMaster />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute>
+                <UserPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/product-config/workflow"
+            element={
+              <ProtectedRoute>
+                <WorkFlowPage />
               </ProtectedRoute>
             }
           />
