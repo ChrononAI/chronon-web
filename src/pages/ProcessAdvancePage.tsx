@@ -26,18 +26,44 @@ function ProcessAdvancePage() {
 
     const [approvalWorkflow, setApprovalWorkflow] = useState<ApprovalWorkflow | null>(null);
 
-    const getUserSpecificStatus = (): string => {
-        if (!user || !approvalWorkflow || !approvalWorkflow.approval_steps) {
+        const getUserSpecificStatus = (): string => {
+        if (!user || !approvalWorkflow?.approval_steps?.length) {
             return report?.status || 'UNDER_REVIEW';
         }
+
         const currentUserId = user.id.toString();
-        const userStep = approvalWorkflow.approval_steps.find(step =>
-            step.approvers.some(approver => approver.user_id === currentUserId)
+        const steps = approvalWorkflow.approval_steps;
+
+        // 1️⃣ If any step or approver has REJECTED → everyone sees REJECTED
+        const anyRejected = steps.some(
+            step =>
+                step.status === 'REJECTED'
         );
+        if (anyRejected) return 'REJECTED';
+
+        // 2️⃣ Find the step that contains the current user
+        const userStep = steps.find(step =>
+            step.approvers?.some(a => a.user_id?.toString() === currentUserId)
+        );
+
         if (!userStep) {
+            // user not part of approval chain → show global status or UNDER_REVIEW
             return report?.status || 'UNDER_REVIEW';
         }
-        return userStep.status === 'APPROVED' ? 'APPROVED' : userStep.status === 'REJECTED' ? 'REJECTED' : 'UNDER_REVIEW';
+
+        // 4️⃣ If user’s step hasn’t started yet → UNDER_REVIEW
+        const userStepOrder = userStep.step_order;
+        const currentStepOrder = approvalWorkflow.current_step;
+
+        if (userStepOrder > currentStepOrder) return 'PENDING_APPROVAL';
+
+        // 5️⃣ Otherwise, user’s step is active but pending
+        if (userStep.status === 'PENDING' || userStep.status === 'PENDING_APPROVAL') {
+            return 'PENDING';
+        }
+
+        // 6️⃣ Fallback to report’s overall status or UNDER_REVIEW
+        return report?.status || 'PENDING_APPROVAL';
     };
 
     const canApprove = () => {
@@ -140,7 +166,7 @@ function ProcessAdvancePage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <FileText className="h-5 w-5" />
-                                    Report Information
+                                    Advance Information
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">

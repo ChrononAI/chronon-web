@@ -187,7 +187,7 @@ export function CreateExpenseForm() {
           onNext={handleStep1Next}
           onBack={() => navigate(-1)}
           onDuplicateDetected={handleDuplicateDetected}
-          type='reupload'
+          type='upload'
         />
       ) : (
         <ExpenseDetailsStep

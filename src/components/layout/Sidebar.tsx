@@ -80,6 +80,8 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(location.pathname.includes('admin'));
   const { user, logout } = useAuthStore();
 
+  console.log(user);
+
   const handleLogout = () => {
     logout();
   };

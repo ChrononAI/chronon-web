@@ -93,7 +93,7 @@ export function ApprovalsReportsPage() {
 
   const handleViewDetails = (reportId: string) => {
     // Navigate to report details with approval context
-    navigate(`/reports/${reportId}?from=approvals`);
+    navigate(`/approvals/reports/${reportId}?from=approvals`);
   };
   const handlePageChange = (page: number) => {
     setCurrentPage(page);

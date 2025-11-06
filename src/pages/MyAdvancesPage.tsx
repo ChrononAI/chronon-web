@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ReportsPageWrapper } from '@/components/reports/ReportsPageWrapper';
 import { DataGrid, GridColDef, GridOverlay, GridPaginationModel, GridRowModel } from '@mui/x-data-grid';
 import { Box, CircularProgress } from '@mui/material';
-import { formatDate, getStatusColor } from '@/lib/utils';
+import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { AdvanceService } from '@/services/advanceService';
 import { useAdvanceStore } from '@/store/advanceStore';
@@ -102,6 +102,26 @@ export function MyAdvancesPage() {
             {value.replace('_', ' ')}
           </Badge>
         )
+      }
+    },
+    {
+      field: 'amount',
+      headerName: 'AMOUNT',
+      width: 150,
+      align: 'right',
+      headerAlign: 'right',
+      renderCell: ({ value }) => {
+        return value ? formatCurrency(value) : '-'
+      }
+    },
+    {
+      field: 'claimed_amount',
+      headerName: 'CLAIMED AMOUNT',
+      width: 150,
+      align: 'right',
+      headerAlign: 'right',
+      renderCell: ({ value }) => {
+        return value ? formatCurrency(value) : "-"
       }
     },
     {
