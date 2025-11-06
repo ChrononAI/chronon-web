@@ -29,6 +29,16 @@ import AdvanceDetailsPage from './pages/AdvanceDetailsPage';
 import ApprovalsAdvancesPage from './pages/ApprovalsAdvancesPage';
 import ProcessAdvancePage from './pages/ProcessAdvancePage';
 import AdminPage from './pages/admin/AdminPage';
+import { EntityPage } from './pages/admin/EntityPage';
+import { CreateEntityPage } from './pages/admin/CreateEntityPage';
+import OrgPage from './pages/admin/OrgPage';
+import ExpenseMasterPage from './pages/admin/ExpenseMasterPage';
+import ExpenseReportMaster from './pages/admin/ExpenseReportMaster';
+import AdvanceMaster from './pages/admin/AdvanceMaster';
+import ExpenseRequestMaster from './pages/admin/ExpenseRequestMaster';
+import UserMaster from './pages/admin/UserMaster';
+import UserPage from './pages/admin/UserPage';
+import WorkFlowPage from './pages/admin/WorkFlowPage';
 
 function App() {
   return (
@@ -237,6 +247,82 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/entities"
+            element={
+              <ProtectedRoute>
+                <EntityPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/entities/create"
+            element={
+              <ProtectedRoute>
+                <CreateEntityPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/org"
+            element={
+              <ProtectedRoute>
+                <OrgPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+          path="/admin/expense-masters"
+          element={
+            <ProtectedRoute>
+              <ExpenseMasterPage/>
+              </ProtectedRoute>
+          }
+          />
+          <Route
+          path='/admin/masters/expense-reports-masters'
+          element={
+            <ProtectedRoute>
+              <ExpenseReportMaster/>
+              </ProtectedRoute>
+          }
+          />
+          <Route
+          path='/admin/masters/advance-masters'
+          element={
+            <ProtectedRoute>
+              <AdvanceMaster/>
+              </ProtectedRoute>
+          }
+          />
+          <Route 
+          path='/admin/masters/expense-request-masters'
+          element={
+            <ProtectedRoute>
+              <ExpenseRequestMaster/>
+              </ProtectedRoute>
+          }/>
+          <Route
+          path='/admin/masters/users-masters'
+          element={
+            <ProtectedRoute>
+              <UserMaster/>
+            </ProtectedRoute>
+          }/>
+          <Route 
+          path='/admin/users'
+          element={
+            <ProtectedRoute>
+              <UserPage/>
+            </ProtectedRoute>
+          }/>
+          <Route
+          path='admin/product-config/workflow'
+          element={
+            <ProtectedRoute>
+              <WorkFlowPage/>
+            </ProtectedRoute>
+          }/>
 
           <Route path="/" element={<Navigate to="/expenses" replace />} />
           <Route path="/404" element={<NotFoundPage />} />
