@@ -41,6 +41,13 @@ function CategoryLimitPage() {
     pageSize: 10,
   });
 
+  useEffect(() => {
+    const gridHeight = window.innerHeight - 300;
+    const rowHeight = 36;
+    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+  }, []);
+
   const [policyRules, setPolicyRules] = useState([]);
 
   const getPolicyRules = async () => {
@@ -57,11 +64,11 @@ function CategoryLimitPage() {
     }
   };
 
-  const handleRowClick = ({row}: any) => {
+  const handleRowClick = ({ row }: any) => {
     console.log(row);
     setSelectedLimit(row);
-    navigate(`/admin/product-config/category-limits/${row.id}`)
-  }
+    navigate(`/admin/product-config/category-limits/${row.id}`);
+  };
 
   useEffect(() => {
     getPolicyRules();
@@ -112,21 +119,6 @@ function CategoryLimitPage() {
                   borderTop: "none",
                   borderBottom: "none",
                 },
-                "& .MuiCheckbox-root svg": {
-                  width: 16,
-                  height: 16,
-                  backgroundColor: "transparent",
-                  border: "0.2px solid #d9d9d9",
-                  borderRadius: 1,
-                },
-                "& .MuiCheckbox-root svg path": {
-                  display: "none",
-                },
-                "& .MuiCheckbox-root.Mui-checked:not(.MuiCheckbox-indeterminate) svg":
-                  {
-                    backgroundColor: "#1890ff",
-                    borderColor: "#1890ff",
-                  },
                 "& .MuiDataGrid-row:hover": {
                   cursor: "pointer",
                   backgroundColor: "#f5f5f5",
@@ -146,19 +138,15 @@ function CategoryLimitPage() {
                   color: "#f3f4f6",
                 },
               }}
-              //   slots={{
-              //     baseCheckbox: ThinBorderCheckbox,
-              //   }}
               showToolbar
               density="compact"
               checkboxSelection
               disableRowSelectionOnClick
               showCellVerticalBorder
-                onRowClick={handleRowClick}
+              onRowClick={handleRowClick}
               pagination
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
-              autoPageSize
             />
           </Box>
         </div>

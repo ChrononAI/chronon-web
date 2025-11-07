@@ -58,7 +58,7 @@ const ExpenseMasterPage = () => {
         setEntitiesLoading(true)
         try {
           const res = await getEntities()
-          const entitiesData: Entity[] = res?.data || []
+          const entitiesData: Entity[] = res || []
           setEntities(entitiesData)
         } catch (e) {
           console.error('Error fetching entities:', e)

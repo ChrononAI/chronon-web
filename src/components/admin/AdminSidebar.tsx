@@ -49,11 +49,6 @@ const navigation: NavigationItem[] = [
         icon: FolderTree,
       },
       {
-        name: "Org",
-        href: "/admin/org",
-        icon: Building2,
-      },
-      {
         name: "Users",
         href: "/admin/users",
         icon: Users,

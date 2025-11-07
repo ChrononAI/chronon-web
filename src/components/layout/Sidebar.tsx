@@ -52,7 +52,7 @@ const navigation: NavigationItem[] = [
     icon: ListCheck,
     children: [
       {
-        name: "Expense",
+        name: "Expenses",
         href: "/approvals/reports",
         icon: ListCheck,
       },
@@ -62,7 +62,7 @@ const navigation: NavigationItem[] = [
         icon: ListCheck,
       },
       {
-        name: "Advance",
+        name: "Advances",
         href: "/approvals/advances",
         icon: ListCheck,
       },

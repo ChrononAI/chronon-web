@@ -35,6 +35,7 @@ import { Separator } from "@/components/ui/separator"
 import api from "@/lib/api"
 import { toast } from "sonner"
 import { useNavigate } from "react-router-dom"
+import { getOrgIdFromToken } from "@/lib/jwtUtils"
 
 const MODULE_TYPE_USER = "user"
 const FIELD_TYPE_SELECT = "SELECT"
@@ -42,6 +43,13 @@ const FIELD_TYPE_SELECT = "SELECT"
 interface EntityOption {
   id: string
   label: string
+}
+
+interface UserOption {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
 }
 
 interface TemplateEntity {
@@ -84,6 +92,7 @@ const createUserSchema = (templateEntities: TemplateEntity[]) => {
       .regex(/^[\d\s\+\-\(\)]+$/, "Invalid phone number format"),
     role: z.string().min(1, "Role is required"),
     employeeCode: z.string().optional(),
+    reportingManager: z.string().optional(),
   }
 
   const dynamicFields: Record<string, z.ZodTypeAny> = {}
@@ -109,6 +118,7 @@ type UserFormValues = {
   phoneNumber: string
   role: string
   employeeCode?: string
+  reportingManager?: string
   [key: string]: string | undefined
 }
 
@@ -116,6 +126,8 @@ const UserPage = () => {
   const [templates, setTemplates] = useState<TemplateEntity[]>([])
   const [entityOptions, setEntityOptions] = useState<Record<string, EntityOption[]>>({})
   const [loading, setLoading] = useState(false)
+  const [reportingManagers, setReportingManagers] = useState<UserOption[]>([])
+  const [loadingManagers, setLoadingManagers] = useState(false)
 
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
@@ -128,6 +140,7 @@ const UserPage = () => {
       phoneNumber: "",
       role: "",
       employeeCode: "",
+      reportingManager: "",
     }
 
     templateEntities.forEach((entity) => {
@@ -203,6 +216,38 @@ const UserPage = () => {
     loadData()
   }, [])
 
+  useEffect(() => {
+    const loadReportingManagers = async () => {
+      setLoadingManagers(true)
+      try {
+        const orgId = getOrgIdFromToken()
+        if (!orgId) {
+          console.error("Organization ID not found")
+          setLoadingManagers(false)
+          return
+        }
+
+        const response = await api.get(`/auth/em/users?org_id=${orgId}`)
+        // Response structure: { data: { data: [...], pagination: {...} }, status: "success" }
+        const users = response.data?.data?.data || []
+        const managers: UserOption[] = users.map((user: any) => ({
+          id: user.id?.toString() || "",
+          email: user.email || "",
+          firstName: user.first_name || "",
+          lastName: user.last_name || "",
+        })).filter((user: UserOption) => user.id)
+        setReportingManagers(managers)
+      } catch (error) {
+        console.error("Failed to load reporting managers:", error)
+        // Don't show error toast as this is optional
+      } finally {
+        setLoadingManagers(false)
+      }
+    }
+
+    loadReportingManagers()
+  }, [])
+
   const onSubmit = async (values: UserFormValues) => {
     const validationResult = formSchema.safeParse(values)
     if (!validationResult.success) {
@@ -234,6 +279,7 @@ const UserPage = () => {
       phone_number: values.phoneNumber,
       role: values.role.toUpperCase(),
       employee_code: values.employeeCode || undefined,
+      reporting_manager_id: values.reportingManager || undefined,
       entity_assignments: entityAssignments,
     }
 
@@ -386,6 +432,35 @@ const UserPage = () => {
                           <FormControl>
                             <Input placeholder="EMP001" {...field} />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="reportingManager"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Reporting Manager</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || ""}
+                            disabled={loadingManagers}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={loadingManagers ? "Loading..." : "Select reporting manager"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {reportingManagers.map((manager) => (
+                                <SelectItem key={manager.id} value={manager.id}>
+                                  {manager.firstName} {manager.lastName} ({manager.email})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}

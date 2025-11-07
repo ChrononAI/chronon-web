@@ -1,28 +1,34 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ReportsPageWrapper } from '@/components/reports/ReportsPageWrapper';
-import { DataGrid, GridColDef, GridOverlay, GridPaginationModel, GridRowModel } from '@mui/x-data-grid';
-import { Box, CircularProgress } from '@mui/material';
-import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { AdvanceService } from '@/services/advanceService';
-import { useAdvanceStore } from '@/store/advanceStore';
-import { PaginationInfo } from '@/store/expenseStore';
-import { CheckCircle } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
+import {
+  DataGrid,
+  GridColDef,
+  GridOverlay,
+  GridPaginationModel,
+  GridRowModel,
+} from "@mui/x-data-grid";
+import { Box, CircularProgress } from "@mui/material";
+import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { AdvanceService } from "@/services/advanceService";
+import { useAdvanceStore } from "@/store/advanceStore";
+import { PaginationInfo } from "@/store/expenseStore";
+import { CheckCircle } from "lucide-react";
 
 function CustomLoader() {
   return (
     <GridOverlay>
       <Box
         sx={{
-          position: 'absolute',
+          position: "absolute",
           top: 0,
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: 'rgba(255,255,255,0.6)',
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "rgba(255,255,255,0.6)",
         }}
       >
         <CircularProgress size={28} thickness={4} />
@@ -31,28 +37,96 @@ function CustomLoader() {
   );
 }
 
+const columns: GridColDef[] = [
+  {
+    field: "sequence_number",
+    headerName: "ADVANCE ID",
+    width: 160,
+  },
+  {
+    field: "title",
+    headerName: "TITLE",
+    width: 200,
+  },
+  {
+    field: "policy_name",
+    headerName: "POLICY",
+    width: 150,
+    renderCell: ({ value }) => {
+      return value || "Not Selected";
+    },
+  },
+  {
+    field: "status",
+    headerName: "STATUS",
+    width: 170,
+    renderCell: ({ value }) => {
+      return (
+        <Badge className={getStatusColor(value)}>
+          {value.replace("_", " ")}
+        </Badge>
+      );
+    },
+  },
+  {
+    field: "amount",
+    headerName: "AMOUNT",
+    width: 150,
+    align: "right",
+    headerAlign: "right",
+    renderCell: ({ value }) => {
+      return value ? formatCurrency(value) : "-";
+    },
+  },
+  {
+    field: "claimed_amount",
+    headerName: "CLAIMED AMOUNT",
+    width: 150,
+    align: "right",
+    headerAlign: "right",
+    renderCell: ({ value }) => {
+      return value ? formatCurrency(value) : "-";
+    },
+  },
+  {
+    field: "created_at",
+    headerName: "CREATED AT",
+    width: 150,
+    renderCell: ({ value }) => {
+      return formatDate(value);
+    },
+  },
+  {
+    field: "description",
+    headerName: "PURPOSE",
+    flex: 1,
+    minWidth: 150,
+  },
+];
+
 function CustomNoRows() {
   return (
     <GridOverlay>
-      <Box className='w-full'><div className="text-center">
+      <Box className="w-full">
+        <div className="text-center">
           <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">
-            No advances found
-          </h3>
+          <h3 className="text-lg font-semibold mb-2">No advances found</h3>
           <p className="text-muted-foreground">
-          There are currently no expenses.
+            There are currently no advances.
           </p>
-        </div></Box>
+        </div>
+      </Box>
     </GridOverlay>
   );
 }
-
 
 export function MyAdvancesPage() {
   const navigate = useNavigate();
   const { setSelectedAdvance } = useAdvanceStore();
 
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "approved">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "approved">(
+    "all"
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -62,103 +136,71 @@ export function MyAdvancesPage() {
     pageSize: 10,
   });
 
+  useEffect(() => {
+    setPaginationModel((prev) => {
+      return { ...prev, page: 0 };
+    });
+  }, [activeTab]);
+
+  useEffect(() => {
+    const gridHeight = window.innerHeight - 300;
+    const rowHeight = 36;
+    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+  }, [activeTab]);
+
   const statusOptions = [
     { value: "all", label: "All" },
     { value: "PENDING", label: "Pending" },
-    { value: "APPROVED", label: "approved" }
+    { value: "APPROVED", label: "approved" },
   ];
 
   const handleRowClick = ({ row }: GridRowModel) => {
     setSelectedAdvance(row);
     navigate(`/advances/${row.id}`);
-  }
-
-  const columns: GridColDef[] = [
-    {
-      field: "sequence_number",
-      headerName: "ADVANCE ID",
-      width: 160
-    },
-    {
-      field: "title",
-      headerName: "TITLE",
-      width: 200
-    },
-    {
-      field: 'policy_name',
-      headerName: 'POLICY',
-      width: 150,
-      renderCell: ({ value }) => {
-        return value || 'Not Selected'
-      }
-    },
-    {
-      field: 'status',
-      headerName: 'STATUS',
-      width: 170,
-      renderCell: ({ value }) => {
-        return (
-          <Badge className={getStatusColor(value)}>
-            {value.replace('_', ' ')}
-          </Badge>
-        )
-      }
-    },
-    {
-      field: 'amount',
-      headerName: 'AMOUNT',
-      width: 150,
-      align: 'right',
-      headerAlign: 'right',
-      renderCell: ({ value }) => {
-        return value ? formatCurrency(value) : '-'
-      }
-    },
-    {
-      field: 'claimed_amount',
-      headerName: 'CLAIMED AMOUNT',
-      width: 150,
-      align: 'right',
-      headerAlign: 'right',
-      renderCell: ({ value }) => {
-        return value ? formatCurrency(value) : "-"
-      }
-    },
-    {
-      field: 'created_at',
-      headerName: 'CREATED AT',
-      width: 150,
-      renderCell: ({ value }) => {
-        return formatDate(value)
-      }
-    },
-    {
-      field: 'description',
-      headerName: 'PURPOSE',
-      flex: 1,
-      minWidth: 150
-    }
-  ];
+  };
 
   // const [rows, setRows] = useState<any[]>([]);
   const [allRows, setAllRows] = useState<any[]>([]);
-  const [allPagination, setAllPagination] = useState<PaginationInfo | null>(null);
+  const [allPagination, setAllPagination] = useState<PaginationInfo | null>(
+    null
+  );
   const [pendingRows, setPendingRows] = useState<any[]>([]);
-  const [pendingPagination, setPendingPagination] = useState<PaginationInfo | null>(null);
+  const [pendingPagination, setPendingPagination] =
+    useState<PaginationInfo | null>(null);
   const [processedRows, setProcessedRows] = useState<any[]>([]);
-  const [processedPagination, setProcessedPagination] = useState<PaginationInfo | null>(null);
+  const [processedPagination, setProcessedPagination] =
+    useState<PaginationInfo | null>(null);
 
   const tabs = [
-    { key: 'all', label: 'All', count: allPagination?.total || 0 },
+    { key: "all", label: "All", count: allPagination?.total || 0 },
     { key: "pending", label: "Pending", count: pendingPagination?.total || 0 },
-    { key: "processed", label: "Processed", count: processedPagination?.total || 0 }
+    {
+      key: "processed",
+      label: "Processed",
+      count: processedPagination?.total || 0,
+    },
   ];
 
-  const rows = activeTab === "all" ? allRows : activeTab === "pending" ? pendingRows : processedRows;
+  const rows =
+    activeTab === "all"
+      ? allRows
+      : activeTab === "pending"
+      ? pendingRows
+      : processedRows;
 
-  const getAllAdvances = async ({ page, perPage }: { page: number, perPage: number }) => {
+  const getAllAdvances = async ({
+    page,
+    perPage,
+  }: {
+    page: number;
+    perPage: number;
+  }) => {
     try {
-      const response: any = await AdvanceService.getAllAdvances({ page, perPage });
+      const response: any = await AdvanceService.getAllAdvances({
+        page,
+        perPage,
+      });
       setAllRows(response.data.data);
       setAllPagination(response.data.pagination);
     } catch (error) {
@@ -166,31 +208,45 @@ export function MyAdvancesPage() {
     }
   };
 
-  const getPendingAdvances = async ({ page, perPage }: {
+  const getPendingAdvances = async ({
+    page,
+    perPage,
+  }: {
     page: number;
     perPage: number;
   }) => {
     try {
-      const response: any = await AdvanceService.getAdvancesByStatus({ status: "PENDING_APPROVAL", page, perPage });
+      const response: any = await AdvanceService.getAdvancesByStatus({
+        status: "PENDING_APPROVAL",
+        page,
+        perPage,
+      });
       setPendingRows(response?.data.data);
       setPendingPagination(response?.data.pagination);
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
-  const getProcessedAdvances = async ({ page, perPage }: {
+  const getProcessedAdvances = async ({
+    page,
+    perPage,
+  }: {
     page: number;
     perPage: number;
   }) => {
     try {
-      const response: any = await AdvanceService.getAdvancesByStatus({ status: "APPROVED,REJECTED", page, perPage });
+      const response: any = await AdvanceService.getAdvancesByStatus({
+        status: "APPROVED,REJECTED",
+        page,
+        perPage,
+      });
       setProcessedRows(response?.data.data);
       setProcessedPagination(response?.data.pagination);
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
   const [loading, setLoading] = useState(true);
 
@@ -199,9 +255,18 @@ export function MyAdvancesPage() {
       try {
         setLoading(true);
         await Promise.all([
-          getAllAdvances({ page: paginationModel.page + 1, perPage: paginationModel.pageSize }),
-          getPendingAdvances({ page: paginationModel.page + 1, perPage: paginationModel.pageSize }),
-          getProcessedAdvances({ page: paginationModel.page + 1, perPage: paginationModel.pageSize }),
+          getAllAdvances({
+            page: paginationModel.page + 1,
+            perPage: paginationModel.pageSize,
+          }),
+          getPendingAdvances({
+            page: paginationModel.page + 1,
+            perPage: paginationModel.pageSize,
+          }),
+          getProcessedAdvances({
+            page: paginationModel.page + 1,
+            perPage: paginationModel.pageSize,
+          }),
         ]);
       } catch (error) {
         console.error(error);
@@ -218,7 +283,9 @@ export function MyAdvancesPage() {
       title="Advances"
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) => setActiveTab(tabId as "all" | "pending" | "approved")}
+      onTabChange={(tabId) =>
+        setActiveTab(tabId as "all" | "pending" | "approved")
+      }
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       searchPlaceholder="Search expenses..."
@@ -233,7 +300,14 @@ export function MyAdvancesPage() {
       createButtonText="Create Advance"
       createButtonLink="/advances/create"
     >
-      <Box sx={{ height: "calc(100vh - 160px)", width: "100%", marginTop: '-32px', color: '#2E2E2E' }}>
+      <Box
+        sx={{
+          height: "calc(100vh - 160px)",
+          width: "100%",
+          marginTop: "-32px",
+          color: "#2E2E2E",
+        }}
+      >
         <DataGrid
           className="rounded border border-[#F1F3F4] h-full"
           columns={columns}
@@ -241,30 +315,30 @@ export function MyAdvancesPage() {
           loading={loading}
           slots={{
             loadingOverlay: CustomLoader,
-            noRowsOverlay: CustomNoRows   
+            noRowsOverlay: CustomNoRows,
           }}
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {
-              color: '#9AA0A6',
+              color: "#9AA0A6",
               fontWeight: 505,
-              fontSize: "14px"
+              fontSize: "14px",
             },
             "& .MuiDataGrid-main": {
-              border: '1px solid #F1F3F4'
+              border: "1px solid #F1F3F4",
             },
             "& .MuiDataGrid-columnHeader": {
-              backgroundColor: '#f3f4f6'
+              backgroundColor: "#f3f4f6",
             },
             "& .MuiCheckbox-root": {
-              color: '#9AA0A6'
+              color: "#9AA0A6",
             },
             "& .MuiDataGrid-row:hover": {
               cursor: "pointer",
               backgroundColor: "#f5f5f5",
             },
             "& .MuiDataGrid-cell": {
-              color: '#2E2E2E'
+              color: "#2E2E2E",
             },
             "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
               outline: "none",
@@ -279,11 +353,16 @@ export function MyAdvancesPage() {
           disableRowSelectionOnClick
           onRowClick={handleRowClick}
           pagination
-          paginationMode='server'
+          paginationMode="server"
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          rowCount={(activeTab === "all" ? allPagination?.total : activeTab === "pending" ? pendingPagination?.total : processedPagination?.total) || 0}
-          autoPageSize
+          rowCount={
+            (activeTab === "all"
+              ? allPagination?.total
+              : activeTab === "pending"
+              ? pendingPagination?.total
+              : processedPagination?.total) || 0
+          }
         />
       </Box>
     </ReportsPageWrapper>
