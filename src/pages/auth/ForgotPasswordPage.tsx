@@ -125,7 +125,7 @@ function ForgotPasswordPage() {
           </div>
         </div>
         <Dialog open={showDialog} onOpenChange={dialogClose}>
-          <DialogContent className="flex flex-col items-center py-10 pt-5 gap-6 max-w-md text-center">
+          <DialogContent className="flex flex-col items-center p-10 gap-6 max-w-md text-center">
             <div
               className="flex justify-center items-center mb-4"
               style={{ width: 96, height: 96 }}
@@ -139,12 +139,12 @@ function ForgotPasswordPage() {
             <div>
               <DialogTitle className="hidden">verify email</DialogTitle>
               <DialogHeader>
-                <div className="text-2xl font-bold mb-2">
-                  Verification request sent to your email ID.
+                <div className="text-2xl text-center font-bold mb-2">
+                  Verification request sent to your email.
                 </div>
               </DialogHeader>
               <DialogDescription>
-                <div className="text-gray-700 text-lg">
+                <div className="text-gray-700">
                   Please check your email
                 </div>
               </DialogDescription>
