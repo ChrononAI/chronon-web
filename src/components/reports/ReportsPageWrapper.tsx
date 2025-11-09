@@ -25,13 +25,13 @@ interface ReportsPageWrapperProps {
   createButtonLink?: string;
   
   // Tabs configuration
-  tabs: TabConfig[];
-  activeTab: string;
-  onTabChange: (tab: string) => void;
+  tabs?: TabConfig[];
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
   
   // Filter configuration
   searchTerm: string;
-  onSearchChange: (value: string) => void;
+  onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   statusFilter?: string | null;
   onStatusChange?: (value: string) => void;
@@ -89,15 +89,15 @@ export function ReportsPageWrapper({
       </div>
 
       {/* Tabs Section */}
-      <ReportTabs
+      {tabs && activeTab && onTabChange && <ReportTabs
         activeTab={activeTab}
         onTabChange={onTabChange}
         tabs={tabs}
         className="mb-8"
-      />
+      />}
 
       {/* Filter Controls Section */}
-      {showFilters && <FilterControls
+      {showFilters && onSearchChange && <FilterControls
         searchTerm={searchTerm}
         onSearchChange={onSearchChange}
         searchPlaceholder={searchPlaceholder}

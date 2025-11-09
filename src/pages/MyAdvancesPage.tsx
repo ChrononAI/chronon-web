@@ -131,22 +131,16 @@ export function MyAdvancesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>({
     page: 0,
     pageSize: 10,
   });
 
   useEffect(() => {
-    setPaginationModel((prev) => {
-      return { ...prev, page: 0 };
-    });
-  }, [activeTab]);
-
-  useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, [activeTab]);
 
   const statusOptions = [
@@ -256,16 +250,16 @@ export function MyAdvancesPage() {
         setLoading(true);
         await Promise.all([
           getAllAdvances({
-            page: paginationModel.page + 1,
-            perPage: paginationModel.pageSize,
+            page: (paginationModel?.page || 0) + 1,
+            perPage: (paginationModel?.pageSize || 0),
           }),
           getPendingAdvances({
-            page: paginationModel.page + 1,
-            perPage: paginationModel.pageSize,
+            page: (paginationModel?.page || 0) + 1,
+            perPage: (paginationModel?.pageSize || 0),
           }),
           getProcessedAdvances({
-            page: paginationModel.page + 1,
-            perPage: paginationModel.pageSize,
+            page: (paginationModel?.page || 0) + 1,
+            perPage: (paginationModel?.pageSize || 0),
           }),
         ]);
       } catch (error) {
@@ -276,7 +270,7 @@ export function MyAdvancesPage() {
     };
 
     fetchData();
-  }, [paginationModel.page, paginationModel.pageSize]);
+  }, [paginationModel?.page, paginationModel?.pageSize]);
 
   return (
     <ReportsPageWrapper
@@ -354,7 +348,7 @@ export function MyAdvancesPage() {
           onRowClick={handleRowClick}
           pagination
           paginationMode="server"
-          paginationModel={paginationModel}
+          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "all"

@@ -95,26 +95,17 @@ function ApprovalsPreApprovalsPage() {
   const [processedPagination, setProcessedPagination] =
     useState<PaginationInfo | null>(null);
 
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
-    page: 0,
-    pageSize: 10,
-  });
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>(null);
 
   const [activeTab, setActiveTab] = useState<"pending" | "processed" | "all">(
     "all"
   );
 
   useEffect(() => {
-    setPaginationModel((prev) => {
-      return { ...prev, page: 0 };
-    });
-  }, [activeTab]);
-
-  useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, [activeTab]);
 
   const rows =
@@ -176,7 +167,7 @@ function ApprovalsPreApprovalsPage() {
     getAllPreApprovalsToApprove();
     getPendingPreApprovalsToApprove();
     getProcessedApprovals();
-  }, [paginationModel.page, paginationModel.pageSize]);
+  }, []);
   return (
     <ReportsPageWrapper
       title="Approver Dashboard"
@@ -239,8 +230,8 @@ function ApprovalsPreApprovalsPage() {
           disableRowSelectionOnClick
           onRowClick={onRowClick}
           pagination
-          paginationMode="server"
-          paginationModel={paginationModel}
+          // paginationMode="server"
+          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "all"

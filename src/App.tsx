@@ -50,6 +50,7 @@ import ResendVerificationMail from './pages/auth/ResendVerificationMail';
 import CategoryLimitPage from './pages/admin/CategoryLimitPage';
 import CreateCategoryLimitPage from './pages/admin/CreateCategoryLimitPage';
 import EditCategoryLimitPage from './pages/admin/EditCategoryLimitPage';
+import AdvanceAccounts from './pages/AdvanceAccounts';
 import { AutoReportPage } from './pages/admin/AutoReportPage';
 
 function App() {
@@ -148,6 +149,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdvanceDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/advance_accounts"
+            element={
+              <ProtectedRoute>
+                <AdvanceAccounts />
               </ProtectedRoute>
             }
           />

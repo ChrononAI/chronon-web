@@ -99,30 +99,22 @@ export function ApprovalsReportsPage() {
       : activeTab === "unsubmitted"
       ? pendingReports
       : processedReports;
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
-    page: 0,
-    pageSize: 10,
-  });
-
-  useEffect(() => {
-    setPaginationModel((prev) => {
-      return { ...prev, page: 0 };
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel | null>({
+      page: 0,
+      pageSize: 10,
     });
-  }, [activeTab]);
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, [activeTab]);
 
-  const fetchAllReports = async () => {
+  const fetchAllReports = async (page: number, perPage: number) => {
     try {
-      const response = await approvalService.getAllReports(
-        paginationModel.page + 1,
-        paginationModel.pageSize
-      );
+      const response = await approvalService.getAllReports(page, perPage);
       setAllReports(response.data);
       setAllReportsPagination(response.pagination);
     } catch (error) {
@@ -130,11 +122,11 @@ export function ApprovalsReportsPage() {
     }
   };
 
-  const fetchUnsubmittedReports = async () => {
+  const fetchUnsubmittedReports = async (page: number, perPage: number) => {
     try {
       const response = await approvalService.getReportsByStatus(
-        paginationModel.page + 1,
-        paginationModel.pageSize,
+        page,
+        perPage,
         "IN_PROGRESS"
       );
       setPendingReports(response.data);
@@ -144,11 +136,11 @@ export function ApprovalsReportsPage() {
     }
   };
 
-  const fetchSubmittedReports = async () => {
+  const fetchSubmittedReports = async (page: number, perPage: number) => {
     try {
       const response = await approvalService.getReportsByStatus(
-        paginationModel.page + 1,
-        paginationModel.pageSize,
+        page,
+        perPage,
         "APPROVED,REJECTED"
       );
       setProcessedReports(response.data);
@@ -158,27 +150,26 @@ export function ApprovalsReportsPage() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = async (page: number, perPage: number) => {
     try {
       setLoading(true);
       await Promise.all([
-        fetchAllReports(),
-        fetchSubmittedReports(),
-        fetchUnsubmittedReports()
-      ])
+        fetchAllReports(page, perPage),
+        fetchSubmittedReports(page, perPage),
+        fetchUnsubmittedReports(page, perPage),
+      ]);
     } catch (error) {
       console.log(error);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    // fetchAllReports();
-    // fetchSubmittedReports();
-    // fetchUnsubmittedReports();
-    fetchData();
-  }, [paginationModel.page, paginationModel.pageSize]);
+    if (paginationModel) {
+      fetchData(paginationModel?.page, paginationModel?.pageSize);
+    }
+  }, [paginationModel?.page, paginationModel?.pageSize]);
 
   const handleViewDetails = (reportId: string) => {
     navigate(`/approvals/reports/${reportId}?from=approvals`);
@@ -294,7 +285,7 @@ export function ApprovalsReportsPage() {
           onRowClick={(params) => handleViewDetails(params.row.id)}
           pagination
           paginationMode="server"
-          paginationModel={paginationModel}
+          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "all"

@@ -108,22 +108,16 @@ function PreApprovalPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [loading, setLoading] = useState<boolean>(true);
 
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>({
     page: 0,
     pageSize: 10,
   });
 
   useEffect(() => {
-    setPaginationModel((prev) => {
-      return { ...prev, page: 0 };
-    });
-  }, [activeTab]);
-
-  useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, [activeTab]);
 
   const statusOptions = [
@@ -228,16 +222,16 @@ function PreApprovalPage() {
         setLoading(true);
         await Promise.all([
           getAllPreApprovals({
-            page: paginationModel.page + 1,
-            perPage: paginationModel.pageSize,
+            page: (paginationModel?.page || 0) + 1,
+            perPage: (paginationModel?.pageSize || 0),
           }),
           getPendingPreApprovals({
-            page: paginationModel.page + 1,
-            perPage: paginationModel.pageSize,
+            page: (paginationModel?.page || 0) + 1,
+            perPage: (paginationModel?.pageSize || 0),
           }),
           getProcessedPreApprovals({
-            page: paginationModel.page + 1,
-            perPage: paginationModel.pageSize,
+            page: (paginationModel?.page || 0) + 1,
+            perPage: (paginationModel?.pageSize || 0),
           }),
         ]);
       } catch (error) {
@@ -248,7 +242,7 @@ function PreApprovalPage() {
     };
 
     fetchData();
-  }, [paginationModel.page, paginationModel.pageSize]);
+  }, [paginationModel?.page, paginationModel?.pageSize]);
 
   return (
     <ReportsPageWrapper
@@ -336,7 +330,7 @@ function PreApprovalPage() {
           onRowClick={handleRowClick}
           pagination
           paginationMode="server"
-          paginationModel={paginationModel}
+          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "all"

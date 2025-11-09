@@ -36,7 +36,7 @@ function CategoryLimitPage() {
   const navigate = useNavigate();
   const { setSelectedLimit } = useCategoryLimitStore();
 
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>({
     page: 0,
     pageSize: 10,
   });
@@ -45,7 +45,7 @@ function CategoryLimitPage() {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, []);
 
   const [policyRules, setPolicyRules] = useState([]);
@@ -145,7 +145,7 @@ function CategoryLimitPage() {
               showCellVerticalBorder
               onRowClick={handleRowClick}
               pagination
-              paginationModel={paginationModel}
+              paginationModel={paginationModel || { page: 0, pageSize: 0 }}
               onPaginationModelChange={setPaginationModel}
             />
           </Box>

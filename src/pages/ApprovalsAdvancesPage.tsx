@@ -91,26 +91,17 @@ function ApprovalsAdvancesPage() {
   const [processedPagination, setProcessedPagination] =
     useState<PaginationInfo | null>(null);
 
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
-    page: 0,
-    pageSize: 10,
-  });
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>(null);
 
   const [activeTab, setActiveTab] = useState<"pending" | "processed" | "all">(
     "all"
   );
 
   useEffect(() => {
-    setPaginationModel((prev) => {
-      return { ...prev, page: 0 };
-    });
-  }, [activeTab]);
-
-  useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, [activeTab]);
 
   const rows =
@@ -194,29 +185,30 @@ function ApprovalsAdvancesPage() {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (page: number, perPage: number) => {
       try {
         await Promise.all([
           getAllAdvancesToApprove({
-            page: paginationModel.page + 1,
-            perPage: paginationModel.pageSize,
+            page,
+            perPage,
           }),
           getPendingAdvancesToApprove({
-            page: paginationModel.page + 1,
-            perPage: paginationModel.pageSize,
+            page,
+            perPage,
           }),
           getProcessedAdvances({
-            page: paginationModel.page + 1,
-            perPage: paginationModel.pageSize,
+            page,
+            perPage,
           }),
         ]);
       } catch (error) {
         console.error("Error fetching advances:", error);
       }
     };
-
-    fetchData();
-  }, [paginationModel.page, paginationModel.pageSize]);
+    if (paginationModel) {
+      fetchData(paginationModel.page + 1, paginationModel.pageSize);
+    }
+  }, [paginationModel?.page, paginationModel?.pageSize]);
   return (
     <ReportsPageWrapper
       title="Approver Dashboard"
@@ -281,7 +273,7 @@ function ApprovalsAdvancesPage() {
             onRowClick={onRowClick}
             pagination
             paginationMode="server"
-            paginationModel={paginationModel}
+            paginationModel={paginationModel || { page: 0, pageSize: 0 }}
             onPaginationModelChange={setPaginationModel}
             rowCount={
               (activeTab === "all"
