@@ -24,15 +24,15 @@ export interface AdvanceType {
 }
 
 interface CreateAdvancePayloadType {
-    title: string;
-    description: string;
-    currency: string;
-    amount: string;
-    policy_id?: string;
+  title: string;
+  description: string;
+  currency: string;
+  amount: string;
+  policy_id?: string;
 }
 
 export interface AccountType {
-    id: string;
+  id: string;
   org_id: string;
   user_id: string;
   policy_id: string;
@@ -40,7 +40,7 @@ export interface AccountType {
   balance_amount: string;
   currency: string;
   created_at: string;
-  updated_at: string; 
+  updated_at: string;
 }
 
 export interface LedgerType {
@@ -60,104 +60,133 @@ export interface LedgerType {
 }
 
 export const AdvanceService = {
-    getAllAdvances: async ({ page, perPage }: {
-        page: number;
-        perPage: number;
-    }) => {
-        try {
-            return await api.get(`/api/v1/advances?page=${page}&per_page=${perPage}`)
-        } catch (error) {
-            console.log(error);
-            throw error
-        }
-    },
-
-    getAdvancesByStatus: async ({ status, page, perPage }: {
-        status: string;
-        page: number;
-        perPage: number;
-    }) => {
-        try {
-            return await api.get(`/api/v1/advances?status=${status}&page=${page}&per_page=${perPage}`)
-        } catch (error) {
-            console.log(error);
-            throw error
-        }
-    },
-
-    createAdvance: async (payload: CreateAdvancePayloadType) => {
-        try {
-            return await api.post('/api/v1/advances', payload);
-        } catch (error) {
-            console.log(error);
-            toast.error('Error creating advance');
-            throw error
-        }
-    },
-
-    submitAdvance: async (advance_id: string) => {
-        try {
-            return await api.post('/api/v1/advances/submit', {
-                advance_id
-            })
-        } catch (error) {
-            throw error;
-        }
-    },
-
-    getAdvanceById: async (id: string) => {
-        try {
-            return api.get(`/api/v1/advances?id=${id}`);
-        } catch (error) {
-            throw error
-        }
-    },
-
-    getAdvanceWorkflow: async (id: string) => {
-        try {
-            return await api.get(`/api/v1/advances/${id}/approvers`)
-        } catch (error) {
-            throw error;
-        }
-    },
-
-    getAdvanceToApprove: async ({ page, perPage }: { page: number; perPage: number; }) => {
-        try {
-            return await api.get(`/api/v1/advances/approvers?page=${page}&perPage=${perPage}`); 
-        } catch (error) {
-            throw error;
-        }
-    },
-
-    getAdvanceToApproveByStatus: async ({ status, page, perPage }: { status: string; page: number; perPage: number}) => {
-        try {
-            return await api.get(`/api/v1/advances/approvers?status=${status}&page=${page}&perPage=${perPage}`)
-        } catch (error) {
-            throw error;
-        }
-    },
-
-    processAdvance: async ({ id, action }: { id: string; action: string }) => {
-        try {
-            return await api.post(`/api/v1/advances/${id}/${action}`);
-        } catch (error) {
-            throw error;
-        }
-    },
-
-    getAccounts: async () => {
-        try {
-            return await api.get('/api/v1/advances/advance_accounts');
-        } catch (error) {
-            throw error;
-        }
-    },
-
-    getAccountLedger: async (id: string) => {
-        try {
-            return await api.get(`/api/v1/advances/advance_accounts_ledger_statement/${id}`)
-        } catch (error) {
-            throw error;
-        }
+  getAllAdvances: async ({
+    page,
+    perPage,
+  }: {
+    page: number;
+    perPage: number;
+  }) => {
+    try {
+      return await api.get(`/api/v1/advances?page=${page}&per_page=${perPage}`);
+    } catch (error) {
+      console.log(error);
+      throw error;
     }
-}
+  },
+
+  getAdvancesByStatus: async ({
+    status,
+    page,
+    perPage,
+  }: {
+    status: string;
+    page: number;
+    perPage: number;
+  }) => {
+    try {
+      return await api.get(
+        `/api/v1/advances?status=${status}&page=${page}&per_page=${perPage}`
+      );
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  },
+
+  createAdvance: async (payload: CreateAdvancePayloadType) => {
+    try {
+      return await api.post("/api/v1/advances", payload);
+    } catch (error) {
+      console.log(error);
+      toast.error("Error creating advance");
+      throw error;
+    }
+  },
+
+  submitAdvance: async (advance_id: string) => {
+    try {
+      return await api.post("/api/v1/advances/submit", {
+        advance_id,
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getAdvanceById: async (id: string) => {
+    try {
+      return api.get(`/api/v1/advances?id=${id}`);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getAdvanceWorkflow: async (id: string) => {
+    try {
+      return await api.get(`/api/v1/advances/${id}/approvers`);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getAdvanceToApprove: async ({
+    page,
+    perPage,
+  }: {
+    page: number;
+    perPage: number;
+  }) => {
+    try {
+      return await api.get(
+        `/api/v1/advances/approvers?page=${page}&perPage=${perPage}`
+      );
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getAdvanceToApproveByStatus: async ({
+    status,
+    page,
+    perPage,
+  }: {
+    status: string;
+    page: number;
+    perPage: number;
+  }) => {
+    try {
+      return await api.get(
+        `/api/v1/advances/approvers?status=${status}&page=${page}&perPage=${perPage}`
+      );
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  processAdvance: async ({ id, action }: { id: string; action: string }) => {
+    try {
+      return await api.post(`/api/v1/advances/${id}/${action}`);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getAccounts: async () => {
+    try {
+      return await api.get("/api/v1/advances/advance_accounts");
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getAccountLedger: async (id: string) => {
+    try {
+      return await api.get(
+        `/api/v1/advances/advance_accounts_ledger_statement/${id}`
+      );
+    } catch (error) {
+      throw error;
+    }
+  },
+};
