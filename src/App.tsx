@@ -37,6 +37,7 @@ import AdvanceMaster from './pages/admin/AdvanceMaster';
 import ExpenseRequestMaster from './pages/admin/ExpenseRequestMaster';
 import UserMaster from './pages/admin/UserMaster';
 import UserPage from './pages/admin/UserPage';
+import CreateUserPage from './pages/admin/CreateUserPage';
 import WorkFlowPage from './pages/admin/WorkFlowPage';
 import AdminExpenseCategories from './pages/admin/AdminExpenseCategories';
 import CreateExpenseCategoryPage from './pages/admin/CreateExpenseCategoryPage';
@@ -49,6 +50,7 @@ import ResendVerificationMail from './pages/auth/ResendVerificationMail';
 import CategoryLimitPage from './pages/admin/CategoryLimitPage';
 import CreateCategoryLimitPage from './pages/admin/CreateCategoryLimitPage';
 import EditCategoryLimitPage from './pages/admin/EditCategoryLimitPage';
+import { AutoReportPage } from './pages/admin/AutoReportPage';
 
 function App() {
   return (
@@ -337,6 +339,14 @@ function App() {
             }
           />
           <Route
+            path="/admin/users/create"
+            element={
+              <ProtectedRoute>
+                <CreateUserPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/product-config/workflow"
             element={
               <ProtectedRoute>
@@ -397,6 +407,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <EditCategoryLimitPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/product-config/auto-reports"
+            element={
+              <ProtectedRoute>
+                <AutoReportPage />
               </ProtectedRoute>
             }
           />
