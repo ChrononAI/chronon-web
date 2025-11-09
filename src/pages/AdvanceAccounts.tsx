@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardTitle,
+} from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Badge, Box } from "@mui/material";
 import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
@@ -9,6 +14,12 @@ import {
   AdvanceService,
   LedgerType,
 } from "@/services/advanceService";
+import { Policy } from "@/types/expense";
+import { expenseService } from "@/services/expenseService";
+import {
+  preApprovalService,
+  PreApprovalType,
+} from "@/services/preApprovalService";
 
 const columns: GridColDef[] = [
   {
@@ -34,7 +45,7 @@ const columns: GridColDef[] = [
     field: "created_at",
     headerName: "TN DATE",
     flex: 1,
-    valueFormatter: (val) => formatDate(val)
+    valueFormatter: (val) => formatDate(val),
   },
   {
     field: "amount",
@@ -62,6 +73,58 @@ const columns: GridColDef[] = [
   },
 ];
 
+function AccountCard({
+  card,
+  idx,
+  selectedAccount,
+  setSelectedAccount,
+  policies,
+  preApprovals,
+}: {
+  card: AccountType;
+  idx: number;
+  selectedAccount: string;
+  setSelectedAccount: any;
+  policies: any[];
+  preApprovals: any[];
+}) {
+  const policy = policies.find((pol) => pol.id === card.policy_id);
+  const preApproval = preApprovals.find(
+    (preApp) => preApp.id === card.pre_approval_id
+  );
+  return (
+    <Card
+      key={card.id}
+      className={
+        selectedAccount === card.id
+          ? "p-4 cursor-pointer border-2 border-blue-500"
+          : "p-4 cursor-pointer"
+      }
+      onClick={() => setSelectedAccount(card.id)}
+    >
+      <CardContent className="p-0 space-y-4">
+        <div className="space-y-1">
+          <CardTitle className="flex items-center justify-between gap-2">
+            <span className="truncate">{`ACC${idx + 1}`}</span>{" "}
+            <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-[12px] p-2 rounded-[8px]">
+              Open
+            </Badge>
+          </CardTitle>
+          <CardDescription>
+            {(policy || preApproval) ?
+              <div className="flex items-center gap-6">
+                <span>{policy?.name || "NA"}</span>
+                <span>{preApproval?.name}</span>
+              </div> : <span>Open Advance</span>
+            }
+          </CardDescription>
+        </div>
+        <div>{formatCurrency(+card.balance_amount)}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function AdvanceAccounts() {
   const [paginationModel, setPaginationModel] =
     useState<GridPaginationModel | null>(null);
@@ -69,6 +132,8 @@ function AdvanceAccounts() {
   const [accounts, setAccounts] = useState<AccountType[]>([]);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [ledger, setLedger] = useState<LedgerType[]>([]);
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [preApprovals, setPreApprovals] = useState<PreApprovalType[]>([]);
 
   const getAccounts = async () => {
     try {
@@ -96,6 +161,25 @@ function AdvanceAccounts() {
     }
   };
 
+  const getPolicies = async () => {
+    try {
+      const res = await expenseService.getAllPolicies();
+      console.log(res);
+      setPolicies(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const fetchPreApprovals = async () => {
+    try {
+      const res = await preApprovalService.fetchAllPreApprovals();
+      setPreApprovals(res.data.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
@@ -105,6 +189,8 @@ function AdvanceAccounts() {
 
   useEffect(() => {
     getAccounts();
+    getPolicies();
+    fetchPreApprovals();
   }, []);
 
   useEffect(() => {
@@ -122,8 +208,8 @@ function AdvanceAccounts() {
       showCreateButton={false}
     >
       <div className="space-y-2">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
-          {accounts.map((card) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* {accounts.map((card, idx) => {
             return (
               <Card
                 key={card.id}
@@ -137,7 +223,7 @@ function AdvanceAccounts() {
                 <CardContent className="p-0 space-y-4">
                   <div className="space-y-1">
                     <CardTitle className="flex items-center justify-between gap-2">
-                      <span className="truncate">{card.policy_id}</span>{" "}
+                      <span className="truncate">{`ACC${idx + 1}`}</span>{" "}
                       <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-[12px] p-2 rounded-[8px]">
                         Open
                       </Badge>
@@ -147,7 +233,18 @@ function AdvanceAccounts() {
                 </CardContent>
               </Card>
             );
-          })}
+          })} */}
+          {accounts.map((card, idx) => (
+            <AccountCard
+              key={card.id}
+              card={card}
+              idx={idx}
+              selectedAccount={selectedAccount}
+              setSelectedAccount={setSelectedAccount}
+              policies={policies}
+              preApprovals={preApprovals}
+            />
+          ))}
         </div>
         <Box
           sx={{

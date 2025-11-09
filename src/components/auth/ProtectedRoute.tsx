@@ -21,9 +21,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     enabled = true;
   }
 
-  if (!enabled) {
-    return <Navigate to="/permisison-denied" replace />;
-  }
+  // if (!enabled) {
+  //   return <Navigate to="/permisison-denied" replace />;
+  // }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

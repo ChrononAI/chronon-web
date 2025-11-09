@@ -34,10 +34,19 @@ interface CreatePreApprovalPayloadType {
     description: string;
     start_date: string;
     end_date: string;
-    policy_id: string;
+    policy_id?: string;
 }
 
 export const preApprovalService = {
+fetchAllPreApprovals: async () => {
+        try {
+            return await api.get("/api/v1/pre_approvals")
+        } catch (error) {
+            console.log(error);
+            throw error
+        }
+    },
+
     getAllPreApprovals: async ({ page, perPage }: {
         page: number;
         perPage: number;

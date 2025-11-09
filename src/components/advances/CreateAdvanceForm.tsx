@@ -28,7 +28,7 @@ import { expenseService } from '@/services/expenseService';
 import { Policy } from '@/types/expense';
 import { AdvanceService, AdvanceType } from '@/services/advanceService';
 
-interface Currency {
+export interface Currency {
   code: string;
   name: string;
   symbol: string;
