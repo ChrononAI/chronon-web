@@ -75,6 +75,12 @@ const navigation: NavigationItem[] = [
     icon: FileChartColumn,
   },
   {
+    name: "Accounts",
+    href: "/advance_accounts",
+    isBold: false,
+    icon: FileChartColumn,
+  },
+  {
     name: "Admin",
     href: "/admin/entities",
     isBold: false,
@@ -99,7 +105,7 @@ export function Sidebar() {
     return [];
   });
   const [collapsed, setCollapsed] = useState(
-    location.pathname.includes("admin")
+    false
   );
   const [newNavItems, setNewNavItems] = useState<NavigationItem[]>([]);
   const { user, orgSettings, logout, setOrgSettings } = useAuthStore();

@@ -120,22 +120,13 @@ export function MyReportsPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
-    page: 0,
-    pageSize: 10,
-  });
-
-  useEffect(() => {
-    setPaginationModel((prev) => {
-      return { ...prev, page: 0 };
-    });
-  }, [activeTab]);
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>(null);
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, [activeTab]);
 
   const reportsArr =
@@ -148,8 +139,8 @@ export function MyReportsPage() {
   const fetchAllReports = async () => {
     try {
       const response = await expenseService.getMyReports(
-        paginationModel.page + 1,
-        paginationModel.pageSize
+        (paginationModel?.page || 0) + 1,
+        paginationModel?.pageSize
       );
       console.log(response);
       setAllReports(response.reports);
@@ -163,8 +154,8 @@ export function MyReportsPage() {
     try {
       const response = await expenseService.getReportsByStatus(
         "DRAFT",
-        paginationModel.page + 1,
-        paginationModel.pageSize
+        (paginationModel?.page || 0)+ 1,
+        paginationModel?.pageSize
       );
       setUnsubmittedReports(response.reports);
       setUnsubmittedReportsPagination(response.pagination);
@@ -177,8 +168,8 @@ export function MyReportsPage() {
     try {
       const response = await expenseService.getReportsByStatus(
         "UNDER_REVIEW,APPROVED,REJECTED",
-        paginationModel.page + 1,
-        paginationModel.pageSize
+        (paginationModel?.page || 0) + 1,
+        paginationModel?.pageSize
       );
       setSubmittedReports(response.reports);
       setSubmittedReportsPagination(response.pagination);
@@ -203,7 +194,7 @@ export function MyReportsPage() {
 
   useEffect(() => {
     fetchData();
-  }, [paginationModel.page, paginationModel.pageSize]);
+  }, [paginationModel?.page, paginationModel?.pageSize]);
 
   const handleReportClick = (report: Report) => {
     if (report.status === "DRAFT") {
@@ -328,7 +319,7 @@ export function MyReportsPage() {
           pagination
           paginationMode="server"
           disableRowSelectionOnClick
-          paginationModel={paginationModel}
+          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
           onPaginationModelChange={setPaginationModel}
           density="compact"
           showCellVerticalBorder

@@ -196,28 +196,19 @@ export function MyExpensesPage() {
       ? draftExpenses
       : reportedExpenses;
 
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
-    page: 0,
-    pageSize: 10,
-  });
-
-  useEffect(() => {
-    setPaginationModel((prev) => {
-      return { ...prev, page: 0 };
-    });
-  }, [activeTab]);
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>(null);
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, [activeTab]);
 
   const fetchAllExpenses = async () => {
     try {
       const response = await expenseService.fetchAllExpenses(
-        paginationModel?.page + 1,
+        (paginationModel?.page || 0) + 1,
         paginationModel?.pageSize
       );
       setAllExpenses(response.data);
@@ -231,7 +222,7 @@ export function MyExpensesPage() {
     try {
       const response = await expenseService.getExpensesByStatus(
         "COMPLETE,INCOMPLETE",
-        paginationModel?.page + 1,
+        (paginationModel?.page || 0) + 1,
         paginationModel?.pageSize
       );
       setDraftExpenses(response.data);
@@ -245,7 +236,7 @@ export function MyExpensesPage() {
     try {
       const response = await expenseService.getExpensesByStatus(
         "APPROVED,REJECTED,PENDING_APPROVAL",
-        paginationModel?.page + 1,
+        (paginationModel?.page || 0) + 1,
         paginationModel?.pageSize
       );
       setReportedExpenses(response.data);
@@ -270,8 +261,10 @@ export function MyExpensesPage() {
         setLoading(false);
       }
     };
-    fetchData();
-  }, [paginationModel.page, paginationModel.pageSize]);
+    if (paginationModel) {
+      fetchData();
+    }
+  }, [paginationModel?.page, paginationModel?.pageSize]);
 
   const tabs = [
     { key: "all", label: "All", count: allExpensesPagination.total },
@@ -379,7 +372,7 @@ export function MyExpensesPage() {
           onRowClick={(params) => navigate(`/expenses/${params.id}`)}
           pagination
           paginationMode="server"
-          paginationModel={paginationModel}
+          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "all"

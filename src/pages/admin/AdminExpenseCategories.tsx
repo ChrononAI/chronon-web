@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { categoryService } from "@/services/admin/categoryService";
 import { Box } from "@mui/material";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -30,7 +30,7 @@ const columns: GridColDef[] = [
 
 function AdminExpenseCategories() {
   const navigate = useNavigate();
-  const [paginationModel, setPaginationModel] = useState({
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>({
     page: 0,
     pageSize: 10,
   });
@@ -39,7 +39,7 @@ function AdminExpenseCategories() {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, []);
 
   const [rows, setRows] = useState([]);
@@ -66,7 +66,7 @@ function AdminExpenseCategories() {
 
   useEffect(() => {
     // Get categories
-    getCategories({ page: paginationModel.page + 1, perPage: paginationModel.pageSize });
+    getCategories({ page: (paginationModel?.page || 0) + 1, perPage: (paginationModel?.pageSize || 0) });
   }, []);
   return (
     <Layout noPadding>
@@ -136,7 +136,7 @@ function AdminExpenseCategories() {
               disableRowSelectionOnClick
               showCellVerticalBorder
               pagination
-              paginationModel={paginationModel}
+              paginationModel={paginationModel || { page: 0, pageSize: 0 }}
               onPaginationModelChange={setPaginationModel}
             />
           </Box>

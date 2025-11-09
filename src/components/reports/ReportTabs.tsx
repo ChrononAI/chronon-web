@@ -9,7 +9,7 @@ interface TabConfig {
 interface ReportTabsProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
-  tabs: TabConfig[];
+  tabs?: TabConfig[];
   className?: string;
 }
 
@@ -21,7 +21,7 @@ export function ReportTabs({
 }: ReportTabsProps) {
   return (
     <div className={cn("flex space-x-8 border-b border-gray-200", className)}>
-      {tabs.map((tab) => (
+      {tabs?.map((tab) => (
         <button
           key={tab.key}
           onClick={() => onTabChange(tab.key)}

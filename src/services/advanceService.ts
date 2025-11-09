@@ -31,6 +31,34 @@ interface CreateAdvancePayloadType {
     policy_id?: string;
 }
 
+export interface AccountType {
+    id: string;
+  org_id: string;
+  user_id: string;
+  policy_id: string;
+  pre_approval_id: string | null;
+  balance_amount: string;
+  currency: string;
+  created_at: string;
+  updated_at: string; 
+}
+
+export interface LedgerType {
+  id: string;
+  org_id: string;
+  advance_id: string;
+  advance_account_id: string;
+  balance_amount: string;
+  credit_amount: string;
+  debit_amount: string;
+  conversion_rate: string | null;
+  expense_id: string | null;
+  foreign_amount: string | null;
+  foreign_currency: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export const AdvanceService = {
     getAllAdvances: async ({ page, perPage }: {
         page: number;
@@ -112,6 +140,22 @@ export const AdvanceService = {
     processAdvance: async ({ id, action }: { id: string; action: string }) => {
         try {
             return await api.post(`/api/v1/advances/${id}/${action}`);
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    getAccounts: async () => {
+        try {
+            return await api.get('/api/v1/advances/advance_accounts');
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    getAccountLedger: async (id: string) => {
+        try {
+            return await api.get(`/api/v1/advances/advance_accounts_ledger_statement/${id}`)
         } catch (error) {
             throw error;
         }

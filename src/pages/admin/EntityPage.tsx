@@ -135,7 +135,7 @@ export const EntityPage = () => {
                     // onRowClick={handleRowClick}
                     // pagination
                     // paginationMode='server'
-                    // paginationModel={paginationModel}
+                    // paginationModel={paginationModel || { page: 0, pageSize: 0 }}
                     // onPaginationModelChange={setPaginationModel}
                     // rowCount={(activeTab === "all" ? allPagination?.total : activeTab === "pending" ? pendingPagination?.total : processedPagination?.total) || 0}
                     // autoPageSize

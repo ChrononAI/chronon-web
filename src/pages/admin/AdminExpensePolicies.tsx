@@ -37,7 +37,7 @@ const columns: GridColDef[] = [
 
 function AdminExpensePolicies() {
   const navigate = useNavigate();
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>({
     page: 0,
     pageSize: 10,
   });
@@ -46,7 +46,7 @@ function AdminExpensePolicies() {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, []);
 
   const [paginationInfo, setPaginationInfo] = useState<PaginationInfo>();
@@ -76,10 +76,10 @@ function AdminExpensePolicies() {
 
   useEffect(() => {
     getPolicies({
-      page: paginationModel.page + 1,
-      perPage: paginationModel.pageSize,
+      page: (paginationModel?.page || 0) + 1,
+      perPage: (paginationModel?.pageSize || 0),
     });
-  }, [paginationModel.page, paginationModel.pageSize]);
+  }, [paginationModel?.page, paginationModel?.pageSize]);
   return (
     <Layout noPadding>
       <AdminLayout>
@@ -150,7 +150,7 @@ function AdminExpensePolicies() {
               pagination
               paginationMode="server"
               rowCount={paginationInfo ? paginationInfo.total : 0}
-              paginationModel={paginationModel}
+              paginationModel={paginationModel || { page: 0, pageSize: 0 }}
               onPaginationModelChange={setPaginationModel}
             />
           </Box>

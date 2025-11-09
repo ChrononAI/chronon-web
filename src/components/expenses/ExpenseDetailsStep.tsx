@@ -132,16 +132,14 @@ export function ExpenseDetailsStep({
   const [duplicateReceiptLoading, setDuplicateReceiptLoading] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const showPreApproval = selectedPolicy?.is_pre_approval_required;
-  // const [selectedPreApproval, setSelectedPreApproval] = useState<PreApprovalType | null>(null);
   const [preApprovals, setPreApprovals] = useState<PreApprovalType[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [replaceRecLoading, setReplaceRecLoading] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [advances, setAdvances] = useState<AdvanceType[]>([]);
-  const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
+  // const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState('INR');
-  // const [conversionRates, setConversionRates] = useState<CurrencyConversionRate[]>([]);
   const conversionRates = selectedPreApproval?.currency_conversion_rates || [];
 
   const selectedConversion = conversionRates?.find((con) => con.currency === selectedCurrency);
@@ -270,13 +268,13 @@ export function ExpenseDetailsStep({
       if (expenseData.foreign_currency) {
         setSelectedCurrency(expenseData.foreign_currency);
       }
-      if (expenseData.advance_id && advances.length > 0) {
-        const adv = advances.find((a) => a.id === expenseData.advance_id);
-        if (adv) {
-          setSelectedAdvance(adv)
-          form.setValue('advance_id', expenseData.advance_id);
-        };
-      }
+      // if (expenseData.advance_id && advances.length > 0) {
+      //   const adv = advances.find((a) => a.id === expenseData.advance_id);
+      //   if (adv) {
+      //     setSelectedAdvance(adv)
+      //     form.setValue('advance_id', expenseData.advance_id);
+      //   };
+      // }
       if (expenseData.pre_approval_id && preApprovals.length > 0) {
         const preApp = preApprovals.find((a) => a.id === expenseData.pre_approval_id);
         if (preApp) {
@@ -743,7 +741,7 @@ export function ExpenseDetailsStep({
                   
 
                   {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> */}
-                    {advances.length > 0 && <FormField
+                    {/* {advances.length > 0 && <FormField
                       control={form.control}
                       name="advance_id"
                       render={({ field }) => (
@@ -784,7 +782,7 @@ export function ExpenseDetailsStep({
                           <FormMessage />
                         </FormItem>
                       )}
-                    />}
+                    />} */}
                     {showPreApproval &&
                       <FormField
                         control={form.control}
