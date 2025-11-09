@@ -120,6 +120,11 @@ const navigation: NavigationItem[] = [
                 name: "Workflow",
                 href: '/admin/product-config/workflow',
                 icon: Workflow
+            },
+            {
+                name: 'Auto Reports',
+                href: '/admin/product-config/auto-reports',
+                icon: FileBarChart
             }
         ]
     },

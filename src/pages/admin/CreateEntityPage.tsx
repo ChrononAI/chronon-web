@@ -48,8 +48,10 @@ export const CreateEntityPage = () => {
 
   const form = useForm<EntityFormValues>({
     resolver: zodResolver(entitySchema),
-    defaultValues: { entityName: "", description: "", type: "LIST" },
+    defaultValues: { entityName: "", description: "", type: "" },
   })
+
+  const selectedType = form.watch("type")
 
   const addValueRow = () =>
     setValueRows([...valueRows, { value: "", accountCode: "" }])
@@ -93,13 +95,52 @@ export const CreateEntityPage = () => {
       const res = await createEntity(payload)
       if (res?.status === 'success') {
         const entityId = res.data?.id
-        if (entityId && valueRows.length > 0) {
-          const attrs = valueRows.map(v => ({
-            value: v.value || '',
-            is_active: true,
-            display_value: v.value || '',
-          }))
-          await createAttributes({ entity_id: entityId, attributes: attrs })
+        if (entityId && data.type === "SELECT" && valueRows.length > 0) {
+          const attrs = valueRows
+            .filter((v) => v.value.trim().length > 0)
+            .map((v) => {
+              const { value, accountCode = "", ...extra } = v
+              const trimmedValue = value.trim()
+              const trimmedAccountCode = accountCode.trim()
+
+              const metadata = Object.entries(extra).reduce<Record<string, string>>(
+                (acc, [key, val]) => {
+                  if (tags.includes(key)) {
+                    const trimmed = val.trim()
+                    if (trimmed.length > 0) {
+                      acc[key] = trimmed
+                    }
+                  }
+                  return acc
+                },
+                {}
+              )
+
+              return {
+                value: trimmedValue,
+                is_active: true,
+                display_value: trimmedValue,
+                ...(trimmedAccountCode ? { account_code: trimmedAccountCode } : {}),
+                ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+              }
+            })
+
+          if (attrs.length > 0) {
+            try {
+              const attrRes = await createAttributes({
+                entity_id: entityId,
+                attributes: attrs,
+              })
+
+              if (attrRes?.status !== 'success') {
+                toast.error(attrRes?.message || 'Failed to create entity attributes')
+                return
+              }
+            } catch (error) {
+              toast.error('Failed to create entity attributes')
+              return
+            }
+          }
         }
         toast.success('Entity created')
         navigate('/admin/entities')
@@ -162,9 +203,9 @@ export const CreateEntityPage = () => {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="LIST">TEXT</SelectItem>
-                            <SelectItem value="BOLLEAN">BOLLEAN</SelectItem>
-                            <SelectItem value="SELECT">SELECT</SelectItem>
+                            <SelectItem value="TEXT">Text</SelectItem>
+                            <SelectItem value="BOOLEAN">Boolean</SelectItem>
+                            <SelectItem value="SELECT">Select</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -173,95 +214,106 @@ export const CreateEntityPage = () => {
                   />
                 </div>
 
-                <div className="space-y-4">
-                  <div className={`grid grid-cols-${2 + tags.length} gap-4`}>
-                    <Label className="text-sm font-medium">Values</Label>
-                    <Label className="text-sm font-medium">ACCOUNT CODE</Label>
-                    {tags.map((t, i) => (
-                      <Label key={i} className="text-sm font-medium">
-                        {t}
-                      </Label>
-                    ))}
-                  </div>
-
-                  {valueRows.map((row, index) => (
+                {selectedType === "SELECT" && (
+                  <div className="space-y-4">
                     <div
-                      key={index}
-                      className={`grid grid-cols-${2 + tags.length} gap-4 items-center`}
+                      className="grid gap-4"
+                      style={{
+                        gridTemplateColumns: `repeat(${2 + tags.length}, minmax(0, 1fr))`,
+                      }}
                     >
-                      <Input
-                        value={row.value}
-                        onChange={(e) =>
-                          updateValueRow(index, "value", e.target.value)
-                        }
-                        placeholder="Enter value"
-                      />
-                      <div className="flex items-center gap-2 relative">
-                        <Input
-                          value={row.accountCode}
-                          onChange={(e) =>
-                            updateValueRow(index, "accountCode", e.target.value)
-                          }
-                          placeholder="Enter account code"
-                        />
-                        {tags.length === 0 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setPopupIndex(popupIndex === index ? null : index)
-                            }
-                            className="font-semibold text-xs text-gray-700 hover:text-gray-900 underline underline-offset-2 whitespace-nowrap tracking-tight"
-                          >
-                            ADD TAG
-                          </button>
-                        )}
-
-                        {popupIndex === index && (
-                          <div
-                            ref={popupRef}
-                            className="absolute top-10 right-0 z-20 bg-white border border-gray-300 rounded-md shadow-md w-64 p-4"
-                          >
-                            <p className="text-sm font-semibold mb-2">
-                              Add Tag name
-                            </p>
-                            <Input
-                              placeholder="Enter tag name"
-                              value={newTag}
-                              onChange={(e) => setNewTag(e.target.value)}
-                              className="mb-3"
-                            />
-                            <Button
-                              onClick={handleCreateTag}
-                              variant="secondary"
-                              className="w-full text-black font-semibold bg-gray-200 hover:bg-gray-300"
-                            >
-                              CREATE
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                      <Label className="text-sm font-medium">Values</Label>
+                      <Label className="text-sm font-medium">ACCOUNT CODE</Label>
                       {tags.map((t, i) => (
-                        <Input
-                          key={i}
-                          placeholder={`Enter ${t}`}
-                          onChange={(e) =>
-                            updateValueRow(index, t, e.target.value)
-                          }
-                        />
+                        <Label key={i} className="text-sm font-medium">
+                          {t}
+                        </Label>
                       ))}
                     </div>
-                  ))}
 
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={addValueRow}
-                    className="text-sm text-gray-600 hover:text-gray-800"
-                  >
-                    Add Value
-                  </Button>
-                </div>
+                    {valueRows.map((row, index) => (
+                      <div
+                        key={index}
+                        className="grid gap-4 items-center"
+                        style={{
+                          gridTemplateColumns: `repeat(${2 + tags.length}, minmax(0, 1fr))`,
+                        }}
+                      >
+                        <Input
+                          value={row.value}
+                          onChange={(e) =>
+                            updateValueRow(index, "value", e.target.value)
+                          }
+                          placeholder="Enter value"
+                        />
+                        <div className="flex items-center gap-2 relative">
+                          <Input
+                            value={row.accountCode}
+                            onChange={(e) =>
+                              updateValueRow(index, "accountCode", e.target.value)
+                            }
+                            placeholder="Enter account code"
+                          />
+                          {tags.length === 0 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPopupIndex(popupIndex === index ? null : index)
+                              }
+                              className="font-semibold text-xs text-gray-700 hover:text-gray-900 underline underline-offset-2 whitespace-nowrap tracking-tight"
+                            >
+                              ADD TAG
+                            </button>
+                          )}
+
+                          {popupIndex === index && (
+                            <div
+                              ref={popupRef}
+                              className="absolute top-10 right-0 z-20 bg-white border border-gray-300 rounded-md shadow-md w-64 p-4"
+                            >
+                              <p className="text-sm font-semibold mb-2">
+                                Add Tag name
+                              </p>
+                              <Input
+                                placeholder="Enter tag name"
+                                value={newTag}
+                                onChange={(e) => setNewTag(e.target.value)}
+                                className="mb-3"
+                              />
+                              <Button
+                                onClick={handleCreateTag}
+                                variant="secondary"
+                                className="w-full text-black font-semibold bg-gray-200 hover:bg-gray-300"
+                              >
+                                CREATE
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {tags.map((t, i) => (
+                          <Input
+                            key={i}
+                            value={row[t] || ""}
+                            placeholder={`Enter ${t}`}
+                            onChange={(e) =>
+                              updateValueRow(index, t, e.target.value)
+                            }
+                          />
+                        ))}
+                      </div>
+                    ))}
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={addValueRow}
+                      className="text-sm text-gray-600 hover:text-gray-800"
+                    >
+                      Add Value
+                    </Button>
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-4 pt-6">
                   <Button

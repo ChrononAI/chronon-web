@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Layout } from '@/components/layout/Layout'
 import AdminLayout from '@/components/layout/AdminLayout'
 import { ReportTabs } from '@/components/reports/ReportTabs'
@@ -122,6 +122,8 @@ const WorkFlowPage = () => {
   const [workflows, setWorkflows] = useState<WorkflowConfig[]>([])
   const [workflowsLoading, setWorkflowsLoading] = useState(false)
   const [creatingRule, setCreatingRule] = useState(false)
+  const isFetchingWorkflowsRef = useRef(false)
+  const workflowsFetchedRef = useRef(false)
   const [ruleForm, setRuleForm] = useState<RuleForm>({
     name: '',
     description: '',
@@ -163,22 +165,28 @@ const WorkFlowPage = () => {
     } finally {
       setEntitiesLoading(false)
     }
-  }, [entities.length, entitiesLoading])
+  }, [])
 
   const fetchWorkflows = useCallback(async (force = false) => {
-    if (!force && (workflows.length > 0 || workflowsLoading)) return
+    if (isFetchingWorkflowsRef.current) return
+    if (!force && workflowsFetchedRef.current) return
     
+    isFetchingWorkflowsRef.current = true
+    workflowsFetchedRef.current = true
     setWorkflowsLoading(true)
+    
     try {
       const workflowsData = await getAllWorkflows()
       setWorkflows(workflowsData)
     } catch (error) {
       console.error('Error fetching workflows:', error)
       toast.error('Failed to fetch workflows')
+      workflowsFetchedRef.current = false
     } finally {
       setWorkflowsLoading(false)
+      isFetchingWorkflowsRef.current = false
     }
-  }, [workflows.length, workflowsLoading])
+  }, [])
 
   useEffect(() => {
     if (needsEntities) {
@@ -194,6 +202,7 @@ const WorkFlowPage = () => {
 
   useEffect(() => {
     if (activeTab === 'all') {
+      workflowsFetchedRef.current = false
       fetchWorkflows(true)
     }
   }, [activeTab, fetchWorkflows])

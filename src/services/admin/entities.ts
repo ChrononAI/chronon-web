@@ -46,13 +46,17 @@ export async function getEntities(): Promise<Entity[]> {
   return []
 }
 
+export interface CreateAttributeInput {
+  value: string
+  is_active: boolean
+  display_value: string
+  account_code?: string
+  metadata?: Record<string, string>
+}
+
 export interface CreateAttributesPayload {
   entity_id: string
-  attributes: {
-    value: string
-    is_active: boolean
-    display_value: string
-  }[]
+  attributes: CreateAttributeInput[]
 }
 
 export async function createAttributes(payload: CreateAttributesPayload) {
