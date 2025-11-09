@@ -1,6 +1,6 @@
 import api from "@/lib/api";
 import { LoginCredentials, User } from "@/types/auth";
-import { decodeJwtToken } from "@/lib/jwtUtils";
+import { decodeJwtToken, getOrgIdFromToken } from "@/lib/jwtUtils";
 
 export const authService = {
   async login(
@@ -122,7 +122,13 @@ export const authService = {
 
   async getOrgSetting() {
     try {
-      const res = await api.get('/orgs/settings?org_id=26');
+      const orgId = getOrgIdFromToken();
+
+      if (!orgId) {
+        throw new Error("Organization ID not found in token");
+      }
+
+      const res = await api.get(`/orgs/settings?org_id=${orgId}`);
       return res;
     } catch (error) {
       throw error;
