@@ -35,6 +35,13 @@ function AdminExpenseCategories() {
     pageSize: 10,
   });
 
+  useEffect(() => {
+    const gridHeight = window.innerHeight - 300;
+    const rowHeight = 36;
+    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+  }, []);
+
   const [rows, setRows] = useState([]);
 
   const getCategories = async ({
@@ -49,13 +56,17 @@ function AdminExpenseCategories() {
       setRows(res.data.data);
     } catch (error: any) {
       console.log(error);
-      toast.error(error?.response?.data?.message || error.message || 'Failed to get categories')
+      toast.error(
+        error?.response?.data?.message ||
+          error.message ||
+          "Failed to get categories"
+      );
     }
   };
 
   useEffect(() => {
     // Get categories
-    getCategories({ page: 1, perPage: 10 });
+    getCategories({ page: paginationModel.page + 1, perPage: paginationModel.pageSize });
   }, []);
   return (
     <Layout noPadding>
@@ -127,7 +138,6 @@ function AdminExpenseCategories() {
               pagination
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
-              autoPageSize
             />
           </Box>
         </div>

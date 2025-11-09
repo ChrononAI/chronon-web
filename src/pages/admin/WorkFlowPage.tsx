@@ -540,7 +540,7 @@ const WorkFlowPage = () => {
   ), [workflows, workflowsLoading])
 
   return (
-   <Layout>
+   <Layout noPadding>
       <AdminLayout>
         <div className="flex flex-col gap-3 max-w-5xl">
           <div>

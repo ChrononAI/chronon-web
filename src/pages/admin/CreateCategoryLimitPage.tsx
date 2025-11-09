@@ -271,11 +271,14 @@ function CreateCategoryLimitPage() {
   };
 
   const togglePolicy = (policyId: string) => {
-    setRules((prev) => {
-      const current = { ...prev.rule_limits };
-      if (current[policyId]) delete current[policyId];
-      else current[policyId] = {};
+    setRules((prev) => {const current = { ...prev.rule_limits };
+    if (current[policyId]) {
+      delete current[policyId];
       return { ...prev, rule_limits: current };
+    } else {
+      const newRuleLimits = { [policyId]: {}, ...current };
+      return { ...prev, rule_limits: newRuleLimits };
+    }
     });
   };
 

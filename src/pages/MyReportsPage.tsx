@@ -1,14 +1,106 @@
-import { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { Layout } from '@/components/layout/Layout';
-import { ReportTable } from '@/components/reports/ReportTable';
-import { ReportTabs } from '@/components/reports/ReportTabs';
-import { FilterControls } from '@/components/reports/FilterControls';
-import { expenseService } from '@/services/expenseService';
-import { Button } from '@/components/ui/button';
-import { CheckCircle, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { useReportsStore } from '@/store/reportsStore';
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Layout } from "@/components/layout/Layout";
+import { ReportTabs } from "@/components/reports/ReportTabs";
+import { expenseService } from "@/services/expenseService";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Plus } from "lucide-react";
+import { useReportsStore } from "@/store/reportsStore";
+import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { Report } from "@/types/expense";
+import { GridPaginationModel } from "@mui/x-data-grid";
+import { Box, CircularProgress } from "@mui/material";
+import { GridOverlay } from "@mui/x-data-grid";
+
+export function CustomLoader() {
+  return (
+    <GridOverlay>
+      <Box
+        sx={{
+          position: "absolute",
+          top: 0,
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "rgba(255,255,255,0.6)",
+        }}
+      >
+        <CircularProgress size={28} thickness={4} />
+      </Box>
+    </GridOverlay>
+  );
+}
+
+function CustomNoRows() {
+  return (
+    <GridOverlay>
+      <Box className="w-full">
+        <div className="text-center">
+          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No reports found</h3>
+          <p className="text-muted-foreground">
+            There are currently no reportrs.
+          </p>
+        </div>
+      </Box>
+    </GridOverlay>
+  );
+}
+
+const columns: GridColDef[] = [
+  {
+    field: "title",
+    headerName: "TITLE",
+    flex: 1.5,
+    renderCell: (params) => (
+      <span className="font-medium hover:underline whitespace-nowrap">
+        {params.value}
+      </span>
+    ),
+  },
+  {
+    field: "description",
+    headerName: "DESCRIPTION",
+    flex: 2,
+    renderCell: (params) => (
+      <span className="whitespace-nowrap">{params.value}</span>
+    ),
+  },
+  {
+    field: "status",
+    headerName: "STATUS",
+    flex: 1,
+    renderCell: (params) => (
+      <Badge className={getStatusColor(params.value)}>{params.value}</Badge>
+    ),
+  },
+  {
+    field: "total_amount",
+    headerName: "TOTAL AMOUNT",
+    flex: 1,
+    align: "right",
+    headerAlign: "right",
+    valueFormatter: (params) => formatCurrency(params),
+  },
+  {
+    field: "created_by",
+    headerName: "CREATED BY",
+    flex: 1.5,
+    renderCell: (params) => (
+      <span className="whitespace-nowrap">{params.row.created_by?.email}</span>
+    ),
+  },
+  {
+    field: "created_at",
+    headerName: "CREATED DATE",
+    flex: 1.2,
+    valueFormatter: (params) => formatDate(params),
+  },
+];
 
 export function MyReportsPage() {
   const {
@@ -23,40 +115,43 @@ export function MyReportsPage() {
     setSubmittedReportsPagination,
     allReportsPagination,
     unsubmittedReportsPagination,
-    submittedReportsPagination
+    submittedReportsPagination,
   } = useReportsStore();
-  const [currentPage, setCurrentPage] = useState(1);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  // const perPage = 10;
-  const [perPage, setPerPageRows] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState("all");
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 10,
+  });
 
   useEffect(() => {
-    const calculateRows = () => {
-      // Get available height for table area
-      const availableHeight = window.innerHeight - 300; // adjust 300px for header/footer, etc.
-      const rowHeight = 42; // typical table row height in px
-      const possibleRows = Math.floor(availableHeight / rowHeight);
-      setPerPageRows(Math.max(3, possibleRows)); // minimum 3 rows
-    };
+    setPaginationModel((prev) => {
+      return { ...prev, page: 0 };
+    });
+  }, [activeTab]);
 
-    calculateRows();
-    window.addEventListener("resize", calculateRows);
+  useEffect(() => {
+    const gridHeight = window.innerHeight - 300;
+    const rowHeight = 36;
+    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+  }, [activeTab]);
 
-    return () => window.removeEventListener("resize", calculateRows);
+  const reportsArr =
+    activeTab === "all"
+      ? allReports
+      : activeTab === "unsubmitted"
+      ? unsubmittedReports
+      : submittedReports;
 
-  }, []);
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [activeTab, setActiveTab] = useState('all');
-  const reportsArr = (activeTab === 'all' ? allReports : activeTab === 'unsubmitted' ? unsubmittedReports : submittedReports) || [];
-  const pagination = activeTab === 'all' ? allReportsPagination : activeTab === 'unsubmitted' ? unsubmittedReportsPagination : submittedReportsPagination;
-
-  const fetchAllReports = async (page: number) => {
-    if (!perPage) return;
+  const fetchAllReports = async () => {
     try {
-      const response = await expenseService.getMyReports(page, perPage);
+      const response = await expenseService.getMyReports(
+        paginationModel.page + 1,
+        paginationModel.pageSize
+      );
+      console.log(response);
       setAllReports(response.reports);
       setAllReportsPagination(response.pagination);
     } catch (error) {
@@ -64,10 +159,13 @@ export function MyReportsPage() {
     }
   };
 
-  const fetchUnsubmittedReports = async (page: number) => {
-    if (!perPage) return;
+  const fetchUnsubmittedReports = async () => {
     try {
-      const response = await expenseService.getReportsByStatus('DRAFT', page, perPage);
+      const response = await expenseService.getReportsByStatus(
+        "DRAFT",
+        paginationModel.page + 1,
+        paginationModel.pageSize
+      );
       setUnsubmittedReports(response.reports);
       setUnsubmittedReportsPagination(response.pagination);
     } catch (error) {
@@ -75,10 +173,13 @@ export function MyReportsPage() {
     }
   };
 
-  const fetchSubmittedReports = async (page: number) => {
-    if (!perPage) return;
+  const fetchSubmittedReports = async () => {
     try {
-      const response = await expenseService.getReportsByStatus('UNDER_REVIEW,APPROVED,REJECTED', page, perPage);
+      const response = await expenseService.getReportsByStatus(
+        "UNDER_REVIEW,APPROVED,REJECTED",
+        paginationModel.page + 1,
+        paginationModel.pageSize
+      );
       setSubmittedReports(response.reports);
       setSubmittedReportsPagination(response.pagination);
     } catch (error) {
@@ -86,60 +187,42 @@ export function MyReportsPage() {
     }
   };
 
-  useEffect(() => {
-    if (perPage) {
-      fetchAllReports(currentPage);
-      fetchUnsubmittedReports(currentPage);
-      fetchSubmittedReports(currentPage);
+  const fetchData = async () => {
+    try {
+      await Promise.all([
+        fetchAllReports(),
+        fetchUnsubmittedReports(),
+        fetchSubmittedReports(),
+      ]);
+    } catch (error) {
+      console.log(error);
+    } finally {
       setLoading(false);
     }
-  }, [currentPage, perPage]);
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeTab]);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
   };
-  const filteredReports = useMemo(() => {
-    let filtered = reportsArr;
-    console.log(reportsArr);
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(report =>
-        report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.created_by.email.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+  useEffect(() => {
+    fetchData();
+  }, [paginationModel.page, paginationModel.pageSize]);
 
-    // Status filter
-    if (statusFilter !== 'all') {
-      console.log(filtered, statusFilter);
-      filtered = filtered.filter(report => report.status === statusFilter);
-    }
-
-    // Date filter
-    if (selectedDate) {
-      const filterDate = selectedDate.toISOString().split('T')[0];
-      filtered = filtered.filter(report => {
-        const reportDate = new Date(report.created_at).toISOString().split('T')[0];
-        return reportDate === filterDate;
+  const handleReportClick = (report: Report) => {
+    if (report.status === "DRAFT") {
+      navigate("/reports/create", {
+        state: {
+          editMode: true,
+          reportData: {
+            id: report.id,
+            title: report.title,
+            description: report.description,
+            custom_attributes: report.custom_attributes,
+            expenses: report.expenses || [],
+          },
+        },
       });
+    } else {
+      navigate(`/reports/${report.id}`);
     }
-    return filtered;
-  }, [reportsArr, searchTerm, statusFilter, selectedDate]);
-
-  if (loading) {
-    return (
-      <Layout>
-        <div>Loading...</div>
-      </Layout>
-    );
-  }
+  };
 
   return (
     <Layout>
@@ -159,92 +242,98 @@ export function MyReportsPage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         tabs={[
-          { key: 'all', label: 'All', count: allReportsPagination.total },
-          { key: 'unsubmitted', label: 'Unsubmitted', count: unsubmittedReportsPagination.total },
-          { key: 'submitted', label: 'Submitted', count: submittedReportsPagination.total }
+          { key: "all", label: "All", count: allReportsPagination.total },
+          {
+            key: "unsubmitted",
+            label: "Unsubmitted",
+            count: unsubmittedReportsPagination.total,
+          },
+          {
+            key: "submitted",
+            label: "Submitted",
+            count: submittedReportsPagination.total,
+          },
         ]}
         className="mb-8"
       />
-
-      {/* Filter Controls Section */}
-      <FilterControls
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search reports..."
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
-        statusOptions={[
-          { value: 'all', label: 'All' },
-          { value: 'DRAFT', label: 'Draft' },
-          { value: 'UNDER_REVIEW', label: 'Under Review' },
-          { value: 'APPROVED', label: 'Approved' },
-          { value: 'REJECTED', label: 'Rejected' }
-        ]}
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
-        className="mt-6 mb-4"
-      />
-      {filteredReports.length === 0 ? <Card><div className="text-center py-12">
-        <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold mb-2">
-          No reports found
-        </h3>
-        <p className="text-muted-foreground">
-          {searchTerm
-            ? "Try adjusting your search terms"
-            : "There are currently no reports."
+      <Box
+        sx={{
+          height: "calc(100vh - 160px)",
+          width: "100%",
+          marginTop: "-32px",
+        }}
+      >
+        <DataGrid
+          rows={loading ? [] : reportsArr}
+          columns={columns}
+          loading={loading}
+          onRowClick={(params, event) => {
+            event.stopPropagation();
+            const report = params.row;
+            if (report.status === "DRAFT") {
+              handleReportClick(report);
+            } else {
+              navigate(`/reports/${report.id}`);
+            }
+          }}
+          slots={{
+            loadingOverlay: CustomLoader,
+            noRowsOverlay: CustomNoRows,
+          }}
+          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+          sx={{
+            border: 0,
+            "& .MuiDataGrid-columnHeaderTitle": {
+              color: "#9AA0A6",
+              fontWeight: "bold",
+              fontSize: "12px",
+            },
+            "& .MuiDataGrid-main": {
+              border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-columnHeader": {
+              backgroundColor: "#f3f4f6",
+              border: "none",
+            },
+            "& .MuiDataGrid-columnHeaders": {
+              border: "none",
+            },
+            "& .MuiDataGrid-row:hover": {
+              cursor: "pointer",
+              backgroundColor: "#f5f5f5",
+            },
+            "& .MuiDataGrid-cell": {
+              color: "#2E2E2E",
+              border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
+              outline: "none",
+            },
+            "& .MuiDataGrid-cell:focus-within": {
+              outline: "none",
+            },
+            "& .MuiDataGrid-columnSeparator": {
+              color: "#f3f4f6",
+            },
+          }}
+          checkboxSelection
+          showToolbar
+          rowCount={
+            activeTab === "all"
+              ? allReportsPagination.total
+              : activeTab === "unsubmitted"
+              ? unsubmittedReportsPagination.total
+              : submittedReportsPagination.total
           }
-        </p>
-      </div></Card> : <>
-        <ReportTable reports={filteredReports} />
-
-        {pagination && pagination.pages > 1 && perPage && (
-          <div className="flex items-center justify-between mt-6">
-            <div className="text-sm text-gray-600">
-              Showing {((currentPage - 1) * perPage) + 1} to {Math.min(currentPage * perPage, activeTab === 'all' ? allReportsPagination.total : activeTab === 'unsubmitted' ? unsubmittedReportsPagination.total : submittedReportsPagination.total)} of {activeTab === 'all' ? allReportsPagination.total : activeTab === 'unsubmitted' ? unsubmittedReportsPagination.total : submittedReportsPagination.total} reports
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={!pagination.has_prev}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-
-              <div className="flex items-center space-x-1">
-                {Array.from({ length: Math.min(3, pagination.pages) }, (_, i) => {
-                  const pageNum = Math.max(1, Math.min(pagination.pages - 2, currentPage - 1)) + i;
-                  return (
-                    <Button
-                      key={pageNum}
-                      variant={pageNum === currentPage ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handlePageChange(pageNum)}
-                      className="w-8 h-8 p-0"
-                    >
-                      {pageNum}
-                    </Button>
-                  );
-                })}
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={!pagination.has_next}
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </>}
+          pagination
+          paginationMode="server"
+          disableRowSelectionOnClick
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          density="compact"
+          showCellVerticalBorder
+        />
+      </Box>
     </Layout>
   );
 }

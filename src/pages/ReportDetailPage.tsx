@@ -3,14 +3,6 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -43,6 +35,54 @@ import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { WorkflowTimeline } from '@/components/expenses/WorkflowTimeline';
 import { ViewExpenseWindow } from '@/components/expenses/ViewExpenseWindow';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
+
+const columns: GridColDef[] = [
+  {
+    field: "category",
+    headerName: "CATEGORY",
+    flex: 1,
+  },
+  {
+    field: "amount",
+    headerName: "AMOUNT",
+    flex: 0.8,
+    align: "right",
+    headerAlign: "right",
+    valueFormatter: (val) => formatCurrency(val)
+  },
+  {
+    field: "expense_date",
+    headerName: "DATE",
+    flex: 1,
+    valueFormatter: (val) => formatDate(val)
+  },
+  {
+    field: "vendor",
+    headerName: "VENDOR",
+    flex: 1,
+    renderCell: (params) => {
+      const expense = params.row;
+      const displayVendor =
+        expense.expense_type === "MILEAGE_BASED"
+          ? "Mileage Reimbursement"
+          : expense.expense_type === "PER_DIEM"
+          ? "Per Diem"
+          : expense.vendor || "—";
+      return <span>{displayVendor}</span>;
+    },
+  },
+  {
+    field: "status",
+    headerName: "STATUS",
+    flex: 1,
+    renderCell: (params) => (
+      <Badge className={`${getStatusColor(params.value)} whitespace-nowrap`}>
+        {params.value.replace("_", " ")}
+      </Badge>
+    ),
+  },
+];
 
 export function ReportDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -248,20 +288,8 @@ export function ReportDetailPage() {
     { label: 'View Report' },
   ];
 
-
   const totalAmount = report.expenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0);
-
-  // Calculate expense statistics
-  // const approvedExpenses = report.expenses.filter(exp => exp.status === 'APPROVED' || exp.status === 'FULLY_APPROVED').length;
-  // const rejectedExpenses = report.expenses.filter(exp => exp.status === 'REJECTED').length;
   const pendingExpenses = report.expenses.filter(exp => exp.status === 'PENDING' || exp.status === 'PENDING_APPROVAL').length;
-
-  // const steps = approvalWorkflow?.approval_steps;
-  // const completedSteps = steps?.filter(
-  //   step => step.status === "APPROVED" || step.status === "REJECTED"
-  // ).length;
-  // const totalSteps = steps?.length;
-  // const progress = ((completedSteps || 0) / (totalSteps || 0)) * 100;
 
   const handleViewExpense = async (expense: Expense) => {
     setShowViewExpense(true);
@@ -416,48 +444,52 @@ export function ReportDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="rounded-lg border overflow-hidden">
-                  <Table>
-                    <TableHeader className="text-[#64748B]">
-                      <TableRow className="bg-gray-100">
-                        <TableHead>CATEGORY</TableHead>
-                        <TableHead>AMOUNT</TableHead>
-                        <TableHead>DATE</TableHead>
-                        <TableHead>VENDOR</TableHead>
-                        <TableHead>STATUS</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {report.expenses.map((expense) => (
-                        <TableRow
-                          key={expense.id}
-                          className="hover:bg-muted/30 transition-colors cursor-pointer"
-                          onClick={() => handleViewExpense(expense)}
-                        >
-                          <TableCell>
-                            <div className="flex items-center gap-2 whitespace-nowrap">
-                              <Building className="h-4 w-4 text-muted-foreground" />
-                              {expense.category}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-semibold">
-                            ₹{parseFloat(expense.amount.toString()).toFixed(2)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2 whitespace-nowrap">
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
-                              {formatDate(expense.expense_date)}
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">{expense.expense_type === "MILEAGE_BASED" ? "Mileage Reimbursement" : expense.expense_type === "PER_DIEM" ? "Per Diem" : expense.vendor}</TableCell>
-                          <TableCell>
-                            <Badge className={`${getStatusColor(expense.status)} whitespace-nowrap`}>
-                              {expense.status.replace('_', ' ')}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <DataGrid
+                            className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+                            rows={report.expenses}
+                            columns={columns}
+                            sx={{
+                              border: 0,
+                              "& .MuiDataGrid-columnHeaderTitle": {
+                                color: "#9AA0A6",
+                                fontWeight: "bold",
+                                fontSize: "12px",
+                              },
+                              "& .MuiDataGrid-main": {
+                                border: "0.2px solid #f3f4f6",
+                              },
+                              "& .MuiDataGrid-columnHeader": {
+                                backgroundColor: "#f3f4f6",
+                                border: "none",
+                              },
+                              "& .MuiDataGrid-columnHeaders": {
+                                border: "none",
+                              },
+                              "& .MuiDataGrid-row:hover": {
+                                cursor: "pointer",
+                                backgroundColor: "#f5f5f5",
+                              },
+                              "& .MuiDataGrid-cell": {
+                                color: "#2E2E2E",
+                                border: "0.2px solid #f3f4f6",
+                              },
+                              "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
+                                outline: "none",
+                              },
+                              "& .MuiDataGrid-cell:focus-within": {
+                                outline: "none",
+                              },
+                              "& .MuiDataGrid-columnSeparator": {
+                                color: "#f3f4f6",
+                              },
+                            }}
+                            density="compact"
+                            getRowClassName={(params) => params.row.original_expense_id ? 'bg-yellow-50' : ''}
+                            hideFooter
+                            disableRowSelectionOnClick
+                            showCellVerticalBorder
+                            onRowClick={(params) => handleViewExpense(params.row)}
+                          />
                 </div>
               </CardContent>
             </Card>

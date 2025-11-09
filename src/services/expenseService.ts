@@ -142,14 +142,7 @@ export const expenseService = {
       );
 
       const reports = response.data.data.data || [];
-      const pagination = response.data.data.pagination || {
-        has_next: false,
-        has_prev: false,
-        page: 1,
-        pages: 0,
-        per_page: 20,
-        total: 0,
-      };
+      const pagination = response.data.data.pagination;
 
       return {
         reports,

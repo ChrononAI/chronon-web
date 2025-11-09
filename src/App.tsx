@@ -31,7 +31,6 @@ import ProcessAdvancePage from './pages/ProcessAdvancePage';
 import AdminPage from './pages/admin/AdminPage';
 import { EntityPage } from './pages/admin/EntityPage';
 import { CreateEntityPage } from './pages/admin/CreateEntityPage';
-import OrgPage from './pages/admin/OrgPage';
 import ExpenseMasterPage from './pages/admin/ExpenseMasterPage';
 import ExpenseReportMaster from './pages/admin/ExpenseReportMaster';
 import AdvanceMaster from './pages/admin/AdvanceMaster';
@@ -288,14 +287,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <CreateEntityPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/org"
-            element={
-              <ProtectedRoute>
-                <OrgPage />
               </ProtectedRoute>
             }
           />

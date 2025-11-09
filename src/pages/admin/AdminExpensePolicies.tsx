@@ -41,6 +41,14 @@ function AdminExpensePolicies() {
     page: 0,
     pageSize: 10,
   });
+
+  useEffect(() => {
+    const gridHeight = window.innerHeight - 300;
+    const rowHeight = 36;
+    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+    setPaginationModel((prev) => ({ ...prev, pageSize: calculatedPageSize }));
+  }, []);
+
   const [paginationInfo, setPaginationInfo] = useState<PaginationInfo>();
 
   const [rows, setRows] = useState([]);
@@ -144,7 +152,6 @@ function AdminExpensePolicies() {
               rowCount={paginationInfo ? paginationInfo.total : 0}
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
-              autoPageSize
             />
           </Box>
         </div>

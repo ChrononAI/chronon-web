@@ -10,7 +10,7 @@ export function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/pre-approvals');
+      navigate('/expenses');
     }
   }, [isAuthenticated, navigate]);
 

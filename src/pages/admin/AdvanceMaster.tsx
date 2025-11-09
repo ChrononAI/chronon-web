@@ -58,7 +58,7 @@ const ExpenseMasterPage = () => {
         setEntitiesLoading(true)
         try {
           const res = await getEntities()
-          const entitiesData: Entity[] = res?.data || []
+          const entitiesData: Entity[] = res || []
           setEntities(entitiesData)
         } catch (e) {
           console.error('Error fetching entities:', e)
@@ -106,7 +106,7 @@ const ExpenseMasterPage = () => {
   }
 
   return (
-    <Layout>
+    <Layout noPadding>
       <AdminLayout>
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Advance Masters</h1>
