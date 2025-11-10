@@ -57,7 +57,7 @@ const advanceSchema = z.object({
 
 type AdvanceFormValues = z.infer<typeof advanceSchema>;
 
-export function CreateAdvanceForm({ mode = "create", showHeader = true }: { mode?: "create" | "view" | "edit"; showHeader?: boolean; }) {
+export function CreateAdvanceForm({ mode = "create", showHeader = true, maxWidth }: { mode?: "create" | "view" | "edit"; showHeader?: boolean; maxWidth?: string;}) {
   const navigate = useNavigate();
   const loading = false;
 
@@ -156,7 +156,7 @@ export function CreateAdvanceForm({ mode = "create", showHeader = true }: { mode
   }, []);
 
   return (
-    <div className="container max-w-4xl space-y-6">
+    <div className={maxWidth ? `space-y-6 ${maxWidth}` : 'space-y-6 max-w-4xl'}>
       {/* Header */}
       {showHeader && <div className="flex items-center mb-6">
         <Button
