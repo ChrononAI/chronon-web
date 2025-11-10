@@ -8,6 +8,7 @@ import { Link } from "react-router-dom"
 import api from "@/lib/api"
 import { toast } from "sonner"
 import { getOrgIdFromToken } from "@/lib/jwtUtils"
+import { ReportTabs } from "@/components/reports/ReportTabs"
 
 type APIUser = {
   id?: string | number
@@ -28,8 +29,15 @@ type UserRow = {
   status?: string
 }
 
+const TABS = [
+  { key: "userAll", label: "User All", count: 0 },
+  { key: "templateUser", label: "Template User", count: 0 },
+]
+
 const UserPage = () => {
+  const [activeTab, setActiveTab] = useState<"userAll" | "templateUser">("userAll")
   const [rows, setRows] = useState<UserRow[]>([])
+  const [templateRows] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(false)
 
   const columns = useMemo<GridColDef<UserRow>[]>(
@@ -96,73 +104,147 @@ const UserPage = () => {
               View and manage the users in your organization.
             </p>
           </div>
-          <Button asChild>
-            <Link to="/admin/users/create">
-              <Plus className="mr-2 h-4 w-4" />
-              CREATE
-            </Link>
-          </Button>
+          {activeTab === "userAll" && (
+            <Button asChild>
+              <Link to="/admin/users/create">
+                <Plus className="mr-2 h-4 w-4" />
+                CREATE
+              </Link>
+            </Button>
+          )}
         </div>
 
-        <div className="bg-gray-100 rounded-md p-4 mb-6">
-          <p className="text-sm text-gray-600">
-            Review user access and create new users to grant access to Chronon.
-          </p>
-        </div>
-
-        <DataGrid
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          columns={columns}
-          rows={rows}
-          loading={loading}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-              borderTop: "none",
-              borderBottom: "none",
-            },
-            "& .MuiCheckbox-root": {
-              color: "#9AA0A6",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          density="compact"
-          checkboxSelection
-          disableRowSelectionOnClick
-          showCellVerticalBorder
+        <ReportTabs
+          className="mb-6"
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
+          tabs={TABS}
         />
+
+        {activeTab === "userAll" && (
+          <>
+            <div className="bg-gray-100 rounded-md p-4 mb-6">
+              <p className="text-sm text-gray-600">
+                Review user access and create new users to grant access to Chronon.
+              </p>
+            </div>
+
+            <DataGrid
+              className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+              columns={columns}
+              rows={rows}
+              loading={loading}
+              sx={{
+                border: 0,
+                "& .MuiDataGrid-columnHeaderTitle": {
+                  color: "#9AA0A6",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                },
+                "& .MuiDataGrid-main": {
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-columnHeader": {
+                  backgroundColor: "#f3f4f6",
+                  border: "none",
+                },
+                "& .MuiDataGrid-columnHeaders": {
+                  border: "none",
+                  borderTop: "none",
+                  borderBottom: "none",
+                },
+                "& .MuiCheckbox-root": {
+                  color: "#9AA0A6",
+                },
+                "& .MuiDataGrid-row:hover": {
+                  cursor: "pointer",
+                  backgroundColor: "#f5f5f5",
+                },
+                "& .MuiDataGrid-cell": {
+                  color: "#2E2E2E",
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
+                  outline: "none",
+                },
+                "& .MuiDataGrid-cell:focus-within": {
+                  outline: "none",
+                },
+                "& .MuiDataGrid-columnSeparator": {
+                  color: "#f3f4f6",
+                },
+              }}
+              density="compact"
+              checkboxSelection
+              disableRowSelectionOnClick
+              showCellVerticalBorder
+            />
+          </>
+        )}
+
+        {activeTab === "templateUser" && (
+          <div className="space-y-6">
+            <div className="bg-gray-100 rounded-md p-4">
+              <p className="text-sm text-gray-600">
+                Configure template users. This view mirrors the user listing UI for preview purposes.
+              </p>
+            </div>
+
+            <DataGrid
+              className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+              columns={columns}
+              rows={templateRows}
+              loading={false}
+              sx={{
+                border: 0,
+                "& .MuiDataGrid-columnHeaderTitle": {
+                  color: "#9AA0A6",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                },
+                "& .MuiDataGrid-main": {
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-columnHeader": {
+                  backgroundColor: "#f3f4f6",
+                  border: "none",
+                },
+                "& .MuiDataGrid-columnHeaders": {
+                  border: "none",
+                  borderTop: "none",
+                  borderBottom: "none",
+                },
+                "& .MuiCheckbox-root": {
+                  color: "#9AA0A6",
+                },
+                "& .MuiDataGrid-row:hover": {
+                  cursor: "pointer",
+                  backgroundColor: "#f5f5f5",
+                },
+                "& .MuiDataGrid-cell": {
+                  color: "#2E2E2E",
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
+                  outline: "none",
+                },
+                "& .MuiDataGrid-cell:focus-within": {
+                  outline: "none",
+                },
+                "& .MuiDataGrid-columnSeparator": {
+                  color: "#f3f4f6",
+                },
+              }}
+              density="compact"
+              checkboxSelection
+              disableRowSelectionOnClick
+              showCellVerticalBorder
+            />
+          </div>
+        )}
       </AdminLayout>
     </Layout>
   )
 }
 
- export default UserPage
+export default UserPage

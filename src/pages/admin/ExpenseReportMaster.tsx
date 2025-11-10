@@ -27,7 +27,7 @@ type Entity = {
   is_active?: boolean
 }
 
-const ExpenseMasterPage = () => {
+const ExpenseReportMasterPage = () => {
   const [activeTab, setActiveTab] = useState<'core' | 'custom'>('core')
   const [fieldSettings, setFieldSettings] = useState<Record<string, string>>({})
   const [templates, setTemplates] = useState<any[]>([])
@@ -239,4 +239,4 @@ const ExpenseMasterPage = () => {
   )
 }
 
-export default ExpenseMasterPage
+export default ExpenseReportMasterPage

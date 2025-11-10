@@ -3,7 +3,7 @@ import { Layout } from '@/components/layout/Layout'
 import { DataGrid, GridColDef } from '@mui/x-data-grid'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { createAutoReportSchedule } from '@/services/admin/autoReportSubmissions'
+import {
+  createAutoReportSchedule,
+  getAutoReportSchedules,
+  type AutoReportSubmission,
+} from '@/services/admin/autoReportSubmissions'
 import { toast } from 'sonner'
 
 const getOrdinalSuffix = (day: number) => {
@@ -37,6 +41,23 @@ const getOrdinalSuffix = (day: number) => {
   }
 }
 
+const WEEKLY_DAY_OPTIONS = [
+  { value: 'mon', label: 'Monday' },
+  { value: 'tue', label: 'Tuesday' },
+  { value: 'wed', label: 'Wednesday' },
+  { value: 'thu', label: 'Thursday' },
+  { value: 'fri', label: 'Friday' },
+  { value: 'sat', label: 'Saturday' },
+  { value: 'sun', label: 'Sunday' },
+]
+
+const WEEKLY_DAY_LABEL_MAP = WEEKLY_DAY_OPTIONS.reduce<Record<string, string>>(
+  (acc, option) => {
+    acc[option.value] = option.label
+    return acc
+  },
+  {}
+)
 
 export const AutoReportPage = () => {
   type SubmissionScheduleRow = {
@@ -44,6 +65,7 @@ export const AutoReportPage = () => {
     submitOn: string
     createdBy: string
     description?: string
+    status: string
   }
 
   const [scheduleRows, setScheduleRows] = useState<SubmissionScheduleRow[]>([])
@@ -52,6 +74,7 @@ export const AutoReportPage = () => {
   const [selectedDay, setSelectedDay] = useState<string | undefined>()
   const [selectedMonthDate, setSelectedMonthDate] = useState<string | undefined>()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const columns: GridColDef<SubmissionScheduleRow>[] = [
     {
       field: 'submitOn',
@@ -71,6 +94,12 @@ export const AutoReportPage = () => {
       width: 260,
       flex: 1,
     },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 160,
+      flex: 0.6,
+    },
   ]
 
   const monthlyDateOptions = useMemo(() =>
@@ -83,16 +112,6 @@ export const AutoReportPage = () => {
     }),
   [])
 
-  const weeklyDayOptions = [
-    { value: 'mon', label: 'Monday' },
-    { value: 'tue', label: 'Tuesday' },
-    { value: 'wed', label: 'Wednesday' },
-    { value: 'thu', label: 'Thursday' },
-    { value: 'fri', label: 'Friday' },
-    { value: 'sat', label: 'Saturday' },
-    { value: 'sun', label: 'Sunday' },
-  ]
-
   const cadenceCopy = scheduleType === 'monthly' ? 'of every month' : 'of every week'
 
   const canSubmit =
@@ -100,7 +119,7 @@ export const AutoReportPage = () => {
     (scheduleType === 'monthly' && !!selectedMonthDate)
 
   const selectedDayLabel =
-    selectedDay && weeklyDayOptions.find(option => option.value === selectedDay)?.label
+    selectedDay && WEEKLY_DAY_OPTIONS.find(option => option.value === selectedDay)?.label
 
   const selectedMonthLabel =
     selectedMonthDate && monthlyDateOptions.find(option => option.value === selectedMonthDate)?.label
@@ -113,6 +132,54 @@ export const AutoReportPage = () => {
       : selectedDayLabel
       ? `${selectedDayLabel} of every week`
       : 'Select a Day'
+
+  const resolveSubmitOn = useCallback((submission: AutoReportSubmission) => {
+    const when = submission.schedule?.config?.when
+
+    if (!when) {
+      return '—'
+    }
+
+    if (when.day_of_week) {
+      const key = when.day_of_week.toLowerCase()
+      const label = WEEKLY_DAY_LABEL_MAP[key] || when.day_of_week
+      return `${label} of every week`
+    }
+
+    if (when.day) {
+      const parsedDay = parseInt(when.day, 10)
+      if (!Number.isNaN(parsedDay)) {
+        return `${parsedDay}${getOrdinalSuffix(parsedDay)} of every month`
+      }
+      return `${when.day} of every month`
+    }
+
+    return '—'
+  }, [])
+
+  const fetchSchedules = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const response = await getAutoReportSchedules()
+      const rows = response.data.map(submission => ({
+        id: submission.id,
+        submitOn: resolveSubmitOn(submission),
+        createdBy: submission.created_by?.email ?? '—',
+        description: submission.description ?? '—',
+        status: submission.schedule?.is_enabled ? 'Active' : 'Paused',
+      }))
+      setScheduleRows(rows)
+    } catch (error) {
+      console.error('Failed to load auto report schedules:', error)
+      toast.error('Failed to load automated submissions.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [resolveSubmitOn])
+
+  useEffect(() => {
+    fetchSchedules()
+  }, [fetchSchedules])
 
   const handleCreateSchedule = async () => {
     if (!canSubmit) {
@@ -148,17 +215,8 @@ export const AutoReportPage = () => {
 
     try {
       setIsSubmitting(true)
-      const response = await createAutoReportSchedule(payload)
-
-      setScheduleRows(prev => [
-        ...prev,
-        {
-          id: response.data.id,
-          submitOn: summaryText,
-          createdBy: 'You',
-          description: response.data.description,
-        },
-      ])
+      await createAutoReportSchedule(payload)
+      await fetchSchedules()
 
       toast.success('Auto submission schedule created.')
       setShowScheduleModal(false)
@@ -173,7 +231,7 @@ export const AutoReportPage = () => {
   }
 
   return (
-    <Layout>
+    <Layout noPadding>
       <AdminLayout>
         
         <div className="flex justify-between items-center mb-6">
@@ -196,6 +254,7 @@ export const AutoReportPage = () => {
                     className="rounded border-[0.2px] border-[#f3f4f6] h-full"
                     columns={columns}
                     rows={scheduleRows}
+                    loading={isLoading}
                     sx={{
                         border: 0,
                         "& .MuiDataGrid-columnHeaderTitle": {
@@ -305,7 +364,7 @@ export const AutoReportPage = () => {
                         <SelectValue placeholder="Select a day" />
                       </SelectTrigger>
                       <SelectContent className="max-h-60">
-                        {weeklyDayOptions.map(option => (
+                        {WEEKLY_DAY_OPTIONS.map(option => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>

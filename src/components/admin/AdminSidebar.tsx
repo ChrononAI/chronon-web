@@ -51,7 +51,8 @@ const navigation: NavigationItem[] = [
             {
                 name: 'Org',
                 href: '/admin/org',
-                icon: Building2
+                icon: Building2,
+                disabled: true,
             },
             {
                 name: 'Users',
@@ -98,7 +99,8 @@ const navigation: NavigationItem[] = [
             {
                 name: 'Roles & Access',
                 href: '/admin/product-config/roles-and-access',
-                icon: Lock
+                icon: Lock,
+                disabled: true,
             },
             {
                 name: 'Expense Categories',

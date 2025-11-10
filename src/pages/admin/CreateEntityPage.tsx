@@ -153,7 +153,7 @@ export const CreateEntityPage = () => {
   }
 
   return (
-    <Layout>
+    <Layout noPadding>
       <AdminLayout>
         <div className="max-w-5xl">
           <h1 className="text-2xl font-bold mb-6">Entities</h1>
