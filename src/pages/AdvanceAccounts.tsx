@@ -25,7 +25,7 @@ const columns: GridColDef[] = [
   {
     field: "account_id",
     headerName: "ACCOUNT ID",
-    flex: 1,
+    width: 100,
   },
   {
     field: "transaction_type",
@@ -111,12 +111,14 @@ function AccountCard({
             </Badge>
           </CardTitle>
           <CardDescription>
-            {(policy || preApproval) ?
+            {policy || preApproval ? (
               <div className="flex items-center gap-6">
                 <span>{policy?.name || "NA"}</span>
                 <span>{preApproval?.name}</span>
-              </div> : <span>Open Advance</span>
-            }
+              </div>
+            ) : (
+              <span>Open Advance</span>
+            )}
           </CardDescription>
         </div>
         <div>{formatCurrency(+card.balance_amount)}</div>
@@ -152,7 +154,7 @@ function AdvanceAccounts() {
       const newRows = newRes.map((row: LedgerType, idx: number) => {
         return {
           ...row,
-          account_id: `ACC${idx + 1}`,
+          account_id: idx + 1,
         };
       });
       setLedger(newRows);
@@ -208,42 +210,21 @@ function AdvanceAccounts() {
       showCreateButton={false}
     >
       <div className="space-y-2">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* {accounts.map((card, idx) => {
-            return (
-              <Card
-                key={card.id}
-                className={
-                  selectedAccount === card.id
-                    ? "p-4 cursor-pointer border-2 border-blue-500"
-                    : "p-4 cursor-pointer"
-                }
-                onClick={() => setSelectedAccount(card.id)}
-              >
-                <CardContent className="p-0 space-y-4">
-                  <div className="space-y-1">
-                    <CardTitle className="flex items-center justify-between gap-2">
-                      <span className="truncate">{`ACC${idx + 1}`}</span>{" "}
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-[12px] p-2 rounded-[8px]">
-                        Open
-                      </Badge>
-                    </CardTitle>
-                  </div>
-                  <div>{formatCurrency(+card.balance_amount)}</div>
-                </CardContent>
-              </Card>
-            );
-          })} */}
+        <div className="flex gap-6 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
           {accounts.map((card, idx) => (
-            <AccountCard
+            <div
               key={card.id}
-              card={card}
-              idx={idx}
-              selectedAccount={selectedAccount}
-              setSelectedAccount={setSelectedAccount}
-              policies={policies}
-              preApprovals={preApprovals}
-            />
+              className="flex-shrink-0 w-full md:w-1/3 lg:w-1/6"
+            >
+              <AccountCard
+                card={card}
+                idx={idx}
+                selectedAccount={selectedAccount}
+                setSelectedAccount={setSelectedAccount}
+                policies={policies}
+                preApprovals={preApprovals}
+              />
+            </div>
           ))}
         </div>
         <Box

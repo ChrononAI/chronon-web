@@ -198,8 +198,8 @@ function ApprovalsPreApprovalsPage() {
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {
               color: "#9AA0A6",
-              fontWeight: 505,
-              fontSize: "14px",
+              fontWeight: "bold",
+              fontSize: "12px",
             },
             "& .MuiDataGrid-main": {
               border: "1px solid #F1F3F4",

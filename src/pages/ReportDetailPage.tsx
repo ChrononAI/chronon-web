@@ -284,7 +284,7 @@ export function ReportDetailPage() {
   }
 
   const breadcrumbItems = [
-    { label: isFromApprovals ? 'Reports for Approval' : 'My Reports', href: isFromApprovals ? '/approvals/reports' : '/reports' },
+    { label: isFromApprovals ? 'Reports for Approval' : 'Expense Reports', href: isFromApprovals ? '/approvals/reports' : '/reports' },
     { label: 'View Report' },
   ];
 

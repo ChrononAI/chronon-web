@@ -6,10 +6,14 @@ import {
   ListCheck,
   Banknote,
   ReceiptText,
-  FileChartColumn,
   User,
-  SquareCheckBig,
   ChevronLeft,
+  ClipboardCheck,
+  Wallet,
+  CheckSquare,
+  FileBarChart,
+  FolderKanban,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,11 +43,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/authStore";
-import { authService } from "@/services/authService";
 
 const navigation: NavigationItem[] = [
-  { name: "Pre Approval", href: "/pre-approvals", icon: SquareCheckBig },
-  { name: "Advances", href: "/advances", icon: SquareCheckBig },
+  { name: "Pre Approval", href: "/pre-approvals", icon: ClipboardCheck },
+  { name: "Advances", href: "/advances", icon: Wallet },
   { name: "Expenses", href: "/expenses", icon: Banknote },
   { name: "Expense Reports", href: "/reports", icon: ReceiptText },
   {
@@ -54,17 +57,17 @@ const navigation: NavigationItem[] = [
       {
         name: "Expenses",
         href: "/approvals/reports",
-        icon: ListCheck,
+        icon: CheckSquare,
       },
       {
         name: "Pre Approval",
         href: "/approvals/pre-approvals",
-        icon: ListCheck,
+        icon: ClipboardCheck,
       },
       {
         name: "Advances",
         href: "/approvals/advances",
-        icon: ListCheck,
+        icon: Wallet,
       },
     ],
   },
@@ -72,19 +75,19 @@ const navigation: NavigationItem[] = [
     name: "Reports",
     href: "/all-reports",
     isBold: false,
-    icon: FileChartColumn,
+    icon: FileBarChart,
   },
   {
     name: "Accounts",
     href: "/advance_accounts",
     isBold: false,
-    icon: FileChartColumn,
+    icon: FolderKanban,
   },
   {
     name: "Admin",
     href: "/admin/entities",
     isBold: false,
-    icon: FileChartColumn,
+    icon: Building2,
   },
 ];
 
@@ -104,15 +107,13 @@ export function Sidebar() {
     }
     return [];
   });
-  const [collapsed, setCollapsed] = useState(
-    false
-  );
+  const [collapsed, setCollapsed] = useState(false);
   const [newNavItems, setNewNavItems] = useState<NavigationItem[]>([]);
-  const { user, orgSettings, logout, setOrgSettings } = useAuthStore();
+  const { user, orgSettings, logout } = useAuthStore();
 
   const mergePermissions = (items: any[], permissions: any): any[] => {
     return items.map((item) => {
-      if (item?.name === "Reports") {
+      if (item?.name === "Reports" || item?.name === 'Admin') {
         const permission = {
           enabled: user ? user.role === "ADMIN" : false,
           allowed: user ? user?.role === "ADMIN" : false,
@@ -156,19 +157,6 @@ export function Sidebar() {
   const handleLogout = () => {
     logout();
   };
-
-  const getOrgSettings = async () => {
-    try {
-      const res = await authService.getOrgSetting();
-      setOrgSettings(res.data.data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  useEffect(() => {
-    getOrgSettings();
-  }, []);
 
   // Save to localStorage whenever openItems changes
   useEffect(() => {

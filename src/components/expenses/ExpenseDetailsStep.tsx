@@ -122,6 +122,7 @@ export function ExpenseDetailsStep({
   isEditMode = false,
   expense,
 }: ExpenseDetailsStepProps) {
+  // console.log(previewUrl);
   const navigate = useNavigate();
   const orgId = getOrgIdFromToken();
   const { parsedData, setParsedData, selectedPreApproval, setSelectedPreApproval } = useExpenseStore();
@@ -1014,9 +1015,14 @@ export function ExpenseDetailsStep({
                             }
 
                             // Check if this is a PDF by looking at the URL
-                            const isPdf = previewUrl
-                              ?.toLowerCase()
-                              .includes(".pdf");
+                            let isPdf;
+                            if (uploadedFile?.type === 'application/pdf') {
+                                isPdf = true;
+                            } else if (previewUrl?.toLowerCase().includes(".pdf")){
+                              isPdf = true;
+                            } else {
+                              isPdf = false;
+                            }
 
                             if (isPdf) {
                               // For PDFs, use embed tag with simple styling to avoid PDF viewer interface

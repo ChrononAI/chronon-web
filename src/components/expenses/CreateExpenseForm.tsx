@@ -36,6 +36,7 @@ export function CreateExpenseForm() {
   const [loading, setLoading] = useState(false);
 
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  console.log(uploadedFile);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   // const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
@@ -149,6 +150,7 @@ export function CreateExpenseForm() {
       if (result.success) {
         toast.success(result.message);
         navigate('/expenses');
+        setParsedData(null);
       } else {
         if (result.validation_details) {
           toast.error(`Daily limit exceeded. Current: ${result.validation_details.current_daily_total}, New: ${result.validation_details.new_amount}, Limit: ${result.validation_details.daily_limit}`);
