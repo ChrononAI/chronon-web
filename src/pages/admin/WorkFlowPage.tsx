@@ -30,9 +30,14 @@ import { Badge } from '@/components/ui/badge'
 type TabKey = 'config' | 'rules' | 'all'
 type StepType = 'direct' | 'parallel'
 type ApproverIdentifier = 'REPORTING_MANAGER' | 'SKIP_LEVEL_MANAGER'
-type Operator = 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains'
-type WorkflowEvent = 'EXPENSE' | 'REPORT' | 'ADVANCE'
-
+type WorkflowEvent = 'ADVANCE' | 'REPORT' | 'PRE_APPROVAL'
+type Operator =
+  | 'EQUALS'
+  | 'NOT_EQUAL'
+  | 'IN'
+  | 'NOT_IN'
+  | 'GREATER_THEN'
+  | 'LESS_THEN'
 interface Step {
   id: number
   stepName: string
@@ -46,6 +51,7 @@ interface Step {
 interface RuleForm {
   name: string
   description: string
+  workflowEvent?: WorkflowEvent
   workflow: string
   rule: {
     ifField: string
@@ -56,7 +62,6 @@ interface RuleForm {
 
 interface FormValues {
   name: string
-  workflowEvent?: WorkflowEvent
 }
 
 const STEP_TYPE_OPTIONS: { value: StepType; label: string }[] = [
@@ -70,17 +75,18 @@ const APPROVER_OPTIONS: { value: ApproverIdentifier; label: string }[] = [
 ]
 
 const OPERATOR_OPTIONS: { value: Operator; label: string }[] = [
-  { value: 'equals', label: 'Equals' },
-  { value: 'not_equals', label: 'Not Equals' },
-  { value: 'greater_than', label: 'Greater Than' },
-  { value: 'less_than', label: 'Less Than' },
-  { value: 'contains', label: 'Contains' },
+  { value: 'EQUALS', label: 'EQUALS' },
+  { value: 'NOT_EQUAL', label: 'NOT_EQUAL' },
+  { value: 'IN', label: 'IN' },
+  { value: 'NOT_IN', label: 'NOT_IN' },
+  { value: 'GREATER_THEN', label: 'GREATER_THEN' },
+  { value: 'LESS_THEN', label: 'LESS_THEN' },
 ]
 
 const WORKFLOW_EVENT_OPTIONS: { value: WorkflowEvent; label: string }[] = [
-  { value: 'EXPENSE', label: 'Expense' },
-  { value: 'REPORT', label: 'Report' },
   { value: 'ADVANCE', label: 'Advance' },
+  { value: 'REPORT', label: 'Report' },
+  { value: 'PRE_APPROVAL', label: 'Pre Approval' },
 ]
 
 const HARDCODED_VALUES = {
@@ -127,6 +133,7 @@ const WorkFlowPage = () => {
   const [ruleForm, setRuleForm] = useState<RuleForm>({
     name: '',
     description: '',
+    workflowEvent: undefined,
     workflow: '',
     rule: {
       ifField: '',
@@ -135,10 +142,9 @@ const WorkFlowPage = () => {
     },
   })
 
-  const { register, handleSubmit, setValue, watch, reset } = useForm<FormValues>({
+const { register, handleSubmit, reset } = useForm<FormValues>({
     defaultValues: {
       name: '',
-      workflowEvent: undefined,
     },
   })
 
@@ -222,7 +228,6 @@ const WorkFlowPage = () => {
     setOpenSteps(new Set())
     reset({
       name: '',
-      workflowEvent: undefined,
     })
   }, [reset])
 
@@ -230,6 +235,7 @@ const WorkFlowPage = () => {
     setRuleForm({
       name: '',
       description: '',
+      workflowEvent: undefined,
       workflow: '',
       rule: {
         ifField: '',
@@ -296,6 +302,7 @@ const WorkFlowPage = () => {
 
   const validateRule = useCallback((): string | null => {
     if (!ruleForm.name) return 'Please enter rule name'
+    if (!ruleForm.workflowEvent) return 'Please select a workflow event'
     if (!ruleForm.workflow) return 'Please select a workflow'
     if (!ruleForm.rule.ifField || !ruleForm.rule.operator || !ruleForm.rule.value) {
       return 'Please fill in all rule fields'
@@ -341,7 +348,7 @@ const WorkFlowPage = () => {
   }, [])
 
   const handleCreateWorkflow = useCallback(async (data: FormValues) => {
-    if (!data.name || !data.workflowEvent) {
+    if (!data.name) {
       toast.error('Please fill in all required fields')
       return
     }
@@ -366,7 +373,7 @@ const WorkFlowPage = () => {
 
       const payload = {
         name: data.name,
-        entity_type: data.workflowEvent,
+        entity_type: 'EXPENSE',
         is_active: true,
         sequences,
       }
@@ -401,11 +408,11 @@ const WorkFlowPage = () => {
         workflow_config_id: ruleForm.workflow,
         conditions: {
           rules: [
-            {
-              field: `${PREFIXES.USER}${ruleForm.rule.ifField}`,
-              operator: ruleForm.rule.operator!.toUpperCase(),
-              value: `${PREFIXES.USER}${ruleForm.rule.value}`,
-            }
+          {
+            field: `${PREFIXES.USER}${ruleForm.rule.ifField}`,
+            operator: ruleForm.rule.operator!,
+            value: `${PREFIXES.USER}${ruleForm.rule.value}`,
+          }
           ],
           action: {
             type: HARDCODED_VALUES.ACTION_TYPE,
@@ -496,7 +503,10 @@ const WorkFlowPage = () => {
     onValueChange: (value: Operator) => void,
     placeholder: string
   ) => (
-    <Select value={value || ''} onValueChange={onValueChange}>
+    <Select
+      value={value || ''}
+      onValueChange={(nextValue) => onValueChange(nextValue as Operator)}
+    >
       <SelectTrigger className="w-full h-10">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
@@ -510,34 +520,63 @@ const WorkFlowPage = () => {
     </Select>
   ), [])
 
-  const renderWorkflowSelect = useCallback((
-    value: string,
-    onValueChange: (value: string) => void,
+  const renderWorkflowEventSelect = useCallback((
+    value: WorkflowEvent | undefined,
+    onValueChange: (value: WorkflowEvent) => void,
     placeholder: string
   ) => (
-    <Select value={value} onValueChange={onValueChange}>
+    <Select
+      value={value || ''}
+      onValueChange={(nextValue) => onValueChange(nextValue as WorkflowEvent)}
+    >
       <SelectTrigger className="w-full h-10">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
-        {workflowsLoading ? (
-          <div className="flex items-center justify-center p-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-          </div>
-        ) : workflows.length > 0 ? (
-          workflows.map((workflow) => (
-            <SelectItem key={workflow.id} value={workflow.id}>
-              {workflow.name}
-            </SelectItem>
-          ))
-        ) : (
-          <SelectItem value="no-workflows" disabled>
-            No workflows found
+        {WORKFLOW_EVENT_OPTIONS.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
           </SelectItem>
-        )}
+        ))}
       </SelectContent>
     </Select>
-  ), [workflows, workflowsLoading])
+  ), [])
+
+  const renderWorkflowSelect = useCallback((
+    value: string,
+    onValueChange: (value: string) => void,
+    placeholder: string,
+    workflowEvent?: WorkflowEvent
+  ) => {
+    const filteredWorkflows = workflowEvent
+      ? workflows.filter(workflow => workflow.entity_type === workflowEvent)
+      : workflows
+
+    return (
+      <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger className="w-full h-10">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {workflowsLoading ? (
+            <div className="flex items-center justify-center p-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          ) : filteredWorkflows.length > 0 ? (
+            filteredWorkflows.map((workflow) => (
+              <SelectItem key={workflow.id} value={workflow.id}>
+                {workflow.name}
+              </SelectItem>
+            ))
+          ) : (
+            <SelectItem value="no-workflows" disabled>
+              {workflowEvent ? 'No workflows found for this event' : 'No workflows found'}
+            </SelectItem>
+          )}
+        </SelectContent>
+      </Select>
+    )
+  }, [workflows, workflowsLoading])
 
   return (
    <Layout noPadding>
@@ -579,10 +618,10 @@ const WorkFlowPage = () => {
                   </div>
 
                   <div className="space-y-2">
-                  <Label htmlFor="workflowEvent" className="text-sm font-medium">
+                  {/* <Label htmlFor="workflowEvent" className="text-sm font-medium">
                       WORKFLOW EVENT
-                    </Label>
-                    <Select
+                    </Label> */}
+                    {/* <Select
                     value={watch('workflowEvent') || ''}
                     onValueChange={(value) => setValue('workflowEvent', value as WorkflowEvent)}
                     >
@@ -596,7 +635,7 @@ const WorkFlowPage = () => {
                         </SelectItem>
                       ))}
                       </SelectContent>
-                    </Select>
+                    </Select> */}
                   </div>
                 </div>
 
@@ -743,7 +782,7 @@ const WorkFlowPage = () => {
 
           {activeTab === 'rules' && (
             <form className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="ruleName" className="text-sm font-medium">
                     Name
@@ -758,13 +797,29 @@ const WorkFlowPage = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="ruleWorkflowEvent" className="text-sm font-medium">
+                    Workflow Event
+                  </Label>
+                  {renderWorkflowEventSelect(
+                    ruleForm.workflowEvent,
+                    (value) => setRuleForm(prev => ({
+                      ...prev,
+                      workflowEvent: value,
+                      workflow: '',
+                    })),
+                    'Select workflow event'
+                  )}
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="ruleWorkflow" className="text-sm font-medium">
                     Workflow
                   </Label>
                   {renderWorkflowSelect(
                     ruleForm.workflow,
                     (value) => setRuleForm(prev => ({ ...prev, workflow: value })),
-                    'Select workflow'
+                    'Select workflow',
+                    ruleForm.workflowEvent
                   )}
                 </div>
               </div>
