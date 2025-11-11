@@ -37,6 +37,7 @@ import { DynamicCustomField } from "./DynamicCustomField";
 import { DataGrid, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { Badge } from "../ui/badge";
 import { CustomLoader } from "@/pages/MyReportsPage";
+import { GridPaginationModel } from "@mui/x-data-grid";
 
 // Dynamic form schema creation function
 const createReportSchema = (customAttributes: CustomAttribute[]) => {
@@ -152,29 +153,34 @@ export function CreateReportForm2({
   const [totalAmount, setTotalAmount] = useState(0);
   const [selectedIds, setSelectedIds] = useState<any[]>([]);
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 10,
+  });
 
   const [rowSelection, setRowSelection] = useState<any>({
     type: "include",
-    ids: new Set<GridRowId>(["exp7AApU0SZHg", "exptJ0G2mdtEV"]),
+    ids: new Set<GridRowId>([]),
   });
-  // console.log(rowSelection);
+
+  useEffect(() => {
+    setRowSelection({ type: "include", ids: new Set(selectedIds) });
+  }, [selectedIds]);
 
   const handleRowSelectionChange = (newSelection: any) => {
-    console.log("inside row selection change");
-    console.log(newSelection);
     setRowSelection(newSelection);
-    // const { type, ids } = newSelection;
-    // const idArray = Array.from(ids);
+    const { type, ids } = newSelection;
+    const idArray = Array.from(ids);
 
-    // setSelectedIds((prev) => {
-    //   if (type === "include") {
-    //     // Add new selected IDs
-    //     return Array.from(new Set([...prev, ...idArray]));
-    //   } else {
-    //     // Remove deselected IDs
-    //     return prev.filter((id) => !ids.has(id));
-    //   }
-    // });
+    setSelectedIds((prev) => {
+      if (type === "include") {
+        // Add new selected IDs
+        return Array.from(new Set([...prev, ...idArray]));
+      } else {
+        // Remove deselected IDs
+        return prev.filter((id) => !ids.has(id));
+      }
+    });
   };
 
   // Determine if Hospital Name and Campaign Code should be shown
@@ -593,7 +599,7 @@ export function CreateReportForm2({
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold">Expenses</h3>
+        <h3 className="text-lg font-semibold">Add Expenses</h3>
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           rows={loadingExpenses ? [] : allExpenses}
@@ -646,18 +652,21 @@ export function CreateReportForm2({
           getRowClassName={(params) =>
             params.row.original_expense_id ? "bg-yellow-50" : ""
           }
+          disableRowSelectionExcludeModel
           checkboxSelection
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={handleRowSelectionChange}
           disableRowSelectionOnClick
           showCellVerticalBorder
-          onRowClick={(params) => navigate(`/expenses/${params.id}`)}
-          hideFooter
+          pagination
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 15, 20]}
         />
       </div>
 
       {/* Total Amount Display */}
-      <div className="flex justify-end">
+      <div className="flex">
         <div className="bg-gray-50 rounded-lg px-8 py-3 min-w-[680px] flex items-center justify-between">
           <span className="text-sm text-gray-600">Total Amount:</span>
           <span className="text-lg font-bold text-primary">
