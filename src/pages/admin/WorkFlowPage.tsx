@@ -332,11 +332,14 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
 
     if (step.type === 'parallel') {
       const attributeId = getConditionValue(step)
+      const prefixedField = step.conditionEntityId
+        ? `${PREFIXES.USER}${step.conditionEntityId}`
+        : step.conditionEntityId
       return {
         ...baseSequence,
         entity_criteria: [
           {
-            field: step.conditionEntityId,
+            field: prefixedField,
             operator: step.conditionOperator!,
             value: attributeId,
           }
@@ -411,7 +414,7 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
           {
             field: `${PREFIXES.USER}${ruleForm.rule.ifField}`,
             operator: ruleForm.rule.operator!,
-            value: `${PREFIXES.USER}${ruleForm.rule.value}`,
+            value: ruleForm.rule.value,
           }
           ],
           action: {
@@ -548,9 +551,8 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
     placeholder: string,
     workflowEvent?: WorkflowEvent
   ) => {
-    const filteredWorkflows = workflowEvent
-      ? workflows.filter(workflow => workflow.entity_type === workflowEvent)
-      : workflows
+    const filteredWorkflows = workflows
+    const shouldShowFilteredMessage = workflowEvent !== undefined && filteredWorkflows.length === 0
 
     return (
       <Select value={value} onValueChange={onValueChange}>
@@ -570,7 +572,7 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
             ))
           ) : (
             <SelectItem value="no-workflows" disabled>
-              {workflowEvent ? 'No workflows found for this event' : 'No workflows found'}
+              {shouldShowFilteredMessage ? 'No workflows found for this event' : 'No workflows found'}
             </SelectItem>
           )}
         </SelectContent>
