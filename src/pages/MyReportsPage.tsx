@@ -74,6 +74,7 @@ const columns: GridColDef[] = [
     field: "status",
     headerName: "STATUS",
     flex: 1,
+    minWidth: 180,
     renderCell: (params) => (
       <Badge className={getStatusColor(params.value)}>{params.value}</Badge>
     ),
@@ -142,7 +143,6 @@ export function MyReportsPage() {
         (paginationModel?.page || 0) + 1,
         paginationModel?.pageSize
       );
-      console.log(response);
       setAllReports(response.reports);
       setAllReportsPagination(response.pagination);
     } catch (error) {

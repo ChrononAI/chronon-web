@@ -124,7 +124,7 @@ export default function EditCategoryLimitPage() {
     ...policy,
     conditions: {
       ...policy.conditions,
-      rules: policy.conditions.rules.map((rule: any) => ({
+      rules: policy.conditions.rules?.map((rule: any) => ({
         ...rule,
         field: rule.field.startsWith("user.")
           ? rule.field.replace(/^user\./, "")
@@ -166,7 +166,7 @@ export default function EditCategoryLimitPage() {
       conditions: {
         ...prev.conditions,
         rules: [
-          ...prev.conditions.rules,
+          ...prev?.conditions?.rules,
           {
             field: "",
             operator: "EQUALS",
@@ -313,7 +313,7 @@ export default function EditCategoryLimitPage() {
 
           {/* === Conditions === */}
           <h2 className="text-xl font-medium mt-6">Conditions</h2>
-          {rules.conditions.rules.map((r: any, i: number) => (
+          {rules.conditions.rules?.map((r: any, i: number) => (
             <ConditionRow
               key={i}
               i={i}
