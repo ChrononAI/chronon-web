@@ -72,16 +72,16 @@ const navigation: NavigationItem[] = [
     ],
   },
   {
-    name: "Reports",
-    href: "/all-reports",
-    isBold: false,
-    icon: FileBarChart,
-  },
-  {
     name: "Accounts",
     href: "/advance_accounts",
     isBold: false,
     icon: FolderKanban,
+  },
+  {
+    name: "Reports",
+    href: "/all-reports",
+    isBold: false,
+    icon: FileBarChart,
   },
   {
     name: "Admin",
@@ -113,10 +113,36 @@ export function Sidebar() {
 
   const mergePermissions = (items: any[], permissions: any): any[] => {
     return items.map((item) => {
-      if (item?.name === "Reports" || item?.name === 'Admin') {
+      if (item?.name === 'Admin') {
         const permission = {
-          enabled: user ? user.role === "ADMIN" : false,
-          allowed: user ? user?.role === "ADMIN" : false,
+          enabled: (orgSettings.admin_dashboard_settings.enabled === true && user?.role === "ADMIN") || false,
+          allowed: (orgSettings.admin_dashboard_settings.allowed === true && user?.role === "ADMIN") || false,
+        };
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
+      } else if (item?.name === "Reports") {
+        const permission = {
+          enabled: user?.role === 'ADMIN',
+          allowed: user?.role === 'ADMIN'
+        }
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
+      } else if (item.name === 'Accounts') {
+        const permission = {
+          enabled: orgSettings?.advance_settings.enabled,
+          allowed: orgSettings.advance_settings.allowed
         };
         const children = item.children
           ? mergePermissions(item.children, permissions)

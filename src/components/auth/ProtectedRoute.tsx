@@ -13,18 +13,16 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   let enabled: boolean;
 
-  if (location.pathname.includes("pre-approvals")) {
+  if (location.pathname.includes("pre-approvals") ) {
     enabled = orgSettings?.pre_approval_settings?.enabled || false;
-  } else if (location.pathname.includes("advances")) {
+  } else if (location.pathname.includes("advances") || location.pathname.includes('/advance_accounts')) {
     enabled = orgSettings?.pre_approval_settings?.enabled || false;
   } else if (location.pathname.includes("admin")) {
-    enabled = orgSettings?.admin_dashboard_settings?.enabled || false;
+    enabled = (orgSettings.admin_dashboard_settings?.enable && user?.role === "ADMIN");
+  } else if (location.pathname.includes('all-reports')) {
+    enabled = user?.role === "ADMIN"
   } else {
     enabled = true;
-  }
-
-  if (!enabled) {
-    return <Navigate to="/permisison-denied" replace />;
   }
 
   const getOrgSettings = async () => {
@@ -37,11 +35,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   };
 
   useEffect(() => {
-    console.log("inside protected route useEffect");
     if (user) {
       getOrgSettings();
     }
   }, [user]);
+
+  if (!enabled) {
+    return <Navigate to="/permisison-denied" replace />;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
