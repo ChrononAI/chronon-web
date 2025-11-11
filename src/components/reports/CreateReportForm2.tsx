@@ -22,10 +22,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -556,7 +554,7 @@ export function CreateReportForm2({
             {customAttributes.length > 0 && (
                 <div className="space-y-4 lg:col-span-2">
                   <h3 className="text-lg font-semibold">Custom Fields</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     {customAttributes.map((attribute) => (
                       <DynamicCustomField
                         key={attribute.id}
@@ -574,83 +572,6 @@ export function CreateReportForm2({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Form Section */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Report Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-6"
-                >
-                  <FormField
-                    control={form.control}
-                    name="reportName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Report Name *</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Enter report name" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description *</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            placeholder="Enter report description"
-                            rows={4}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {loadingMeta && (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      <span className="text-muted-foreground">
-                        Loading additional fields...
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Dynamic Custom Fields */}
-                  {customAttributes.length > 0 && (
-                    <>
-                      <Separator />
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-semibold">Custom Fields</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {customAttributes.map((attribute) => (
-                            <DynamicCustomField
-                              key={attribute.id}
-                              control={form.control}
-                              name={attribute.name as any}
-                              attribute={attribute}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </div>
-
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
