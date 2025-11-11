@@ -74,6 +74,7 @@ const columns: GridColDef[] = [
     field: "status",
     headerName: "STATUS",
     flex: 1,
+    minWidth: 180,
     renderCell: (params) => (
       <Badge className={getStatusColor(params.value)}>{params.value}</Badge>
     ),

@@ -93,8 +93,8 @@ const navigation: NavigationItem[] = [
 
 const permissionMap: any = {
   "Pre Approval": "pre_approval_settings",
-  Advances: "advance_settings",
-  Admin: "admin_dashboard_settings",
+  "Advances": "advance_settings",
+  "Admin": "admin_dashboard_settings",
 };
 
 export function Sidebar() {
@@ -115,8 +115,8 @@ export function Sidebar() {
     return items.map((item) => {
       if (item?.name === 'Admin') {
         const permission = {
-          enabled: (orgSettings.admin_dashboard_settings.enabled === true && user?.role === "ADMIN") || false,
-          allowed: (orgSettings.admin_dashboard_settings.allowed === true && user?.role === "ADMIN") || false,
+          enabled: (orgSettings?.admin_dashboard_settings?.enabled === true && user?.role === "ADMIN") || false,
+          allowed: (orgSettings?.admin_dashboard_settings?.allowed === true && user?.role === "ADMIN") || false,
         };
         const children = item.children
           ? mergePermissions(item.children, permissions)
@@ -141,8 +141,8 @@ export function Sidebar() {
         };
       } else if (item.name === 'Accounts') {
         const permission = {
-          enabled: orgSettings?.advance_settings.enabled,
-          allowed: orgSettings.advance_settings.allowed
+          enabled: orgSettings?.advance_settings?.enabled || false,
+          allowed: orgSettings?.advance_settings?.allowed || false
         };
         const children = item.children
           ? mergePermissions(item.children, permissions)
@@ -152,9 +152,23 @@ export function Sidebar() {
           permissions: permission,
           children,
         };
+      } else if (item.name === "Pre Approval" || item.name === "Advances") {
+        const key = permissionMap[item.name];
+        const permission = (key && permissions) ? permissions[key] : { enabled: false, allowed: false };
+
+        // Recursively apply to children
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
       } else {
         const key = permissionMap[item.name];
-        const permission = key ? permissions[key] : undefined;
+        const permission = (key && permissions) ? permissions[key] : undefined;
 
         // Recursively apply to children
         const children = item.children
@@ -171,13 +185,13 @@ export function Sidebar() {
   };
 
   useEffect(() => {
-    if (orgSettings) {
+    // if (orgSettings) {
       const newNav: NavigationItem[] = mergePermissions(
         navigation,
         orgSettings
       );
       setNewNavItems(newNav);
-    }
+    // }
   }, [orgSettings]);
 
   const handleLogout = () => {
@@ -227,7 +241,9 @@ export function Sidebar() {
   };
 
   const renderNavigationItem = (item: NavigationItem, level: number = 0) => {
-    if (item.permissions?.enabled === false) return null;
+    if (item.permissions && item.permissions?.enabled === false) {
+      return null;
+    }
     const paddingLeft = level * 12 + 12; // 12px base + 12px per level
     const isDisabled = item.disabled;
 
@@ -362,7 +378,7 @@ export function Sidebar() {
           collapsed && "px-1"
         )}
       >
-        {newNavItems.length > 0 &&
+      {newNavItems.length > 0 &&
           newNavItems.map((item) => (
             <div key={item.name}>
               {renderNavigationItem(
