@@ -143,7 +143,6 @@ export function MyReportsPage() {
         (paginationModel?.page || 0) + 1,
         paginationModel?.pageSize
       );
-      console.log(response);
       setAllReports(response.reports);
       setAllReportsPagination(response.pagination);
     } catch (error) {
