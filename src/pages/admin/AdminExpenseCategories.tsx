@@ -2,6 +2,7 @@ import AdminLayout from "@/components/layout/AdminLayout";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { categoryService } from "@/services/admin/categoryService";
+import { PaginationInfo } from "@/store/expenseStore";
 import { Box } from "@mui/material";
 import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { Plus } from "lucide-react";
@@ -34,9 +35,10 @@ function AdminExpenseCategories() {
     page: 0,
     pageSize: 10,
   });
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
 
   useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
+    const gridHeight = window.innerHeight - 260;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
@@ -54,6 +56,8 @@ function AdminExpenseCategories() {
     try {
       const res = await categoryService.getCategories({ page, perPage });
       setRows(res.data.data);
+      console.log(res);
+      setPagination(res.data.pagination);
     } catch (error: any) {
       console.log(error);
       toast.error(
@@ -65,9 +69,8 @@ function AdminExpenseCategories() {
   };
 
   useEffect(() => {
-    // Get categories
     getCategories({ page: (paginationModel?.page || 0) + 1, perPage: (paginationModel?.pageSize || 0) });
-  }, []);
+  }, [paginationModel?.page, paginationModel?.pageSize]);
   return (
     <Layout noPadding>
       <AdminLayout>
@@ -136,6 +139,8 @@ function AdminExpenseCategories() {
               disableRowSelectionOnClick
               showCellVerticalBorder
               pagination
+              paginationMode="server"
+              rowCount={pagination ? pagination.total : 0}
               paginationModel={paginationModel || { page: 0, pageSize: 0 }}
               onPaginationModelChange={setPaginationModel}
             />
