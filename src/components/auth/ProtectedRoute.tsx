@@ -18,7 +18,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   } else if (location.pathname.includes("advances") || location.pathname.includes('/advance_accounts')) {
     enabled = orgSettings?.pre_approval_settings?.enabled || false;
   } else if (location.pathname.includes("admin")) {
-    enabled = (orgSettings.admin_dashboard_settings?.enable && user?.role === "ADMIN");
+    enabled = (orgSettings.admin_dashboard_settings?.enabled && user?.role === "ADMIN");
   } else if (location.pathname.includes('all-reports')) {
     enabled = user?.role === "ADMIN"
   } else {
