@@ -105,7 +105,7 @@ export function ExpenseDetailPage() {
         }
 
         if (expenseData.receipt_id) {
-          fetchReceipt(expenseData.receipt_id, expenseData.created_by.org_id);
+          fetchReceipt(expenseData.receipt_id, expenseData.org_id);
         }
       } catch (error) {
         console.error("Failed to fetch expense details", error);
