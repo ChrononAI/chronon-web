@@ -332,11 +332,15 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
 
     if (step.type === 'parallel') {
       const attributeId = getConditionValue(step)
+      const entityField = step.conditionEntityId
+        ? `${PREFIXES.USER}${step.conditionEntityId}`
+        : step.conditionEntityId
+
       return {
         ...baseSequence,
         entity_criteria: [
           {
-            field: step.conditionEntityId,
+            field: entityField,
             operator: step.conditionOperator!,
             value: attributeId,
           }
@@ -411,7 +415,7 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
           {
             field: `${PREFIXES.USER}${ruleForm.rule.ifField}`,
             operator: ruleForm.rule.operator!,
-            value: `${PREFIXES.USER}${ruleForm.rule.value}`,
+            value: ruleForm.rule.value,
           }
           ],
           action: {
@@ -548,9 +552,7 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
     placeholder: string,
     workflowEvent?: WorkflowEvent
   ) => {
-    const filteredWorkflows = workflowEvent
-      ? workflows.filter(workflow => workflow.entity_type === workflowEvent)
-      : workflows
+    const filteredWorkflows = workflows
 
     return (
       <Select value={value} onValueChange={onValueChange}>

@@ -37,7 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Popover,
@@ -109,7 +108,6 @@ interface ExpenseDetailsStepProps {
 export function ExpenseDetailsStep({
   onBack,
   onSubmit,
-  mode = "create",
   loading,
   isReceiptReplaced,
   setIsReceiptReplaced,
@@ -202,6 +200,9 @@ export function ExpenseDetailsStep({
 
   // Receipt viewer states
   const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
+  const [activeReceiptTab, setActiveReceiptTab] = useState<"receipt" | "comments">(
+    "receipt"
+  );
   const [receiptZoom, setReceiptZoom] = useState(1);
   const [receiptRotation, setReceiptRotation] = useState(0);
 
@@ -357,6 +358,16 @@ export function ExpenseDetailsStep({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      return;
+    }
+
+    const sourceUrl =
+      previewUrl ||
+      duplicateReceiptUrl ||
+      (readOnly && receiptUrls.length > 0 ? receiptUrls[0] : null);
+
+    if (sourceUrl) {
+      window.open(sourceUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -425,21 +436,55 @@ export function ExpenseDetailsStep({
     });
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Step Header - Only show when not in read-only mode */}
-      {mode === "create" && (
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Step 2: Expense Details
-          </h2>
-          <p className="text-gray-600">
-            Fill in the expense details and submit your request
-          </p>
-        </div>
-      )}
+  const isPdfUrl = (url: string | null | undefined) => {
+    if (!url) return false;
+    const lowerUrl = url.toLowerCase();
+    return (
+      lowerUrl.includes(".pdf") ||
+      lowerUrl.startsWith("data:application/pdf") ||
+      lowerUrl.includes("application%2Fpdf")
+    );
+  };
 
-      {/* Duplicate Expense Indicator */}
+  const activeReceiptUrl =
+    previewUrl ||
+    duplicateReceiptUrl ||
+    (readOnly && receiptUrls.length > 0 ? receiptUrls[0] : null);
+
+  const receiptDisplayName =
+    uploadedFile?.name ||
+    (readOnly && receiptUrls.length > 0
+      ? `Receipt ${receiptUrls.length > 1 ? "1" : ""}`
+      : activeReceiptUrl
+        ? "Receipt preview"
+        : "No receipt uploaded");
+
+  const receiptDisplayType = uploadedFile
+    ? uploadedFile.type.toLowerCase().includes("pdf")
+      ? "PDF"
+      : "Image"
+    : activeReceiptUrl
+      ? isPdfUrl(activeReceiptUrl)
+        ? "PDF"
+        : "Image"
+      : null;
+
+  const isPdfReceipt =
+    (uploadedFile && uploadedFile.type.toLowerCase().includes("pdf")) ||
+    isPdfUrl(activeReceiptUrl);
+
+  const hasReceipt = Boolean(activeReceiptUrl);
+  const isLoadingReceipt = replaceRecLoading || duplicateReceiptLoading;
+  const inputFieldClass =
+    "h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+  const selectTriggerClass =
+    "h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm shadow-none focus:outline-none focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+  const textareaClass =
+    "rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+
+  return (
+    <div className="space-y-12">
+
       {expense?.original_expense_id && (
         <Alert className="bg-yellow-50 border-yellow-200">
           <Copy className="h-4 w-4 text-yellow-600" />
@@ -457,19 +502,193 @@ export function ExpenseDetailsStep({
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Section - Form Fields */}
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="p-6">
+      <div className="relative grid gap-6 md:grid-cols-2 md:items-start">
+        <div className="space-y-6 md:sticky md:top-4 md:self-start md:h-[calc(100vh-6rem)] md:overflow-hidden">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <div className="flex items-center gap-3">
+                {[
+                  { key: "receipt", label: "Receipt" },
+                  { key: "comments", label: "Comments" },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() =>
+                      setActiveReceiptTab(tab.key as "receipt" | "comments")
+                    }
+                    className={cn(
+                      "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                      activeReceiptTab === tab.key
+                        ? "bg-primary/10 text-primary"
+                        : "text-gray-500 hover:text-gray-900"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {!readOnly && hasReceipt && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReplaceReceipt}
+                  disabled={replaceRecLoading || loading}
+                >
+                  <RotateCw className="mr-2 h-4 w-4" />
+                  Replace receipt
+                </Button>
+              )}
+            </div>
+
+            {activeReceiptTab === "receipt" ? (
+              <>
+                <div className="md:flex-1 md:overflow-hidden">
+                  {isLoadingReceipt ? (
+                    <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center">
+                      <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">
+                          Loading receipt preview
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Please wait a moment
+                        </p>
+                      </div>
+                    </div>
+                  ) : hasReceipt ? (
+                    <div className="flex items-center justify-center rounded-b-2xl bg-gray-50 p-6 md:h-full">
+                  {isPdfReceipt ? (
+                        <embed
+                          src={`${activeReceiptUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                          type="application/pdf"
+                          className="h-[520px] w-full rounded-xl border border-gray-200 bg-white"
+                          style={{
+                            transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
+                            transformOrigin: "center",
+                          }}
+                        />
+                      ) : (
+                        <img
+                          src={activeReceiptUrl ?? ""}
+                          alt="Receipt preview"
+                          className="max-h-[520px] w-full rounded-xl border border-gray-200 bg-white object-contain"
+                          style={{
+                            transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
+                            transformOrigin: "center",
+                          }}
+                          onClick={handleReceiptFullscreen}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
+                      <FileText className="h-14 w-14 text-gray-300" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">
+                          No receipt uploaded
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Upload the receipt in the previous step to see a preview
+                          here.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-100 px-6 py-4">
+                  <div className="text-xs text-muted-foreground">
+                    <p className="text-sm font-medium text-gray-900">
+                      {receiptDisplayName}
+                    </p>
+                    {receiptDisplayType && (
+                      <p className="mt-1 flex items-center gap-2">
+                        <span>{receiptDisplayType}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 p-0"
+                      onClick={handleReceiptZoomOut}
+                      disabled={!hasReceipt || receiptZoom <= 0.5}
+                    >
+                      <ZoomOut className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 p-0"
+                      onClick={handleReceiptZoomIn}
+                      disabled={!hasReceipt || receiptZoom >= 3}
+                    >
+                      <ZoomIn className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 p-0"
+                      onClick={handleReceiptRotate}
+                      disabled={!hasReceipt}
+                    >
+                      <RotateCw className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 p-0"
+                      onClick={handleReceiptReset}
+                      disabled={!hasReceipt}
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 px-3"
+                      onClick={handleReceiptFullscreen}
+                      disabled={!hasReceipt}
+                    >
+                      <Maximize2 className="mr-2 h-4 w-4" />
+                      View
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 px-3"
+                      onClick={handleReceiptDownload}
+                      disabled={!hasReceipt && !uploadedFile}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-6"
-                >
-                  {/* 2-Column Grid for Form Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Policy Selection */}
+            className="md:h-[calc(100vh-7rem)] md:overflow-y-auto"
+          >
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm md:min-h-full">
+              <div className="divide-y divide-gray-100 pb-32">
+                <section className="space-y-4 p-6">
+                  <div>
+                    <h2 className="text-sm font-semibold tracking-wide text-gray-500">
+                      CATEGORY
+                    </h2>
+                  </div>
+
+                  <div className="space-y-4">
                     <FormField
                       control={form.control}
                       name="policyId"
@@ -480,9 +699,7 @@ export function ExpenseDetailsStep({
                             value={field.value}
                             onValueChange={(value) => {
                               field.onChange(value);
-                              const policy = policies.find(
-                                (p) => p.id === value
-                              );
+                              const policy = policies.find((p) => p.id === value);
                               setSelectedPolicy(policy || null);
                               setSelectedCategory(null);
                               form.setValue("categoryId", "");
@@ -490,7 +707,7 @@ export function ExpenseDetailsStep({
                             disabled={readOnly}
                           >
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className={selectTriggerClass}>
                                 <SelectValue placeholder="Select a policy">
                                   {field.value && selectedPolicy
                                     ? selectedPolicy.name
@@ -502,9 +719,7 @@ export function ExpenseDetailsStep({
                               {policies.map((policy) => (
                                 <SelectItem key={policy.id} value={policy.id}>
                                   <div>
-                                    <div className="font-medium">
-                                      {policy.name}
-                                    </div>
+                                    <div className="font-medium">{policy.name}</div>
                                     {policy.description && (
                                       <div className="text-sm text-muted-foreground">
                                         {policy.description}
@@ -520,7 +735,6 @@ export function ExpenseDetailsStep({
                       )}
                     />
 
-                    {/* Category Selection */}
                     <FormField
                       control={form.control}
                       name="categoryId"
@@ -537,11 +751,11 @@ export function ExpenseDetailsStep({
                                   variant="outline"
                                   role="combobox"
                                   aria-expanded={categoryDropdownOpen}
-                                  className="w-full justify-between"
+                                  className="h-11 w-full justify-between"
                                   disabled={!selectedPolicy || readOnly}
                                 >
                                   <>
-                                    <span className="truncate max-w-[85%] overflow-hidden text-ellipsis inline-block text-left">
+                                    <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
                                       {selectedCategory
                                         ? selectedCategory.name
                                         : !selectedPolicy
@@ -557,9 +771,7 @@ export function ExpenseDetailsStep({
                               <Command>
                                 <CommandInput placeholder="Search categories..." />
                                 <CommandList>
-                                  <CommandEmpty>
-                                    No category found.
-                                  </CommandEmpty>
+                                  <CommandEmpty>No category found.</CommandEmpty>
                                   <CommandGroup>
                                     {availableCategories.map((category) => (
                                       <CommandItem
@@ -583,53 +795,57 @@ export function ExpenseDetailsStep({
                         </FormItem>
                       )}
                     />
+                  </div>
+                </section>
 
-                    {/* Invoice Number and Vendor - only show if not Conveyance 2W */}
-                    {!isConveyanceCategory && (
-                      <>
+                <section className="space-y-4 p-6">
+                  <div>
+                    <h2 className="text-sm font-semibold tracking-wide text-gray-500">
+                      RECEIPT DETAILS
+                    </h2>
+                  </div>
+
+                  <div className="space-y-4">
                         <FormField
                           control={form.control}
-                          name="invoiceNumber"
+                      name="dateOfExpense"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>
-                                Receipt Number *
-                              </FormLabel>
+                          <FormLabel>Date *</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
                               <FormControl>
-                                <Input
-                                  {...field}
-                                  placeholder="Invoice Number"
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "h-11 w-full justify-between pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
                                   disabled={readOnly}
-                                />
+                                >
+                                  {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                  <Calendar className="h-4 w-4 opacity-50" />
+                                </Button>
                               </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarComponent
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                  date > new Date() || date < new Date("1900-01-01")
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
 
-                        <FormField
-                          control={form.control}
-                          name="merchant"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
-                                Vendor *
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  placeholder="Vendor"
-                                  disabled={readOnly}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </>
-                    )}
-
-                    {/* Amount */}
+                    <div className="grid gap-3 sm:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="foreign_currency"
@@ -643,9 +859,9 @@ export function ExpenseDetailsStep({
                                 field.onChange(value);
                                 setSelectedCurrency(value);
                               }}
-                              disabled={readOnly || !form.getValues('pre_approval_id')}
+                              disabled={readOnly || !form.getValues("pre_approval_id")}
                             >
-                              <SelectTrigger>
+                              <SelectTrigger className={selectTriggerClass}>
                                 <SelectValue placeholder="Select a currency" />
                               </SelectTrigger>
                               <SelectContent>
@@ -665,144 +881,111 @@ export function ExpenseDetailsStep({
                       name="amount"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            Amount *
-                          </FormLabel>
+                            <FormLabel>Expense amount *</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               placeholder={
                                 isConveyanceCategory
-                                  ? "Amount will be calculated (₹4 per km)"
-                                  : "Amount"
+                                    ? "Auto calculated for conveyance"
+                                    : "Enter amount"
                               }
                               type="number"
-                              // readOnly={readOnly}
                               disabled={readOnly}
+                                className={inputFieldClass}
                             />
                           </FormControl>
-                          {baseAmount ? (
-                            <p className="text-[12px] text-gray-500 ml-2">
+                            <FormMessage />
+                            {baseAmount && (
+                              <p className="text-xs text-muted-foreground">
                               {formatCurrency(baseAmount)}
                             </p>
-                          ) : (
-                            <FormMessage />
                           )}
                         </FormItem>
                       )}
                     />
+                    </div>
 
-                    {/* Date */}
+                    {!isConveyanceCategory && (
                     <FormField
                       control={form.control}
-                      name="dateOfExpense"
+                        name="invoiceNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            Date *
-                          </FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
+                          <FormLabel>Receipt number *</FormLabel>
                               <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                            <Input
+                              {...field}
+                              placeholder="e.g. INV-1254"
                                   disabled={readOnly}
-                                >
-                                  {field.value ? (
-                                    format(field.value, "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                            >
-                              <CalendarComponent
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date > new Date() ||
-                                  date < new Date("1900-01-01")
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
+                              className={inputFieldClass}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  
+                    )}
+                  </div>
+                </section>
 
-                  {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> */}
-                    {/* {advances.length > 0 && <FormField
+                {!isConveyanceCategory && (
+                  <section className="space-y-6 p-6">
+                    <div>
+                      <h2 className="text-sm font-semibold tracking-wide text-gray-500">
+                        MERCHANT DETAILS
+                      </h2>
+                    </div>
+
+                  <div className="space-y-4">
+                      <FormField
                       control={form.control}
-                      name="advance_id"
+                        name="merchant"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Advance</FormLabel>
-                          <Select
-                            value={field.value || ""}
-                            onValueChange={(value) => {
-                              const adv = advances.find(
-                                (a) => a.id === value
-                              );
-                              if (adv) setSelectedAdvance(adv);
-                              form.setValue('advance_id', value)
-                            }}
-                            disabled={readOnly}
-                          >
+                          <FormLabel>Vendor *</FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select advance">
-                                  {field.value && selectedAdvance
-                                    ? selectedAdvance.title
-                                    : "Select advance"}
-                                </SelectValue>
-                              </SelectTrigger>
+                            <Input
+                              {...field}
+                              placeholder="e.g. Blue Bottle Coffee"
+                              disabled={readOnly}
+                              className={inputFieldClass}
+                            />
                             </FormControl>
-                            <SelectContent>
-                              {advances.length > 0 ? advances.map((adv) => (
-                                <SelectItem key={adv.id} value={adv.id}>
-                                  <div>
-                                    <div className="font-medium">
-                                      {adv.title}
-                                    </div>
-                                  </div>
-                                </SelectItem>
-                              )) : <SelectItem value="no advances" disabled>No advances</SelectItem>}
-                            </SelectContent>
-                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
-                    />} */}
-                    {showPreApproval &&
+                      />
+                    </div>
+                  </section>
+                )}
+
+                <section className="space-y-4 p-6">
+                  <div>
+                    <h2 className="text-sm font-semibold tracking-wide text-gray-500">
+                      OTHER DETAILS
+                    </h2>
+                  </div>
+
+                  <div className="space-y-4">
+                    {showPreApproval && (
                       <FormField
                         control={form.control}
                         name="pre_approval_id"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Pre Approval</FormLabel>
+                            <FormLabel>Pre approval</FormLabel>
                             <Select
                               value={field.value || ""}
                               onValueChange={(value) => {
-                                const preApp = preApprovals.find(
-                                  (p) => p.id === value
-                                );
+                                const preApp = preApprovals.find((p) => p.id === value);
                                 if (preApp) setSelectedPreApproval(preApp);
-                                form.setValue('pre_approval_id', value)
+                                form.setValue("pre_approval_id", value);
                               }}
                               disabled={readOnly}
                             >
                               <FormControl>
-                                <SelectTrigger>
+                            <SelectTrigger className={selectTriggerClass}>
                                   <SelectValue placeholder="Select pre approval">
                                     {field.value && selectedPreApproval
                                       ? selectedPreApproval.title
@@ -811,25 +994,27 @@ export function ExpenseDetailsStep({
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {preApprovals.length > 0 ? preApprovals.map((preApproval) => (
+                                {preApprovals.length > 0 ? (
+                                  preApprovals.map((preApproval) => (
                                   <SelectItem key={preApproval.id} value={preApproval.id}>
                                     <div>
-                                      <div className="font-medium">
-                                        {preApproval.title}
-                                      </div>
+                                        <div className="font-medium">{preApproval.title}</div>
                                     </div>
                                   </SelectItem>
-                                )) : <SelectItem value="no pre approvals" disabled>No pre approvals</SelectItem>}
+                                  ))
+                                ) : (
+                                  <SelectItem value="no pre approvals" disabled>
+                                    No pre approvals
+                                  </SelectItem>
+                                )}
                               </SelectContent>
                             </Select>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    }
-                  </div>
+                    )}
 
-                  {/* Comments - Full Width */}
                   <FormField
                     control={form.control}
                     name="comments"
@@ -839,277 +1024,70 @@ export function ExpenseDetailsStep({
                         <FormControl>
                           <Textarea
                             {...field}
-                            placeholder="e.g. Lunch with client"
+                            placeholder="e.g. Client meeting lunch at downtown cafe"
                             rows={4}
-                            // readOnly={readOnly}
                             disabled={readOnly}
+                            className={cn(textareaClass, "resize-none")}
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                  </div>
+                </section>
+              </div>
 
-                  {/* Navigation Buttons */}
-                  <div className="flex justify-between pt-6">
+              <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
                     <Button type="button" variant="outline" onClick={onBack}>
-                      <ArrowLeft className="h-4 w-4 mr-2" />
+                  <ArrowLeft className="mr-2 h-4 w-4" />
                       Back
                     </Button>
                     {!readOnly && (
-                      <Button
-                        type="submit"
-                        disabled={loading}
-                        className="bg-primary hover:bg-primary/90"
-                      >
+                  <Button type="submit" disabled={loading}>
                         {loading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             {isEditMode ? "Updating..." : "Creating..."}
                           </>
                         ) : isEditMode ? (
-                          "Update Expense"
+                      "Update expense"
                         ) : (
-                          "Create Expense"
+                      "Create expense"
                         )}
                       </Button>
                     )}
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Right Section - Receipt */}
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Receipt
-                  </h3>
-                  {(uploadedFile ||
-                    previewUrl ||
-                    (readOnly && receiptUrls.length > 0)) && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">
-                          {readOnly && receiptUrls.length > 0
-                            ? `Receipt ${receiptUrls.length > 1 ? "1" : ""}`
-                            : uploadedFile?.name}
-                        </span>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500">
-                          {readOnly && receiptUrls.length > 0
-                            ? receiptUrls[0].toLowerCase().includes(".pdf")
-                              ? "PDF"
-                              : "Image"
-                            : uploadedFile?.type.includes("pdf")
-                              ? "PDF"
-                              : "Image"}
-                        </span>
-                      </div>
-                    )}
-                </div>
-
-                {!!(
-                  uploadedFile ||
-                  previewUrl ||
-                  (readOnly && receiptUrls.length > 0)
-                ) ? (
-                  <div className="space-y-4">
-                    {/* Interactive Receipt Viewer */}
-                    {replaceRecLoading ? (
-                      <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
-                        <div className="text-center">
-                          <Loader2 className="h-12 w-12 mx-auto text-gray-400 mb-3 animate-spin" />
-                          <p className="text-sm text-gray-600 mb-2">
-                            Loading receipt...
-                          </p>
-                          <p className="text-xs text-gray-500">Please wait</p>
+              <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
+                <div className="pointer-events-auto flex w-full justify-end gap-4 border-t border-gray-200 bg-white px-12 py-5">
+                  <Button type="button" variant="outline" onClick={onBack} className="min-w-[140px]">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                  {!readOnly && (
+                    <Button type="submit" disabled={loading} className="min-w-[200px]">
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {isEditMode ? "Updating..." : "Creating..."}
+                        </>
+                      ) : isEditMode ? (
+                        "Update expense"
+                      ) : (
+                        "Create expense"
+                      )}
+                          </Button>
+                  )}
+                        </div>
                         </div>
                       </div>
-                    ) : <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-                      {/* Receipt Controls */}
-                      <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleReceiptZoomOut}
-                            disabled={receiptZoom <= 0.5}
-                            className="h-8 w-8 p-0"
-                          >
-                            <ZoomOut className="h-4 w-4" />
-                          </Button>
-                          <span className="text-xs text-gray-600 min-w-[3rem] text-center">
-                            {Math.round(receiptZoom * 100)}%
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleReceiptZoomIn}
-                            disabled={receiptZoom >= 3}
-                            className="h-8 w-8 p-0"
-                          >
-                            <ZoomIn className="h-4 w-4" />
-                          </Button>
-                          <div className="w-px h-6 bg-gray-300 mx-2" />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleReceiptRotate}
-                            className="h-8 w-8 p-0"
-                          >
-                            <RotateCw className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleReceiptReset}
-                            className="h-8 w-8 p-0"
-                          >
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleReceiptDownload}
-                            className="h-8 px-3 text-xs"
-                          >
-                            <Download className="h-4 w-4 mr-1" />
-                            Download
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleReceiptFullscreen}
-                            className="h-8 px-3 text-xs"
-                          >
-                            <Maximize2 className="h-4 w-4 mr-1" />
-                            Fullscreen
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Receipt Display */}
-                      <div className="relative overflow-auto max-h-96 bg-gray-100">
-                        <div className="flex items-center justify-center p-4">
-                          {(() => {
-                            // Show loading state if we're fetching the duplicate receipt URL
-                            if (duplicateReceiptLoading) {
-                              return (
-                                <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                                  <p className="text-gray-600 mb-4">
-                                    Loading receipt...
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    Fetching signed URL
-                                  </p>
-                                </div>
-                              );
-                            }
-
-                            // Check if this is a PDF by looking at the URL
-                            const isPdf = previewUrl
-                              ?.toLowerCase()
-                              .includes(".pdf");
-
-                            if (isPdf) {
-                              // For PDFs, use embed tag with simple styling to avoid PDF viewer interface
-                              return (
-                                <div className="w-full h-80 border border-gray-200 rounded bg-white flex flex-col">
-                                  <div className="flex-1 flex items-center justify-center">
-                                    <embed
-                                      src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
-                                      type="application/pdf"
-                                      className="w-full h-full border-0 rounded"
-                                      style={{
-                                        transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
-                                        transformOrigin: "center",
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                              );
-                            } else {
-                              // For regular images, use img tag
-                              return (
-                                <img
-                                  src={previewUrl || ""}
-                                  alt="Receipt preview"
-                                  className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                                  style={{
-                                    transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
-                                    transformOrigin: "center",
-                                    maxHeight: "100%",
-                                    objectFit: "contain",
-                                  }}
-                                  onClick={handleReceiptFullscreen}
-                                  onError={(e) => {
-                                    // Fallback: if image fails to load, show download option
-                                    e.currentTarget.style.display = "none";
-                                    const fallbackDiv =
-                                      document.createElement("div");
-                                    fallbackDiv.className =
-                                      "flex flex-col items-center justify-center h-full text-center p-4";
-                                    fallbackDiv.innerHTML = `
-                                      <p class="text-gray-600 mb-4">Receipt preview not available.</p>
-                                      <a href="${previewUrl ?? "#"
-                                      }" target="_blank" rel="noopener noreferrer" 
-                                         class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        Download Receipt
-                                      </a>
-                                    `;
-                                    e.currentTarget.parentNode?.appendChild(
-                                      fallbackDiv
-                                    );
-                                  }}
-                                />
-                              );
-                            }
-                          })()}
-                        </div>
-                      </div>
-                    </div>}
-                    {!readOnly &&
-                      <div className="flex justify-end">
-                        <Button
-                          type="submit"
-                          disabled={loading}
-                          className="bg-primary hover:bg-primary/90"
-                          onClick={handleReplaceReceipt}
-                        >
-                          Replace Receipt
-                        </Button>
-                      </div>}
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
-                    <div className="text-center">
-                      <FileText className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                      <p className="text-sm text-gray-600 mb-2">
-                        No receipt uploaded
-                      </p>
-                      <p className="text-xs text-gray-500">Manual entry mode</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          </form>
+        </Form>
       </div>
 
       {/* Fullscreen Receipt Modal */}
-      {isReceiptFullscreen &&
-        (uploadedFile || previewUrl || duplicateReceiptUrl) && (
+      {isReceiptFullscreen && hasReceipt && (
           <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
             <div className="relative w-full h-full flex flex-col">
               {/* Fullscreen Header */}
@@ -1119,7 +1097,7 @@ export function ExpenseDetailsStep({
                     Receipt Viewer
                   </h3>
                   <span className="text-sm text-gray-500">
-                    {uploadedFile?.name || "Receipt"}
+                    {receiptDisplayName}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1185,7 +1163,7 @@ export function ExpenseDetailsStep({
               {/* Fullscreen Content */}
               <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
                 {(() => {
-                  const fullscreenSourceUrl = duplicateReceiptUrl || previewUrl;
+                  const fullscreenSourceUrl = activeReceiptUrl;
                   return fullscreenSourceUrl?.toLowerCase().includes(".pdf") ? (
                     <div className="w-full h-full bg-white rounded">
                       <embed

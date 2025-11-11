@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ZoomIn, ZoomOut, RotateCw, RefreshCw, Maximize2, Download, X, Copy, ExternalLink } from "lucide-react";
+import { Loader2, ZoomIn, ZoomOut, RotateCw, RefreshCw, Download, X, Copy, ExternalLink } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LocationAutocomplete } from "@/components/ui/location-autocomplete";
 import { placesService, PlaceSuggestion } from "@/services/placesService";
@@ -126,7 +126,10 @@ const MileagePage = ({
   const [mapZoom, setMapZoom] = useState(1);
   const [mapRotation, setMapRotation] = useState(0);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [lastAddedStopId, setLastAddedStopId] = useState<string | null>(null);
   const today = new Date().toISOString().split("T")[0];
+  const stopRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const actionsContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (expenseData && policies.length > 0) {
@@ -383,9 +386,19 @@ const MileagePage = ({
       return { ...prev, stops, isRoundTrip };
     });
     form.setValue("isRoundTrip", false);
+    setLastAddedStopId(newStop.id);
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        actionsContainerRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      });
+    }
   };
 
   const handleRemoveStop = (stopId: string) => {
+    delete stopRefs.current[stopId];
     setFormData((prev) => {
       const updatedStops = prev.stops.filter((stop) => stop.id !== stopId);
       const originId = startLocation?.place_id || prev.startLocationId;
@@ -429,6 +442,16 @@ const MileagePage = ({
       );
     }
   }, [startLocation, endLocation, isLoadingExistingData, mode, formData.stops, formData.vehiclesType]);
+
+  useEffect(() => {
+    if (lastAddedStopId) {
+      const stopElement = stopRefs.current[lastAddedStopId];
+      if (stopElement) {
+        stopElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      setLastAddedStopId(null);
+    }
+  }, [formData.stops, lastAddedStopId]);
 
   const handleSubmit = async (values: MileageFormValues) => {
     const orgId = getOrgIdFromToken();
@@ -669,11 +692,44 @@ const MileagePage = ({
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Section - Form */}
+        {/* Left Section - Map */}
+        <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 flex items-center justify-center lg:min-h-[620px]">
+          {mapUrl ? (
+            <img
+              src={mapUrl}
+              alt="Route Map"
+              className="max-h-[520px] w-full object-contain"
+              onClick={handleMapFullscreen}
+            />
+          ) : (
+            <div className="text-center text-gray-500">
+              <div className="mx-auto mb-4 h-16 w-16 text-gray-300">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-full w-full"
+                >
+                  <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </div>
+              <p className="text-base font-medium">Map View</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Route visualization will appear here
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right Section - Form */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <Card>
-              <CardContent className="px-6 py-4 space-y-4">
+              <CardContent className="px-6 py-4 space-y-6">
                 {/* 🚗 Route Section */}
                 <div className="space-y-2">
                   <FormField
@@ -715,7 +771,13 @@ const MileagePage = ({
 
                   {/* Stops */}
                   {formData.stops.map((stop, index) => (
-                    <div key={stop.id} className="space-y-2">
+                    <div
+                      key={stop.id}
+                      ref={(el) => {
+                        stopRefs.current[stop.id] = el;
+                      }}
+                      className="space-y-2"
+                    >
                       <LocationAutocomplete
                         value={stop.location}
                         onChange={(v) => handleStopLocationChange(stop.id, v)}
@@ -945,8 +1007,11 @@ const MileagePage = ({
 
             {/* 💾 Actions */}
             {(mode === "create" || mode === "edit" || editMode) && (
-              <div className="flex justify-between items-end pt-4">
-                <div>
+              <div
+                ref={actionsContainerRef}
+                className="flex flex-col gap-4 border-t border-gray-100 pt-4 md:flex-row md:items-end md:justify-between"
+              >
+                <div className="flex flex-col">
                   <Label className="text-sm font-medium text-gray-700">
                     Total Amount
                   </Label>
@@ -958,7 +1023,7 @@ const MileagePage = ({
                   )}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:justify-end">
                   {editMode && onCancel && (
                     <Button
                       type="button"
@@ -997,113 +1062,6 @@ const MileagePage = ({
         </Card>
         </form>
       </Form>
-      
-      {/* Right Section - Map */}
-      <Card className="h-full p-2">
-        {mapUrl ? (
-          <div className="space-y-2">
-            {/* Map Display */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-              {/* Map Controls */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMapZoomOut}
-                    disabled={mapZoom <= 0.5}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ZoomOut className="h-4 w-4" />
-                  </Button>
-                  <span className="text-xs text-gray-600 min-w-[3rem] text-center">
-                    {Math.round(mapZoom * 100)}%
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMapZoomIn}
-                    disabled={mapZoom >= 3}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ZoomIn className="h-4 w-4" />
-                  </Button>
-                  <div className="w-px h-6 bg-gray-300 mx-2" />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMapRotate}
-                    className="h-8 w-8 p-0"
-                  >
-                    <RotateCw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMapReset}
-                    className="h-8 w-8 p-0"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMapDownload}
-                    className="h-8 px-3 text-xs"
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMapFullscreen}
-                    className="h-8 px-3 text-xs"
-                  >
-                    <Maximize2 className="h-4 w-4 mr-1" />
-                    Fullscreen
-                  </Button>
-                </div>
-              </div>
-
-              {/* Map Display */}
-              <div className="relative overflow-auto bg-gray-100">
-                <div className="flex items-center justify-center p-4">
-                  <img 
-                    src={mapUrl} 
-                    alt="Route Map" 
-                    className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={handleMapFullscreen}
-                    style={{
-                      transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
-                      transformOrigin: "center",
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-gray-100 rounded-lg h-[600px] flex items-center justify-center border-2 border-dashed border-gray-300">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 opacity-50">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-              </div>
-              <p className="text-gray-500 font-medium">Map View</p>
-              <p className="text-sm text-gray-400 mt-1">
-                {startLocation && endLocation
-                  ? "Calculating route..."
-                  : "Route visualization will appear here"}
-              </p>
-            </div>
-          </div>
-        )}
-      </Card>
 
       {/* Fullscreen Map Modal */}
       {isMapFullscreen && mapUrl && (
