@@ -321,10 +321,9 @@ function CreateCategoryLimitPage() {
           }),
         },
       };
-      console.log(newRules);
-      // await policyRulesService.createPolicyRule(newRules);
-      // toast.success('Policy rule created successfully');
-      // navigate('/admin/product-config/category-limits')
+      await policyRulesService.createPolicyRule(newRules);
+      toast.success('Policy rule created successfully');
+      navigate('/admin/product-config/category-limits')
     } catch (error: any) {
       console.log(error);
       toast.error(error?.response?.data?.message || error.message);
