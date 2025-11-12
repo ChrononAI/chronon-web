@@ -3,9 +3,7 @@ import { useLocation, NavLink } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
-  ListCheck,
   Banknote,
-  ReceiptText,
   User,
   ChevronLeft,
   ClipboardCheck,
@@ -14,6 +12,8 @@ import {
   FileBarChart,
   FolderKanban,
   Building2,
+  FileSpreadsheet,
+  SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";

@@ -42,7 +42,7 @@ export function CreateExpenseForm() {
   const [uploadStepKey, setUploadStepKey] = useState(0);
   const [isReceiptReplaced, setIsReceiptReplaced] = useState(false);
 
-  const stepTitles = ['Upload Receipt', 'Expense Details'];
+  // const stepTitles = ['Upload Receipt', 'Expense Details'];
 
   const fetchReceipt = async (receiptId: string, orgId: string) => {
       console.log(receiptId, orgId)
