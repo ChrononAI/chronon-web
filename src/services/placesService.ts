@@ -120,4 +120,19 @@ export const placesService = {
       throw error;
     }
   },
+
+  async getDefaultStartEndLocations(): Promise<{
+    start_location: string;
+    start_location_name?: string | null;
+    end_location: string;
+    end_location_name?: string | null;
+  } | null> {
+    try {
+      const response = await api.get(`/api/v1/start_end_location`);
+      return response.data?.data ?? null;
+    } catch (error) {
+      console.error("Error fetching default start/end locations:", error);
+      return null;
+    }
+  },
 };

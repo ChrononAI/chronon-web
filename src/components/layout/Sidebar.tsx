@@ -5,11 +5,15 @@ import {
   ChevronRight,
   ListCheck,
   Banknote,
-  ReceiptText,
-  FileChartColumn,
   User,
-  SquareCheckBig,
   ChevronLeft,
+  Wallet,
+  ClipboardCheck,
+  FileSpreadsheet,
+  BarChart3,
+  Briefcase,
+  SlidersHorizontal,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -42,14 +46,14 @@ import { useAuthStore } from "@/store/authStore";
 import { authService } from "@/services/authService";
 
 const navigation: NavigationItem[] = [
-  { name: "Pre Approval", href: "/pre-approvals", icon: SquareCheckBig },
-  { name: "Advances", href: "/advances", icon: SquareCheckBig },
+  { name: "Pre Approval", href: "/pre-approvals", icon: ClipboardCheck },
+  { name: "Advances", href: "/advances", icon: Wallet },
   { name: "Expenses", href: "/expenses", icon: Banknote },
-  { name: "Expense Reports", href: "/reports", icon: ReceiptText },
+  { name: "Expense Reports", href: "/reports", icon: FileSpreadsheet },
   {
     name: "Approvals",
     href: "/approvals/reports",
-    icon: ListCheck,
+    icon: SlidersHorizontal,
     children: [
       {
         name: "Expenses",
@@ -72,19 +76,19 @@ const navigation: NavigationItem[] = [
     name: "Reports",
     href: "/all-reports",
     isBold: false,
-    icon: FileChartColumn,
+    icon: BarChart3,
   },
   {
     name: "Accounts",
     href: "/advance_accounts",
     isBold: false,
-    icon: FileChartColumn,
+    icon: Briefcase,
   },
   {
     name: "Admin",
     href: "/admin/entities",
     isBold: false,
-    icon: FileChartColumn,
+    icon: ShieldCheck,
   },
 ];
 

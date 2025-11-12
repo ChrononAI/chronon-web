@@ -121,6 +121,7 @@ const MileagePage = ({
   const [editMode, setEditMode] = useState(false);
   const [startLocation, setStartLocation] = useState<PlaceSuggestion | null>();
   const [endLocation, setEndLocation] = useState<PlaceSuggestion | null>();
+  const [hasPrefilledLocations, setHasPrefilledLocations] = useState(false);
   const [isLoadingExistingData, setIsLoadingExistingData] = useState(false);
   const [mapUrl, setMapUrl] = useState<string | null>(null);
   const [mapZoom, setMapZoom] = useState(1);
@@ -129,7 +130,99 @@ const MileagePage = ({
   const [lastAddedStopId, setLastAddedStopId] = useState<string | null>(null);
   const today = new Date().toISOString().split("T")[0];
   const stopRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const actionsContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (mode !== "create" || expenseData) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const preloadDefaultLocations = async () => {
+      try {
+        const defaults = await placesService.getDefaultStartEndLocations();
+        if (!isMounted || !defaults) {
+          return;
+        }
+
+        const startLabel =
+          defaults.start_location_name ||
+          "";
+        const endLabel =
+          defaults.end_location_name ||
+          "";
+
+        if (!defaults.start_location || !defaults.end_location || !startLabel || !endLabel) {
+          return;
+        }
+
+        const startPlace: PlaceSuggestion = {
+          place_id: defaults.start_location,
+          description: startLabel,
+          main_text: startLabel,
+          secondary_text: "",
+          types: [],
+        };
+
+        const endPlace: PlaceSuggestion = {
+          place_id: defaults.end_location,
+          description: endLabel,
+          main_text: endLabel,
+          secondary_text: "",
+          types: [],
+        };
+
+        setStartLocation(startPlace);
+        setEndLocation(endPlace);
+        setHasPrefilledLocations(true);
+        setFormData((prev) => ({
+          ...prev,
+          startLocation: startLabel,
+          startLocationId: defaults.start_location,
+          endLocation: endLabel,
+          endLocationId: defaults.end_location,
+        }));
+
+        form.setValue("startLocation", startLabel);
+        form.setValue("endLocation", endLabel);
+      } catch (error) {
+        console.error("Error preloading default mileage locations:", error);
+      }
+    };
+
+    preloadDefaultLocations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [mode, expenseData, form]);
+
+  const isUpdateFlow = mode === "edit" || editMode;
+  const isStartEndLocationLocked =
+    (mode === "view" && !editMode) || isUpdateFlow || hasPrefilledLocations;
+  const showCancelButton = isUpdateFlow && typeof onCancel === "function";
+
+  const renderPrimaryButtonContent = () => {
+    if (isCalculating) {
+      return (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Calculating...
+        </>
+      );
+    }
+
+    if (saving) {
+      return (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Saving...
+        </>
+      );
+    }
+
+    return isUpdateFlow ? "Update Expense" : "Create Expense";
+  };
 
   useEffect(() => {
     if (expenseData && policies.length > 0) {
@@ -387,14 +480,6 @@ const MileagePage = ({
     });
     form.setValue("isRoundTrip", false);
     setLastAddedStopId(newStop.id);
-    if (typeof window !== "undefined") {
-      window.requestAnimationFrame(() => {
-        actionsContainerRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-        });
-      });
-    }
   };
 
   const handleRemoveStop = (stopId: string) => {
@@ -729,7 +814,8 @@ const MileagePage = ({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <Card>
-              <CardContent className="px-6 py-4 space-y-6">
+              <div className="max-h-[calc(100vh-220px)] overflow-y-auto pr-1 md:pr-2">
+                <CardContent className="px-6 py-4 space-y-6 pb-20 md:pb-24">
                 {/* 🚗 Route Section */}
                 <div className="space-y-2">
                   <FormField
@@ -746,7 +832,7 @@ const MileagePage = ({
                               field.onChange(v);
                             }}
                             onSelect={handleStartLocationSelect}
-                            disabled={mode === "view" && !editMode}
+                            disabled={isStartEndLocationLocked}
                             placeholder="Start Location"
                             customIcon={formData.startLocation ? <span className="text-gray-400 font-bold text-xs">A</span> : null}
                           />
@@ -825,7 +911,7 @@ const MileagePage = ({
                               field.onChange(v);
                             }}
                             onSelect={handleEndLocationSelect}
-                            disabled={mode === "view" && !editMode}
+                            disabled={isStartEndLocationLocked}
                             placeholder="End Location"
                             customIcon={formData.endLocation ? <span className="text-gray-400 font-bold text-xs">{String.fromCharCode(65 + formData.stops.length + 1)}</span> : null}
                           />
@@ -1004,15 +1090,16 @@ const MileagePage = ({
                     </FormItem>
                   )}
                 />
+                </CardContent>
+              </div>
+        </Card>
 
-            {/* 💾 Actions */}
-            {(mode === "create" || mode === "edit" || editMode) && (
-              <div
-                ref={actionsContainerRef}
-                className="flex flex-col gap-4 border-t border-gray-100 pt-4 md:flex-row md:items-end md:justify-between"
-              >
-                <div className="flex flex-col">
-                  <Label className="text-sm font-medium text-gray-700">
+        {(mode === "create" || mode === "edit" || editMode) && (
+          <>
+            <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">
                     Total Amount
                   </Label>
                   <div className="text-2xl font-bold text-blue-600 mt-1">
@@ -1022,14 +1109,49 @@ const MileagePage = ({
                     <p className="text-sm text-gray-500">{formData.distance}</p>
                   )}
                 </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                {showCancelButton && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onCancel}
+                    className="h-11"
+                  >
+                    Cancel
+                  </Button>
+                )}
+                <Button
+                  type="submit"
+                  disabled={saving || isCalculating}
+                  className="h-11 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {renderPrimaryButtonContent()}
+                </Button>
+              </div>
+            </div>
 
-                <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:justify-end">
-                  {editMode && onCancel && (
+            <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
+              <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-5">
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-600">
+                    Total Amount
+                  </span>
+                  <span className="text-2xl font-bold text-blue-600 mt-1">
+                    {formData.amount || "₹0.00"}
+                  </span>
+                  {formData.distance && (
+                    <span className="text-sm text-gray-500">{formData.distance}</span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {showCancelButton && (
                     <Button
                       type="button"
                       variant="outline"
                       onClick={onCancel}
-                      className="px-6 py-2"
+                      className="min-w-[140px]"
                     >
                       Cancel
                     </Button>
@@ -1037,29 +1159,15 @@ const MileagePage = ({
                   <Button
                     type="submit"
                     disabled={saving || isCalculating}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                    className="min-w-[200px]"
                   >
-                    {isCalculating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Calculating...
-                      </>
-                    ) : saving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : mode === "edit" || editMode ? (
-                      "Update Expense"
-                    ) : (
-                      "Create Expense"
-                    )}
+                    {renderPrimaryButtonContent()}
                   </Button>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          </>
+        )}
         </form>
       </Form>
 

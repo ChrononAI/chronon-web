@@ -55,74 +55,72 @@ function ForgotPasswordPage() {
   return (
     <AuthLayout>
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-xl shadow-lg p-10 w-full">
-          <div className="text-center mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Forgot Password?
-            </h2>
-            <p className="text-gray-600 text-base">
-              Enter your registered email address to get a password reset link.
-            </p>
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Email Address
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-gray-900 text-sm"
-                style={{ backgroundColor: "#f8fafc" }}
-                required
-              />
-              <div className="flex justify-end mt-2">
-                <button
-                  type="button"
-                  className="underline text-purple-600 hover:text-purple-700 text-[12px]"
-                  onClick={() => navigate("/login")}
-                >
-                  Sign In
-                </button>
-              </div>
-            </div>
-            {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                <span className="text-sm text-red-700 capitalize">{error}</span>
-              </div>
-            )}
-            <Button
-              type="submit"
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 px-4 rounded-lg font-medium transition-colors text-sm"
-              disabled={isLoading}
+        <div className="text-center mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            Forgot Password?
+          </h2>
+          <p className="text-gray-600 text-base">
+            Enter your registered email address to get a password reset link.
+          </p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-2"
             >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Sending...
-                </div>
-              ) : (
-                "Send Reset Link"
-              )}
-            </Button>
-          </form>
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-500">
-              Need help?{" "}
-              <a
-                href="#"
-                className="text-purple-600 hover:text-purple-700 font-medium"
+              Email Address
+            </label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 text-sm"
+              style={{ backgroundColor: "#f8fafc" }}
+              required
+            />
+            <div className="flex justify-end mt-2">
+              <button
+                type="button"
+                className="underline text-blue-600 hover:text-blue-700 text-[12px]"
+                onClick={() => navigate("/login")}
               >
-                Contact your administrator
-              </a>
-            </p>
+                Sign In
+              </button>
+            </div>
           </div>
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-red-500" />
+              <span className="text-sm text-red-700 capitalize">{error}</span>
+            </div>
+          )}
+          <Button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium transition-colors text-sm"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Sending...
+              </div>
+            ) : (
+              "Send Reset Link"
+            )}
+          </Button>
+        </form>
+        <div className="mt-4 text-center">
+          <p className="text-sm text-gray-500">
+            Need help?{" "}
+            <a
+              href="#"
+              className="text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Contact your administrator
+            </a>
+          </p>
         </div>
         <Dialog open={showDialog} onOpenChange={dialogClose}>
           <DialogContent className="flex flex-col items-center p-10 gap-6 max-w-md text-center">
@@ -150,7 +148,7 @@ function ForgotPasswordPage() {
               </DialogDescription>
             </div>
             <Button
-              className="mt-2 w-40 mx-auto text-white bg-purple-600 hover:bg-purple-700 font-medium"
+              className="mt-2 w-40 mx-auto text-white bg-blue-600 hover:bg-blue-600 font-medium"
               onClick={() => {
                 setShowDialog(false);
                 navigate("/login");
