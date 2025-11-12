@@ -156,7 +156,7 @@ export function ViewExpenseWindow({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[80%] max-w-full max-h-[80%] overflow-y-auto">
+      <DialogContent className="w-[80%] max-w-full max-h-[80%] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div>View Expense</div>
@@ -490,10 +490,100 @@ export function ViewExpenseWindow({
             </Card>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+            {/* Map Display Card */}
+            {data?.mileage_meta?.map_url && (
+              <div>
+                <Card>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between my-4">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Route Map
+                        </h3>
+                      </div>
+
+                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                        {/* Map Controls */}
+                        <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleMapZoomOut}
+                              disabled={mapZoom <= 0.5}
+                              className="h-8 w-8 p-0"
+                            >
+                              <ZoomOut className="h-4 w-4" />
+                            </Button>
+                            <span className="text-xs text-gray-600 min-w-[3rem] text-center">
+                              {Math.round(mapZoom * 100)}%
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleMapZoomIn}
+                              disabled={mapZoom >= 3}
+                              className="h-8 w-8 p-0"
+                            >
+                              <ZoomIn className="h-4 w-4" />
+                            </Button>
+                            <div className="w-px h-6 bg-gray-300 mx-2" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleMapRotate}
+                              className="h-8 w-8 p-0"
+                            >
+                              <RotateCw className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleMapReset}
+                              className="h-8 w-8 p-0"
+                            >
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Map Display */}
+                        <div className="relative overflow-auto max-h-96 bg-gray-100">
+                          <div className="flex items-center justify-center p-4">
+                            <img
+                              src={data.mileage_meta.map_url}
+                              alt="Route map"
+                              className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                              style={{
+                                transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
+                                transformOrigin: "center",
+                                maxHeight: "100%",
+                                objectFit: "contain",
+                              }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                const fallbackDiv =
+                                  document.createElement("div");
+                                fallbackDiv.className =
+                                  "flex flex-col items-center justify-center h-full text-center p-4";
+                                fallbackDiv.innerHTML = `<p class="text-gray-600 mb-4">Map preview not available.</p>`;
+                                e.currentTarget.parentNode?.appendChild(
+                                  fallbackDiv
+                                );
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
             <div>
-              <Card>
-                <CardContent className="p-6 space-y-4">
+              <Card className="max-h-[80%] flex flex-col">
+                <CardContent className="p-6 space-y-4 overflow-y-auto flex-1">
                   <div className="relative">
                     {data?.start_location && (
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
@@ -629,97 +719,6 @@ export function ViewExpenseWindow({
                 </CardContent>
               </Card>
             </div>
-
-            {/* Map Display Card */}
-            {data?.mileage_meta?.map_url && (
-              <div>
-                <Card>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between my-4">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          Route Map
-                        </h3>
-                      </div>
-
-                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-                        {/* Map Controls */}
-                        <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleMapZoomOut}
-                              disabled={mapZoom <= 0.5}
-                              className="h-8 w-8 p-0"
-                            >
-                              <ZoomOut className="h-4 w-4" />
-                            </Button>
-                            <span className="text-xs text-gray-600 min-w-[3rem] text-center">
-                              {Math.round(mapZoom * 100)}%
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleMapZoomIn}
-                              disabled={mapZoom >= 3}
-                              className="h-8 w-8 p-0"
-                            >
-                              <ZoomIn className="h-4 w-4" />
-                            </Button>
-                            <div className="w-px h-6 bg-gray-300 mx-2" />
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleMapRotate}
-                              className="h-8 w-8 p-0"
-                            >
-                              <RotateCw className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleMapReset}
-                              className="h-8 w-8 p-0"
-                            >
-                              <RefreshCw className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Map Display */}
-                        <div className="relative overflow-auto max-h-96 bg-gray-100">
-                          <div className="flex items-center justify-center p-4">
-                            <img
-                              src={data.mileage_meta.map_url}
-                              alt="Route map"
-                              className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                              style={{
-                                transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
-                                transformOrigin: "center",
-                                maxHeight: "100%",
-                                objectFit: "contain",
-                              }}
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                                const fallbackDiv =
-                                  document.createElement("div");
-                                fallbackDiv.className =
-                                  "flex flex-col items-center justify-center h-full text-center p-4";
-                                fallbackDiv.innerHTML = `<p class="text-gray-600 mb-4">Map preview not available.</p>`;
-                                e.currentTarget.parentNode?.appendChild(
-                                  fallbackDiv
-                                );
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
           </div>
         )}
       </DialogContent>

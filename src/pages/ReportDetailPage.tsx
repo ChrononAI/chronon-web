@@ -443,7 +443,7 @@ export function ReportDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="rounded-lg border overflow-hidden">
+                <div className="rounded-lg border">
                   <DataGrid
                             className="rounded border-[0.2px] border-[#f3f4f6] h-full"
                             rows={report.expenses}
