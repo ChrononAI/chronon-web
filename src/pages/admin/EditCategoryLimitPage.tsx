@@ -392,13 +392,13 @@ export default function EditCategoryLimitPage() {
                       {current.limit_type !== "AS_PER_ACTUALS" && (
                         <Input
                           type="number"
-                          value={current.limit_value || ""}
+                          value={(policy.name === "Per Diem" ? current.per_diem_rate : current.limit_value) || ""}
                           placeholder="Enter value"
                           onChange={(e) =>
                             handleLimitChange(
                               policyId,
                               cat.id,
-                              "limit_value",
+                              policy.name === "Per Diem" ? 'per_diem_rate' : "limit_value",
                               Number(e.target.value)
                             )
                           }
