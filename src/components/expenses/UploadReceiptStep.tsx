@@ -100,6 +100,11 @@ export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected, type = 
   };
 
   const handleAddManually = () => {
+    setParsedData(null);
+    setUploadedFile(null);
+    setPreviewUrl(null);
+    setShowPotentialDuplicateAlert(false);
+    setDuplicateIds([]);
     onNext({
       uploadedFile: null as any,
       parsedData: null,
@@ -109,12 +114,6 @@ export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected, type = 
 
   return (
     <div className="space-y-6">
-      {/* Step Header */}
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Step 1: Upload Receipt</h2>
-        <p className="text-gray-600">Upload your receipt and we'll extract the details automatically</p>
-      </div>
-
       {/* Potential Duplicate Alert */}
       {showPotentialDuplicateAlert && (
         <Alert className="border-yellow-200 bg-yellow-50">

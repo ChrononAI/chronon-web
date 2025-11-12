@@ -48,11 +48,11 @@ const navigation: NavigationItem[] = [
   { name: "Pre Approval", href: "/pre-approvals", icon: ClipboardCheck },
   { name: "Advances", href: "/advances", icon: Wallet },
   { name: "Expenses", href: "/expenses", icon: Banknote },
-  { name: "Expense Reports", href: "/reports", icon: ReceiptText },
+  { name: "Expense Reports", href: "/reports", icon: FileSpreadsheet },
   {
     name: "Approvals",
     href: "/approvals/reports",
-    icon: ListCheck,
+    icon: SlidersHorizontal,
     children: [
       {
         name: "Expenses",

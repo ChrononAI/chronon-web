@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Layout } from '@/components/layout/Layout'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CreateExpenseForm } from '@/components/expenses/CreateExpenseForm'
 import MileagePage from './MileagePage'
 import PerdiemPage from './PerdiemPage'
+import { ReportTabs } from '@/components/reports/ReportTabs'
 
 export function UnifiedExpensesPage() {
   const [activeTab, setActiveTab] = useState('regular')
@@ -15,25 +15,34 @@ export function UnifiedExpensesPage() {
           <h1 className="text-2xl font-bold text-gray-800 mb-1">Create New Expense</h1>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="regular">Regular Expense</TabsTrigger>
-            <TabsTrigger value="mileage">Mileage</TabsTrigger>
-            <TabsTrigger value="perdiem">Per Diem</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="regular" className="mt-6">
+        <ReportTabs
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab)}
+          tabs={[
+            { key: 'regular', label: 'Regular Expense', count: 0 },
+            { key: 'mileage', label: 'Mileage', count: 0 },
+            { key: 'perdiem', label: 'Per Diem', count: 0 },
+          ]}
+          className="mb-6"
+        />
+
+        {activeTab === 'regular' && (
+          <div className="mt-6">
             <CreateExpenseForm />
-          </TabsContent>
-          
-          <TabsContent value="mileage" className="mt-6">
+          </div>
+        )}
+
+        {activeTab === 'mileage' && (
+          <div className="mt-6">
             <MileagePage mode="create" />
-          </TabsContent>
-          
-          <TabsContent value="perdiem" className="mt-6">
+          </div>
+        )}
+
+        {activeTab === 'perdiem' && (
+          <div className="mt-6">
             <PerdiemPage mode="create" />
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </div>
     </Layout>
   )

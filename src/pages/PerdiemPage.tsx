@@ -6,6 +6,7 @@ import * as z from "zod";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { DateField } from "@/components/ui/date-field";
 import { Calendar, Copy, ExternalLink } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -327,152 +328,147 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)}>
-        <div className="bg-white border rounded-lg p-6">
-          <div className="mb-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Date *</FormLabel>
-                    <FormControl>
-                      <DateField
-                        id="startDate"
-                        value={formData.startDate}
-                        onChange={(value) => {
-                          handleInputChange("startDate", value);
-                          field.onChange(value);
-                        }}
-                        disabled={mode === "view"}
-                        maxDate={today}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Date *</FormLabel>
-                    <FormControl>
-                      <DateField
-                        id="endDate"
-                        value={formData.endDate}
-                        onChange={(value) => {
-                          handleInputChange("endDate", value);
-                          field.onChange(value);
-                        }}
-                        disabled={mode === "view"}
-                        minDate={formData.startDate}
-                        maxDate={today}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:min-h-[calc(100vh-8rem)]">
+          <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 flex flex-col items-center justify-center text-center lg:min-h-[calc(100vh-8rem)]">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-300">
+              <Calendar className="h-10 w-10" />
             </div>
           </div>
 
-          <div className="mb-4 ">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="days"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Number of Days
-                </Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    id="days"
-                    type="text"
-                    value={days}
-                    readOnly
-                    className="pl-10 bg-gray-50"
+          <Card>
+            <div className="max-h-[calc(100vh-220px)] overflow-y-auto pr-1 md:pr-2">
+              <CardContent className="px-6 py-6 space-y-6 pb-40 md:pb-48">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start Date *</FormLabel>
+                        <FormControl>
+                          <DateField
+                            id="startDate"
+                            value={formData.startDate}
+                            onChange={(value) => {
+                              handleInputChange("startDate", value);
+                              field.onChange(value);
+                            }}
+                            disabled={mode === "view"}
+                            maxDate={today}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>End Date *</FormLabel>
+                        <FormControl>
+                          <DateField
+                            id="endDate"
+                            value={formData.endDate}
+                            onChange={(value) => {
+                              handleInputChange("endDate", value);
+                              field.onChange(value);
+                            }}
+                            disabled={mode === "view"}
+                            minDate={formData.startDate}
+                            maxDate={today}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Details Section */}
-          <div className="mb-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="policy"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Policy
-                </Label>
-                <Input
-                  id="policy"
-                  type="text"
-                  value={selectedPolicy?.name}
-                  className="bg-gray-50 text-gray-500"
-                  disabled
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category *</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => {
-                        handleInputChange("categoryId", value);
-                        field.onChange(value);
-                      }}
-                      disabled={
-                        (mode === "view" && !editMode) ||
-                        !selectedPolicy ||
-                        loadingPolicies
-                      }
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              !selectedPolicy
-                                ? "Select policy first"
-                                : "Select category"
-                            }
-                          />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="days" className="text-sm font-medium text-gray-700">
+                      Number of Days
+                    </Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+                      <Input
+                        id="days"
+                        type="text"
+                        value={days}
+                        readOnly
+                        className="bg-gray-50 pl-10"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-            <div className="mb-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location *</FormLabel>
-                      <div className="relative">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="policy" className="text-sm font-medium text-gray-700">
+                      Policy
+                    </Label>
+                    <Input
+                      id="policy"
+                      type="text"
+                      value={selectedPolicy?.name}
+                      className="bg-gray-50 text-gray-500"
+                      disabled
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category *</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={(value) => {
+                            handleInputChange("categoryId", value);
+                            field.onChange(value);
+                          }}
+                          disabled={
+                            (mode === "view" && !editMode) ||
+                            !selectedPolicy ||
+                            loadingPolicies
+                          }
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={
+                                  !selectedPolicy
+                                    ? "Select policy first"
+                                    : "Select category"
+                                }
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="location"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Location *</FormLabel>
                         <FormControl>
                           <Input
                             type="text"
@@ -485,61 +481,82 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                             disabled={mode === "view"}
                           />
                         </FormControl>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="purpose"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Purpose *</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            value={formData.purpose}
+                            placeholder="e.g. Annual Sales Conference"
+                            onChange={(e) => {
+                              handleInputChange("purpose", e.target.value);
+                              field.onChange(e.target.value);
+                            }}
+                            disabled={mode === "view"}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </div>
+          </Card>
+        </div>
+
+        {(mode === "create" || mode === "edit") && (
+          <>
+            <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
+              <div>
+                <Label className="text-sm font-medium text-gray-600">
+                  Total Per Diem
+                </Label>
+                <div className="text-2xl font-bold text-blue-600 mt-1">
+                  ₹{(Number(formData.totalAmount) || 0).toFixed(2)}
+                </div>
+                <p className="text-sm text-gray-500">{days} {days === 1 ? "day" : "days"}</p>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 mt-4">
-              <FormField
-                control={form.control}
-                name="purpose"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Purpose *</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        value={formData.purpose}
-                        placeholder="e.g. Annual Sales Conference"
-                        onChange={(e) => {
-                          handleInputChange("purpose", e.target.value);
-                          field.onChange(e.target.value);
-                        }}
-                        disabled={mode === "view"}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-
-          {/* Total Amount and Action Buttons */}
-          <div className="flex justify-between items-end pt-4">
-            <div>
-              <Label className="text-sm font-medium text-gray-700">
-                Total Per Diem
-              </Label>
-              <div className="text-2xl font-bold text-blue-600 mt-1">
-                ₹{(Number(formData.totalAmount) || 0).toFixed(2)}
-              </div>
-              <p className="text-sm text-gray-500">{days} days</p>
-            </div>
-
-            {(mode === "create" || mode === "edit") && (
               <Button
                 type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+                className="h-11 bg-blue-600 text-white hover:bg-blue-700"
               >
                 {mode === "create" ? "Create" : "Update"} Expense
               </Button>
-            )}
-          </div>
-        </div>
+            </div>
+
+            <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
+              <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-5">
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-600">
+                    Total Per Diem
+                  </span>
+                  <span className="text-2xl font-bold text-blue-600 mt-1">
+                    ₹{(Number(formData.totalAmount) || 0).toFixed(2)}
+                  </span>
+                  <span className="text-sm text-gray-500">{days} {days === 1 ? "day" : "days"}</span>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="min-w-[200px]"
+                >
+                  {mode === "create" ? "Create" : "Update"} Expense
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
         </form>
       </Form>
     </div>

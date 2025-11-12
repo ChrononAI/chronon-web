@@ -8,7 +8,6 @@ import { ParsedInvoiceData } from '@/services/fileParseService';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription } from '@/components/ui/alert-dialog';
 import { UploadReceiptStep } from './UploadReceiptStep';
 import { ExpenseDetailsStep } from './ExpenseDetailsStep';
-import { StepNavigation } from './StepNavigation';
 import { useExpenseStore } from '@/store/expenseStore';
 
 // Form schema for step 2
@@ -172,16 +171,6 @@ export function CreateExpenseForm() {
 
   return (
     <div className="space-y-6">
-      {/* Step Navigation */}
-      <div className="w-full">
-        <StepNavigation 
-          currentStep={currentStep} 
-          totalSteps={2} 
-          stepTitles={stepTitles}
-          isManualEntry={currentStep === 2 && !uploadedFile}
-        />
-      </div>
-
       {/* Step Content */}
       {currentStep === 1 ? (
         <UploadReceiptStep
