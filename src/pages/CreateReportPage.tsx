@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
-import { CreateReportForm } from '@/components/reports/CreateReportForm';
+// import { CreateReportForm } from '@/components/reports/CreateReportForm';
+import { CreateReportForm2 } from '@/components/reports/CreateReportForm2';
 
 export function CreateReportPage() {
   const location = useLocation();
@@ -8,7 +9,8 @@ export function CreateReportPage() {
 
   return (
     <Layout>
-      <CreateReportForm editMode={editMode} reportData={reportData} />
+      {/* <CreateReportForm editMode={editMode} reportData={reportData} /> */}
+      <CreateReportForm2 editMode={editMode} reportData={reportData} />
     </Layout>
   );
 }

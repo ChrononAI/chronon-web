@@ -58,11 +58,13 @@ interface CreatePreApprovalFormProps {
   mode?: "create" | "view" | "edit";
   data?: PreApprovalType;
   showHeader?: boolean;
+  maxWidth?: string;
 }
 
 function CreatePreApprovalForm({
   mode = "create",
   showHeader = true,
+  maxWidth = 'max-w-4xl',
 }: CreatePreApprovalFormProps) {
   const navigate = useNavigate();
 
@@ -153,7 +155,7 @@ function CreatePreApprovalForm({
     loadPoliciesWithCategories();
   }, []);
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className={maxWidth ? `space-y-6 ${maxWidth}` : 'space-y-6 max-w-4xl'}>
       {showHeader && (
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>

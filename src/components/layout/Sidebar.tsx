@@ -5,15 +5,15 @@ import {
   ChevronRight,
   ListCheck,
   Banknote,
+  ReceiptText,
   User,
   ChevronLeft,
-  Wallet,
   ClipboardCheck,
-  FileSpreadsheet,
-  BarChart3,
-  Briefcase,
-  SlidersHorizontal,
-  ShieldCheck,
+  Wallet,
+  CheckSquare,
+  FileBarChart,
+  FolderKanban,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/authStore";
-import { authService } from "@/services/authService";
 
 const navigation: NavigationItem[] = [
   { name: "Pre Approval", href: "/pre-approvals", icon: ClipboardCheck },
@@ -58,44 +57,44 @@ const navigation: NavigationItem[] = [
       {
         name: "Expenses",
         href: "/approvals/reports",
-        icon: ListCheck,
+        icon: CheckSquare,
       },
       {
         name: "Pre Approval",
         href: "/approvals/pre-approvals",
-        icon: ListCheck,
+        icon: ClipboardCheck,
       },
       {
         name: "Advances",
         href: "/approvals/advances",
-        icon: ListCheck,
+        icon: Wallet,
       },
     ],
-  },
-  {
-    name: "Reports",
-    href: "/all-reports",
-    isBold: false,
-    icon: BarChart3,
   },
   {
     name: "Accounts",
     href: "/advance_accounts",
     isBold: false,
-    icon: Briefcase,
+    icon: FolderKanban,
+  },
+  {
+    name: "Reports",
+    href: "/all-reports",
+    isBold: false,
+    icon: FileBarChart,
   },
   {
     name: "Admin",
     href: "/admin/entities",
     isBold: false,
-    icon: ShieldCheck,
+    icon: Building2,
   },
 ];
 
 const permissionMap: any = {
   "Pre Approval": "pre_approval_settings",
-  Advances: "advance_settings",
-  Admin: "admin_dashboard_settings",
+  "Advances": "advance_settings",
+  "Admin": "admin_dashboard_settings",
 };
 
 export function Sidebar() {
@@ -108,18 +107,16 @@ export function Sidebar() {
     }
     return [];
   });
-  const [collapsed, setCollapsed] = useState(
-    false
-  );
+  const [collapsed, setCollapsed] = useState(false);
   const [newNavItems, setNewNavItems] = useState<NavigationItem[]>([]);
-  const { user, orgSettings, logout, setOrgSettings } = useAuthStore();
+  const { user, orgSettings, logout } = useAuthStore();
 
   const mergePermissions = (items: any[], permissions: any): any[] => {
     return items.map((item) => {
-      if (item?.name === "Reports") {
+      if (item?.name === 'Admin') {
         const permission = {
-          enabled: user ? user.role === "ADMIN" : false,
-          allowed: user ? user?.role === "ADMIN" : false,
+          enabled: (orgSettings?.admin_dashboard_settings?.enabled === true && user?.role === "ADMIN") || false,
+          allowed: (orgSettings?.admin_dashboard_settings?.allowed === true && user?.role === "ADMIN") || false,
         };
         const children = item.children
           ? mergePermissions(item.children, permissions)
@@ -129,9 +126,49 @@ export function Sidebar() {
           permissions: permission,
           children,
         };
+      } else if (item?.name === "Reports") {
+        const permission = {
+          enabled: user?.role === 'ADMIN',
+          allowed: user?.role === 'ADMIN'
+        }
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
+      } else if (item.name === 'Accounts') {
+        const permission = {
+          enabled: orgSettings?.advance_settings?.enabled || false,
+          allowed: orgSettings?.advance_settings?.allowed || false
+        };
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
+      } else if (item.name === "Pre Approval" || item.name === "Advances") {
+        const key = permissionMap[item.name];
+        const permission = (key && permissions) ? permissions[key] : { enabled: false, allowed: false };
+
+        // Recursively apply to children
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
       } else {
         const key = permissionMap[item.name];
-        const permission = key ? permissions[key] : undefined;
+        const permission = (key && permissions) ? permissions[key] : undefined;
 
         // Recursively apply to children
         const children = item.children
@@ -148,31 +185,18 @@ export function Sidebar() {
   };
 
   useEffect(() => {
-    if (orgSettings) {
+    // if (orgSettings) {
       const newNav: NavigationItem[] = mergePermissions(
         navigation,
         orgSettings
       );
       setNewNavItems(newNav);
-    }
+    // }
   }, [orgSettings]);
 
   const handleLogout = () => {
     logout();
   };
-
-  const getOrgSettings = async () => {
-    try {
-      const res = await authService.getOrgSetting();
-      setOrgSettings(res.data.data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  useEffect(() => {
-    getOrgSettings();
-  }, []);
 
   // Save to localStorage whenever openItems changes
   useEffect(() => {
@@ -217,7 +241,9 @@ export function Sidebar() {
   };
 
   const renderNavigationItem = (item: NavigationItem, level: number = 0) => {
-    if (item.permissions?.enabled === false) return null;
+    if (item.permissions && item.permissions?.enabled === false) {
+      return null;
+    }
     const paddingLeft = level * 12 + 12; // 12px base + 12px per level
     const isDisabled = item.disabled;
 
@@ -352,7 +378,7 @@ export function Sidebar() {
           collapsed && "px-1"
         )}
       >
-        {newNavItems.length > 0 &&
+      {newNavItems.length > 0 &&
           newNavItems.map((item) => (
             <div key={item.name}>
               {renderNavigationItem(

@@ -166,8 +166,7 @@ function ProcessPreApprovalPage() {
         }
     }
     const handleAction = async (action: string) => {
-        if (approvalWorkflow?.current_step === approvalWorkflow?.total_steps) {
-            console.log(approvalWorkflow);
+        if (approvalWorkflow?.current_step === approvalWorkflow?.total_steps && action === 'approve') {
             setShowCurrencyAlert(true);
         } else {
             processAdvance(action);

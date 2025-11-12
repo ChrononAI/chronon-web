@@ -572,7 +572,7 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
             ))
           ) : (
             <SelectItem value="no-workflows" disabled>
-              {workflowEvent ? 'No workflows found for this event' : 'No workflows found'}
+              {shouldShowFilteredMessage ? 'No workflows found for this event' : 'No workflows found'}
             </SelectItem>
           )}
         </SelectContent>

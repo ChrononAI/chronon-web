@@ -31,7 +31,7 @@ export const categoryService = {
 
     async getAllCategories() {
         try {
-            const response = api.get('/api/v1/categories');
+            const response = api.get('/api/v1/categories?page=1&per_page=100');
             return response;
         } catch (error) {
             throw error;

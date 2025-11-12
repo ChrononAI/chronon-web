@@ -182,6 +182,9 @@ function AdvanceDetailsPage() {
                                     </div>
                                 </CardContent>
                             </Card>
+                            <div className="lg:col-span-2">
+                                <CreateAdvanceForm mode="view" showHeader={false} maxWidth='w-full' /> 
+                            </div>
                         </div>
                         {approvalWorkflow && approvalWorkflow.approval_steps && (
                             <div>
@@ -199,7 +202,6 @@ function AdvanceDetailsPage() {
                             </div>
                         )}
                     </div>
-                    <CreateAdvanceForm mode="view" showHeader={false} /> 
                 </div>}
         </Layout>
     )

@@ -120,6 +120,7 @@ export function ExpenseDetailsStep({
   isEditMode = false,
   expense,
 }: ExpenseDetailsStepProps) {
+  // console.log(previewUrl);
   const navigate = useNavigate();
   const orgId = getOrgIdFromToken();
   const { parsedData, setParsedData, selectedPreApproval, setSelectedPreApproval } = useExpenseStore();

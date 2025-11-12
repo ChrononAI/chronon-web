@@ -167,7 +167,7 @@ export function ApprovalsReportsPage() {
 
   useEffect(() => {
     if (paginationModel) {
-      fetchData(paginationModel?.page, paginationModel?.pageSize);
+      fetchData(paginationModel?.page + 1, paginationModel?.pageSize);
     }
   }, [paginationModel?.page, paginationModel?.pageSize]);
 
@@ -195,19 +195,6 @@ export function ApprovalsReportsPage() {
     { value: "approved", label: "Approved" },
     { value: "rejected", label: "Rejected" },
   ];
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">
-            Loading reports for approval...
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <ReportsPageWrapper
