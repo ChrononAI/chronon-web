@@ -132,60 +132,67 @@ const MileagePage = ({
   const stopRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
-    if (mode !== "create" || expenseData) {
-      return;
-    }
-
     let isMounted = true;
 
     const preloadDefaultLocations = async () => {
       try {
         const defaults = await placesService.getDefaultStartEndLocations();
-        if (!isMounted || !defaults) {
+
+        if (!isMounted) {
           return;
         }
 
-        const startLabel =
-          defaults.start_location_name ||
-          "";
-        const endLabel =
-          defaults.end_location_name ||
-          "";
+        const startLabel = defaults?.start_location_name ?? "";
+        const endLabel = defaults?.end_location_name ?? "";
+        const hasDefaults =
+          Boolean(
+            defaults?.start_location &&
+              defaults?.end_location &&
+              startLabel &&
+              endLabel
+          );
 
-        if (!defaults.start_location || !defaults.end_location || !startLabel || !endLabel) {
-          return;
+        setHasPrefilledLocations(hasDefaults);
+
+        if (
+          hasDefaults &&
+          defaults &&
+          mode === "create" &&
+          !expenseData
+        ) {
+          const startPlace: PlaceSuggestion = {
+            place_id: defaults.start_location,
+            description: startLabel,
+            main_text: startLabel,
+            secondary_text: "",
+            types: [],
+          };
+
+          const endPlace: PlaceSuggestion = {
+            place_id: defaults.end_location,
+            description: endLabel,
+            main_text: endLabel,
+            secondary_text: "",
+            types: [],
+          };
+
+          setStartLocation(startPlace);
+          setEndLocation(endPlace);
+          setFormData((prev) => ({
+            ...prev,
+            startLocation: startLabel,
+            startLocationId: defaults.start_location,
+            endLocation: endLabel,
+            endLocationId: defaults.end_location,
+          }));
+
+          form.setValue("startLocation", startLabel);
+          form.setValue("endLocation", endLabel);
         }
-
-        const startPlace: PlaceSuggestion = {
-          place_id: defaults.start_location,
-          description: startLabel,
-          main_text: startLabel,
-          secondary_text: "",
-          types: [],
-        };
-
-        const endPlace: PlaceSuggestion = {
-          place_id: defaults.end_location,
-          description: endLabel,
-          main_text: endLabel,
-          secondary_text: "",
-          types: [],
-        };
-
-        setStartLocation(startPlace);
-        setEndLocation(endPlace);
-        setHasPrefilledLocations(true);
-        setFormData((prev) => ({
-          ...prev,
-          startLocation: startLabel,
-          startLocationId: defaults.start_location,
-          endLocation: endLabel,
-          endLocationId: defaults.end_location,
-        }));
-
-        form.setValue("startLocation", startLabel);
-        form.setValue("endLocation", endLabel);
       } catch (error) {
+        if (isMounted) {
+          setHasPrefilledLocations(false);
+        }
         console.error("Error preloading default mileage locations:", error);
       }
     };
@@ -199,7 +206,7 @@ const MileagePage = ({
 
   const isUpdateFlow = mode === "edit" || editMode;
   const isStartEndLocationLocked =
-    (mode === "view" && !editMode) || isUpdateFlow || hasPrefilledLocations;
+    (mode === "view" && !editMode) || hasPrefilledLocations;
   const showCancelButton = isUpdateFlow && typeof onCancel === "function";
 
   const renderPrimaryButtonContent = () => {
