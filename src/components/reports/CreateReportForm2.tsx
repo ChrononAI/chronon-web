@@ -34,10 +34,21 @@ import { AdditionalFieldMeta, CustomAttribute } from "@/types/report";
 import { useAuthStore } from "@/store/authStore";
 import { formatDate, formatCurrency, getStatusColor } from "@/lib/utils";
 import { DynamicCustomField } from "./DynamicCustomField";
-import { DataGrid, GridColDef, GridRowId } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  ExportCsv,
+  FilterPanelTrigger,
+  GridColDef,
+  GridExpandMoreIcon,
+  GridFilterListIcon,
+  GridRowId,
+} from "@mui/x-data-grid";
 import { Badge } from "../ui/badge";
 import { CustomLoader } from "@/pages/MyReportsPage";
 import { GridPaginationModel } from "@mui/x-data-grid";
+import { Box, Toolbar } from "@mui/material";
+import { categoryService } from "@/services/admin/categoryService";
+import { SearchableSelect } from "./SearchableSelect";
 
 // Dynamic form schema creation function
 const createReportSchema = (customAttributes: CustomAttribute[]) => {
@@ -131,6 +142,61 @@ const columns: GridColDef[] = [
   },
 ];
 
+function CustomToolbar({ selectedCategory, setSelectedCategory }: any) {
+  const [categories, setCategories] = useState([]);
+
+  const getAllCategories = async () => {
+    try {
+      const res = await categoryService.getAllCategories();
+      console.log(res);
+      setCategories(res.data.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    getAllCategories();
+  }, []);
+  return (
+    <Toolbar
+      sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        p: 1,
+        gap: 2,
+        backgroundColor: "background.paper",
+      }}
+    >
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        {/* <Input value={searchValue} onChange={onSearchChange} placeholder="Search..." /> */}
+        <SearchableSelect
+          categories={categories}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+        />
+      </Box>
+
+      <Box className="flex items-center gap-2">
+        <FilterPanelTrigger
+          size="small"
+          startIcon={<GridFilterListIcon className="text-gray-500" />} // 👈 custom icon
+        >
+          <span className="text-gray-500">Filter</span>
+        </FilterPanelTrigger>
+
+        <ExportCsv
+          size="small"
+          startIcon={<GridExpandMoreIcon className="text-gray-500" />} // 👈 custom icon
+        >
+          <span className="text-gray-500">Export CSV</span>
+        </ExportCsv>
+      </Box>
+    </Toolbar>
+  );
+}
+
 export function CreateReportForm2({
   editMode = false,
   reportData,
@@ -157,7 +223,11 @@ export function CreateReportForm2({
     pageSize: 10,
   });
   const [selectedIds, setSelectedIds] = useState<any[]>([]);
-  console.log(selectedIds);
+  const [selectedCategory, setSelectedCategory] = useState<any>();
+
+  const filteredExpenses = selectedCategory ? allExpenses.filter((exp) => exp.category_id === selectedCategory.id) : allExpenses;
+
+  console.log(selectedCategory);
 
   const [rowSelection, setRowSelection] = useState<any>({
     type: "include",
@@ -184,6 +254,13 @@ export function CreateReportForm2({
       setSelectedIds(idArr);
     }
   }, [rowSelection]);
+
+  useEffect(() => {
+      if (selectedCategory) {
+        setSelectedIds([]);
+        setRowSelection({type: 'include', ids: new Set([])});
+      }
+  }, [selectedCategory]);
 
   // Determine if Hospital Name and Campaign Code should be shown
   const userDept = user?.department?.toLowerCase() || "";
@@ -604,12 +681,18 @@ export function CreateReportForm2({
         <h3 className="text-lg font-semibold">Add Expenses</h3>
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          rows={loadingExpenses ? [] : allExpenses}
+          rows={loadingExpenses ? [] : filteredExpenses}
           columns={columns}
           loading={loadingExpenses}
           slots={{
             loadingOverlay: CustomLoader,
             // noRowsOverlay: CustomNoRows,
+            toolbar: () =>
+              <CustomToolbar
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+              />
+            ,
           }}
           sx={{
             border: 0,
