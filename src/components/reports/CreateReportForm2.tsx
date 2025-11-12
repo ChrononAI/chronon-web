@@ -151,37 +151,32 @@ export function CreateReportForm2({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
-  const [selectedIds, setSelectedIds] = useState<any[]>([]);
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 10,
   });
+  const [selectedIds, setSelectedIds] = useState<any[]>([]);
 
   const [rowSelection, setRowSelection] = useState<any>({
     type: "include",
-    ids: new Set<GridRowId>([]),
+    ids: new Set<GridRowId>(),
   });
 
   useEffect(() => {
-    setRowSelection({ type: "include", ids: new Set(selectedIds) });
-  }, [selectedIds]);
-
-  const handleRowSelectionChange = (newSelection: any) => {
-    setRowSelection(newSelection);
-    const { type, ids } = newSelection;
-    const idArray = Array.from(ids);
-
-    setSelectedIds((prev) => {
-      if (type === "include") {
-        // Add new selected IDs
-        return Array.from(new Set([...prev, ...idArray]));
-      } else {
-        // Remove deselected IDs
-        return prev.filter((id) => !ids.has(id));
-      }
+    console.log(markedExpenses.map((exp) => exp.id));
+    setRowSelection({
+      type: "include",
+      ids: new Set(markedExpenses.map((exp) => exp.id)),
     });
-  };
+  }, [markedExpenses]);
+
+  useEffect(() => {
+    if (Array.from(rowSelection.ids).length > 0) {
+      console.log(rowSelection);
+      setSelectedIds(Array.from(rowSelection.ids));
+    }
+  }, [rowSelection]);
 
   // Determine if Hospital Name and Campaign Code should be shown
   const userDept = user?.department?.toLowerCase() || "";
@@ -295,7 +290,7 @@ export function CreateReportForm2({
   };
 
   const onSave = async () => {
-    if (markedExpenses.length === 0) {
+    if (selectedIds.length === 0) {
       toast.error("Please add at least one expense to the report");
       return;
     }
@@ -655,7 +650,12 @@ export function CreateReportForm2({
           disableRowSelectionExcludeModel
           checkboxSelection
           rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={handleRowSelectionChange}
+          onRowSelectionModelChange={(newSelection, details) => {
+            console.log(details.reason)
+            if (details.reason === "singleRowSelection") {
+              setRowSelection(newSelection);
+            }
+          }}
           disableRowSelectionOnClick
           showCellVerticalBorder
           pagination
