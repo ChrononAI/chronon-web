@@ -549,8 +549,7 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
   const renderWorkflowSelect = useCallback((
     value: string,
     onValueChange: (value: string) => void,
-    placeholder: string,
-    workflowEvent?: WorkflowEvent
+    placeholder: string
   ) => {
     const filteredWorkflows = workflows
 
@@ -572,7 +571,7 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
             ))
           ) : (
             <SelectItem value="no-workflows" disabled>
-              {shouldShowFilteredMessage ? 'No workflows found for this event' : 'No workflows found'}
+              No workflows found
             </SelectItem>
           )}
         </SelectContent>
@@ -820,8 +819,7 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
                   {renderWorkflowSelect(
                     ruleForm.workflow,
                     (value) => setRuleForm(prev => ({ ...prev, workflow: value })),
-                    'Select workflow',
-                    ruleForm.workflowEvent
+                    'Select workflow'
                   )}
                 </div>
               </div>
