@@ -255,6 +255,13 @@ export function CreateReportForm2({
     }
   }, [rowSelection]);
 
+  useEffect(() => {
+      if (selectedCategory) {
+        setSelectedIds([]);
+        setRowSelection({type: 'include', ids: new Set([])});
+      }
+  }, [selectedCategory]);
+
   // Determine if Hospital Name and Campaign Code should be shown
   const userDept = user?.department?.toLowerCase() || "";
   const showHospitalAndCampaign =
