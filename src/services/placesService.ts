@@ -72,12 +72,14 @@ export const placesService = {
     vehicle,
     orgId,
     isRoundTrip,
+    signal
   }: {
     originPlaceId: string;
     destinationPlaceIds: string | string[];
     vehicle: string;
     orgId: string;
     isRoundTrip: boolean;
+    signal: any
   }): Promise<MileageCostData | null> {
     try {
       // Handle multiple destinations by comma-separating them
@@ -86,12 +88,12 @@ export const placesService = {
         : destinationPlaceIds;
 
       const response = await api.get(
-        `/em/expenses/mileage/cost?origin_placeid=${originPlaceId}&destination_placeids=${destinations}&vehicle=${vehicle}&org_id=${orgId}&is_round_trip=${isRoundTrip}`
+        `/em/expenses/mileage/cost?origin_placeid=${originPlaceId}&destination_placeids=${destinations}&vehicle=${vehicle}&org_id=${orgId}&is_round_trip=${isRoundTrip}`,
+        { signal }
       );
       return response.data.data || null;
     } catch (error) {
-      console.error("Error fetching mileage cost:", error);
-      return null;
+      throw error;
     }
   },
 
