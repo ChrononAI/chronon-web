@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, X, CheckCircle, FileText, Loader2, ArrowRight } from 'lucide-react';
+import { Upload, X, CheckCircle, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,11 +16,11 @@ interface UploadReceiptStepProps {
   }) => void;
   onBack: () => void;
   onDuplicateDetected?: (data: { parsedData: ParsedInvoiceData; uploadedFile: File; previewUrl: string }) => void;
-  type: "upload" | "reupload";
+  type?: "upload" | "reupload";
   setParsedDataO?: any;
 }
 
-export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected, type = "upload" }: UploadReceiptStepProps) {
+export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceiptStepProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   // const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
@@ -89,28 +89,28 @@ export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected, type = 
     setDuplicateIds([]);
   };
 
-  const handleNext = () => {
-    if (uploadedFile && previewUrl) {
-      onNext({
-        uploadedFile,
-        parsedData,
-        previewUrl,
-      });
-    }
-  };
+  // const handleNext = () => {
+  //   if (uploadedFile && previewUrl) {
+  //     onNext({
+  //       uploadedFile,
+  //       parsedData,
+  //       previewUrl,
+  //     });
+  //   }
+  // };
 
-  const handleAddManually = () => {
-    setParsedData(null);
-    setUploadedFile(null);
-    setPreviewUrl(null);
-    setShowPotentialDuplicateAlert(false);
-    setDuplicateIds([]);
-    onNext({
-      uploadedFile: null as any,
-      parsedData: null,
-      previewUrl: '',
-    });
-  };
+  // const handleAddManually = () => {
+  //   setParsedData(null);
+  //   setUploadedFile(null);
+  //   setPreviewUrl(null);
+  //   setShowPotentialDuplicateAlert(false);
+  //   setDuplicateIds([]);
+  //   onNext({
+  //     uploadedFile: null as any,
+  //     parsedData: null,
+  //     previewUrl: '',
+  //   });
+  // };
 
   return (
     <div className="space-y-6">
