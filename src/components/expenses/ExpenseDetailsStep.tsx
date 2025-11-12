@@ -55,11 +55,23 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
-import { fileParseService, ParsedInvoiceData } from "@/services/fileParseService";
+import {
+  fileParseService,
+  ParsedInvoiceData,
+} from "@/services/fileParseService";
 import { useExpenseStore } from "@/store/expenseStore";
-import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
-import { preApprovalService, PreApprovalType } from "@/services/preApprovalService";
+import {
+  preApprovalService,
+  PreApprovalType,
+} from "@/services/preApprovalService";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Copy, ExternalLink } from "lucide-react";
@@ -74,7 +86,7 @@ const expenseSchema = z.object({
   dateOfExpense: z.date({
     required_error: "Date is required",
   }),
-  comments: z.string().min(1, 'Description is required'),
+  comments: z.string().min(1, "Description is required"),
   // Conveyance specific fields
   city: z.string().optional(),
   source: z.string().optional(),
@@ -82,10 +94,10 @@ const expenseSchema = z.object({
   pre_approval_id: z.string().nullable().optional(),
   advance_id: z.string().nullable().optional(),
   foreign_currency: z.string().optional().default("INR").nullable(),
-  foreign_amount: z.string().optional().nullable()
+  foreign_amount: z.string().optional().nullable(),
 });
 
-type ExpenseFormValues = z.infer<typeof expenseSchema>
+type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
 interface ExpenseDetailsStepProps {
   onBack: () => void;
@@ -123,7 +135,12 @@ export function ExpenseDetailsStep({
   // console.log(previewUrl);
   const navigate = useNavigate();
   const orgId = getOrgIdFromToken();
-  const { parsedData, setParsedData, selectedPreApproval, setSelectedPreApproval } = useExpenseStore();
+  const {
+    parsedData,
+    setParsedData,
+    selectedPreApproval,
+    setSelectedPreApproval,
+  } = useExpenseStore();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(
     null
@@ -132,38 +149,42 @@ export function ExpenseDetailsStep({
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const showPreApproval = selectedPolicy?.is_pre_approval_required;
   const [preApprovals, setPreApprovals] = useState<PreApprovalType[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<PolicyCategory | null>(null);
+  const [selectedCategory, setSelectedCategory] =
+    useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [replaceRecLoading, setReplaceRecLoading] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [advances, setAdvances] = useState<AdvanceType[]>([]);
   // const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
-  const [selectedCurrency, setSelectedCurrency] = useState('INR');
+  const [selectedCurrency, setSelectedCurrency] = useState("INR");
   const conversionRates = selectedPreApproval?.currency_conversion_rates || [];
 
-  const selectedConversion = conversionRates?.find((con) => con.currency === selectedCurrency);
+  const selectedConversion = conversionRates?.find(
+    (con) => con.currency === selectedCurrency
+  );
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: expenseData
       ? expenseData
       : {
-        policyId: "",
-        categoryId: "",
-        invoiceNumber: "",
-        merchant: "",
-        amount: "",
-        dateOfExpense: new Date(),
-        comments: "",
-        city: "",
-        source: "",
-        destination: "",
-        pre_approval_id: "",
-        advance_id: ""
-      },
+          policyId: "",
+          categoryId: "",
+          invoiceNumber: "",
+          merchant: "",
+          amount: "",
+          dateOfExpense: new Date(),
+          comments: "",
+          city: "",
+          source: "",
+          destination: "",
+          pre_approval_id: "",
+          advance_id: "",
+        },
   });
 
-  const baseAmount = selectedConversion && (+form.getValues('amount') * +selectedConversion?.rate);
+  const baseAmount =
+    selectedConversion && +form.getValues("amount") * +selectedConversion?.rate;
 
   // Fetch signed URL for duplicate receipts
   const fetchDuplicateReceiptUrl = async (receiptId: string) => {
@@ -186,7 +207,11 @@ export function ExpenseDetailsStep({
 
   const getApprovedPreApprovals = async () => {
     try {
-      const response: any = await preApprovalService.getPreApprovalsByStatus({ status: "APPROVED", page: 1, perPage: 25 });
+      const response: any = await preApprovalService.getPreApprovalsByStatus({
+        status: "APPROVED",
+        page: 1,
+        perPage: 25,
+      });
       setPreApprovals(response?.data.data);
     } catch (error) {
       console.log(error);
@@ -201,9 +226,9 @@ export function ExpenseDetailsStep({
 
   // Receipt viewer states
   const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
-  const [activeReceiptTab, setActiveReceiptTab] = useState<"receipt" | "comments">(
-    "receipt"
-  );
+  const [activeReceiptTab, setActiveReceiptTab] = useState<
+    "receipt" | "comments"
+  >("receipt");
   const [receiptZoom, setReceiptZoom] = useState(1);
   const [receiptRotation, setReceiptRotation] = useState(0);
 
@@ -229,12 +254,16 @@ export function ExpenseDetailsStep({
 
   const getApprovedAdvances = async () => {
     try {
-      const res: any = await AdvanceService.getAdvancesByStatus({ status: "APPROVED", page: 1, perPage: 25 });
+      const res: any = await AdvanceService.getAdvancesByStatus({
+        status: "APPROVED",
+        page: 1,
+        perPage: 25,
+      });
       setAdvances(res.data.data);
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
   useEffect(() => {
     loadPoliciesWithCategories();
@@ -247,8 +276,8 @@ export function ExpenseDetailsStep({
       form.reset(expenseData);
       // Set selected policy and category based on form data
       if (expenseData.foreign_amount && expenseData.foreign_currency) {
-        form.setValue('amount', expenseData.foreign_amount);
-        form.setValue('foreign_currency', expenseData.foreign_currency);
+        form.setValue("amount", expenseData.foreign_amount);
+        form.setValue("foreign_currency", expenseData.foreign_currency);
       }
       if (expenseData.policyId && policies.length > 0) {
         const policy = policies.find((p) => p.id === expenseData.policyId);
@@ -278,11 +307,13 @@ export function ExpenseDetailsStep({
       //   };
       // }
       if (expenseData.pre_approval_id && preApprovals.length > 0) {
-        const preApp = preApprovals.find((a) => a.id === expenseData.pre_approval_id);
+        const preApp = preApprovals.find(
+          (a) => a.id === expenseData.pre_approval_id
+        );
         if (preApp) {
-          setSelectedPreApproval(preApp)
-          form.setValue('pre_approval_id', expenseData.pre_approval_id);
-        };
+          setSelectedPreApproval(preApp);
+          form.setValue("pre_approval_id", expenseData.pre_approval_id);
+        }
       }
     }
   }, [form, policies, preApprovals, advances]);
@@ -372,7 +403,8 @@ export function ExpenseDetailsStep({
     }
   };
 
-  const [semiParsedData, setSemiParsedData] = useState<ParsedInvoiceData | null>(null);
+  const [semiParsedData, setSemiParsedData] =
+    useState<ParsedInvoiceData | null>(null);
 
   const uploadNewReceipt = async (file: File) => {
     const orgId = getOrgIdFromToken();
@@ -381,23 +413,23 @@ export function ExpenseDetailsStep({
       const parsedData = await fileParseService.parseInvoiceFile(file);
       if (parsedData.is_duplicate_receipt) {
         setSemiParsedData(parsedData);
-        setShowDuplicateDialog(true)
+        setShowDuplicateDialog(true);
       } else {
         setParsedData(parsedData);
-        fetchReceipt(parsedData.id, orgId)
+        fetchReceipt(parsedData.id, orgId);
         setIsReceiptReplaced(true);
-      };
+      }
     } catch (error) {
       console.log(error);
     } finally {
       setReplaceRecLoading(false);
     }
-  }
+  };
 
   const handleReplaceReceipt = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.pdf,image/*';
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,image/*";
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
@@ -405,7 +437,7 @@ export function ExpenseDetailsStep({
       }
     };
     input.click();
-  }
+  };
 
   const isConveyanceCategory = selectedCategory?.name === "Conveyance 2W";
   const availableCategories = selectedPolicy?.categories || [];
@@ -433,7 +465,7 @@ export function ExpenseDetailsStep({
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
+      reader.onerror = (error) => reject(error);
     });
   };
 
@@ -457,18 +489,18 @@ export function ExpenseDetailsStep({
     (readOnly && receiptUrls.length > 0
       ? `Receipt ${receiptUrls.length > 1 ? "1" : ""}`
       : activeReceiptUrl
-        ? "Receipt preview"
-        : "No receipt uploaded");
+      ? "Receipt preview"
+      : "No receipt uploaded");
 
   const receiptDisplayType = uploadedFile
     ? uploadedFile.type.toLowerCase().includes("pdf")
       ? "PDF"
       : "Image"
     : activeReceiptUrl
-      ? isPdfUrl(activeReceiptUrl)
-        ? "PDF"
-        : "Image"
-      : null;
+    ? isPdfUrl(activeReceiptUrl)
+      ? "PDF"
+      : "Image"
+    : null;
 
   const isPdfReceipt =
     (uploadedFile && uploadedFile.type.toLowerCase().includes("pdf")) ||
@@ -485,17 +517,20 @@ export function ExpenseDetailsStep({
 
   return (
     <div className="space-y-12">
-
       {expense?.original_expense_id && (
         <Alert className="bg-yellow-50 border-yellow-200">
           <Copy className="h-4 w-4 text-yellow-600" />
-          <AlertTitle className="text-yellow-800">Duplicate Expense Detected</AlertTitle>
+          <AlertTitle className="text-yellow-800">
+            Duplicate Expense Detected
+          </AlertTitle>
           <AlertDescription className="text-yellow-700">
-            This expense has been flagged as a duplicate. 
+            This expense has been flagged as a duplicate.
             <Button
               variant="link"
               className="p-0 h-auto text-yellow-700 underline ml-1"
-              onClick={() => navigate(`/expenses/${expense.original_expense_id}`)}
+              onClick={() =>
+                navigate(`/expenses/${expense.original_expense_id}`)
+              }
             >
               View original expense <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
@@ -561,7 +596,7 @@ export function ExpenseDetailsStep({
                     </div>
                   ) : hasReceipt ? (
                     <div className="flex items-center justify-center rounded-b-2xl bg-gray-50 p-6 md:h-full">
-                  {isPdfReceipt ? (
+                      {isPdfReceipt ? (
                         <embed
                           src={`${activeReceiptUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                           type="application/pdf"
@@ -592,8 +627,8 @@ export function ExpenseDetailsStep({
                           No receipt uploaded
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Upload the receipt in the previous step to see a preview
-                          here.
+                          Upload the receipt in the previous step to see a
+                          preview here.
                         </p>
                       </div>
                     </div>
@@ -675,9 +710,9 @@ export function ExpenseDetailsStep({
           </div>
         </div>
 
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
             className="md:h-[calc(100vh-7rem)] md:overflow-y-auto"
           >
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm md:min-h-full">
@@ -700,7 +735,9 @@ export function ExpenseDetailsStep({
                             value={field.value}
                             onValueChange={(value) => {
                               field.onChange(value);
-                              const policy = policies.find((p) => p.id === value);
+                              const policy = policies.find(
+                                (p) => p.id === value
+                              );
                               setSelectedPolicy(policy || null);
                               setSelectedCategory(null);
                               form.setValue("categoryId", "");
@@ -720,7 +757,9 @@ export function ExpenseDetailsStep({
                               {policies.map((policy) => (
                                 <SelectItem key={policy.id} value={policy.id}>
                                   <div>
-                                    <div className="font-medium">{policy.name}</div>
+                                    <div className="font-medium">
+                                      {policy.name}
+                                    </div>
                                     {policy.description && (
                                       <div className="text-sm text-muted-foreground">
                                         {policy.description}
@@ -760,8 +799,8 @@ export function ExpenseDetailsStep({
                                       {selectedCategory
                                         ? selectedCategory.name
                                         : !selectedPolicy
-                                          ? "Select policy first"
-                                          : "Select a category"}
+                                        ? "Select policy first"
+                                        : "Select a category"}
                                     </span>
                                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                   </>
@@ -772,7 +811,9 @@ export function ExpenseDetailsStep({
                               <Command>
                                 <CommandInput placeholder="Search categories..." />
                                 <CommandList>
-                                  <CommandEmpty>No category found.</CommandEmpty>
+                                  <CommandEmpty>
+                                    No category found.
+                                  </CommandEmpty>
                                   <CommandGroup>
                                     {availableCategories.map((category) => (
                                       <CommandItem
@@ -807,11 +848,11 @@ export function ExpenseDetailsStep({
                   </div>
 
                   <div className="space-y-4">
-                        <FormField
-                          control={form.control}
+                    <FormField
+                      control={form.control}
                       name="dateOfExpense"
-                          render={({ field }) => (
-                            <FormItem>
+                      render={({ field }) => (
+                        <FormItem>
                           <FormLabel>Date *</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
@@ -824,108 +865,118 @@ export function ExpenseDetailsStep({
                                   )}
                                   disabled={readOnly}
                                 >
-                                  {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                  {field.value ? (
+                                    format(field.value, "PPP")
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
                                   <Calendar className="h-4 w-4 opacity-50" />
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent
+                              className="w-auto p-0"
+                              align="start"
+                            >
                               <CalendarComponent
                                 mode="single"
                                 selected={field.value}
                                 onSelect={field.onChange}
                                 disabled={(date) =>
-                                  date > new Date() || date < new Date("1900-01-01")
+                                  date > new Date() ||
+                                  date < new Date("1900-01-01")
                                 }
                                 initialFocus
                               />
                             </PopoverContent>
                           </Popover>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                    <div className="grid gap-3 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="foreign_currency"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Currency *</FormLabel>
-                          <FormControl>
-                            <Select
-                              value={field.value || "INR"}
-                              onValueChange={(value) => {
-                                field.onChange(value);
-                                setSelectedCurrency(value);
-                              }}
-                              disabled={readOnly || !form.getValues("pre_approval_id")}
-                            >
-                              <SelectTrigger className={selectTriggerClass}>
-                                <SelectValue placeholder="Select a currency" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="INR">INR (₹)</SelectItem>
-                                <SelectItem value="USD">USD ($)</SelectItem>
-                                <SelectItem value="EUR">EUR (€)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="amount"
-                      render={({ field }) => (
-                        <FormItem>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="foreign_currency"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Currency *</FormLabel>
+                            <FormControl>
+                              <Select
+                                value={field.value || "INR"}
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  setSelectedCurrency(value);
+                                }}
+                                disabled={
+                                  readOnly || !form.getValues("pre_approval_id")
+                                }
+                              >
+                                <SelectTrigger className={selectTriggerClass}>
+                                  <SelectValue placeholder="Select a currency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="INR">INR (₹)</SelectItem>
+                                  <SelectItem value="USD">USD ($)</SelectItem>
+                                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="amount"
+                        render={({ field }) => (
+                          <FormItem>
                             <FormLabel>Expense amount *</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder={
-                                isConveyanceCategory
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder={
+                                  isConveyanceCategory
                                     ? "Auto calculated for conveyance"
                                     : "Enter amount"
-                              }
-                              type="number"
-                              disabled={readOnly}
+                                }
+                                type="number"
+                                disabled={readOnly}
                                 className={inputFieldClass}
-                            />
-                          </FormControl>
+                              />
+                            </FormControl>
                             <FormMessage />
                             {baseAmount && (
                               <p className="text-xs text-muted-foreground">
-                              {formatCurrency(baseAmount)}
-                            </p>
-                          )}
-                        </FormItem>
-                      )}
-                    />
+                                {formatCurrency(baseAmount)}
+                              </p>
+                            )}
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
                     {!isConveyanceCategory && (
-                    <FormField
-                      control={form.control}
+                      <FormField
+                        control={form.control}
                         name="invoiceNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Receipt number *</FormLabel>
-                              <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="e.g. INV-1254"
-                                  disabled={readOnly}
-                              className={inputFieldClass}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Receipt number *</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="e.g. INV-1254"
+                                disabled={readOnly}
+                                className={inputFieldClass}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     )}
                   </div>
                 </section>
@@ -938,24 +989,24 @@ export function ExpenseDetailsStep({
                       </h2>
                     </div>
 
-                  <div className="space-y-4">
+                    <div className="space-y-4">
                       <FormField
-                      control={form.control}
+                        control={form.control}
                         name="merchant"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Vendor *</FormLabel>
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Vendor *</FormLabel>
                             <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="e.g. Blue Bottle Coffee"
-                              disabled={readOnly}
-                              className={inputFieldClass}
-                            />
+                              <Input
+                                {...field}
+                                placeholder="e.g. Blue Bottle Coffee"
+                                disabled={readOnly}
+                                className={inputFieldClass}
+                              />
                             </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
                     </div>
                   </section>
@@ -979,14 +1030,16 @@ export function ExpenseDetailsStep({
                             <Select
                               value={field.value || ""}
                               onValueChange={(value) => {
-                                const preApp = preApprovals.find((p) => p.id === value);
+                                const preApp = preApprovals.find(
+                                  (p) => p.id === value
+                                );
                                 if (preApp) setSelectedPreApproval(preApp);
                                 form.setValue("pre_approval_id", value);
                               }}
                               disabled={readOnly}
                             >
                               <FormControl>
-                            <SelectTrigger className={selectTriggerClass}>
+                                <SelectTrigger className={selectTriggerClass}>
                                   <SelectValue placeholder="Select pre approval">
                                     {field.value && selectedPreApproval
                                       ? selectedPreApproval.title
@@ -997,11 +1050,16 @@ export function ExpenseDetailsStep({
                               <SelectContent>
                                 {preApprovals.length > 0 ? (
                                   preApprovals.map((preApproval) => (
-                                  <SelectItem key={preApproval.id} value={preApproval.id}>
-                                    <div>
-                                        <div className="font-medium">{preApproval.title}</div>
-                                    </div>
-                                  </SelectItem>
+                                    <SelectItem
+                                      key={preApproval.id}
+                                      value={preApproval.id}
+                                    >
+                                      <div>
+                                        <div className="font-medium">
+                                          {preApproval.title}
+                                        </div>
+                                      </div>
+                                    </SelectItem>
                                   ))
                                 ) : (
                                   <SelectItem value="no pre approvals" disabled>
@@ -1016,58 +1074,67 @@ export function ExpenseDetailsStep({
                       />
                     )}
 
-                  <FormField
-                    control={form.control}
-                    name="comments"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description *</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            placeholder="e.g. Client meeting lunch at downtown cafe"
-                            rows={4}
-                            disabled={readOnly}
-                            className={cn(textareaClass, "resize-none")}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={form.control}
+                      name="comments"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description *</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              {...field}
+                              placeholder="e.g. Client meeting lunch at downtown cafe"
+                              rows={4}
+                              disabled={readOnly}
+                              className={cn(textareaClass, "resize-none")}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </section>
               </div>
 
               <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
-                    <Button type="button" variant="outline" onClick={onBack}>
+                <Button type="button" variant="outline" onClick={onBack}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back
-                    </Button>
-                    {!readOnly && (
+                  Back
+                </Button>
+                {!readOnly && (
                   <Button type="submit" disabled={loading}>
-                        {loading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {isEditMode ? "Updating..." : "Creating..."}
-                          </>
-                        ) : isEditMode ? (
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {isEditMode ? "Updating..." : "Creating..."}
+                      </>
+                    ) : isEditMode ? (
                       "Update expense"
-                        ) : (
+                    ) : (
                       "Create expense"
-                        )}
-                      </Button>
                     )}
-        </div>
+                  </Button>
+                )}
+              </div>
 
               <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
                 <div className="pointer-events-auto flex w-full justify-end gap-4 border-t border-gray-200 bg-white px-12 py-5">
-                  <Button type="button" variant="outline" onClick={onBack} className="min-w-[140px]">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onBack}
+                    className="min-w-[140px]"
+                  >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
                   {!readOnly && (
-                    <Button type="submit" disabled={loading} className="min-w-[200px]">
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="min-w-[200px]"
+                    >
                       {loading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1078,123 +1145,126 @@ export function ExpenseDetailsStep({
                       ) : (
                         "Create expense"
                       )}
-                          </Button>
+                    </Button>
                   )}
-                        </div>
-                        </div>
-                      </div>
+                </div>
+              </div>
+            </div>
           </form>
         </Form>
       </div>
 
       {/* Fullscreen Receipt Modal */}
       {isReceiptFullscreen && hasReceipt && (
-          <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
-            <div className="relative w-full h-full flex flex-col">
-              {/* Fullscreen Header */}
-              <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-                <div className="flex items-center gap-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Receipt Viewer
-                  </h3>
-                  <span className="text-sm text-gray-500">
-                    {receiptDisplayName}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReceiptZoomOut}
-                    disabled={receiptZoom <= 0.5}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ZoomOut className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm text-gray-600 min-w-[3rem] text-center">
-                    {Math.round(receiptZoom * 100)}%
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReceiptZoomIn}
-                    disabled={receiptZoom >= 3}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ZoomIn className="h-4 w-4" />
-                  </Button>
-                  <div className="w-px h-6 bg-gray-300 mx-2" />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReceiptRotate}
-                    className="h-8 w-8 p-0"
-                  >
-                    <RotateCw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReceiptReset}
-                    className="h-8 w-8 p-0"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                  <div className="w-px h-6 bg-gray-300 mx-2" />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReceiptDownload}
-                    className="h-8 px-3 text-xs"
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
-                </div>
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
+          <div className="relative w-full h-full flex flex-col">
+            {/* Fullscreen Header */}
+            <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+              <div className="flex items-center gap-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Receipt Viewer
+                </h3>
+                <span className="text-sm text-gray-500">
+                  {receiptDisplayName}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsReceiptFullscreen(false)}
+                  onClick={handleReceiptZoomOut}
+                  disabled={receiptZoom <= 0.5}
                   className="h-8 w-8 p-0"
                 >
-                  <X className="h-4 w-4" />
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-gray-600 min-w-[3rem] text-center">
+                  {Math.round(receiptZoom * 100)}%
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReceiptZoomIn}
+                  disabled={receiptZoom >= 3}
+                  className="h-8 w-8 p-0"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <div className="w-px h-6 bg-gray-300 mx-2" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReceiptRotate}
+                  className="h-8 w-8 p-0"
+                >
+                  <RotateCw className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReceiptReset}
+                  className="h-8 w-8 p-0"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <div className="w-px h-6 bg-gray-300 mx-2" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReceiptDownload}
+                  className="h-8 px-3 text-xs"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Download
                 </Button>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsReceiptFullscreen(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
 
-              {/* Fullscreen Content */}
-              <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
-                {(() => {
-                  const fullscreenSourceUrl = activeReceiptUrl;
-                  return fullscreenSourceUrl?.toLowerCase().includes(".pdf") ? (
-                    <div className="w-full h-full bg-white rounded">
-                      <embed
-                        src={`${fullscreenSourceUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
-                        type="application/pdf"
-                        className="w-full h-full border-0 rounded"
-                        style={{
-                          transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
-                          transformOrigin: "center",
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <img
-                      src={fullscreenSourceUrl || ""}
-                      alt="Receipt fullscreen"
-                      className="max-w-full max-h-full object-contain"
+            {/* Fullscreen Content */}
+            <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
+              {(() => {
+                const fullscreenSourceUrl = activeReceiptUrl;
+                return fullscreenSourceUrl?.toLowerCase().includes(".pdf") ? (
+                  <div className="w-full h-full bg-white rounded">
+                    <embed
+                      src={`${fullscreenSourceUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
+                      type="application/pdf"
+                      className="w-full h-full border-0 rounded"
                       style={{
                         transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
                         transformOrigin: "center",
                       }}
                     />
-                  );
-                })()}
-              </div>
+                  </div>
+                ) : (
+                  <img
+                    src={fullscreenSourceUrl || ""}
+                    alt="Receipt fullscreen"
+                    className="max-w-full max-h-full object-contain"
+                    style={{
+                      transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
+                      transformOrigin: "center",
+                    }}
+                  />
+                );
+              })()}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-      <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+      <AlertDialog
+        open={showDuplicateDialog}
+        onOpenChange={setShowDuplicateDialog}
+      >
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader className="text-center pb-4">
             <div className="flex items-center justify-center mb-4">
@@ -1217,50 +1287,84 @@ export function ExpenseDetailsStep({
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <div className="font-bold text-gray-900">
-                      {semiParsedData?.ocr_result?.vendor || 'Unknown Merchant'}
+                      {semiParsedData?.ocr_result?.vendor || "Unknown Merchant"}
                     </div>
                     <div className="text-sm text-gray-600">
-                      Expense #{semiParsedData?.original_expense_id || 'Unknown'}
+                      Expense #
+                      {semiParsedData?.original_expense_id || "Unknown"}
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-gray-900">
-                      ₹{semiParsedData?.extracted_amount || semiParsedData?.ocr_result?.amount}
+                      ₹
+                      {semiParsedData?.extracted_amount ||
+                        semiParsedData?.ocr_result?.amount}
                     </div>
                     <div className="text-sm text-gray-600">
-                      {semiParsedData?.extracted_date ? new Date(semiParsedData.extracted_date).toLocaleDateString('en-GB', {
-                        weekday: 'short',
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric'
-                      }) : semiParsedData?.ocr_result?.date}
+                      {semiParsedData?.extracted_date
+                        ? new Date(
+                            semiParsedData.extracted_date
+                          ).toLocaleDateString("en-GB", {
+                            weekday: "short",
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : semiParsedData?.ocr_result?.date}
                     </div>
                   </div>
                 </div>
               </div>
-
 
               {semiParsedData?.original_expense_id && (
                 <div
                   className="flex items-center text-blue-600 text-sm cursor-pointer hover:text-blue-700"
                   onClick={async () => {
                     try {
-                      const base64Url = uploadedFile ? await fileToBase64(uploadedFile) : previewUrl;
-                      localStorage.setItem('showDuplicateDialog', 'true');
-                      localStorage.setItem('duplicateParsedData', JSON.stringify(semiParsedData));
-                      localStorage.setItem('duplicatePreviewUrl', base64Url || '');
-                      navigate(`/expenses/${semiParsedData.original_expense_id}?returnTo=create`);
+                      const base64Url = uploadedFile
+                        ? await fileToBase64(uploadedFile)
+                        : previewUrl;
+                      localStorage.setItem("showDuplicateDialog", "true");
+                      localStorage.setItem(
+                        "duplicateParsedData",
+                        JSON.stringify(semiParsedData)
+                      );
+                      localStorage.setItem(
+                        "duplicatePreviewUrl",
+                        base64Url || ""
+                      );
+                      navigate(
+                        `/expenses/${semiParsedData.original_expense_id}?returnTo=create`
+                      );
                     } catch (error) {
-                      console.error('Error converting file to base64:', error);
-                      localStorage.setItem('showDuplicateDialog', 'true');
-                      localStorage.setItem('duplicateParsedData', JSON.stringify(semiParsedData));
-                      localStorage.setItem('duplicatePreviewUrl', previewUrl || '');
-                      navigate(`/expenses/${semiParsedData.original_expense_id}?returnTo=create`);
+                      console.error("Error converting file to base64:", error);
+                      localStorage.setItem("showDuplicateDialog", "true");
+                      localStorage.setItem(
+                        "duplicateParsedData",
+                        JSON.stringify(semiParsedData)
+                      );
+                      localStorage.setItem(
+                        "duplicatePreviewUrl",
+                        previewUrl || ""
+                      );
+                      navigate(
+                        `/expenses/${semiParsedData.original_expense_id}?returnTo=create`
+                      );
                     }
                   }}
                 >
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                   Tap to view expense
                 </div>
@@ -1284,7 +1388,7 @@ export function ExpenseDetailsStep({
                 // setCurrentStep(2);
                 setParsedData(semiParsedData);
                 console.log(semiParsedData);
-                fetchReceipt(semiParsedData?.id, orgId)
+                fetchReceipt(semiParsedData?.id, orgId);
                 setIsReceiptReplaced(true);
               }}
               className="w-full h-12 bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 font-medium"
