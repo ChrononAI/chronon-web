@@ -40,12 +40,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [user]);
 
-  if (!enabled) {
-    return <Navigate to="/permisison-denied" replace />;
-  }
-
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!enabled) {
+    return <Navigate to="/permisison-denied" replace />;
   }
 
   return <>{children}</>;

@@ -37,6 +37,7 @@ export type RuleAction = {
 export type CategoryLimit = {
   limit_type: string;
   limit_value?: number;
+  per_diem_rate?: number;
 };
 
 export type RuleLimits = {
@@ -103,7 +104,7 @@ const limitTypes: Limit[] = [
   {
     name: "As Per Actuals",
     value: "AS_PER_ACTUALS",
-  }
+  },
 ];
 
 function ConditionRow({ i, r, updateCondition, entities }: any) {
@@ -198,6 +199,7 @@ function CreateCategoryLimitPage() {
 
   const [entities, setEntities] = useState([]);
   const [policies, setPolicies] = useState<Policy[]>([]);
+  console.log(policies);
 
   const getEntitites = async () => {
     try {
@@ -271,14 +273,15 @@ function CreateCategoryLimitPage() {
   };
 
   const togglePolicy = (policyId: string) => {
-    setRules((prev) => {const current = { ...prev.rule_limits };
-    if (current[policyId]) {
-      delete current[policyId];
-      return { ...prev, rule_limits: current };
-    } else {
-      const newRuleLimits = { [policyId]: {}, ...current };
-      return { ...prev, rule_limits: newRuleLimits };
-    }
+    setRules((prev) => {
+      const current = { ...prev.rule_limits };
+      if (current[policyId]) {
+        delete current[policyId];
+        return { ...prev, rule_limits: current };
+      } else {
+        const newRuleLimits = { [policyId]: {}, ...current };
+        return { ...prev, rule_limits: newRuleLimits };
+      }
     });
   };
 
@@ -306,18 +309,22 @@ function CreateCategoryLimitPage() {
 
   const submitRule = async () => {
     try {
-      console.log(rules);
       const newRules = {
         ...rules,
-        conditions: {action: rules.conditions.action, rules: rules.conditions.rules.map((rule) => {return {
-            ...rule,
-            field: 'user.'+rule.field
-        }})}
-      }
-        await policyRulesService.createPolicyRule(newRules);
-        toast.success('Policy rule created successfully');
-        navigate('/admin/product-config/category-limits')
+        conditions: {
+          action: rules.conditions.action,
+          rules: rules.conditions.rules.map((rule) => {
+            return {
+              ...rule,
+              field: "user." + rule.field,
+            };
+          }),
+        },
+      };
       console.log(newRules);
+      // await policyRulesService.createPolicyRule(newRules);
+      // toast.success('Policy rule created successfully');
+      // navigate('/admin/product-config/category-limits')
     } catch (error: any) {
       console.log(error);
       toast.error(error?.response?.data?.message || error.message);
@@ -439,17 +446,18 @@ function CreateCategoryLimitPage() {
                             </SelectTrigger>
                             <SelectContent>
                               {limitTypes?.map((limit: Limit) => (
-                                <SelectItem
-                                  key={limit.value}
-                                  value={limit.value}
-                                >
-                                  <div>
-                                    <div className="font-medium">
-                                      {limit.value}
+                                  <SelectItem
+                                    key={limit.value}
+                                    value={limit.value}
+                                  >
+                                    <div>
+                                      <div className="font-medium">
+                                        {limit.value}
+                                      </div>
                                     </div>
-                                  </div>
-                                </SelectItem>
-                              ))}
+                                  </SelectItem>
+                                ))
+                              }
                             </SelectContent>
                           </Select>
                         </div>
@@ -457,13 +465,13 @@ function CreateCategoryLimitPage() {
                           <div>
                             <Input
                               type="number"
-                              value={current.limit_value || ""}
+                              value={(policy.name === "Per Diem" ? current.per_diem_rate : current.limit_value) || ""}
                               placeholder="Enter value"
                               onChange={(e) =>
                                 handleLimitChange(
                                   policyId,
                                   cat.id,
-                                  "limit_value",
+                                  policy.name === "Per Diem" ? 'per_diem_rate' : "limit_value",
                                   Number(e.target.value)
                                 )
                               }
