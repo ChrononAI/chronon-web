@@ -232,7 +232,7 @@ export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected, type = 
       </Card>
 
       {/* Navigation Buttons */}
-      {type === "upload" && <div className="flex justify-between">
+      {/* {type === "upload" && <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
@@ -253,7 +253,7 @@ export function UploadReceiptStep({ onNext, onBack, onDuplicateDetected, type = 
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
-      </div>}
+      </div>} */}
     </div>
   );
 }
