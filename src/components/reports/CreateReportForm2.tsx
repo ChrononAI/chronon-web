@@ -157,6 +157,7 @@ export function CreateReportForm2({
     pageSize: 10,
   });
   const [selectedIds, setSelectedIds] = useState<any[]>([]);
+  console.log(selectedIds);
 
   const [rowSelection, setRowSelection] = useState<any>({
     type: "include",
@@ -164,7 +165,6 @@ export function CreateReportForm2({
   });
 
   useEffect(() => {
-    console.log(markedExpenses.map((exp) => exp.id));
     setRowSelection({
       type: "include",
       ids: new Set(markedExpenses.map((exp) => exp.id)),
@@ -172,9 +172,16 @@ export function CreateReportForm2({
   }, [markedExpenses]);
 
   useEffect(() => {
-    if (Array.from(rowSelection.ids).length > 0) {
-      console.log(rowSelection);
-      setSelectedIds(Array.from(rowSelection.ids));
+    if (rowSelection.type === "include") {
+      const ids = Array.from(rowSelection.ids);
+      setSelectedIds(ids);
+    } else {
+      const ids = Array.from(rowSelection.ids);
+      const filteredExpenses = allExpenses.filter(
+        (expense) => !ids.includes(expense.id)
+      );
+      const idArr = filteredExpenses.map((exp) => exp.id);
+      setSelectedIds(idArr);
     }
   }, [rowSelection]);
 
@@ -647,14 +654,17 @@ export function CreateReportForm2({
           getRowClassName={(params) =>
             params.row.original_expense_id ? "bg-yellow-50" : ""
           }
-          disableRowSelectionExcludeModel
+          // disableRowSelectionExcludeModel
           checkboxSelection
           rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={(newSelection, details) => {
-            console.log(details.reason)
-            if (details.reason === "singleRowSelection") {
-              setRowSelection(newSelection);
-            }
+          onRowSelectionModelChange={(newSelection) => {
+            if (
+              newSelection.type !== "exclude" &&
+              newSelection.ids.size === 0 &&
+              rowSelection.ids.size > 0
+            )
+              return;
+            setRowSelection(newSelection);
           }}
           disableRowSelectionOnClick
           showCellVerticalBorder

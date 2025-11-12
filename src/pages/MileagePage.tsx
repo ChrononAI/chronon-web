@@ -16,7 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ZoomIn, ZoomOut, RotateCw, RefreshCw, Download, X, Copy, ExternalLink } from "lucide-react";
+import {
+  Loader2,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  RefreshCw,
+  Download,
+  X,
+  Copy,
+  ExternalLink,
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LocationAutocomplete } from "@/components/ui/location-autocomplete";
 import { placesService, PlaceSuggestion } from "@/services/placesService";
@@ -46,13 +56,13 @@ interface MileagePageProps {
 }
 
 export const getVehicleType = (
-    type: "FOUR_WHEELERS" | "TWO_WHEELERS" | "PUBLIC_TRANSPORT" | string
-  ) => {
-    if (type === "FOUR_WHEELERS") return "car";
-    if (type === "TWO_WHEELERS") return "bike";
-    if (type === "PUBLIC_TRANSPORT") return "public_transport";
-    return "";
-  };
+  type: "FOUR_WHEELERS" | "TWO_WHEELERS" | "PUBLIC_TRANSPORT" | string
+) => {
+  if (type === "FOUR_WHEELERS") return "car";
+  if (type === "TWO_WHEELERS") return "bike";
+  if (type === "PUBLIC_TRANSPORT") return "public_transport";
+  return "";
+};
 
 const mileageSchema = z.object({
   startLocation: z.string().min(1, "Start location is required"),
@@ -131,6 +141,8 @@ const MileagePage = ({
   const today = new Date().toISOString().split("T")[0];
   const stopRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -144,22 +156,16 @@ const MileagePage = ({
 
         const startLabel = defaults?.start_location_name ?? "";
         const endLabel = defaults?.end_location_name ?? "";
-        const hasDefaults =
-          Boolean(
-            defaults?.start_location &&
-              defaults?.end_location &&
-              startLabel &&
-              endLabel
-          );
+        const hasDefaults = Boolean(
+          defaults?.start_location &&
+            defaults?.end_location &&
+            startLabel &&
+            endLabel
+        );
 
         setHasPrefilledLocations(hasDefaults);
 
-        if (
-          hasDefaults &&
-          defaults &&
-          mode === "create" &&
-          !expenseData
-        ) {
+        if (hasDefaults && defaults && mode === "create" && !expenseData) {
           const startPlace: PlaceSuggestion = {
             place_id: defaults.start_location,
             description: startLabel,
@@ -234,13 +240,14 @@ const MileagePage = ({
   useEffect(() => {
     if (expenseData && policies.length > 0) {
       setIsLoadingExistingData(true);
-      
-      const stops = expenseData.mileage_meta?.stops?.map((stop: any) => ({
-        id: stop.id || `stop-${Date.now()}`,
-        location: stop.location || "",
-        locationId: stop.locationId || "",
-      })) || [];
-      
+
+      const stops =
+        expenseData.mileage_meta?.stops?.map((stop: any) => ({
+          id: stop.id || `stop-${Date.now()}`,
+          location: stop.location || "",
+          locationId: stop.locationId || "",
+        })) || [];
+
       const data = {
         startLocation: expenseData.start_location || "",
         startLocationId: "",
@@ -257,13 +264,13 @@ const MileagePage = ({
         categoryId: expenseData.category_id || "",
         stops: stops,
       };
-      
+
       setFormData(data);
-      
+
       if (expenseData.mileage_meta?.map_url) {
         setMapUrl(expenseData.mileage_meta.map_url);
       }
-      
+
       form.setValue("startLocation", data.startLocation);
       form.setValue("endLocation", data.endLocation);
       form.setValue("distance", data.distance);
@@ -274,15 +281,15 @@ const MileagePage = ({
       form.setValue("isRoundTrip", data.isRoundTrip);
       form.setValue("policyId", data.policyId);
       form.setValue("categoryId", data.categoryId);
-      
-      const policy = policies.find(p => p.id === data.policyId);
+
+      const policy = policies.find((p) => p.id === data.policyId);
       if (policy) {
         setSelectedPolicy(policy);
         if (policy.categories) {
           setCategories(policy.categories);
         }
       }
-      
+
       setTimeout(() => setIsLoadingExistingData(false), 100);
     }
   }, [expenseData, policies, form]);
@@ -327,13 +334,17 @@ const MileagePage = ({
       if (field === "vehiclesType" || field === "isRoundTrip") {
         const originId = startLocation?.place_id || updatedData.startLocationId;
         const destId = endLocation?.place_id || updatedData.endLocationId;
-        
+
         const triggerCalculation = (oid: string, did: string) => {
           calculateMileageCost(
             oid,
             did,
-            field === "vehiclesType" ? (value as string) : updatedData.vehiclesType,
-            field === "vehiclesType" ? updatedData.isRoundTrip : (value as boolean)
+            field === "vehiclesType"
+              ? (value as string)
+              : updatedData.vehiclesType,
+            field === "vehiclesType"
+              ? updatedData.isRoundTrip
+              : (value as boolean)
           );
         };
 
@@ -344,33 +355,43 @@ const MileagePage = ({
             try {
               const [startSuggestions, endSuggestions] = await Promise.all([
                 placesService.getSuggestions(updatedData.startLocation),
-                placesService.getSuggestions(updatedData.endLocation)
+                placesService.getSuggestions(updatedData.endLocation),
               ]);
-              
-              const startPlace = startSuggestions.find(s => s.description === updatedData.startLocation) || startSuggestions[0];
-              const endPlace = endSuggestions.find(s => s.description === updatedData.endLocation) || endSuggestions[0];
-              
+
+              const startPlace =
+                startSuggestions.find(
+                  (s) => s.description === updatedData.startLocation
+                ) || startSuggestions[0];
+              const endPlace =
+                endSuggestions.find(
+                  (s) => s.description === updatedData.endLocation
+                ) || endSuggestions[0];
+
               if (startPlace && endPlace) {
                 setStartLocation(startPlace);
                 setEndLocation(endPlace);
                 setFormData((prev) => ({
                   ...prev,
                   startLocationId: startPlace.place_id,
-                  endLocationId: endPlace.place_id
+                  endLocationId: endPlace.place_id,
                 }));
                 triggerCalculation(startPlace.place_id, endPlace.place_id);
               } else {
-                toast.error("Unable to find location place IDs. Please reselect locations.");
+                toast.error(
+                  "Unable to find location place IDs. Please reselect locations."
+                );
               }
             } catch (error) {
               console.error("Error looking up locations:", error);
-              toast.error("Unable to calculate: Please ensure both locations are properly selected");
+              toast.error(
+                "Unable to calculate: Please ensure both locations are properly selected"
+              );
             }
           })();
         } else {
           toast.error("Please select both start and end locations");
         }
-        
+
         form.setValue(field as keyof MileageFormValues, value);
       } else if (field === "policyId") {
         const policy = policies.find((p) => p.id === value);
@@ -456,7 +477,7 @@ const MileagePage = ({
           : stop
       ),
     }));
-    
+
     if (startLocation && endLocation && formData.vehiclesType) {
       setTimeout(() => {
         calculateMileageCost(
@@ -495,7 +516,7 @@ const MileagePage = ({
       const updatedStops = prev.stops.filter((stop) => stop.id !== stopId);
       const originId = startLocation?.place_id || prev.startLocationId;
       const destId = endLocation?.place_id || prev.endLocationId;
-      
+
       if (originId && destId && prev.vehiclesType) {
         setTimeout(() => {
           calculateMileageCost(
@@ -507,7 +528,7 @@ const MileagePage = ({
           );
         }, 100);
       }
-      
+
       return {
         ...prev,
         stops: updatedStops,
@@ -525,7 +546,12 @@ const MileagePage = ({
   };
 
   useEffect(() => {
-    if (startLocation && endLocation && !isLoadingExistingData && mode === "create") {
+    if (
+      startLocation &&
+      endLocation &&
+      !isLoadingExistingData &&
+      mode === "create"
+    ) {
       calculateMileageCost(
         startLocation?.place_id,
         endLocation?.place_id,
@@ -533,7 +559,14 @@ const MileagePage = ({
         formData.isRoundTrip
       );
     }
-  }, [startLocation, endLocation, isLoadingExistingData, mode, formData.stops, formData.vehiclesType]);
+  }, [
+    startLocation,
+    endLocation,
+    isLoadingExistingData,
+    mode,
+    formData.stops.map((s) => s.locationId).join(","),
+    formData.vehiclesType,
+  ]);
 
   useEffect(() => {
     if (lastAddedStopId) {
@@ -553,7 +586,9 @@ const MileagePage = ({
     }
 
     if (isCalculating) {
-      toast.info("Please wait for distance and amount calculation to complete...");
+      toast.info(
+        "Please wait for distance and amount calculation to complete..."
+      );
       return;
     }
     const mileage_meta: any = {
@@ -585,7 +620,7 @@ const MileagePage = ({
       distance_unit: "KM",
       vehicle_type:
         vehicleTypeMapping[
-        values.vehiclesType as keyof typeof vehicleTypeMapping
+          values.vehiclesType as keyof typeof vehicleTypeMapping
         ] || "four_wheeler",
       is_round_trip: values.isRoundTrip.toString(),
       mileage_meta: mileage_meta,
@@ -639,12 +674,11 @@ const MileagePage = ({
       setPolicies(mileagePolicies);
       setCategories(mileagePolicies[0]?.categories || []);
 
-      
       if (mileagePolicies.length > 0) {
         const firstPolicy = mileagePolicies[0];
         setSelectedPolicy(firstPolicy);
         setFormData((prev) => ({ ...prev, policyId: firstPolicy.id }));
-        
+
         form.setValue("policyId", firstPolicy.id);
 
         if (firstPolicy.categories && firstPolicy.categories.length > 0) {
@@ -678,32 +712,41 @@ const MileagePage = ({
 
     const mappedVehicle =
       vehicleTypeMappingForCost[
-      vehicle as keyof typeof vehicleTypeMappingForCost
+        vehicle as keyof typeof vehicleTypeMappingForCost
       ] || vehicle;
 
     setIsCalculating(true);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // 🔸 Create a new controller for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     try {
       const destinations: string[] = [];
       const stopsToUse = stopsOverride || formData.stops;
-      
+
       stopsToUse.forEach((stop) => {
         if (stop.locationId) {
           destinations.push(stop.locationId);
         }
       });
-      
+
       if (destinationId) {
         destinations.push(destinationId);
       }
 
       const costData = await placesService.getMileageCost({
         originPlaceId: originId,
-        destinationPlaceIds: destinations.length > 0 ? destinations : destinationId,
+        destinationPlaceIds:
+          destinations.length > 0 ? destinations : destinationId,
         vehicle: mappedVehicle,
         orgId,
         isRoundTrip,
+        signal: controller.signal
       });
-      
+
       if (costData) {
         const calculatedDistance = costData.total_distance || 0;
 
@@ -714,14 +757,16 @@ const MileagePage = ({
         }));
         form.setValue("distance", `${calculatedDistance.toFixed(1)} km`);
         form.setValue("amount", `₹${costData.cost.toFixed(2)}`);
-        
+
         if (costData.map_url) {
           setMapUrl(costData.map_url);
         }
       }
-    } catch (error) {
-      console.error("Error calculating mileage cost:", error);
-    } finally {
+      setIsCalculating(false);
+    } catch (error: any) {
+      if (error.name === "CanceledError") {
+        return;
+      }
       setIsCalculating(false);
     }
   };
@@ -769,13 +814,17 @@ const MileagePage = ({
       {expenseData?.original_expense_id && (
         <Alert className="bg-yellow-50 border-yellow-200 mb-4">
           <Copy className="h-4 w-4 text-yellow-600" />
-          <AlertTitle className="text-yellow-800">Duplicate Expense Detected</AlertTitle>
+          <AlertTitle className="text-yellow-800">
+            Duplicate Expense Detected
+          </AlertTitle>
           <AlertDescription className="text-yellow-700">
-            This expense has been flagged as a duplicate. 
+            This expense has been flagged as a duplicate.
             <Button
               variant="link"
               className="p-0 h-auto text-yellow-700 underline ml-1"
-              onClick={() => navigate(`/expenses/${expenseData.original_expense_id}`)}
+              onClick={() =>
+                navigate(`/expenses/${expenseData.original_expense_id}`)
+              }
             >
               View original expense <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
@@ -786,7 +835,26 @@ const MileagePage = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Section - Map */}
         <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 flex items-center justify-center lg:min-h-[620px]">
-          {mapUrl ? (
+          {isCalculating ? <div className="text-center text-gray-500">
+              <div className="mx-auto mb-4 h-16 w-16 text-gray-300">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-full w-full"
+                >
+                  <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </div>
+              <p className="text-base font-medium">Loading Map View...</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Route visualization will appear here
+              </p>
+            </div> : mapUrl ? (
             <img
               src={mapUrl}
               alt="Route Map"
@@ -823,445 +891,484 @@ const MileagePage = ({
             <Card>
               <div className="max-h-[calc(100vh-220px)] overflow-y-auto pr-1 md:pr-2">
                 <CardContent className="px-6 py-4 space-y-6 pb-20 md:pb-24">
-                {/* 🚗 Route Section */}
-                <div className="space-y-2">
-                  <FormField
-                    control={form.control}
-                    name="startLocation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <LocationAutocomplete
-                            value={formData.startLocation}
-                            onChange={(v) => {
-                              handleStartLocationChange(v);
-                              handleInputChange("startLocation", v);
-                              field.onChange(v);
-                            }}
-                            onSelect={handleStartLocationSelect}
-                            disabled={isStartEndLocationLocked}
-                            placeholder="Start Location"
-                            customIcon={formData.startLocation ? <span className="text-gray-400 font-bold text-xs">A</span> : null}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Add Stop button after start location - always available */}
-                  <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => handleAddStop(0)}
-                      disabled={mode === "view" && !editMode}
-                      className="text-blue-600 border-blue-300 hover:bg-blue-50 px-2 py-0.5 text-xs h-7"
-                    >
-                      + ADD
-                    </Button>
-                  </div>
-
-                  {/* Stops */}
-                  {formData.stops.map((stop, index) => (
-                    <div
-                      key={stop.id}
-                      ref={(el) => {
-                        stopRefs.current[stop.id] = el;
-                      }}
-                      className="space-y-2"
-                    >
-                      <LocationAutocomplete
-                        value={stop.location}
-                        onChange={(v) => handleStopLocationChange(stop.id, v)}
-                        onSelect={(place) => handleStopLocationSelect(stop.id, place)}
-                        disabled={mode === "view" && !editMode}
-                        placeholder={`Stop ${index + 1}`}
-                        customIcon={stop.location ? <span className="text-gray-400 font-bold text-xs">{String.fromCharCode(66 + index)}</span> : null}
-                      />
-                      <div className="flex items-center gap-2 justify-end">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAddStop(index + 1)}
-                          disabled={mode === "view" && !editMode}
-                          className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 px-2 py-0.5 h-7"
-                        >
-                          + ADD
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveStop(stop.id)}
-                          disabled={mode === "view" && !editMode}
-                          className="text-xs text-red-600 border-red-300 hover:bg-red-50 px-2 py-0.5 h-7"
-                        >
-                          X REMOVE
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-
-                  <FormField
-                    control={form.control}
-                    name="endLocation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <LocationAutocomplete
-                            value={formData.endLocation}
-                            onChange={(v) => {
-                              handleEndLocationChange(v);
-                              handleInputChange("endLocation", v);
-                              field.onChange(v);
-                            }}
-                            onSelect={handleEndLocationSelect}
-                            disabled={isStartEndLocationLocked}
-                            placeholder="End Location"
-                            customIcon={formData.endLocation ? <span className="text-gray-400 font-bold text-xs">{String.fromCharCode(65 + formData.stops.length + 1)}</span> : null}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Round Trip Toggle */}
-                  <div className="flex items-center justify-end gap-3 my-2">
-                    <Label className={`text-sm font-medium ${formData.stops.length > 0 ? 'text-gray-400' : 'text-gray-700'}`}>
-                      Round Trip
-                    </Label>
-                    <Switch
-                      checked={formData.isRoundTrip}
-                      onCheckedChange={(checked) => {
-                        handleInputChange("isRoundTrip", checked);
-                        form.setValue("isRoundTrip", checked);
-                      }}
-                      disabled={(mode === "view" && !editMode) || formData.stops.length > 0}
-                    />
-                  </div>
-                </div>
-
-                {/* Vehicle and Distance Section */}
-                <FormField
-                  control={form.control}
-                  name="vehiclesType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vehicle *</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={(v) => {
-                          handleInputChange("vehiclesType", v);
-                          field.onChange(v);
-                        }}
-                        disabled={mode === "view" && !editMode}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select vehicle type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="car">Car</SelectItem>
-                          <SelectItem value="bike">Bike</SelectItem>
-                          <SelectItem value="public_transport">
-                            Public Transport
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="distance"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Distance *</FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            type="text"
-                            value={
-                              isCalculating
-                                ? "Calculating..."
-                                : formData.distance || "Auto-calculated"
-                            }
-                            onChange={(e) => {
-                              handleInputChange("distance", e.target.value);
-                              field.onChange(e.target.value);
-                            }}
-                            className="bg-gray-50 text-gray-500"
-                            disabled={true}
-                          />
-                        </FormControl>
-                        {isCalculating && (
-                          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
-                        )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 🚗 Route Section */}
                   <div className="space-y-2">
-                    <FormLabel>Policy</FormLabel>
-                    <Input
-                      type="text"
-                      value={selectedPolicy?.name || ""}
-                      className="bg-gray-50 text-gray-500"
-                      disabled
+                    <FormField
+                      control={form.control}
+                      name="startLocation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <LocationAutocomplete
+                              value={formData.startLocation}
+                              onChange={(v) => {
+                                handleStartLocationChange(v);
+                                handleInputChange("startLocation", v);
+                                field.onChange(v);
+                              }}
+                              onSelect={handleStartLocationSelect}
+                              disabled={isStartEndLocationLocked}
+                              placeholder="Start Location"
+                              customIcon={
+                                formData.startLocation ? (
+                                  <span className="text-gray-400 font-bold text-xs">
+                                    A
+                                  </span>
+                                ) : null
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
+
+                    {/* Add Stop button after start location - always available */}
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleAddStop(0)}
+                        disabled={mode === "view" && !editMode}
+                        className="text-blue-600 border-blue-300 hover:bg-blue-50 px-2 py-0.5 text-xs h-7"
+                      >
+                        + ADD
+                      </Button>
+                    </div>
+
+                    {/* Stops */}
+                    {formData.stops.map((stop, index) => (
+                      <div
+                        key={stop.id}
+                        ref={(el) => {
+                          stopRefs.current[stop.id] = el;
+                        }}
+                        className="space-y-2"
+                      >
+                        <LocationAutocomplete
+                          value={stop.location}
+                          onChange={(v) => handleStopLocationChange(stop.id, v)}
+                          onSelect={(place) =>
+                            handleStopLocationSelect(stop.id, place)
+                          }
+                          disabled={mode === "view" && !editMode}
+                          placeholder={`Stop ${index + 1}`}
+                          customIcon={
+                            stop.location ? (
+                              <span className="text-gray-400 font-bold text-xs">
+                                {String.fromCharCode(66 + index)}
+                              </span>
+                            ) : null
+                          }
+                        />
+                        <div className="flex items-center gap-2 justify-end">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAddStop(index + 1)}
+                            disabled={mode === "view" && !editMode}
+                            className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 px-2 py-0.5 h-7"
+                          >
+                            + ADD
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveStop(stop.id)}
+                            disabled={mode === "view" && !editMode}
+                            className="text-xs text-red-600 border-red-300 hover:bg-red-50 px-2 py-0.5 h-7"
+                          >
+                            X REMOVE
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+
+                    <FormField
+                      control={form.control}
+                      name="endLocation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <LocationAutocomplete
+                              value={formData.endLocation}
+                              onChange={(v) => {
+                                handleEndLocationChange(v);
+                                handleInputChange("endLocation", v);
+                                field.onChange(v);
+                              }}
+                              onSelect={handleEndLocationSelect}
+                              disabled={isStartEndLocationLocked}
+                              placeholder="End Location"
+                              customIcon={
+                                formData.endLocation ? (
+                                  <span className="text-gray-400 font-bold text-xs">
+                                    {String.fromCharCode(
+                                      65 + formData.stops.length + 1
+                                    )}
+                                  </span>
+                                ) : null
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Round Trip Toggle */}
+                    <div className="flex items-center justify-end gap-3 my-2">
+                      <Label
+                        className={`text-sm font-medium ${
+                          formData.stops.length > 0
+                            ? "text-gray-400"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        Round Trip
+                      </Label>
+                      <Switch
+                        checked={formData.isRoundTrip}
+                        onCheckedChange={(checked) => {
+                          handleInputChange("isRoundTrip", checked);
+                          form.setValue("isRoundTrip", checked);
+                        }}
+                        disabled={
+                          (mode === "view" && !editMode) ||
+                          formData.stops.length > 0
+                        }
+                      />
+                    </div>
                   </div>
 
+                  {/* Vehicle and Distance Section */}
                   <FormField
                     control={form.control}
-                    name="categoryId"
+                    name="vehiclesType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Category *</FormLabel>
+                        <FormLabel>Vehicle *</FormLabel>
                         <Select
                           value={field.value}
                           onValueChange={(v) => {
-                            handleInputChange("categoryId", v);
+                            handleInputChange("vehiclesType", v);
                             field.onChange(v);
                           }}
-                          disabled={loadingPolicies || (mode === "view" && !editMode)}
+                          disabled={mode === "view" && !editMode}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select Category" />
+                              <SelectValue placeholder="Select vehicle type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {categories?.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="car">Car</SelectItem>
+                            <SelectItem value="bike">Bike</SelectItem>
+                            <SelectItem value="public_transport">
+                              Public Transport
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
 
-                <FormField
-                  control={form.control}
-                  name="expenseDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date *</FormLabel>
-                      <FormControl>
-                        <DateField
-                          id="startDate"
-                          value={field.value}
-                          onChange={(value) => {
-                            handleInputChange("expenseDate", value);
-                            field.onChange(value);
-                          }}
-                          disabled={mode === "view"}
-                          maxDate={today}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="distance"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Distance *</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              type="text"
+                              value={
+                                isCalculating
+                                  ? "Calculating..."
+                                  : formData.distance || "Auto-calculated"
+                              }
+                              onChange={(e) => {
+                                handleInputChange("distance", e.target.value);
+                                field.onChange(e.target.value);
+                              }}
+                              className="bg-gray-50 text-gray-500"
+                              disabled={true}
+                            />
+                          </FormControl>
+                          {isCalculating && (
+                            <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Purpose of Travel *</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          value={field.value}
-                          onChange={(e) => {
-                            handleInputChange("description", e.target.value);
-                            field.onChange(e.target.value);
-                          }}
-                          disabled={mode === "view" && !editMode}
-                          placeholder="Enter purpose of travel"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <FormLabel>Policy</FormLabel>
+                      <Input
+                        type="text"
+                        value={selectedPolicy?.name || ""}
+                        className="bg-gray-50 text-gray-500"
+                        disabled
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="categoryId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category *</FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={(v) => {
+                              handleInputChange("categoryId", v);
+                              field.onChange(v);
+                            }}
+                            disabled={
+                              loadingPolicies || (mode === "view" && !editMode)
+                            }
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Category" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categories?.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="expenseDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date *</FormLabel>
+                        <FormControl>
+                          <DateField
+                            id="startDate"
+                            value={field.value}
+                            onChange={(value) => {
+                              handleInputChange("expenseDate", value);
+                              field.onChange(value);
+                            }}
+                            disabled={mode === "view"}
+                            maxDate={today}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Purpose of Travel *</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            value={field.value}
+                            onChange={(e) => {
+                              handleInputChange("description", e.target.value);
+                              field.onChange(e.target.value);
+                            }}
+                            disabled={mode === "view" && !editMode}
+                            placeholder="Enter purpose of travel"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </div>
-        </Card>
+            </Card>
 
-        {(mode === "create" || mode === "edit" || editMode) && (
-          <>
-            <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-600">
-                    Total Amount
-                  </Label>
-                  <div className="text-2xl font-bold text-blue-600 mt-1">
-                    {formData.amount || "₹0.00"}
+            {(mode === "create" || mode === "edit" || editMode) && (
+              <>
+                <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">
+                        Total Amount
+                      </Label>
+                      <div className="text-2xl font-bold text-blue-600 mt-1">
+                        {formData.amount || "₹0.00"}
+                      </div>
+                      {formData.distance && (
+                        <p className="text-sm text-gray-500">
+                          {formData.distance}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  {formData.distance && (
-                    <p className="text-sm text-gray-500">{formData.distance}</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                {showCancelButton && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={onCancel}
-                    className="h-11"
-                  >
-                    Cancel
-                  </Button>
-                )}
-                <Button
-                  type="submit"
-                  disabled={saving || isCalculating}
-                  className="h-11 bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  {renderPrimaryButtonContent()}
-                </Button>
-              </div>
-            </div>
-
-            <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
-              <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-5">
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-600">
-                    Total Amount
-                  </span>
-                  <span className="text-2xl font-bold text-blue-600 mt-1">
-                    {formData.amount || "₹0.00"}
-                  </span>
-                  {formData.distance && (
-                    <span className="text-sm text-gray-500">{formData.distance}</span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-4">
-                  {showCancelButton && (
+                  <div className="flex flex-col gap-2">
+                    {showCancelButton && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onCancel}
+                        className="h-11"
+                      >
+                        Cancel
+                      </Button>
+                    )}
                     <Button
-                      type="button"
-                      variant="outline"
-                      onClick={onCancel}
-                      className="min-w-[140px]"
+                      type="submit"
+                      disabled={saving || isCalculating}
+                      className="h-11 bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      Cancel
+                      {renderPrimaryButtonContent()}
                     </Button>
-                  )}
+                  </div>
+                </div>
+
+                <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
+                  <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-5">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-600">
+                        Total Amount
+                      </span>
+                      <span className="text-2xl font-bold text-blue-600 mt-1">
+                        {formData.amount || "₹0.00"}
+                      </span>
+                      {formData.distance && (
+                        <span className="text-sm text-gray-500">
+                          {formData.distance}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      {showCancelButton && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={onCancel}
+                          className="min-w-[140px]"
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                      <Button
+                        type="submit"
+                        disabled={saving || isCalculating}
+                        className="min-w-[200px]"
+                      >
+                        {renderPrimaryButtonContent()}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </form>
+        </Form>
+
+        {/* Fullscreen Map Modal */}
+        {isMapFullscreen && mapUrl && (
+          <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
+            <div className="relative w-full h-full flex flex-col">
+              {/* Fullscreen Header */}
+              <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+                <div className="flex items-center gap-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Route Map
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2">
                   <Button
-                    type="submit"
-                    disabled={saving || isCalculating}
-                    className="min-w-[200px]"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMapZoomOut}
+                    disabled={mapZoom <= 0.5}
+                    className="h-8 w-8 p-0"
                   >
-                    {renderPrimaryButtonContent()}
+                    <ZoomOut className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-gray-600 min-w-[3rem] text-center">
+                    {Math.round(mapZoom * 100)}%
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMapZoomIn}
+                    disabled={mapZoom >= 3}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
+                  <div className="w-px h-6 bg-gray-300 mx-2" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMapRotate}
+                    className="h-8 w-8 p-0"
+                  >
+                    <RotateCw className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMapReset}
+                    className="h-8 w-8 p-0"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <div className="w-px h-6 bg-gray-300 mx-2" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMapDownload}
+                    className="h-8 px-3 text-xs"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Download
                   </Button>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsMapFullscreen(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-            </div>
-          </>
-        )}
-        </form>
-      </Form>
 
-      {/* Fullscreen Map Modal */}
-      {isMapFullscreen && mapUrl && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
-          <div className="relative w-full h-full flex flex-col">
-            {/* Fullscreen Header */}
-            <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-              <div className="flex items-center gap-4">
-                <h3 className="text-lg font-semibold text-gray-900">Route Map</h3>
+              {/* Fullscreen Content */}
+              <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
+                <img
+                  src={mapUrl}
+                  alt="Route Map Fullscreen"
+                  className="max-w-full max-h-full object-contain"
+                  style={{
+                    transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
+                    transformOrigin: "center",
+                  }}
+                />
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleMapZoomOut}
-                  disabled={mapZoom <= 0.5}
-                  className="h-8 w-8 p-0"
-                >
-                  <ZoomOut className="h-4 w-4" />
-                </Button>
-                <span className="text-sm text-gray-600 min-w-[3rem] text-center">
-                  {Math.round(mapZoom * 100)}%
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleMapZoomIn}
-                  disabled={mapZoom >= 3}
-                  className="h-8 w-8 p-0"
-                >
-                  <ZoomIn className="h-4 w-4" />
-                </Button>
-                <div className="w-px h-6 bg-gray-300 mx-2" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleMapRotate}
-                  className="h-8 w-8 p-0"
-                >
-                  <RotateCw className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleMapReset}
-                  className="h-8 w-8 p-0"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-                <div className="w-px h-6 bg-gray-300 mx-2" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleMapDownload}
-                  className="h-8 px-3 text-xs"
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsMapFullscreen(false)}
-                className="h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Fullscreen Content */}
-            <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
-              <img
-                src={mapUrl}
-                alt="Route Map Fullscreen"
-                className="max-w-full max-h-full object-contain"
-                style={{
-                  transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
-                  transformOrigin: "center",
-                }}
-              />
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );
