@@ -199,7 +199,6 @@ function CreateCategoryLimitPage() {
 
   const [entities, setEntities] = useState([]);
   const [policies, setPolicies] = useState<Policy[]>([]);
-  console.log(policies);
 
   const getEntitites = async () => {
     try {
