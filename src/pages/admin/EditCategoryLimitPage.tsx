@@ -242,8 +242,34 @@ export default function EditCategoryLimitPage() {
     return data;
   };
 
+  function removeLimitValuesForPerDiem(rule: any, policies: Policy[]) {
+  // Find the Per Diem policy
+  const perDiemPolicy = policies.find(p => p.name === "Per Diem");
+  if (!perDiemPolicy) return rule; // no such policy
+
+  const policyId = perDiemPolicy.id;
+
+  // If rule_limits or this policy id doesn't exist, just return the original rule
+  if (!rule.rule_limits || !rule.rule_limits[policyId]) return rule;
+
+  // Deep clone the rule to avoid mutation
+  const updatedRule = structuredClone(rule);
+
+  const limits = updatedRule.rule_limits[policyId];
+  for (const catId in limits) {
+    if (limits[catId]?.hasOwnProperty("limit_value")) {
+      delete limits[catId].limit_value;
+    }
+  }
+
+  return updatedRule;
+}
+
   const handleSave = async () => {
     try {
+      console.log(rules);
+      const newRules = removeLimitValuesForPerDiem(rules, policies);
+      setRules(newRules);
       const payload = {
         ...rules,
         conditions: {
