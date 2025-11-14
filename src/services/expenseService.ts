@@ -23,6 +23,7 @@ export interface CreateExpenseData {
   pre_approval_id?: string;
   foreign_amount?: number | null;
   foreign_currency?: string | null;
+  currency?: string | null;
 }
 
 export interface UpdateExpenseData {
@@ -108,16 +109,16 @@ export const expenseService = {
     return response.data;
   },
 
-  async fetchAllExpenses(
-    page: number = 1,
-    perPage: number = 10) {
+  async fetchAllExpenses(page: number = 1, perPage: number = 10) {
     const orgId = getOrgIdFromToken();
     if (!orgId) {
       throw new Error("Organization ID not found in token");
     }
     try {
-      const response = await api.get(`/expenses/expenses?org_id=${orgId}&page=${page}&per_page=${perPage}`)
-      return response.data
+      const response = await api.get(
+        `/expenses/expenses?org_id=${orgId}&page=${page}&per_page=${perPage}`
+      );
+      return response.data;
     } catch (error) {
       console.log(error);
     }
@@ -349,7 +350,7 @@ export const expenseService = {
       return response.data;
     } catch (error: any) {
       console.log("Error calculating per diem amount", error);
-      toast.error(error.response?.data?.message || error.message)
+      toast.error(error.response?.data?.message || error.message);
       return {
         success: false,
         message:
@@ -455,7 +456,9 @@ export const expenseService = {
 
   async fetchReceiptPreview(receiptId: string, orgId: string) {
     try {
-      const response = await api.get(`/receipts/${receiptId}/signed-url?org_id=${orgId}`);
+      const response = await api.get(
+        `/receipts/${receiptId}/signed-url?org_id=${orgId}`
+      );
       return response;
     } catch (error) {
       console.log(error);
@@ -463,13 +466,17 @@ export const expenseService = {
     }
   },
 
-  async deleteExpense(id: string): Promise<{ success: boolean; message: string }> {
+  async deleteExpense(
+    id: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
         throw new Error("Organization ID not found in token");
       }
-      const response = await api.delete(`/em/expenses/delete/${id}?org_id=${orgId}`);
+      const response = await api.delete(
+        `/em/expenses/delete/${id}?org_id=${orgId}`
+      );
       return {
         success: true,
         message: response.data.message || "Expense deleted successfully",
@@ -478,8 +485,29 @@ export const expenseService = {
       console.error("Error deleting expense:", error);
       return {
         success: false,
-        message: error.response?.data?.message || error.message || "Failed to delete expense",
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to delete expense",
       };
     }
-  }
+  },
+
+  async getCurrencyConversionRate({
+    date,
+    from,
+    to = "INR",
+  }: {
+    date: string;
+    from: string;
+    to?: string;
+  }) {
+    try {
+      return await api.get(
+        `/api/v1/currency/exchange_rate?date=${date}&from=${from}&to=${to}`
+      );
+    } catch (error) {
+      throw error;
+    }
+  },
 };

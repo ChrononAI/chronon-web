@@ -94,6 +94,7 @@ const expenseSchema = z.object({
   pre_approval_id: z.string().nullable().optional(),
   advance_id: z.string().nullable().optional(),
   foreign_currency: z.string().optional().default("INR").nullable(),
+  currency: z.string().optional().default("INR").nullable(),
   foreign_amount: z.string().optional().nullable(),
 });
 
@@ -114,6 +115,7 @@ interface ExpenseDetailsStepProps {
   receiptUrls?: string[];
   isEditMode?: boolean;
   foreign_currency?: string | null;
+  currency?: string | null;
   expense?: any; // Full expense object with original_expense_id
 }
 
@@ -896,7 +898,7 @@ export function ExpenseDetailsStep({
                     />
 
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <FormField
+                      {selectedPreApproval ? <FormField
                         control={form.control}
                         name="foreign_currency"
                         render={({ field }) => (
@@ -909,9 +911,7 @@ export function ExpenseDetailsStep({
                                   field.onChange(value);
                                   setSelectedCurrency(value);
                                 }}
-                                disabled={
-                                  readOnly || !form.getValues("pre_approval_id")
-                                }
+                                disabled={readOnly}
                               >
                                 <SelectTrigger className={selectTriggerClass}>
                                   <SelectValue placeholder="Select a currency" />
@@ -926,7 +926,35 @@ export function ExpenseDetailsStep({
                             <FormMessage />
                           </FormItem>
                         )}
-                      />
+                      /> : <FormField
+                        control={form.control}
+                        name="currency"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Currency *</FormLabel>
+                            <FormControl>
+                              <Select
+                                value={field.value || "INR"}
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  setSelectedCurrency(value);
+                                }}
+                                disabled={readOnly}
+                              >
+                                <SelectTrigger className={selectTriggerClass}>
+                                  <SelectValue placeholder="Select a currency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="INR">INR (₹)</SelectItem>
+                                  <SelectItem value="USD">USD ($)</SelectItem>
+                                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />}
 
                       <FormField
                         control={form.control}
