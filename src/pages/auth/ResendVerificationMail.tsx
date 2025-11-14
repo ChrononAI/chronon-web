@@ -23,6 +23,7 @@ function ResendVerificationMail() {
     try {
       const res = await authService.resendVerificationMail({ email });
       toast.success(res.data.message);
+      navigate('/login');
     } catch (error: any) {
       setError(
         error?.response?.data.message ||
