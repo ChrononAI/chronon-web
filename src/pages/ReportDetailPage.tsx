@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { Layout } from '@/components/layout/Layout';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { useEffect, useState } from "react";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { Layout } from "@/components/layout/Layout";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   FileText,
   Calendar,
@@ -17,25 +17,26 @@ import {
   IndianRupee,
   Receipt,
   Activity,
-  Target
-} from 'lucide-react';
+  Target,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { approvalService } from '@/services/approvalService';
-import { reportService } from '@/services/reportService';
-import { ReportWithExpenses, ApprovalWorkflow, Expense } from '@/types/expense';
-import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
-import { useAuthStore } from '@/store/authStore';
-import { toast } from 'sonner';
-import { WorkflowTimeline } from '@/components/expenses/WorkflowTimeline';
-import { ViewExpenseWindow } from '@/components/expenses/ViewExpenseWindow';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { approvalService } from "@/services/approvalService";
+import { reportService } from "@/services/reportService";
+import { ReportWithExpenses, ApprovalWorkflow, Expense } from "@/types/expense";
+import { formatDate, formatCurrency, getStatusColor } from "@/lib/utils";
+import { useAuthStore } from "@/store/authStore";
+import { toast } from "sonner";
+import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
+import { ViewExpenseWindow } from "@/components/expenses/ViewExpenseWindow";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import mixpanel from "../mixpanel";
 
 const columns: GridColDef[] = [
   {
@@ -49,13 +50,13 @@ const columns: GridColDef[] = [
     flex: 0.8,
     align: "right",
     headerAlign: "right",
-    valueFormatter: (val) => formatCurrency(val)
+    valueFormatter: (val) => formatCurrency(val),
   },
   {
     field: "expense_date",
     headerName: "DATE",
     flex: 1,
-    valueFormatter: (val) => formatDate(val)
+    valueFormatter: (val) => formatDate(val),
   },
   {
     field: "vendor",
@@ -88,68 +89,78 @@ export function ReportDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const isFromApprovals = searchParams.get('from') === 'approvals';
+  const isFromApprovals = searchParams.get("from") === "approvals";
   const { user } = useAuthStore();
 
   const [report, setReport] = useState<ReportWithExpenses | null>(null);
-  const [approvalWorkflow, setApprovalWorkflow] = useState<ApprovalWorkflow | null>(null);
+  const [approvalWorkflow, setApprovalWorkflow] =
+    useState<ApprovalWorkflow | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
-  const [comments, setComments] = useState('');
+  const [actionType, setActionType] = useState<"approve" | "reject" | null>(
+    null
+  );
+  const [comments, setComments] = useState("");
   const [showActionDialog, setShowActionDialog] = useState(false);
   const [showViewExpense, setShowViewExpense] = useState(false);
   const [expenseToView, setExpenseToView] = useState<Expense | null>(null);
 
   const getUserSpecificStatus = (): string => {
     if (!user || !approvalWorkflow || !approvalWorkflow.approval_steps) {
-      return report?.status || 'UNDER_REVIEW';
+      return report?.status || "UNDER_REVIEW";
     }
 
     const currentUserId = user.id.toString();
 
-    const userStep = approvalWorkflow.approval_steps.find(step =>
-      step.approvers.some(approver => approver.user_id === currentUserId)
+    const userStep = approvalWorkflow.approval_steps.find((step) =>
+      step.approvers.some((approver) => approver.user_id === currentUserId)
     );
 
     if (!userStep) {
-      return report?.status || 'UNDER_REVIEW';
+      return report?.status || "UNDER_REVIEW";
     }
 
-    return userStep.status === 'APPROVED' ? 'APPROVED' :
-      userStep.status === 'REJECTED' ? 'REJECTED' :
-        'UNDER_REVIEW';
+    return userStep.status === "APPROVED"
+      ? "APPROVED"
+      : userStep.status === "REJECTED"
+      ? "REJECTED"
+      : "UNDER_REVIEW";
   };
 
   const fetchReport = async () => {
     if (!id) {
-      console.error('Report ID is missing');
+      console.error("Report ID is missing");
       setLoading(false);
       return;
     }
 
-
     try {
       const [reportResponse, workflowResponse] = await Promise.all([
         reportService.getReportWithExpenses(id),
-        reportService.getReportApprovalWorkflow(id)
+        reportService.getReportApprovalWorkflow(id),
       ]);
 
       if (reportResponse.success && reportResponse.data) {
         setReport(reportResponse.data);
       } else {
-        console.error('Failed to fetch report details:', reportResponse.message);
-        toast.error(reportResponse.message || 'Failed to fetch report details');
+        console.error(
+          "Failed to fetch report details:",
+          reportResponse.message
+        );
+        toast.error(reportResponse.message || "Failed to fetch report details");
       }
 
       if (workflowResponse.success && workflowResponse.data) {
         setApprovalWorkflow(workflowResponse.data);
       } else {
-        console.warn('Failed to fetch approval workflow:', workflowResponse.message);
+        console.warn(
+          "Failed to fetch approval workflow:",
+          workflowResponse.message
+        );
       }
     } catch (error) {
-      console.error('Failed to fetch report details', error);
-      toast.error('Failed to fetch report details');
+      console.error("Failed to fetch report details", error);
+      toast.error("Failed to fetch report details");
     } finally {
       setLoading(false);
     }
@@ -161,8 +172,8 @@ export function ReportDetailPage() {
 
   // Redirect to edit mode if report is DRAFT
   useEffect(() => {
-    if (report && report.status === 'DRAFT' && !isFromApprovals) {
-      navigate('/reports/create', {
+    if (report && report.status === "DRAFT" && !isFromApprovals) {
+      navigate("/reports/create", {
         state: {
           editMode: true,
           reportData: {
@@ -170,17 +181,17 @@ export function ReportDetailPage() {
             title: report.title,
             description: report.description,
             custom_attributes: report.custom_attributes,
-            expenses: report.expenses
-          }
+            expenses: report.expenses,
+          },
         },
-        replace: true
+        replace: true,
       });
     }
   }, [report, isFromApprovals, navigate]);
 
-  const handleAction = (type: 'approve' | 'reject') => {
+  const handleAction = (type: "approve" | "reject") => {
     setActionType(type);
-    setComments('');
+    setComments("");
     setShowActionDialog(true);
   };
 
@@ -188,17 +199,23 @@ export function ReportDetailPage() {
     if (!report || !actionType) return;
 
     if (!comments.trim()) {
-      toast.error('Comments are required');
+      toast.error("Comments are required");
       return;
     }
 
     setActionLoading(true);
     try {
       let result;
-      if (actionType === 'approve') {
+      if (actionType === "approve") {
         result = await approvalService.approveReport(report.id, comments);
-      } else if (actionType === 'reject') {
+        mixpanel.track("Approve Report Button Clicked", {
+          button_name: "Approve Report",
+        });
+      } else if (actionType === "reject") {
         result = await approvalService.rejectReport(report.id, comments);
+        mixpanel.track("Reject Report Button Clicked", {
+          button_name: "Reject Report",
+        });
       }
 
       if (result && result.success) {
@@ -207,7 +224,7 @@ export function ReportDetailPage() {
         // Refresh data
         await fetchReport();
       } else {
-        toast.error(result?.message || 'Action failed');
+        toast.error(result?.message || "Action failed");
       }
     } catch (error) {
       console.error(`Failed to ${actionType} report`, error);
@@ -222,32 +239,32 @@ export function ReportDetailPage() {
     if (!report || !user) return false;
 
     // Check if report is in a state that allows approval
-    if (report.status === 'DRAFT' || report.status === 'SUBMITTED') {
+    if (report.status === "DRAFT" || report.status === "SUBMITTED") {
       return false; // Can't approve draft or already submitted reports
     }
 
     // Check if there are pending expenses
-    const pendingExpenses = report.expenses.filter(exp =>
-      exp.status === 'PENDING' || exp.status === 'PENDING_APPROVAL'
+    const pendingExpenses = report.expenses.filter(
+      (exp) => exp.status === "PENDING" || exp.status === "PENDING_APPROVAL"
     ).length;
 
     // Check if user is in the current approval step
     const isUserInCurrentStep = approvalWorkflow?.approval_steps
-      .find(step => step.step_order === approvalWorkflow.current_step)
-      ?.approvers.some(approver => approver.user_id === user.id.toString());
+      .find((step) => step.step_order === approvalWorkflow.current_step)
+      ?.approvers.some((approver) => approver.user_id === user.id.toString());
 
     return pendingExpenses > 0 && (isUserInCurrentStep || !approvalWorkflow);
   };
 
   const getStatusIcon = (status: string) => {
     switch (status.toUpperCase()) {
-      case 'APPROVED':
-      case 'FULLY_APPROVED':
+      case "APPROVED":
+      case "FULLY_APPROVED":
         return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case 'PENDING':
-      case 'PENDING_APPROVAL':
+      case "PENDING":
+      case "PENDING_APPROVAL":
         return <Clock className="h-5 w-5 text-yellow-600" />;
-      case 'REJECTED':
+      case "REJECTED":
         return <XCircle className="h-5 w-5 text-red-600" />;
       default:
         return <Activity className="h-5 w-5 text-blue-600" />;
@@ -275,7 +292,9 @@ export function ReportDetailPage() {
             <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto" />
             <div>
               <h3 className="text-lg font-semibold">Report Not Found</h3>
-              <p className="text-muted-foreground">The report you're looking for doesn't exist.</p>
+              <p className="text-muted-foreground">
+                The report you're looking for doesn't exist.
+              </p>
             </div>
           </div>
         </div>
@@ -284,18 +303,26 @@ export function ReportDetailPage() {
   }
 
   const breadcrumbItems = [
-    { label: isFromApprovals ? 'Reports for Approval' : 'Expense Reports', href: isFromApprovals ? '/approvals/reports' : '/reports' },
-    { label: 'View Report' },
+    {
+      label: isFromApprovals ? "Reports for Approval" : "Expense Reports",
+      href: isFromApprovals ? "/approvals/reports" : "/reports",
+    },
+    { label: "View Report" },
   ];
 
-  const totalAmount = report.expenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0);
-  const pendingExpenses = report.expenses.filter(exp => exp.status === 'PENDING' || exp.status === 'PENDING_APPROVAL').length;
+  const totalAmount = report.expenses.reduce(
+    (sum, expense) => sum + parseFloat(expense.amount.toString()),
+    0
+  );
+  const pendingExpenses = report.expenses.filter(
+    (exp) => exp.status === "PENDING" || exp.status === "PENDING_APPROVAL"
+  ).length;
 
   const handleViewExpense = async (expense: Expense) => {
     setShowViewExpense(true);
     console.log(expense);
     setExpenseToView(expense);
-  }
+  };
 
   return (
     <Layout>
@@ -307,17 +334,23 @@ export function ReportDetailPage() {
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-semibold text-gray-700">{report?.title}</h1>
+                <h1 className="text-2xl font-semibold text-gray-700">
+                  {report?.title}
+                </h1>
                 <div className="flex items-center gap-3 mt-2">
                   {getStatusIcon(getUserSpecificStatus())}
-                  <Badge className={`${getStatusColor(getUserSpecificStatus())} text-sm px-3 py-1`}>
-                    {getUserSpecificStatus().replace('_', ' ')}
+                  <Badge
+                    className={`${getStatusColor(
+                      getUserSpecificStatus()
+                    )} text-sm px-3 py-1`}
+                  >
+                    {getUserSpecificStatus().replace("_", " ")}
                   </Badge>
                 </div>
               </div>
               <div className="flex gap-2">
                 <Button
-                  onClick={() => handleAction('approve')}
+                  onClick={() => handleAction("approve")}
                   disabled={actionLoading}
                   className="bg-green-600 hover:bg-green-700"
                 >
@@ -325,7 +358,7 @@ export function ReportDetailPage() {
                   Approve
                 </Button>
                 <Button
-                  onClick={() => handleAction('reject')}
+                  onClick={() => handleAction("reject")}
                   disabled={actionLoading}
                   className="bg-red-600 hover:bg-red-700"
                 >
@@ -355,7 +388,9 @@ export function ReportDetailPage() {
                       <FileText className="h-4 w-4" />
                       Submitted By
                     </div>
-                    <p className="text-lg font-semibold">{report.created_by.email}</p>
+                    <p className="text-lg font-semibold">
+                      {report.created_by.email}
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -364,7 +399,7 @@ export function ReportDetailPage() {
                       Status
                     </div>
                     <Badge className={getStatusColor(getUserSpecificStatus())}>
-                      {getUserSpecificStatus().replace('_', ' ')}
+                      {getUserSpecificStatus().replace("_", " ")}
                     </Badge>
                   </div>
 
@@ -373,7 +408,9 @@ export function ReportDetailPage() {
                       <Calendar className="h-4 w-4" />
                       Created Date
                     </div>
-                    <p className="text-lg font-semibold">{formatDate(report.created_at)}</p>
+                    <p className="text-lg font-semibold">
+                      {formatDate(report.created_at)}
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -381,7 +418,11 @@ export function ReportDetailPage() {
                       <Calendar className="h-4 w-4" />
                       Submitted Date
                     </div>
-                    <p className="text-lg font-semibold">{report.submitted_at ? formatDate(report.submitted_at) : 'Not submitted'}</p>
+                    <p className="text-lg font-semibold">
+                      {report.submitted_at
+                        ? formatDate(report.submitted_at)
+                        : "Not submitted"}
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -389,7 +430,9 @@ export function ReportDetailPage() {
                       <IndianRupee className="h-4 w-4" />
                       Total Amount
                     </div>
-                    <p className="text-lg font-semibold">{formatCurrency(totalAmount, 'INR')}</p>
+                    <p className="text-lg font-semibold">
+                      {formatCurrency(totalAmount, "INR")}
+                    </p>
                   </div>
                 </div>
 
@@ -401,36 +444,41 @@ export function ReportDetailPage() {
                     Description
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-sm leading-relaxed">{report.description}</p>
+                    <p className="text-sm leading-relaxed">
+                      {report.description}
+                    </p>
                   </div>
                 </div>
 
                 {/* Custom Attributes */}
-                {report.custom_attributes && Object.keys(report.custom_attributes).length > 0 && (
-                  <>
-                    <Separator />
+                {report.custom_attributes &&
+                  Object.keys(report.custom_attributes).length > 0 && (
+                    <>
+                      <Separator />
 
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold flex items-center gap-2">
-                        <Building className="h-5 w-5" />
-                        Custom Attributes
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {Object.entries(report.custom_attributes).map(([key, value]) => (
-                          <div key={key} className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground capitalize">
-                              {key.replace(/_/g, ' ')}
-                            </label>
-                            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                              <Target className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">{value}</span>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold flex items-center gap-2">
+                          <Building className="h-5 w-5" />
+                          Custom Attributes
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {Object.entries(report.custom_attributes).map(
+                            ([key, value]) => (
+                              <div key={key} className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground capitalize">
+                                  {key.replace(/_/g, " ")}
+                                </label>
+                                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+                                  <Target className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-sm">{value}</span>
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
               </CardContent>
             </Card>
 
@@ -445,51 +493,54 @@ export function ReportDetailPage() {
               <CardContent>
                 <div className="rounded-lg border">
                   <DataGrid
-                            className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-                            rows={report.expenses}
-                            columns={columns}
-                            sx={{
-                              border: 0,
-                              "& .MuiDataGrid-columnHeaderTitle": {
-                                color: "#9AA0A6",
-                                fontWeight: "bold",
-                                fontSize: "12px",
-                              },
-                              "& .MuiDataGrid-main": {
-                                border: "0.2px solid #f3f4f6",
-                              },
-                              "& .MuiDataGrid-columnHeader": {
-                                backgroundColor: "#f3f4f6",
-                                border: "none",
-                              },
-                              "& .MuiDataGrid-columnHeaders": {
-                                border: "none",
-                              },
-                              "& .MuiDataGrid-row:hover": {
-                                cursor: "pointer",
-                                backgroundColor: "#f5f5f5",
-                              },
-                              "& .MuiDataGrid-cell": {
-                                color: "#2E2E2E",
-                                border: "0.2px solid #f3f4f6",
-                              },
-                              "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-                                outline: "none",
-                              },
-                              "& .MuiDataGrid-cell:focus-within": {
-                                outline: "none",
-                              },
-                              "& .MuiDataGrid-columnSeparator": {
-                                color: "#f3f4f6",
-                              },
-                            }}
-                            density="compact"
-                            getRowClassName={(params) => params.row.original_expense_id ? 'bg-yellow-50' : ''}
-                            hideFooter
-                            disableRowSelectionOnClick
-                            showCellVerticalBorder
-                            onRowClick={(params) => handleViewExpense(params.row)}
-                          />
+                    className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+                    rows={report.expenses}
+                    columns={columns}
+                    sx={{
+                      border: 0,
+                      "& .MuiDataGrid-columnHeaderTitle": {
+                        color: "#9AA0A6",
+                        fontWeight: "bold",
+                        fontSize: "12px",
+                      },
+                      "& .MuiDataGrid-main": {
+                        border: "0.2px solid #f3f4f6",
+                      },
+                      "& .MuiDataGrid-columnHeader": {
+                        backgroundColor: "#f3f4f6",
+                        border: "none",
+                      },
+                      "& .MuiDataGrid-columnHeaders": {
+                        border: "none",
+                      },
+                      "& .MuiDataGrid-row:hover": {
+                        cursor: "pointer",
+                        backgroundColor: "#f5f5f5",
+                      },
+                      "& .MuiDataGrid-cell": {
+                        color: "#2E2E2E",
+                        border: "0.2px solid #f3f4f6",
+                      },
+                      "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
+                        {
+                          outline: "none",
+                        },
+                      "& .MuiDataGrid-cell:focus-within": {
+                        outline: "none",
+                      },
+                      "& .MuiDataGrid-columnSeparator": {
+                        color: "#f3f4f6",
+                      },
+                    }}
+                    density="compact"
+                    getRowClassName={(params) =>
+                      params.row.original_expense_id ? "bg-yellow-50" : ""
+                    }
+                    hideFooter
+                    disableRowSelectionOnClick
+                    showCellVerticalBorder
+                    onRowClick={(params) => handleViewExpense(params.row)}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -511,7 +562,6 @@ export function ReportDetailPage() {
             </div>
           )}
         </div>
-
       </div>
 
       {/* Action Dialog */}
@@ -519,14 +569,14 @@ export function ReportDetailPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {actionType === 'approve' ? (
+              {actionType === "approve" ? (
                 <CheckCircle className="h-5 w-5 text-green-600" />
-              ) : actionType === 'reject' ? (
+              ) : actionType === "reject" ? (
                 <XCircle className="h-5 w-5 text-red-600" />
               ) : (
                 <XCircle className="h-5 w-5 text-orange-600" />
               )}
-              {actionType === 'approve' ? 'Approve' : 'Reject'} Report
+              {actionType === "approve" ? "Approve" : "Reject"} Report
             </DialogTitle>
           </DialogHeader>
 
@@ -535,18 +585,26 @@ export function ReportDetailPage() {
               <div className="bg-muted/30 rounded-lg p-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Report:</span>
+                    <span className="text-sm text-muted-foreground">
+                      Report:
+                    </span>
                     <span className="text-sm font-medium">{report.title}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total Value:</span>
+                    <span className="text-sm text-muted-foreground">
+                      Total Value:
+                    </span>
                     <span className="text-sm font-medium">
-                      {formatCurrency(totalAmount, 'INR')}
+                      {formatCurrency(totalAmount, "INR")}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Pending Expenses:</span>
-                    <span className="text-sm font-medium">{pendingExpenses}</span>
+                    <span className="text-sm text-muted-foreground">
+                      Pending Expenses:
+                    </span>
+                    <span className="text-sm font-medium">
+                      {pendingExpenses}
+                    </span>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -561,11 +619,11 @@ export function ReportDetailPage() {
                   <Textarea
                     id="comments"
                     placeholder={
-                      actionType === 'approve'
-                        ? 'Please provide comments for approval...'
-                        : actionType === 'reject'
-                          ? 'Please provide reason for rejection...'
-                          : 'Please provide reason for sending back to draft...'
+                      actionType === "approve"
+                        ? "Please provide comments for approval..."
+                        : actionType === "reject"
+                        ? "Please provide reason for rejection..."
+                        : "Please provide reason for sending back to draft..."
                     }
                     value={comments}
                     onChange={(e) => setComments(e.target.value)}
@@ -588,26 +646,33 @@ export function ReportDetailPage() {
                   <Button
                     onClick={executeAction}
                     disabled={actionLoading || !comments.trim()}
-                    className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-200 ${actionType === 'approve'
-                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md'
-                      : actionType === 'reject'
-                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md'
-                        : 'bg-orange-600 hover:bg-orange-700 text-white shadow-sm hover:shadow-md'
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-200 ${
+                      actionType === "approve"
+                        ? "bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md"
+                        : actionType === "reject"
+                        ? "bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md"
+                        : "bg-orange-600 hover:bg-orange-700 text-white shadow-sm hover:shadow-md"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {actionLoading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                        {actionType === 'approve' ? 'Approving...' : actionType === 'reject' ? 'Rejecting...' : 'Sending Back...'}
+                        {actionType === "approve"
+                          ? "Approving..."
+                          : actionType === "reject"
+                          ? "Rejecting..."
+                          : "Sending Back..."}
                       </>
                     ) : (
                       <>
-                        {actionType === 'approve' ? (
+                        {actionType === "approve" ? (
                           <CheckCircle className="h-4 w-4 mr-2" />
                         ) : (
                           <XCircle className="h-4 w-4 mr-2" />
                         )}
-                        {actionType === 'approve' ? 'Approve Report' : 'Reject Report'}
+                        {actionType === "approve"
+                          ? "Approve Report"
+                          : "Reject Report"}
                       </>
                     )}
                   </Button>
@@ -617,7 +682,11 @@ export function ReportDetailPage() {
           )}
         </DialogContent>
       </Dialog>
-          <ViewExpenseWindow open={showViewExpense} onOpenChange={setShowViewExpense} data={expenseToView} />
+      <ViewExpenseWindow
+        open={showViewExpense}
+        onOpenChange={setShowViewExpense}
+        data={expenseToView}
+      />
     </Layout>
   );
 }

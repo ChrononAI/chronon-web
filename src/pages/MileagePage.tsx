@@ -44,6 +44,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import mixpanel from '../mixpanel';
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -585,6 +586,10 @@ const MileagePage = ({
       return;
     }
 
+    mixpanel.track("Create Mileage Button Clicked", {
+      button_name: "Create Mileage",
+    });
+
     if (isCalculating) {
       toast.info(
         "Please wait for distance and amount calculation to complete..."
@@ -744,7 +749,7 @@ const MileagePage = ({
         vehicle: mappedVehicle,
         orgId,
         isRoundTrip,
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       if (costData) {
@@ -835,7 +840,8 @@ const MileagePage = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Section - Map */}
         <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 flex items-center justify-center lg:min-h-[620px]">
-          {isCalculating ? <div className="text-center text-gray-500">
+          {isCalculating ? (
+            <div className="text-center text-gray-500">
               <div className="mx-auto mb-4 h-16 w-16 text-gray-300">
                 <svg
                   viewBox="0 0 24 24"
@@ -854,7 +860,8 @@ const MileagePage = ({
               <p className="text-sm text-gray-400 mt-1">
                 Route visualization will appear here
               </p>
-            </div> : mapUrl ? (
+            </div>
+          ) : mapUrl ? (
             <img
               src={mapUrl}
               alt="Route Map"

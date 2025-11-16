@@ -49,6 +49,7 @@ import { GridPaginationModel } from "@mui/x-data-grid";
 import { Box, Toolbar } from "@mui/material";
 import { categoryService } from "@/services/admin/categoryService";
 import { SearchableSelect } from "./SearchableSelect";
+import mixpanel from "../../mixpanel";
 
 // Dynamic form schema creation function
 const createReportSchema = (customAttributes: CustomAttribute[]) => {
@@ -142,35 +143,19 @@ const columns: GridColDef[] = [
   },
 ];
 
-function CustomToolbar({ selectedCategory, setSelectedCategory }: any) {
-  const [categories, setCategories] = useState([]);
-
-  const getAllCategories = async () => {
-    try {
-      const res = await categoryService.getAllCategories();
-      console.log(res);
-      setCategories(res.data.data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  useEffect(() => {
-    getAllCategories();
-  }, []);
+function CustomToolbar({ categories, selectedCategory, setSelectedCategory }: any) {
   return (
     <Toolbar
       sx={{
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        p: 1,
+        // p: 1,
         gap: 2,
         backgroundColor: "background.paper",
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        {/* <Input value={searchValue} onChange={onSearchChange} placeholder="Search..." /> */}
         <SearchableSelect
           categories={categories}
           selectedCategory={selectedCategory}
@@ -225,9 +210,9 @@ export function CreateReportForm2({
   const [selectedIds, setSelectedIds] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<any>();
 
-  const filteredExpenses = selectedCategory ? allExpenses.filter((exp) => exp.category_id === selectedCategory.id) : allExpenses;
-
-  console.log(selectedCategory);
+  const filteredExpenses = selectedCategory
+    ? allExpenses.filter((exp) => exp.category_id === selectedCategory.id)
+    : allExpenses;
 
   const [rowSelection, setRowSelection] = useState<any>({
     type: "include",
@@ -256,10 +241,10 @@ export function CreateReportForm2({
   }, [rowSelection]);
 
   useEffect(() => {
-      if (selectedCategory) {
-        setSelectedIds([]);
-        setRowSelection({type: 'include', ids: new Set([])});
-      }
+    if (selectedCategory) {
+      setSelectedIds([]);
+      setRowSelection({ type: "include", ids: new Set([]) });
+    }
   }, [selectedCategory]);
 
   // Determine if Hospital Name and Campaign Code should be shown
@@ -364,9 +349,16 @@ export function CreateReportForm2({
       setLoadingMeta(false);
     }
   };
+  const [categories, setCategories] = useState([]);
+
+  const fetchCategories = async () => {
+    const res = await categoryService.getAllCategories();
+    setCategories(res.data.data);
+  };
 
   useEffect(() => {
     fetchData();
+    fetchCategories();
   }, []);
 
   const getFieldMeta = (fieldName: string) => {
@@ -378,6 +370,10 @@ export function CreateReportForm2({
       toast.error("Please add at least one expense to the report");
       return;
     }
+
+    mixpanel.track("Save Report Button Clicked", {
+      button_name: "Save Report",
+    });
 
     setSaving(true);
     try {
@@ -509,6 +505,9 @@ export function CreateReportForm2({
       toast.error("Please add at least one expense to the report");
       return;
     }
+    mixpanel.track("Create Report Button Clicked", {
+      button_name: "Create Report",
+    });
 
     setLoading(true);
     try {
@@ -687,12 +686,13 @@ export function CreateReportForm2({
           slots={{
             loadingOverlay: CustomLoader,
             // noRowsOverlay: CustomNoRows,
-            toolbar: () =>
+            toolbar: () => (
               <CustomToolbar
+                categories={categories}
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
               />
-            ,
+            ),
           }}
           sx={{
             border: 0,

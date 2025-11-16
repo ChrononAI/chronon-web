@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { UploadReceiptStep } from './UploadReceiptStep';
 import { ExpenseDetailsStep } from './ExpenseDetailsStep';
 import { useExpenseStore } from '@/store/expenseStore';
+import mixpanel from '../../mixpanel';
 
 // Form schema for step 2
 type ExpenseFormValues = {
@@ -122,6 +123,9 @@ export function CreateExpenseForm() {
 
   const actuallySubmit = async (data: ExpenseFormValues) => {
     // setLoading(true);
+    mixpanel.track("Create Expense Button Clicked", {
+      button_name: "Create Expense",
+    });
     const copiedData = JSON.parse(JSON.stringify(data));
     let isForeign = false;
     const curr = selectedPreApproval?.currency_conversion_rates?.find((cur) => cur.currency === copiedData.foreign_currency);

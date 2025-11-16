@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { authService } from "@/services/authService";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import mixpanel from '../../mixpanel';
 
 export function LoginForm() {
   const login = useAuthStore((state) => state.login);
@@ -21,10 +22,20 @@ export function LoginForm() {
     setIsLoading(true);
     setError("");
 
+    mixpanel.track("Login Button Clicked", {
+      button_name: "Login",
+    });
+
     try {
       const { user, token } = await authService.login({ email, password });
       login(user, token);
       toast.success("Login successful!");
+      mixpanel.identify(user.id.toString());
+      mixpanel.people.set({
+        $name: user.firstName + " " + user.lastName,
+        $email: user.email,
+        role: user.role,
+      });
     } catch (error: any) {
       setError(
         error?.response?.data?.message ||
@@ -40,7 +51,9 @@ export function LoginForm() {
     <div className="w-full max-w-md">
       <div className="text-center mb-8">
         <h2 className="text-xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-        <p className="text-gray-600 text-base">Sign in to access Chronon Flow</p>
+        <p className="text-gray-600 text-base">
+          Sign in to access Chronon Flow
+        </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
@@ -123,7 +136,10 @@ export function LoginForm() {
       <div className="mt-4 text-center">
         <p className="text-sm text-gray-500">
           Need help?{" "}
-          <a href="#" className="text-blue-600 hover:blue-purple-700 font-medium">
+          <a
+            href="#"
+            className="text-blue-600 hover:blue-purple-700 font-medium"
+          >
             Contact your administrator
           </a>
         </p>

@@ -32,6 +32,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import mixpanel from '../mixpanel';
 
 interface PerdiemPageProps {
   mode?: "create" | "view" | "edit";
@@ -224,11 +225,14 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
       toast.error("Organization ID not found");
       return;
     }
-    console.log(formData);
     if (+formData.totalAmount === 0) {
       toast.error("Amount must be greater than 0");
       return;
     }
+
+    mixpanel.track("Create Per Diem Button Clicked", {
+      button_name: "Create Per Diem",
+    });
 
     const submitData = {
       expense_policy_id: formData.policyId,
