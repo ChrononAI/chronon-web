@@ -46,6 +46,14 @@ const isPerDiemExpense = (expense: Expense): boolean => {
 
 // Transform Expense data to form format
 const transformExpenseToFormData = (expense: Expense) => {
+  // Convert is_reimbursable boolean to "yes"/"no" string for form
+  const reimburseValue = expense.custom_attributes?.is_reimbursable;
+  const reimburse = reimburseValue === true || reimburseValue === "true" 
+    ? "yes" 
+    : reimburseValue === false || reimburseValue === "false" 
+    ? "no" 
+    : "";
+
   return {
     policyId: expense.expense_policy_id,
     categoryId: expense.category_id,
@@ -61,6 +69,7 @@ const transformExpenseToFormData = (expense: Expense) => {
     pre_approval_id: expense.pre_approval_id || null,
     foreign_currency: expense.foreign_currency || null,
     foreign_amount: expense.foreign_amount || null,
+    reimburse: reimburse,
   };
 };
 
@@ -212,6 +221,9 @@ export function ExpenseDetailPage() {
 
     setSaving(true);
     try {
+      // Convert reimburse "yes"/"no" to boolean
+      const isReimbursable = formData.reimburse === "yes" ? true : formData.reimburse === "no" ? false : undefined;
+
       // Transform form data to UpdateExpenseData format
       const expenseData: UpdateExpenseData = {
         amount: isForeign
@@ -233,7 +245,9 @@ export function ExpenseDetailPage() {
         vehicle_type: formData.vehicle_type || null,
         mileage_meta: formData.mileage_meta || null,
         is_round_trip: formData.is_round_trip === "true" ? true : false,
-        custom_attributes: {},
+        custom_attributes: isReimbursable !== undefined ? {
+          is_reimbursable: isReimbursable
+        } : {},
         foreign_amount: isForeign ? parseFloat(formData.amount) : null,
         foreign_currency: isForeign ? formData.foreign_currency : null,
       };

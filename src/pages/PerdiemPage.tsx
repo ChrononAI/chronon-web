@@ -107,7 +107,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const [editMode, setEditMode] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
-  const [activePerdiemTab, setActivePerdiemTab] = useState<"info" | "comments">("info");
+  const [activePerdiemTab, setActivePerdiemTab] = useState<"info" | "comments" | "validation">("info");
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
@@ -349,11 +349,12 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                   {[
                     { key: "info", label: "Info" },
                     { key: "comments", label: "Comments" },
+                    { key: "validation", label: "Validation" },
                   ].map((tab) => (
                     <button
                       key={tab.key}
                       type="button"
-                      onClick={() => setActivePerdiemTab(tab.key as "info" | "comments")}
+                      onClick={() => setActivePerdiemTab(tab.key as "info" | "comments" | "validation")}
                       className={cn(
                         "rounded-full px-4 py-2 text-sm font-medium transition-all",
                         activePerdiemTab === tab.key
@@ -380,12 +381,49 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                     </div>
                   </div>
                 </div>
-              ) : (
+              ) : activePerdiemTab === "comments" ? (
                 <ExpenseComments
                   expenseId={expenseData?.id}
                   readOnly={false}
                   autoFetch={activePerdiemTab === "comments"}
                 />
+              ) : (
+                <div className="rounded-b-2xl bg-gray-50 p-6 md:h-full md:overflow-y-auto">
+                  <div className="space-y-4">
+                    {expenseData?.original_expense_id ? (
+                      <div className="space-y-3">
+                        <ul className="space-y-2.5">
+                          <li className="flex items-center gap-2 text-sm text-gray-700">
+                            <span className="text-red-500">•</span>
+                            <span className="flex-1">
+                              This expense is a duplicate{" "}
+                              <button
+                                onClick={() =>
+                                  navigate(`/expenses/${expenseData.original_expense_id}`)
+                                }
+                                className="text-blue-600 hover:text-blue-700 underline font-medium ml-1"
+                              >
+                                View original expense
+                              </button>
+                            </span>
+                          </li>
+                        </ul>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                        <Calendar className="h-14 w-14 text-gray-300" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            No Validation Issues
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            This expense has passed all validation checks
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
 

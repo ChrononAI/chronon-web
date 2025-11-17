@@ -26,6 +26,7 @@ import {
   X,
   Copy,
   ExternalLink,
+  FileText,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LocationAutocomplete } from "@/components/ui/location-autocomplete";
@@ -139,7 +140,7 @@ const MileagePage = ({
   const [mapZoom, setMapZoom] = useState(1);
   const [mapRotation, setMapRotation] = useState(0);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
-  const [activeMapTab, setActiveMapTab] = useState<"map" | "comments">("map");
+  const [activeMapTab, setActiveMapTab] = useState<"map" | "comments" | "validation">("map");
   const [lastAddedStopId, setLastAddedStopId] = useState<string | null>(null);
   const today = new Date().toISOString().split("T")[0];
   const stopRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -843,11 +844,12 @@ const MileagePage = ({
               {[
                 { key: "map", label: "Map" },
                 { key: "comments", label: "Comments" },
+                { key: "validation", label: "Validation" },
               ].map((tab) => (
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setActiveMapTab(tab.key as "map" | "comments")}
+                  onClick={() => setActiveMapTab(tab.key as "map" | "comments" | "validation")}
                   className={cn(
                     "rounded-full px-4 py-2 text-sm font-medium transition-all",
                     activeMapTab === tab.key
@@ -923,12 +925,49 @@ const MileagePage = ({
                 </div>
               )}
             </div>
-          ) : (
+          ) : activeMapTab === "comments" ? (
             <ExpenseComments
               expenseId={expenseData?.id}
               readOnly={false}
               autoFetch={activeMapTab === "comments"}
             />
+          ) : (
+            <div className="rounded-b-2xl bg-gray-50 p-6 md:h-full md:overflow-y-auto">
+              <div className="space-y-4">
+                {expenseData?.original_expense_id ? (
+                  <div className="space-y-3">
+                    <ul className="space-y-2.5">
+                      <li className="flex items-center gap-2 text-sm text-gray-700">
+                        <span className="text-red-500">•</span>
+                        <span className="flex-1">
+                          This expense is a duplicate{" "}
+                          <button
+                            onClick={() =>
+                              navigate(`/expenses/${expenseData.original_expense_id}`)
+                            }
+                            className="text-blue-600 hover:text-blue-700 underline font-medium ml-1"
+                          >
+                            View original expense
+                          </button>
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                    <FileText className="h-14 w-14 text-gray-300" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">
+                        No Validation Issues
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        This expense has passed all validation checks
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
 

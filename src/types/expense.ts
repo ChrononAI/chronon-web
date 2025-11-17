@@ -71,6 +71,10 @@ export interface Expense {
   pre_approval_id?: string | null;
   foreign_currency?: string | null;
   foreign_amount?: string | null;
+  custom_attributes?: {
+    is_reimbursable?: boolean | string;
+    [key: string]: any;
+  };
   comments?: ExpenseComment[];
 }
 

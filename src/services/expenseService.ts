@@ -24,6 +24,10 @@ export interface CreateExpenseData {
   pre_approval_id?: string;
   foreign_amount?: number | null;
   foreign_currency?: string | null;
+  custom_attributes?: {
+    is_reimbursable?: boolean;
+    [key: string]: any;
+  };
 }
 
 export interface UpdateExpenseData {

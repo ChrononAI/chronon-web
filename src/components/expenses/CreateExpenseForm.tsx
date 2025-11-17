@@ -132,6 +132,9 @@ export function CreateExpenseForm() {
     try {
       const formattedDate = format(data.dateOfExpense, 'yyyy-MM-dd');
 
+      // Convert reimburse "yes"/"no" to boolean
+      const isReimbursable = data.reimburse === "yes" ? true : data.reimburse === "no" ? false : undefined;
+
       const expenseData: CreateExpenseData = {
         amount: isForeign ? (+copiedData.amount * (curr ? +curr.rate : 0)) : parseFloat(data.amount),
         foreign_amount: isForeign ? parseFloat(data.amount) : null,
@@ -144,7 +147,10 @@ export function CreateExpenseForm() {
         receipt_id: parsedData?.id || undefined,
         invoice_number: data.invoiceNumber || parsedData?.ocr_result?.invoice_number || null,
         advance_id: data.advance_id || undefined,
-        pre_approval_id: data.pre_approval_id || undefined
+        pre_approval_id: data.pre_approval_id || undefined,
+        custom_attributes: isReimbursable !== undefined ? {
+          is_reimbursable: isReimbursable
+        } : undefined
       };
       const result = await expenseService.createExpense(expenseData);
       if (result.success) {

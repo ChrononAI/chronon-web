@@ -28,6 +28,8 @@ import {
 } from "@/services/preApprovalService";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
 import { formatCurrency, cn } from "@/lib/utils";
+import { ParsedInvoiceData } from "@/services/fileParseService";
+import api from "@/lib/api";
 
 const formatDate = (date: string) => {
   if (date) {
@@ -62,15 +64,18 @@ export function ViewExpenseWindow({
   const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(
     null
   );
+  const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
+  const [policies, setPolicies] = useState<Policy[]>([]);
 
   // Comments states
-  const [activeTab, setActiveTab] = useState<"receipt" | "comments">("receipt");
-  const [activeMileageTab, setActiveMileageTab] = useState<"map" | "comments">("map");
-  const [activePerDiemTab, setActivePerDiemTab] = useState<"info" | "comments">("info");
+  const [activeTab, setActiveTab] = useState<"receipt" | "comments" | "validation">("receipt");
+  const [activeMileageTab, setActiveMileageTab] = useState<"map" | "comments" | "validation">("map");
+  const [activePerDiemTab, setActivePerDiemTab] = useState<"info" | "comments" | "validation">("info");
 
   const loadPoliciesWithCategories = async () => {
     try {
       const policiesData = await expenseService.getAllPolicies();
+      setPolicies(policiesData);
       const selPolicy = policiesData.find(
         (policy) => policy.id === data?.expense_policy_id
       );
@@ -80,6 +85,126 @@ export function ViewExpenseWindow({
     } catch (error) {
       console.error("Error loading policies:", error);
     }
+  };
+
+  // Fetch receipt parsing data for validation (demo solution)
+  const fetchReceiptParsingData = async (receiptId: string, expense: Expense) => {
+    const orgId = getOrgIdFromToken();
+    if (!orgId) return;
+
+    // First, try to get OCR amount from localStorage (stored during expense creation)
+    const storedOcrAmountByReceipt = localStorage.getItem(`ocr_amount_${receiptId}`);
+    const storedOcrAmountByExpense = expense.id ? localStorage.getItem(`ocr_amount_expense_${expense.id}`) : null;
+    const storedOcrAmount = storedOcrAmountByReceipt || storedOcrAmountByExpense;
+
+    if (storedOcrAmount) {
+      // Create parsedData from stored OCR amount
+      const parsedData: ParsedInvoiceData = {
+        id: receiptId,
+        extracted_amount: storedOcrAmount,
+        extracted_date: expense.expense_date,
+        extracted_vendor: expense.vendor,
+        file_key: "",
+        invoice_number: expense.invoice_number || null,
+        ocr_result: {
+          amount: storedOcrAmount,
+          date: expense.expense_date,
+          vendor: expense.vendor,
+          invoice_number: expense.invoice_number || "",
+        },
+        is_invoice_flagged: false,
+        is_duplicate_receipt: !!expense.original_expense_id,
+        original_expense_id: expense.original_expense_id || null,
+        recommended_policy_id: expense.expense_policy_id,
+        recommended_category: {
+          category_id: expense.category_id,
+          confidence: "0.8",
+          reasoning: "Based on stored OCR data",
+        },
+      };
+      setParsedData(parsedData);
+      return;
+    }
+
+    // If not in localStorage, try to fetch from API
+    try {
+      const response = await api.get(
+        `/em/expenses/receipt/${receiptId}/parse-data?org_id=${orgId}`
+      );
+      if (response.data?.data) {
+        setParsedData(response.data.data);
+        // Store it for future use
+        const ocrAmount = response.data.data.extracted_amount || response.data.data.ocr_result?.amount;
+        if (ocrAmount) {
+          localStorage.setItem(`ocr_amount_${receiptId}`, ocrAmount);
+        }
+        return;
+      }
+    } catch (error) {
+      // API endpoint not available - no fallback, just don't show validation
+      console.log("Receipt parsing data not available");
+    }
+  };
+
+  // Validation errors function
+  const getValidationErrors = () => {
+    const errors: Array<{ message: string; link?: { text: string; onClick: () => void } }> = [];
+
+    if (!data) return errors;
+
+    // 1. Check for duplicate expense
+    const duplicateExpenseId = data?.original_expense_id || parsedData?.original_expense_id;
+    if (duplicateExpenseId) {
+      errors.push({
+        message: "This expense is a duplicate",
+        link: {
+          text: "View original expense",
+          onClick: () => window.open(`/expenses/${duplicateExpenseId}`, '_blank'),
+        },
+      });
+    }
+
+    // 2. Check if OCR amount doesn't match expense amount (only for receipt-based expenses)
+    if (data.expense_type === "RECEIPT_BASED" && parsedData && (parsedData.ocr_result?.amount || parsedData.extracted_amount)) {
+      const ocrAmount = parsedData.extracted_amount || parsedData.ocr_result?.amount || "";
+      if (ocrAmount && data.amount) {
+        const cleanOcrAmount = ocrAmount.toString().replace(/[^\d.,]/g, "").replace(/,/g, "");
+        const cleanExpenseAmount = data.amount.toString().replace(/[^\d.,]/g, "").replace(/,/g, "");
+        
+        // Only validate if both amounts are valid numbers
+        const ocrNum = parseFloat(cleanOcrAmount);
+        const expenseNum = parseFloat(cleanExpenseAmount);
+        
+        if (!isNaN(ocrNum) && !isNaN(expenseNum) && Math.abs(ocrNum - expenseNum) > 0.01) {
+          // Format amounts for display
+          const displayOcrAmount = ocrNum.toLocaleString('en-IN', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+          });
+          const displayExpenseAmount = expenseNum.toLocaleString('en-IN', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+          });
+          
+          errors.push({
+            message: `Amount changed from original OCR amount ₹${displayOcrAmount} to ₹${displayExpenseAmount}`,
+          });
+        }
+      }
+    }
+
+    // 3. Check if policy changed from recommended
+    if (parsedData?.recommended_policy_id && data?.expense_policy_id && parsedData.recommended_policy_id !== data.expense_policy_id) {
+      const recommendedPolicy = policies.find((p) => p.id === parsedData.recommended_policy_id);
+      const currentPolicy = policies.find((p) => p.id === data.expense_policy_id);
+      if (recommendedPolicy && currentPolicy) {
+        errors.push({
+          message: `Policy changed from recommended "${recommendedPolicy.name}" to "${currentPolicy.name}"`,
+        });
+      }
+    }
+
+    return errors;
   };
 
   useEffect(() => {
@@ -152,12 +277,20 @@ export function ViewExpenseWindow({
   useEffect(() => {
     if (open && data?.receipt_id) {
       fetchReceipt(data.receipt_id);
+      // Fetch receipt parsing data for validation
+      if (data) {
+        fetchReceiptParsingData(data.receipt_id, data);
+      }
     }
     if (open && data?.pre_approval_id) {
       fetchPreApproval(data.pre_approval_id);
     }
     if (open && data?.advance_id) {
       fetchAdvance(data.advance_id);
+    }
+    // Reset parsedData when modal closes
+    if (!open) {
+      setParsedData(null);
     }
   }, [open, data]);
 
@@ -266,12 +399,13 @@ export function ViewExpenseWindow({
                       {[
                         { key: "receipt", label: "Receipt" },
                         { key: "comments", label: "Comments" },
+                        { key: "validation", label: "Validation" },
                       ].map((tab) => (
                         <button
                           key={tab.key}
                           type="button"
                           onClick={() =>
-                            setActiveTab(tab.key as "receipt" | "comments")
+                            setActiveTab(tab.key as "receipt" | "comments" | "validation")
                           }
                           className={cn(
                             "rounded-full px-4 py-2 text-sm font-medium transition-all",
@@ -451,12 +585,54 @@ export function ViewExpenseWindow({
                       </div>
                     )}
                       </>
-                    ) : (
+                    ) : activeTab === "comments" ? (
                       <ExpenseComments
                         expenseId={data?.id}
                         readOnly={false}
                         autoFetch={activeTab === "comments"}
                       />
+                    ) : (
+                      <div className="rounded-b-2xl bg-gray-50 p-6 md:h-full md:overflow-y-auto">
+                        <div className="space-y-4">
+                          {(() => {
+                            const validationErrors = getValidationErrors();
+                            return validationErrors.length > 0 ? (
+                              <div className="space-y-3">
+                                <ul className="space-y-2.5">
+                                  {validationErrors.map((error, index) => (
+                                    <li key={index} className="flex items-center gap-2 text-sm text-gray-700">
+                                      <span className="text-red-500">•</span>
+                                      <span className="flex-1">
+                                        {error.message}
+                                        {error.link && (
+                                          <button
+                                            onClick={error.link.onClick}
+                                            className="text-blue-600 hover:text-blue-700 underline font-medium ml-1"
+                                          >
+                                            {error.link.text}
+                                          </button>
+                                        )}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                                <FileText className="h-14 w-14 text-gray-300" />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-700">
+                                    No Validation Issues
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    This expense has passed all validation checks
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </CardContent>
@@ -535,12 +711,13 @@ export function ViewExpenseWindow({
                       {[
                         { key: "info", label: "Info" },
                         { key: "comments", label: "Comments" },
+                        { key: "validation", label: "Validation" },
                       ].map((tab) => (
                         <button
                           key={tab.key}
                           type="button"
                           onClick={() =>
-                            setActivePerDiemTab(tab.key as "info" | "comments")
+                            setActivePerDiemTab(tab.key as "info" | "comments" | "validation")
                           }
                           className={cn(
                             "rounded-full px-4 py-2 text-sm font-medium transition-all",
@@ -568,12 +745,54 @@ export function ViewExpenseWindow({
                           </p>
                         </div>
                       </div>
-                    ) : (
+                    ) : activePerDiemTab === "comments" ? (
                       <ExpenseComments
                         expenseId={data?.id}
                         readOnly={false}
                         autoFetch={activePerDiemTab === "comments"}
                       />
+                    ) : (
+                      <div className="rounded-b-2xl bg-gray-50 p-6 md:h-full md:overflow-y-auto">
+                        <div className="space-y-4">
+                          {(() => {
+                            const validationErrors = getValidationErrors();
+                            return validationErrors.length > 0 ? (
+                              <div className="space-y-3">
+                                <ul className="space-y-2.5">
+                                  {validationErrors.map((error, index) => (
+                                    <li key={index} className="flex items-center gap-2 text-sm text-gray-700">
+                                      <span className="text-red-500">•</span>
+                                      <span className="flex-1">
+                                        {error.message}
+                                        {error.link && (
+                                          <button
+                                            onClick={error.link.onClick}
+                                            className="text-blue-600 hover:text-blue-700 underline font-medium ml-1"
+                                          >
+                                            {error.link.text}
+                                          </button>
+                                        )}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                                <Calendar className="h-14 w-14 text-gray-300" />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-700">
+                                    No Validation Issues
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    This expense has passed all validation checks
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </CardContent>
@@ -591,12 +810,13 @@ export function ViewExpenseWindow({
                       {[
                         { key: "map", label: "Route Map" },
                         { key: "comments", label: "Comments" },
+                        { key: "validation", label: "Validation" },
                       ].map((tab) => (
                           <button
                             key={tab.key}
                             type="button"
                             onClick={() =>
-                              setActiveMileageTab(tab.key as "map" | "comments")
+                              setActiveMileageTab(tab.key as "map" | "comments" | "validation")
                             }
                             className={cn(
                               "rounded-full px-4 py-2 text-sm font-medium transition-all",
@@ -713,12 +933,54 @@ export function ViewExpenseWindow({
                           </div>
                         )}
                       </>
-                    ) : (
+                    ) : activeMileageTab === "comments" ? (
                       <ExpenseComments
                         expenseId={data?.id}
                         readOnly={false}
                         autoFetch={activeMileageTab === "comments"}
                       />
+                    ) : (
+                      <div className="rounded-b-2xl bg-gray-50 p-6 md:h-full md:overflow-y-auto">
+                        <div className="space-y-4">
+                          {(() => {
+                            const validationErrors = getValidationErrors();
+                            return validationErrors.length > 0 ? (
+                              <div className="space-y-3">
+                                <ul className="space-y-2.5">
+                                  {validationErrors.map((error, index) => (
+                                    <li key={index} className="flex items-center gap-2 text-sm text-gray-700">
+                                      <span className="text-red-500">•</span>
+                                      <span className="flex-1">
+                                        {error.message}
+                                        {error.link && (
+                                          <button
+                                            onClick={error.link.onClick}
+                                            className="text-blue-600 hover:text-blue-700 underline font-medium ml-1"
+                                          >
+                                            {error.link.text}
+                                          </button>
+                                        )}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                                <FileText className="h-14 w-14 text-gray-300" />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-700">
+                                    No Validation Issues
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    This expense has passed all validation checks
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </CardContent>
