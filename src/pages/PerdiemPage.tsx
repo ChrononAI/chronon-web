@@ -15,6 +15,8 @@ import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { Expense, Policy, PolicyCategory } from "@/types/expense";
 import { toast } from "sonner";
 import { expenseService } from "@/services/expenseService";
+import { ExpenseComments } from "@/components/expenses/ExpenseComments";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -105,6 +107,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const [editMode, setEditMode] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
+  const [activePerdiemTab, setActivePerdiemTab] = useState<"info" | "comments">("info");
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
@@ -340,10 +343,50 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:min-h-[calc(100vh-8rem)]">
-            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 flex flex-col items-center justify-center text-center lg:min-h-[calc(100vh-8rem)]">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-300">
-                <Calendar className="h-10 w-10" />
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col">
+              <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  {[
+                    { key: "info", label: "Info" },
+                    { key: "comments", label: "Comments" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setActivePerdiemTab(tab.key as "info" | "comments")}
+                      className={cn(
+                        "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                        activePerdiemTab === tab.key
+                          ? "bg-primary/10 text-primary"
+                          : "text-gray-500 hover:text-gray-900"
+                      )}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
+              {activePerdiemTab === "info" ? (
+                <div className="flex-1 min-h-[520px]">
+                  <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 text-center h-full w-full">
+                    <Calendar className="h-14 w-14 text-gray-300" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">
+                        Per Diem Information
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Expense details will appear here
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <ExpenseComments
+                  expenseId={expenseData?.id}
+                  readOnly={false}
+                  autoFetch={activePerdiemTab === "comments"}
+                />
+              )}
             </div>
 
             <Card>

@@ -71,6 +71,22 @@ export interface Expense {
   pre_approval_id?: string | null;
   foreign_currency?: string | null;
   foreign_amount?: string | null;
+  comments?: ExpenseComment[];
+}
+
+export interface ExpenseComment {
+  id: string;
+  expense_id: string;
+  comment: string;
+  creator_user_id: string;
+  creator_user: {
+    id: string;
+    email: string;
+    full_name: string;
+  };
+  created_at: string;
+  updated_at: string;
+  org_id: string;
 }
 
 export interface PaginationMeta {

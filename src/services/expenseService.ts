@@ -6,6 +6,7 @@ import {
   ExpensesResponse,
   ReportsResponse,
   Policy,
+  ExpenseComment,
 } from "@/types/expense";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { toast } from "sonner";
@@ -481,5 +482,61 @@ export const expenseService = {
         message: error.response?.data?.message || error.message || "Failed to delete expense",
       };
     }
-  }
+  },
+
+  async getExpenseComments(expenseId: string): Promise<ExpenseComment[]> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        throw new Error("Organization ID not found in token");
+      }
+      const response = await api.get(
+        `/api/v1/expense_comments?expense_id=${expenseId}&org_id=${orgId}`
+      );
+      return response.data.data || [];
+    } catch (error: any) {
+      console.error("Error fetching expense comments:", error);
+      throw error;
+    }
+  },
+
+  async postExpenseComment(
+    expenseId: string,
+    comment: string,
+    notify: boolean = false
+  ): Promise<ExpenseComment> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        throw new Error("Organization ID not found in token");
+      }
+      const response = await api.post(
+        `/api/v1/expense_comments`,
+        JSON.stringify({
+          expense_id: expenseId,
+          comment: comment.trim(),
+          notify: notify,
+        })
+      );
+      // Return the created comment from response.data.data if available
+      // Otherwise return a minimal comment object
+      return response.data.data || {
+        id: "",
+        expense_id: expenseId,
+        comment: comment.trim(),
+        creator_user_id: "",
+        creator_user: {
+          id: "",
+          email: "",
+          full_name: "",
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        org_id: orgId,
+      };
+    } catch (error: any) {
+      console.error("Error posting expense comment:", error);
+      throw error;
+    }
+  },
 };
