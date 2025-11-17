@@ -25,6 +25,7 @@ type ExpenseFormValues = {
   pre_approval_id?: string | null;
   advance_id?: string | null;
   foreign_currency?: string | null;
+  reimburse?: string;
 };
 
 export function CreateExpenseForm() {
@@ -147,6 +148,21 @@ export function CreateExpenseForm() {
       };
       const result = await expenseService.createExpense(expenseData);
       if (result.success) {
+        // Store OCR amount for validation (demo purpose)
+        // Key: receipt_id, Value: OCR amount
+        if (parsedData?.id && (parsedData.extracted_amount || parsedData.ocr_result?.amount)) {
+          const ocrAmount = parsedData.extracted_amount || parsedData.ocr_result?.amount || "";
+          localStorage.setItem(`ocr_amount_${parsedData.id}`, ocrAmount);
+        }
+        // Also store by expense_id if available
+        const expenseId = result.data?.id || result.data?.expense_id;
+        if (expenseId) {
+          const ocrAmount = parsedData?.extracted_amount || parsedData?.ocr_result?.amount || "";
+          if (ocrAmount) {
+            localStorage.setItem(`ocr_amount_expense_${expenseId}`, ocrAmount);
+          }
+        }
+        
         toast.success(result.message);
         navigate('/expenses');
         setParsedData(null);

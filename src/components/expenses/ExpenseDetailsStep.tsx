@@ -96,6 +96,7 @@ const expenseSchema = z.object({
   advance_id: z.string().nullable().optional(),
   foreign_currency: z.string().optional().default("INR").nullable(),
   foreign_amount: z.string().optional().nullable(),
+  reimburse: z.string().optional(),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -181,6 +182,7 @@ export function ExpenseDetailsStep({
           destination: "",
           pre_approval_id: "",
           advance_id: "",
+          reimburse: "",
         },
   });
 
@@ -228,7 +230,7 @@ export function ExpenseDetailsStep({
   // Receipt viewer states
   const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
   const [activeReceiptTab, setActiveReceiptTab] = useState<
-    "receipt" | "comments"
+    "receipt" | "comments" | "validation"
   >("receipt");
   const [receiptZoom, setReceiptZoom] = useState(1);
   const [receiptRotation, setReceiptRotation] = useState(0);
@@ -420,6 +422,16 @@ export function ExpenseDetailsStep({
         setParsedData(parsedData);
         fetchReceipt(parsedData.id, orgId);
         setIsReceiptReplaced(true);
+        
+        // Store OCR amount for validation (demo purpose)
+        if (parsedData.id && (parsedData.extracted_amount || parsedData.ocr_result?.amount)) {
+          const ocrAmount = parsedData.extracted_amount || parsedData.ocr_result?.amount || "";
+          localStorage.setItem(`ocr_amount_${parsedData.id}`, ocrAmount);
+          // Also store by expense_id if available
+          if (expense?.id) {
+            localStorage.setItem(`ocr_amount_expense_${expense.id}`, ocrAmount);
+          }
+        }
       }
     } catch (error) {
       console.log(error);
@@ -518,6 +530,98 @@ export function ExpenseDetailsStep({
   const textareaClass =
     "rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
 
+  // Watch form values to make validation reactive
+  const formAmount = form.watch("amount");
+  const formPolicyId = form.watch("policyId");
+
+  // Validation errors function
+  const getValidationErrors = () => {
+    const errors: Array<{ message: string; link?: { text: string; onClick: () => void } }> = [];
+
+    // 1. Check for duplicate expense
+    const duplicateExpenseId = expense?.original_expense_id || parsedData?.original_expense_id;
+    if (duplicateExpenseId) {
+      errors.push({
+        message: "This expense is a duplicate",
+        link: {
+          text: "View original expense",
+          onClick: () => navigate(`/expenses/${duplicateExpenseId}`),
+        },
+      });
+    }
+
+    // 2. Check if OCR amount doesn't match form amount
+    if (parsedData && (parsedData.ocr_result?.amount || parsedData.extracted_amount)) {
+      const ocrAmount = parsedData.extracted_amount || parsedData.ocr_result?.amount || "";
+      if (ocrAmount && formAmount) {
+        const cleanOcrAmount = ocrAmount.toString().replace(/[^\d.,]/g, "").replace(/,/g, "");
+        const cleanFormAmount = formAmount.toString().replace(/[^\d.,]/g, "").replace(/,/g, "");
+        
+        // Only validate if both amounts are valid numbers
+        const ocrNum = parseFloat(cleanOcrAmount);
+        const formNum = parseFloat(cleanFormAmount);
+        
+        if (!isNaN(ocrNum) && !isNaN(formNum) && Math.abs(ocrNum - formNum) > 0.01) {
+          // Format amounts for display
+          const displayOcrAmount = ocrNum.toLocaleString('en-IN', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+          });
+          const displayFormAmount = formNum.toLocaleString('en-IN', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+          });
+          
+          errors.push({
+            message: `Amount changed from original OCR amount ₹${displayOcrAmount} to ₹${displayFormAmount}`,
+          });
+        }
+      }
+    }
+
+    // 3. Check if policy changed from recommended
+    if (parsedData?.recommended_policy_id && formPolicyId && parsedData.recommended_policy_id !== formPolicyId) {
+      const recommendedPolicy = policies.find((p) => p.id === parsedData.recommended_policy_id);
+      const currentPolicy = policies.find((p) => p.id === formPolicyId);
+      if (recommendedPolicy && currentPolicy) {
+        errors.push({
+          message: `Policy changed from recommended "${recommendedPolicy.name}" to "${currentPolicy.name}"`,
+        });
+      }
+    }
+
+    // 4. Check if amount changed from original (when editing)
+    // Only show this if we don't have OCR data (to avoid duplicate messages)
+    // If OCR data exists, we prioritize showing OCR mismatch instead
+    if (isEditMode && expense?.amount && formAmount && !parsedData) {
+      const originalAmount = expense.amount.toString();
+      const currentAmount = formAmount.toString();
+      const cleanOriginal = originalAmount.replace(/[^\d.,]/g, "").replace(/,/g, "");
+      const cleanCurrent = currentAmount.replace(/[^\d.,]/g, "").replace(/,/g, "");
+      
+      const originalNum = parseFloat(cleanOriginal);
+      const currentNum = parseFloat(cleanCurrent);
+      
+      if (!isNaN(originalNum) && !isNaN(currentNum) && Math.abs(originalNum - currentNum) > 0.01) {
+        const displayOriginal = originalNum.toLocaleString('en-IN', { 
+          minimumFractionDigits: 2, 
+          maximumFractionDigits: 2 
+        });
+        const displayCurrent = currentNum.toLocaleString('en-IN', { 
+          minimumFractionDigits: 2, 
+          maximumFractionDigits: 2 
+        });
+        errors.push({
+          message: `Amount changed from original ₹${displayOriginal} to ₹${displayCurrent}`,
+        });
+      }
+    }
+
+    return errors;
+  };
+
+  const validationErrors = getValidationErrors();
+
   return (
     <div className="space-y-12">
       {expense?.original_expense_id && (
@@ -544,17 +648,18 @@ export function ExpenseDetailsStep({
       <div className="relative grid gap-6 md:grid-cols-2 md:items-start">
         <div className="space-y-6 md:sticky md:top-4 md:self-start md:h-[calc(100vh-6rem)] md:overflow-hidden">
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
               <div className="flex items-center gap-3">
                 {[
                   { key: "receipt", label: "Receipt" },
                   { key: "comments", label: "Comments" },
+                  { key: "validation", label: "Validation" },
                 ].map((tab) => (
                   <button
                     key={tab.key}
                     type="button"
                     onClick={() =>
-                      setActiveReceiptTab(tab.key as "receipt" | "comments")
+                      setActiveReceiptTab(tab.key as "receipt" | "comments" | "validation")
                     }
                     className={cn(
                       "rounded-full px-4 py-2 text-sm font-medium transition-all",
@@ -709,12 +814,51 @@ export function ExpenseDetailsStep({
                   </div>
                 </div>
               </>
-            ) : (
+            ) : activeReceiptTab === "comments" ? (
               <ExpenseComments
                 expenseId={expense?.id}
                 readOnly={false}
                 autoFetch={activeReceiptTab === "comments"}
               />
+            ) : (
+              <div className="rounded-b-2xl bg-gray-50 p-6 md:h-full md:overflow-y-auto">
+                <div className="space-y-4">
+                  {validationErrors.length > 0 ? (
+                    <div className="space-y-3">
+                      <ul className="space-y-2.5">
+                        {validationErrors.map((error, index) => (
+                          <li key={index} className="flex items-center gap-2 text-sm text-gray-700">
+                            <span className="text-red-500">•</span>
+                            <span className="flex-1">
+                              {error.message}
+                              {error.link && (
+                                <button
+                                  onClick={error.link.onClick}
+                                  className="text-blue-600 hover:text-blue-700 underline font-medium ml-1"
+                                >
+                                  {error.link.text}
+                                </button>
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                      <FileText className="h-14 w-14 text-gray-300" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">
+                          No Validation Issues
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          This expense has passed all validation checks
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -1082,6 +1226,38 @@ export function ExpenseDetailsStep({
                         )}
                       />
                     )}
+
+                    <FormField
+                      control={form.control}
+                      name="reimburse"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Reimburse</FormLabel>
+                          <Select
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            disabled={readOnly}
+                          >
+                            <FormControl>
+                              <SelectTrigger className={selectTriggerClass}>
+                                <SelectValue placeholder="Select option">
+                                  {field.value === "yes"
+                                    ? "Yes"
+                                    : field.value === "no"
+                                    ? "No"
+                                    : "Select option"}
+                                </SelectValue>
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="yes">Yes</SelectItem>
+                              <SelectItem value="no">No</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                     <FormField
                       control={form.control}

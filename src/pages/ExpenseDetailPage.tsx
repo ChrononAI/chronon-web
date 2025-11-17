@@ -12,6 +12,9 @@ import { Expense } from "@/types/expense";
 import { getStatusColor } from "@/lib/utils";
 import { toast } from "sonner";
 import { useExpenseStore } from "@/store/expenseStore";
+import { ParsedInvoiceData } from "@/services/fileParseService";
+import api from "@/lib/api";
+import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -106,6 +109,8 @@ export function ExpenseDetailPage() {
 
         if (expenseData.receipt_id) {
           fetchReceipt(expenseData.receipt_id, expenseData.org_id);
+          // Fetch receipt parsing data for validation
+          fetchReceiptParsingData(expenseData.receipt_id, expenseData);
         }
       } catch (error) {
         console.error("Failed to fetch expense details", error);
@@ -128,6 +133,65 @@ export function ExpenseDetailPage() {
     } catch (error) {
       console.log(error);
       toast.error("Failed to fetch receipt image");
+    }
+  };
+
+  // Fetch receipt parsing data for validation (demo solution)
+  const fetchReceiptParsingData = async (receiptId: string, expense: Expense) => {
+    const orgId = getOrgIdFromToken();
+    if (!orgId) return;
+
+    // First, try to get OCR amount from localStorage (stored during expense creation)
+    const storedOcrAmountByReceipt = localStorage.getItem(`ocr_amount_${receiptId}`);
+    const storedOcrAmountByExpense = expense.id ? localStorage.getItem(`ocr_amount_expense_${expense.id}`) : null;
+    const storedOcrAmount = storedOcrAmountByReceipt || storedOcrAmountByExpense;
+
+    if (storedOcrAmount) {
+      // Create parsedData from stored OCR amount
+      const parsedData: ParsedInvoiceData = {
+        id: receiptId,
+        extracted_amount: storedOcrAmount,
+        extracted_date: expense.expense_date,
+        extracted_vendor: expense.vendor,
+        file_key: "",
+        invoice_number: expense.invoice_number || null,
+        ocr_result: {
+          amount: storedOcrAmount,
+          date: expense.expense_date,
+          vendor: expense.vendor,
+          invoice_number: expense.invoice_number || "",
+        },
+        is_invoice_flagged: false,
+        is_duplicate_receipt: !!expense.original_expense_id,
+        original_expense_id: expense.original_expense_id || null,
+        recommended_policy_id: expense.expense_policy_id,
+        recommended_category: {
+          category_id: expense.category_id,
+          confidence: "0.8",
+          reasoning: "Based on stored OCR data",
+        },
+      };
+      setParsedData(parsedData);
+      return;
+    }
+
+    // If not in localStorage, try to fetch from API
+    try {
+      const response = await api.get(
+        `/em/expenses/receipt/${receiptId}/parse-data?org_id=${orgId}`
+      );
+      if (response.data?.data) {
+        setParsedData(response.data.data);
+        // Store it for future use
+        const ocrAmount = response.data.data.extracted_amount || response.data.data.ocr_result?.amount;
+        if (ocrAmount) {
+          localStorage.setItem(`ocr_amount_${receiptId}`, ocrAmount);
+        }
+        return;
+      }
+    } catch (error) {
+      // API endpoint not available - no fallback, just don't show validation
+      console.log("Receipt parsing data not available");
     }
   };
 
