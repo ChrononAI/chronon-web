@@ -136,7 +136,7 @@ export function ApprovalsReportsPage() {
         offset,
         "IN_PROGRESS"
       );
-      setPendingReports(response.data);
+      setPendingReports(response.data.data);
       setPendingReportsPagination({
         count: response?.data.count,
         offset: response?.data.offset,
@@ -155,7 +155,7 @@ export function ApprovalsReportsPage() {
         offset,
         "APPROVED,REJECTED"
       );
-      setProcessedReports(response.data);
+      setProcessedReports(response.data.data);
       setProcessedReportsPagination({
         count: response?.data.count,
         offset: response?.data.offset,
