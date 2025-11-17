@@ -11,7 +11,6 @@ import {
   Calendar,
   Building,
   CheckCircle,
-  Clock,
   AlertCircle,
   XCircle,
   IndianRupee,
@@ -107,15 +106,17 @@ export function ReportDetailPage() {
 
   const getUserSpecificStatus = (): string => {
     if (!user || !approvalWorkflow || !approvalWorkflow.approval_steps) {
-      console.log("inside if");
       return report?.status || "UNDER_REVIEW";
     }
 
     const currentUserId = user.id.toString();
 
-    const userStep = approvalWorkflow.approval_steps.find((step) =>
-      step.approvers.some((approver) => approver.user_id === currentUserId)
-    );
+    const userStep = approvalWorkflow.approval_steps
+      .reverse()
+      .find((step) =>
+        step.approvers.some((approver) => approver.user_id === currentUserId)
+      );
+    console.log(userStep);
 
     if (!userStep) {
       return report?.status || "UNDER_REVIEW";
@@ -129,6 +130,8 @@ export function ReportDetailPage() {
       ? "SENT_BACK"
       : "UNDER_REVIEW";
   };
+
+  console.log(getStatusColor(getUserSpecificStatus()));
 
   const fetchReport = async () => {
     if (!id) {
@@ -271,20 +274,20 @@ export function ReportDetailPage() {
     return pendingExpenses > 0 && (isUserInCurrentStep || !approvalWorkflow);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status.toUpperCase()) {
-      case "APPROVED":
-      case "FULLY_APPROVED":
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case "PENDING":
-      case "PENDING_APPROVAL":
-        return <Clock className="h-5 w-5 text-yellow-600" />;
-      case "REJECTED":
-        return <XCircle className="h-5 w-5 text-red-600" />;
-      default:
-        return <Activity className="h-5 w-5 text-blue-600" />;
-    }
-  };
+  // const getStatusIcon = (status: string) => {
+  //   switch (status.toUpperCase()) {
+  //     case "APPROVED":
+  //     case "FULLY_APPROVED":
+  //       return <CheckCircle className="h-5 w-5 text-green-600" />;
+  //     case "PENDING":
+  //     case "PENDING_APPROVAL":
+  //       return <Clock className="h-5 w-5 text-yellow-600" />;
+  //     case "REJECTED":
+  //       return <XCircle className="h-5 w-5 text-red-600" />;
+  //     default:
+  //       return <Activity className="h-5 w-5 text-blue-600" />;
+  //   }
+  // };
 
   if (loading) {
     return (
@@ -352,16 +355,6 @@ export function ReportDetailPage() {
                 <h1 className="text-2xl font-semibold text-gray-700">
                   {report?.title}
                 </h1>
-                <div className="flex items-center gap-3 mt-2">
-                  {getStatusIcon(getUserSpecificStatus())}
-                  <Badge
-                    className={`${getStatusColor(
-                      getUserSpecificStatus()
-                    )} text-sm px-3 py-1`}
-                  >
-                    {getUserSpecificStatus().replace("_", " ")}
-                  </Badge>
-                </div>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -416,7 +409,7 @@ export function ReportDetailPage() {
                     </p>
                   </div>
 
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <Activity className="h-4 w-4" />
                       Status
@@ -424,6 +417,16 @@ export function ReportDetailPage() {
                     <Badge className={getStatusColor(getUserSpecificStatus())}>
                       {getUserSpecificStatus().replace("_", " ")}
                     </Badge>
+                  </div> */}
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <IndianRupee className="h-4 w-4" />
+                      Total Amount
+                    </div>
+                    <p className="text-lg font-semibold">
+                      {formatCurrency(totalAmount, "INR")}
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -445,16 +448,6 @@ export function ReportDetailPage() {
                       {report.submitted_at
                         ? formatDate(report.submitted_at)
                         : "Not submitted"}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <IndianRupee className="h-4 w-4" />
-                      Total Amount
-                    </div>
-                    <p className="text-lg font-semibold">
-                      {formatCurrency(totalAmount, "INR")}
                     </p>
                   </div>
                 </div>

@@ -116,10 +116,7 @@ class ReportService {
         `/reports/custom-attributes?org_id=${orgId}`
       );
 
-      if (
-        response.data.status === "success" &&
-        response.data.data?.custom_attributes
-      ) {
+      if (response.data.data?.custom_attributes) {
         return response.data.data.custom_attributes as CustomAttribute[];
       }
 
@@ -338,19 +335,10 @@ class ReportService {
       };
 
       const response = await api.post("/reports/reports", requestBody);
-      console.log("Report creation response:", response.data);
-
-      if (response.data.status === "success") {
-        return {
-          success: true,
-          message: response.data.message || "Report created successfully!",
-          reportId: response.data.data?.id,
-        };
-      }
-
       return {
-        success: false,
-        message: "Failed to create report. Please try again.",
+        success: true,
+        message: response.data.message || "Report created successfully!",
+        reportId: response.data.data?.id,
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
@@ -521,18 +509,11 @@ class ReportService {
 
       const response = await api.get(`/reports/generated?org_id=${orgId}`);
 
-      if (response.data.status === "success") {
         return {
           success: true,
           data: response.data.data.reports,
           total: response.data.data.total,
         };
-      }
-
-      return {
-        success: false,
-        message: "Failed to fetch generated reports",
-      };
     } catch (error: any) {
       console.error("Error fetching generated reports:", error);
       return {
@@ -572,7 +553,7 @@ class ReportService {
       );
 
       return {
-        success: response.data.status === "success",
+        success: true,
         message: response.data.message || "Report updated successfully",
         data: response.data.data,
       };
@@ -595,7 +576,7 @@ class ReportService {
       });
 
       return {
-        success: response.data.status === "success",
+        success: true,
         message:
           response.data.message || "Expenses added to report successfully",
         data: response.data.data,
@@ -625,7 +606,7 @@ class ReportService {
       );
 
       return {
-        success: response.data.status === "success",
+        success: true,
         message:
           response.data.message || "Expenses removed from report successfully",
         data: response.data.data,
@@ -648,7 +629,7 @@ class ReportService {
       const response = await api.delete(`/reports/reports/${reportId}`);
 
       return {
-        success: response.data.status === "success",
+        success: true,
         message: response.data.message || "Report deleted successfully",
       };
     } catch (error: any) {
