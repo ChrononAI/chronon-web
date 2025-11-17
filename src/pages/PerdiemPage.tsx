@@ -355,7 +355,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                       name="startDate"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Start Date *</FormLabel>
+                          <FormLabel>Date *</FormLabel>
                           <FormControl>
                             <DateField
                               id="startDate"
@@ -363,32 +363,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                               onChange={(value) => {
                                 handleInputChange("startDate", value);
                                 field.onChange(value);
-                              }}
-                              disabled={mode === "view"}
-                              maxDate={today}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="endDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>End Date *</FormLabel>
-                          <FormControl>
-                            <DateField
-                              id="endDate"
-                              value={formData.endDate}
-                              onChange={(value) => {
                                 handleInputChange("endDate", value);
-                                field.onChange(value);
                               }}
                               disabled={mode === "view"}
-                              minDate={formData.startDate}
                               maxDate={today}
                             />
                           </FormControl>
@@ -396,9 +373,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         </FormItem>
                       )}
                     />
-                  </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label
                         htmlFor="days"
@@ -417,7 +392,52 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         />
                       </div>
                     </div>
+
+                    {/* <FormField
+                      control={form.control}
+                      name="endDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>End Date *</FormLabel>
+                          <FormControl>
+                            <DateField
+                              id="endDate"
+                              value={formData.endDate}
+                              onChange={(value) => {
+                                handleInputChange("endDate", value);
+                                field.onChange(value);
+                              }}
+                              disabled={mode === "view"}
+                              minDate={formData.startDate}
+                              maxDate={formData.startDate}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    /> */}
                   </div>
+
+                  {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="days"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Number of Days
+                      </Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+                        <Input
+                          id="days"
+                          type="text"
+                          value={days}
+                          readOnly
+                          className="bg-gray-50 pl-10"
+                        />
+                      </div>
+                    </div>
+                  </div> */}
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-2">
