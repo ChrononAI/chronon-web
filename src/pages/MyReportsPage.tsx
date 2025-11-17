@@ -201,7 +201,7 @@ export function MyReportsPage() {
   }, [paginationModel?.page, paginationModel?.pageSize]);
 
   const handleReportClick = (report: Report) => {
-    if (report.status === "DRAFT") {
+    if (report.status === "DRAFT" || report.status === "SENT_BACK") {
       navigate("/reports/create", {
         state: {
           editMode: true,
@@ -265,7 +265,7 @@ export function MyReportsPage() {
           onRowClick={(params, event) => {
             event.stopPropagation();
             const report = params.row;
-            if (report.status === "DRAFT") {
+            if (report.status === "DRAFT" || report.status === "SENT_BACK") {
               handleReportClick(report);
             } else {
               navigate(`/reports/${report.id}`);

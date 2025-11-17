@@ -107,6 +107,7 @@ export function ReportDetailPage() {
 
   const getUserSpecificStatus = (): string => {
     if (!user || !approvalWorkflow || !approvalWorkflow.approval_steps) {
+      console.log("inside if");
       return report?.status || "UNDER_REVIEW";
     }
 
@@ -124,6 +125,8 @@ export function ReportDetailPage() {
       ? "APPROVED"
       : userStep.status === "REJECTED"
       ? "REJECTED"
+      : userStep.status === "SENT_BACK"
+      ? "SENT_BACK"
       : "UNDER_REVIEW";
   };
 
@@ -139,7 +142,6 @@ export function ReportDetailPage() {
         reportService.getReportWithExpenses(id),
         reportService.getReportApprovalWorkflow(id),
       ]);
-      console.log(reportResponse);
 
       if (reportResponse.success && reportResponse.data) {
         setReport(reportResponse.data);
@@ -162,8 +164,9 @@ export function ReportDetailPage() {
             );
         };
         const newSteps = getAllApprovalSteps(workflowResponse.data);
-        const currentStepIdx = newSteps.findIndex((step: any) => step.status === "IN_PROGRESS");
-        console.log(currentStepIdx);
+        const currentStepIdx = newSteps.findIndex(
+          (step: any) => step.status === "IN_PROGRESS"
+        );
         setApprovalWorkflow({
           report_id: reportResponse.data.id,
           approval_steps: newSteps,
@@ -183,13 +186,6 @@ export function ReportDetailPage() {
       setLoading(false);
     }
   };
-
-  // report_id: string;
-  // workflow_execution_id: string;
-  // workflow_status: string;
-  // current_step: number;
-  // total_steps: number;
-  // approval_steps: ApprovalStep[];
 
   useEffect(() => {
     fetchReport();
@@ -238,15 +234,10 @@ export function ReportDetailPage() {
       } else {
         result = await approvalService.sendBackReport(report.id, comments);
       }
-
-      if (result && result.success) {
-        toast.success(result.message);
-        setShowActionDialog(false);
-        // Refresh data
-        await fetchReport();
-      } else {
-        toast.error(result?.message || "Action failed");
-      }
+      toast.success(result.message);
+      setShowActionDialog(false);
+      // Refresh data
+      await fetchReport();
     } catch (error) {
       console.error(`Failed to ${actionType} report`, error);
       toast.error(`Failed to ${actionType} report`);
@@ -254,7 +245,6 @@ export function ReportDetailPage() {
       setActionLoading(false);
     }
   };
-  console.log(approvalWorkflow);
   // Check if user can approve any expense in the report
   const canApproveReport = () => {
     if (!report || !user) return false;
