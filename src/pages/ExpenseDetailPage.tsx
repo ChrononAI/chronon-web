@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
-const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE"];
+const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE", "SENT_BACK"];
 
 // Check if expense is a mileage expense
 const isMileageExpense = (expense: Expense): boolean => {
@@ -369,7 +369,7 @@ export function ExpenseDetailPage() {
         ) : isPerDiemExpense(expense) ? (
           <PerdiemPage
             mode={
-              expense.status === "INCOMPLETE" || expense.status === "COMPLETE"
+              expense.status === "INCOMPLETE" || expense.status === "COMPLETE" || expense.status === "SENT_BACK"
                 ? "edit"
                 : "view"
             }
@@ -385,7 +385,7 @@ export function ExpenseDetailPage() {
               }
             }}
             mode={
-              expense.status === "COMPLETE" || expense.status === "INCOMPLETE"
+              expense.status === "COMPLETE" || expense.status === "INCOMPLETE" || expense.status === "SENT_BACK"
                 ? "edit"
                 : "view"
             }

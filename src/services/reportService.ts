@@ -1,9 +1,6 @@
 import api, { baseAPI } from "@/lib/api";
 import { Expense } from "@/types/expense";
-import {
-  OrganizationMeta,
-  CustomAttribute,
-} from "@/types/report";
+import { OrganizationMeta, CustomAttribute } from "@/types/report";
 
 export interface ReportTemplate {
   id: number;
@@ -50,7 +47,7 @@ export interface GeneratedReportsResponse {
   };
   status: string;
 }
-import { getOrgIdFromToken } from '@/lib/jwtUtils';
+import { getOrgIdFromToken } from "@/lib/jwtUtils";
 
 export interface ReportJob {
   job_id: number;
@@ -75,15 +72,17 @@ class ReportService {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
-        throw new Error('Organization ID not found in token');
+        throw new Error("Organization ID not found in token");
       }
-      const response = await api.get(`/expenses/expenses?org_id=${orgId}&page=1&per_page=100`);
+      const response = await api.get(
+        `/expenses/expenses?org_id=${orgId}&page=1&per_page=100`
+      );
 
       if (response.data.data && Array.isArray(response.data.data)) {
-        
         // Filter expenses: only show COMPLETE status and not assigned to any report
-        const availableExpenses = response.data.data.filter((expense: Expense) => 
-          expense.status === 'COMPLETE' && !expense.report_id
+        const availableExpenses = response.data.data.filter(
+          (expense: Expense) =>
+            expense.status === "COMPLETE" && !expense.report_id
         );
         return availableExpenses;
       }
@@ -113,12 +112,17 @@ class ReportService {
 
   async getCustomAttributes(orgId: string): Promise<CustomAttribute[]> {
     try {
-      const response = await api.get(`/reports/custom-attributes?org_id=${orgId}`);
-      
-      if (response.data.status === 'success' && response.data.data?.custom_attributes) {
+      const response = await api.get(
+        `/reports/custom-attributes?org_id=${orgId}`
+      );
+
+      if (
+        response.data.status === "success" &&
+        response.data.data?.custom_attributes
+      ) {
         return response.data.data.custom_attributes as CustomAttribute[];
       }
-      
+
       return [];
     } catch (error) {
       console.error("Error fetching custom attributes:", error);
@@ -126,28 +130,31 @@ class ReportService {
     }
   }
 
-
   async generateReport(data: {
     name: string;
     from_date: string;
     to_date: string;
-    format: 'excel' | 'csv';
+    format: "excel" | "csv";
   }) {
     try {
       // Generate a unique request ID for idempotency
       const requestId = this.generateRequestId();
-      
-      const response = await baseAPI.post("/reports/expenses/generate", {
-        name: data.name,
-        fromDate: data.from_date,
-        toDate: data.to_date,
-        format: data.format,
-        filters: {},
-      }, {
-        headers: {
-          'X-Request-ID': requestId,
+
+      const response = await baseAPI.post(
+        "/reports/expenses/generate",
+        {
+          name: data.name,
+          fromDate: data.from_date,
+          toDate: data.to_date,
+          format: data.format,
+          filters: {},
         },
-      });
+        {
+          headers: {
+            "X-Request-ID": requestId,
+          },
+        }
+      );
 
       return {
         success: true,
@@ -189,7 +196,10 @@ class ReportService {
   }
 
   // Background polling methods
-  startBackgroundPolling(jobId: number, callback: (report: ReportJob) => void): void {
+  startBackgroundPolling(
+    jobId: number,
+    callback: (report: ReportJob) => void
+  ): void {
     this.pollingCallbacks.set(jobId, callback);
     this.pollReportStatus(jobId);
   }
@@ -211,12 +221,16 @@ class ReportService {
       if (statusResponse.success) {
         const reportJob: ReportJob = {
           job_id: jobId,
-          status: statusResponse.status as "pending" | "processing" | "completed" | "failed",
+          status: statusResponse.status as
+            | "pending"
+            | "processing"
+            | "completed"
+            | "failed",
           file_name: statusResponse.fileName,
           estimated_completion: statusResponse.estimatedCompletion,
-          created_at: statusResponse.data?.created_at || '',
+          created_at: statusResponse.data?.created_at || "",
           downloaded_at: statusResponse.data?.downloaded_at || null,
-          expires_at: statusResponse.data?.expires_at || '',
+          expires_at: statusResponse.data?.expires_at || "",
           file_size: statusResponse.data?.file_size,
         };
 
@@ -224,7 +238,10 @@ class ReportService {
         callback(reportJob);
 
         // If report is still processing, continue polling
-        if (statusResponse.status === 'pending' || statusResponse.status === 'processing') {
+        if (
+          statusResponse.status === "pending" ||
+          statusResponse.status === "processing"
+        ) {
           setTimeout(() => this.pollReportStatus(jobId), 5000); // Poll every 5 seconds
         } else {
           // Report completed or failed, stop polling
@@ -235,7 +252,7 @@ class ReportService {
         this.stopBackgroundPolling(jobId);
       }
     } catch (error) {
-      console.error('Error polling report status:', error);
+      console.error("Error polling report status:", error);
       this.stopBackgroundPolling(jobId);
     }
   }
@@ -282,9 +299,9 @@ class ReportService {
         link.click();
         link.remove();
 
-        return { 
-          success: true, 
-          message: response.data.message || "Download started successfully" 
+        return {
+          success: true,
+          message: response.data.message || "Download started successfully",
         };
       } else {
         return {
@@ -323,7 +340,7 @@ class ReportService {
       const response = await api.post("/reports/reports", requestBody);
       console.log("Report creation response:", response.data);
 
-      if (response.data.status === 'success') {
+      if (response.data.status === "success") {
         return {
           success: true,
           message: response.data.message || "Report created successfully!",
@@ -364,7 +381,8 @@ class ReportService {
       console.error("Error fetching report with expenses:", error);
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to fetch report details",
+        message:
+          error.response?.data?.message || "Failed to fetch report details",
       };
     }
   }
@@ -384,23 +402,26 @@ class ReportService {
       console.error("Error fetching report approval workflow:", error);
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to fetch approval workflow",
+        message:
+          error.response?.data?.message || "Failed to fetch approval workflow",
       };
     }
   }
 
-  async submitReport(reportId: string): Promise<{ success: boolean; message: string }> {
+  async submitReport(
+    reportId: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const response = await api.post(`/reports/reports/${reportId}/submit`);
       return {
-        success: response.data.status === 'success',
-        message: response.data.message || 'Report submitted successfully'
+        success: true,
+        message: response.data.message || "Report submitted successfully",
       };
     } catch (error: any) {
-      console.error('Error submitting report:', error);
+      console.error("Error submitting report:", error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to submit report'
+        message: error.response?.data?.message || "Failed to submit report",
       };
     }
   }
@@ -414,28 +435,21 @@ class ReportService {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
-        throw new Error('Organization ID not found in token');
+        throw new Error("Organization ID not found in token");
       }
 
       const response = await api.get(`/reports/templates?org_id=${orgId}`);
-      
-      if (response.data.status === 'success') {
-        return {
-          success: true,
-          data: response.data.data.templates,
-          total: response.data.data.pagination.total,
-        };
-      }
-
       return {
-        success: false,
-        message: 'Failed to fetch templates',
+        success: true,
+        data: response.data.data.templates,
+        total: response.data.data.pagination.total,
       };
     } catch (error: any) {
-      console.error('Error fetching report templates:', error);
+      console.error("Error fetching report templates:", error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to fetch report templates',
+        message:
+          error.response?.data?.message || "Failed to fetch report templates",
       };
     }
   }
@@ -459,20 +473,20 @@ class ReportService {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
-        throw new Error('Organization ID not found in token');
+        throw new Error("Organization ID not found in token");
       }
 
-      const response = await api.post('/reports/generate', {
+      const response = await api.post("/reports/generate", {
         org_id: parseInt(orgId),
         report_template_id: data.report_template_id,
         criteria: {
           start_date: data.start_date,
           end_date: data.end_date,
         },
-        report_name: data.report_name
+        report_name: data.report_name,
       });
 
-      if (response.data.status === 'success') {
+      if (response.data.status === "success") {
         return {
           success: true,
           data: response.data.data,
@@ -482,13 +496,13 @@ class ReportService {
 
       return {
         success: false,
-        message: 'Failed to generate report',
+        message: "Failed to generate report",
       };
     } catch (error: any) {
-      console.error('Error generating report with template:', error);
+      console.error("Error generating report with template:", error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to generate report',
+        message: error.response?.data?.message || "Failed to generate report",
       };
     }
   }
@@ -502,12 +516,12 @@ class ReportService {
     try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
-        throw new Error('Organization ID not found in token');
+        throw new Error("Organization ID not found in token");
       }
 
       const response = await api.get(`/reports/generated?org_id=${orgId}`);
-      
-      if (response.data.status === 'success') {
+
+      if (response.data.status === "success") {
         return {
           success: true,
           data: response.data.data.reports,
@@ -517,13 +531,14 @@ class ReportService {
 
       return {
         success: false,
-        message: 'Failed to fetch generated reports',
+        message: "Failed to fetch generated reports",
       };
     } catch (error: any) {
-      console.error('Error fetching generated reports:', error);
+      console.error("Error fetching generated reports:", error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to fetch generated reports',
+        message:
+          error.response?.data?.message || "Failed to fetch generated reports",
       };
     }
   }
@@ -532,94 +547,115 @@ class ReportService {
     try {
       const res = await api.get(`/reports/${id}/signed_url`);
       console.log(res);
-      
+
       // Using window.open is more reliable than creating an <a> tag for cross-origin URLs
-      window.open(res.data.data.signed_url, '_blank');
-      
+      window.open(res.data.data.signed_url, "_blank");
     } catch (error) {
-      console.error('Error downloading report:', error);
+      console.error("Error downloading report:", error);
       throw error;
     }
   }
 
-  async updateReport(reportId: string, updateData: {
-    title?: string;
-    description?: string;
-    custom_attributes?: Record<string, string>;
-    expense_ids?: string[];
-  }): Promise<{ success: boolean; message: string; data?: any }> {
+  async updateReport(
+    reportId: string,
+    updateData: {
+      title?: string;
+      description?: string;
+      custom_attributes?: Record<string, string>;
+      expense_ids?: string[];
+    }
+  ): Promise<{ success: boolean; message: string; data?: any }> {
     try {
-      const response = await api.put(`/reports/reports/${reportId}`, updateData);
-      
+      const response = await api.put(
+        `/reports/reports/${reportId}`,
+        updateData
+      );
+
       return {
-        success: response.data.status === 'success',
-        message: response.data.message || 'Report updated successfully',
-        data: response.data.data
+        success: response.data.status === "success",
+        message: response.data.message || "Report updated successfully",
+        data: response.data.data,
       };
     } catch (error: any) {
-      console.error('Error updating report:', error);
+      console.error("Error updating report:", error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to update report'
+        message: error.response?.data?.message || "Failed to update report",
       };
     }
   }
 
-  async addExpensesToReport(reportId: string, expenseIds: string[]): Promise<{ success: boolean; message: string; data?: any }> {
+  async addExpensesToReport(
+    reportId: string,
+    expenseIds: string[]
+  ): Promise<{ success: boolean; message: string; data?: any }> {
     try {
       const response = await api.post(`/reports/reports/${reportId}/expenses`, {
-        expense_ids: expenseIds
+        expense_ids: expenseIds,
       });
-      
+
       return {
-        success: response.data.status === 'success',
-        message: response.data.message || 'Expenses added to report successfully',
-        data: response.data.data
+        success: response.data.status === "success",
+        message:
+          response.data.message || "Expenses added to report successfully",
+        data: response.data.data,
       };
     } catch (error: any) {
-      console.error('Error adding expenses to report:', error);
+      console.error("Error adding expenses to report:", error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to add expenses to report'
+        message:
+          error.response?.data?.message || "Failed to add expenses to report",
       };
     }
   }
 
-  async removeExpensesFromReport(reportId: string, expenseIds: string[]): Promise<{ success: boolean; message: string; data?: any }> {
+  async removeExpensesFromReport(
+    reportId: string,
+    expenseIds: string[]
+  ): Promise<{ success: boolean; message: string; data?: any }> {
     try {
-      const response = await api.delete(`/reports/reports/${reportId}/expenses`, {
-        data: {
-          expense_ids: expenseIds
+      const response = await api.delete(
+        `/reports/reports/${reportId}/expenses`,
+        {
+          data: {
+            expense_ids: expenseIds,
+          },
         }
-      });
-      
+      );
+
       return {
-        success: response.data.status === 'success',
-        message: response.data.message || 'Expenses removed from report successfully',
-        data: response.data.data
+        success: response.data.status === "success",
+        message:
+          response.data.message || "Expenses removed from report successfully",
+        data: response.data.data,
       };
     } catch (error: any) {
-      console.error('Error removing expenses from report:', error);
+      console.error("Error removing expenses from report:", error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to remove expenses from report'
+        message:
+          error.response?.data?.message ||
+          "Failed to remove expenses from report",
       };
     }
   }
 
-  async deleteReport(reportId: string): Promise<{ success: boolean; message: string }> {
+  async deleteReport(
+    reportId: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const response = await api.delete(`/reports/reports/${reportId}`);
-      
+
       return {
-        success: response.data.status === 'success',
-        message: response.data.message || 'Report deleted successfully'
+        success: response.data.status === "success",
+        message: response.data.message || "Report deleted successfully",
       };
     } catch (error: any) {
-      console.error('Error deleting report:', error);
+      console.error("Error deleting report:", error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to delete report'
+        message: error.response?.data?.message || "Failed to delete report",
       };
     }
   }
