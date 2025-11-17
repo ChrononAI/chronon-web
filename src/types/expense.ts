@@ -98,6 +98,11 @@ export interface PaginationMeta {
   total: number;
 }
 
+export interface NewPaginationMeta {
+  count: number;
+  offset: number;
+}
+
 export interface ExpensesResponse {
   data: Expense[];
   pagination: PaginationMeta;
@@ -153,8 +158,8 @@ export interface ReportWithExpenses extends Report {
 
 export interface ApprovalWorkflow {
   report_id: string;
-  workflow_execution_id: string;
-  workflow_status: string;
+  workflow_execution_id?: string;
+  workflow_status?: string;
   current_step: number;
   total_steps: number;
   approval_steps: ApprovalStep[];
@@ -180,7 +185,7 @@ export interface Approver {
 
 export interface ReportsResponse {
   reports: Report[];
-  pagination: PaginationMeta;
+  pagination: NewPaginationMeta;
 }
 
 export interface DownloadReport {

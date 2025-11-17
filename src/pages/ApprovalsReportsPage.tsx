@@ -2,11 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
 import { approvalService } from "@/services/approvalService";
-import { Report } from "@/types/expense";
+import { NewPaginationMeta, Report } from "@/types/expense";
 import { formatDate, formatCurrency, getStatusColor } from "@/lib/utils";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { Badge } from "@/components/ui/badge";
-import { PaginationInfo } from "@/store/expenseStore";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { GridOverlay } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
@@ -78,7 +77,7 @@ const columns: GridColDef[] = [
 
 export function ApprovalsReportsPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<
     "unsubmitted" | "submitted" | "all"
@@ -86,13 +85,13 @@ export function ApprovalsReportsPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [allReportsPagination, setAllReportsPagination] =
-    useState<PaginationInfo>();
+    useState<NewPaginationMeta>();
   const [pendingReports, setPendingReports] = useState<Report[]>([]);
   const [pendingReportsPagination, setPendingReportsPagination] =
-    useState<PaginationInfo>();
+    useState<NewPaginationMeta>();
   const [processedReports, setProcessedReports] = useState<Report[]>([]);
   const [processedReportsPagination, setProcessedReportsPagination] =
-    useState<PaginationInfo>();
+    useState<NewPaginationMeta>();
   const rows =
     activeTab === "all"
       ? allReports
@@ -112,51 +111,67 @@ export function ApprovalsReportsPage() {
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, [activeTab]);
 
-  const fetchAllReports = async (page: number, perPage: number) => {
+  const fetchAllReports = async () => {
     try {
-      const response = await approvalService.getAllReports(page, perPage);
-      setAllReports(response.data);
-      setAllReportsPagination(response.pagination);
+      const limit = paginationModel?.pageSize || 10;
+      const offset = (paginationModel?.page || 0) * limit;
+      const response = await approvalService.getAllReports(limit, offset);
+      console.log(response);
+      setAllReports(response?.data.data);
+      setAllReportsPagination({
+        count: response?.data.count,
+        offset: response?.data.offset,
+      });
     } catch (error) {
       console.log(error);
     }
   };
 
-  const fetchUnsubmittedReports = async (page: number, perPage: number) => {
+  const fetchUnsubmittedReports = async () => {
     try {
+      const limit = paginationModel?.pageSize || 10;
+      const offset = (paginationModel?.page || 0) * limit;
       const response = await approvalService.getReportsByStatus(
-        page,
-        perPage,
+        limit,
+        offset,
         "IN_PROGRESS"
       );
       setPendingReports(response.data);
-      setPendingReportsPagination(response.pagination);
+      setPendingReportsPagination({
+        count: response?.data.count,
+        offset: response?.data.offset,
+      });
     } catch (error) {
       console.log(error);
     }
   };
 
-  const fetchSubmittedReports = async (page: number, perPage: number) => {
+  const fetchSubmittedReports = async () => {
     try {
+      const limit = paginationModel?.pageSize || 10;
+      const offset = (paginationModel?.page || 0) * limit;
       const response = await approvalService.getReportsByStatus(
-        page,
-        perPage,
+        limit,
+        offset,
         "APPROVED,REJECTED"
       );
       setProcessedReports(response.data);
-      setProcessedReportsPagination(response.pagination);
+      setProcessedReportsPagination({
+        count: response?.data.count,
+        offset: response?.data.offset,
+      });
     } catch (error) {
       console.log(error);
     }
   };
 
-  const fetchData = async (page: number, perPage: number) => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       await Promise.all([
-        fetchAllReports(page, perPage),
-        fetchSubmittedReports(page, perPage),
-        fetchUnsubmittedReports(page, perPage),
+        fetchAllReports(),
+        fetchSubmittedReports(),
+        fetchUnsubmittedReports(),
       ]);
     } catch (error) {
       console.log(error);
@@ -167,7 +182,7 @@ export function ApprovalsReportsPage() {
 
   useEffect(() => {
     if (paginationModel) {
-      fetchData(paginationModel?.page + 1, paginationModel?.pageSize);
+      fetchData();
     }
   }, [paginationModel?.page, paginationModel?.pageSize]);
 
@@ -176,16 +191,16 @@ export function ApprovalsReportsPage() {
   };
 
   const tabs = [
-    { key: "all", label: "All", count: allReportsPagination?.total || 0 },
+    { key: "all", label: "All", count: allReportsPagination?.count || 0 },
     {
       key: "unsubmitted",
       label: "Pending",
-      count: pendingReportsPagination?.total || 0,
+      count: pendingReportsPagination?.count || 0,
     },
     {
       key: "submitted",
       label: "Processed",
-      count: processedReportsPagination?.total || 0,
+      count: processedReportsPagination?.count || 0,
     },
   ];
 
@@ -276,10 +291,10 @@ export function ApprovalsReportsPage() {
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "all"
-              ? allReportsPagination?.total
+              ? allReportsPagination?.count
               : activeTab === "unsubmitted"
-              ? pendingReportsPagination?.total
-              : processedReportsPagination?.total) || 0
+              ? pendingReportsPagination?.count
+              : processedReportsPagination?.count) || 0
           }
         />
       </Box>

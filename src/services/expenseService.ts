@@ -130,20 +130,20 @@ export const expenseService = {
   },
 
   async getMyReports(
-    page: number = 1,
-    perPage: number = 20
+    limit: number = 1,
+    offset: number = 20
   ): Promise<ReportsResponse> {
     try {
-      const orgId = getOrgIdFromToken();
-      if (!orgId) {
-        throw new Error("Organization ID not found in token");
-      }
       const response = await api.get(
-        `/reports/reports?org_id=${orgId}&page=${page}&per_page=${perPage}`
+        `/reports/reports?limit=${limit}&offset=${offset}`
       );
+      console.log(response);
 
-      const reports = response.data.data.data || [];
-      const pagination = response.data.data.pagination;
+      const reports = response.data.data || [];
+      const pagination = {
+        count: response.data.count,
+        offset: response.data.offset
+      };
 
       return {
         reports,
@@ -154,12 +154,8 @@ export const expenseService = {
       return {
         reports: [],
         pagination: {
-          has_next: false,
-          has_prev: false,
-          page: 1,
-          pages: 0,
-          per_page: 20,
-          total: 0,
+          count: 0,
+          offset: 0
         },
       };
     }
@@ -167,27 +163,19 @@ export const expenseService = {
 
   async getReportsByStatus(
     status: string,
-    page: number = 1,
-    perPage: number = 20
+    limit: number = 1,
+    offset: number = 20
   ): Promise<ReportsResponse> {
     try {
-      const orgId = getOrgIdFromToken();
-      if (!orgId) {
-        throw new Error("Organization ID not found in token");
-      }
       const response = await api.get(
-        `/reports/reports?org_id=${orgId}&status=${status}&page=${page}&per_page=${perPage}`
+        `/reports/reports?status=${status}&limit=${limit}&offset=${offset}`
       );
 
-      const reports = response.data.data.data || [];
-      const pagination = response.data.data.pagination || {
-        has_next: false,
-        has_prev: false,
-        page: 1,
-        pages: 0,
-        per_page: 20,
-        total: 0,
-      };
+      const reports = response.data.data || [];
+      const pagination = {
+        count: response.data.count,
+        offset: response.data.offset
+      }
 
       return {
         reports,
@@ -198,12 +186,8 @@ export const expenseService = {
       return {
         reports: [],
         pagination: {
-          has_next: false,
-          has_prev: false,
-          page: 1,
-          pages: 0,
-          per_page: 20,
-          total: 0,
+          count: 0,
+          offset: 0
         },
       };
     }
