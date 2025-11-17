@@ -10,30 +10,27 @@ const handleApiResponse = async (response: AxiosResponse) => {
 
 export const approvalService = {
 
-  async getAllReports(page: number, perPage: number) {
+  async getAllReports(limit: number, offset: number) {
   try {
       const orgId = getOrgIdFromToken();
       if (!orgId) {
         throw new Error('Organization ID not found in token');
       }
-      const response = await api.get(`/reports/approvers/reports?org_id=${orgId}&status=APPROVED,REJECTED,IN_PROGRESS&page=${page}&per_page=${perPage}`);
-      // const reports = response.data.data.data || [];
-      return response.data.data
+      const response = await api.get(`/reports/approvers/reports?status=APPROVED,REJECTED,IN_PROGRESS&limit=${limit}&offset=${offset}`);
+      return response;
     } catch (error) {
       console.error(`Error fetching reports with status ${status}:`, error);
+      throw error;
     }
   },
 
-  async getReportsByStatus(page: number, perPage: number, status: string) {
+  async getReportsByStatus(limit: number, offset: number, status: string) {
     try {
-      const orgId = getOrgIdFromToken();
-      if (!orgId) {
-        throw new Error('Organization ID not found in token');
-      }
-      const response = await api.get(`/reports/approvers/reports?org_id=${orgId}&status=${status}&page=${page}&per_page=${perPage}`);
-      return response.data.data;
+      const response = await api.get(`/reports/approvers/reports?status=${status}&limit=${limit}&offset=${offset}`);
+      return response;
     } catch (error) {
       console.error(`Error fetching reports with status ${status}:`, error);
+      throw error;
     }
   },
 
@@ -84,16 +81,16 @@ export const approvalService = {
     }
   },
 
-  async draftBackReport(reportId: string, comments: string): Promise<{ success: boolean; message: string }> {
+  async sendBackReport(reportId: string, comments: string): Promise<{ success: boolean; message: string }> {
     try {
       const response = await api.post(`/reports/reports/${reportId}/action`, JSON.stringify({
-        action: 'draft_back',
+        action: 'send_back',
         approval_notes: comments
       }))
       
       const result = await handleApiResponse(response);
       return {
-        success: result.status === 'success',
+        success: true,
         message: result.message
       };
     } catch (error) {

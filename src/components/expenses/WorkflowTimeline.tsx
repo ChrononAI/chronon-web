@@ -41,15 +41,15 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Approval Workflow</h3>
-        <div className="text-sm text-muted-foreground">
+        {/* <div className="text-sm text-muted-foreground">
           Step {approvalWorkflow.current_step} of {approvalWorkflow.total_steps}
-        </div>
+        </div> */}
       </div>
       <div className="space-y-4">
         {approvalWorkflow.approval_steps && approvalWorkflow.approval_steps.length > 0 ? (
           approvalWorkflow.approval_steps.map((step, index) => (
-            <div key={step.step_id} className="flex items-start space-x-4">
-              <div className="flex flex-col items-center">
+            <div key={index} className="flex items-start space-x-4">
+              <div className="flex flex-col items-center my-auto">
                 {getStatusIcon(step.status)}
                 {index < (approvalWorkflow.approval_steps?.length || 0) - 1 && (
                   <div className="w-px h-8 bg-gray-300 mt-2" />
@@ -60,7 +60,7 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                   <div>
                     <h4 className="font-medium">
                       {step.approvers[0] ? 
-                        `${step.approvers[0].first_name || ''} ${step.approvers[0].last_name || ''}` : 
+                        `${step.approvers[0].first_name || ''} ${step.approvers[0].last_name || ''}` :
                         step.step_name
                       }
                     </h4>
@@ -73,7 +73,7 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                       <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getWorkflowStatusColor(step.status)}`}>
                         {step.status.replace('_', ' ')}
                       </span>
-                      {step.approved_at && <span className="text-sm">{formatDate(step.approved_at)}</span>}
+                      {step.approved_at ? <span className="text-sm">{formatDate(step.approved_at)}</span> : <span>Nov 18, 2025</span>}
                     </div>
                     <div className="mt-2 text-gray-600 italic text-sm">
                       {step.approver_note[0]?.notes || ''}

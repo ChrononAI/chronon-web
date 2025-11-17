@@ -121,7 +121,8 @@ export function MyReportsPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>(null);
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel | null>(null);
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -139,10 +140,9 @@ export function MyReportsPage() {
 
   const fetchAllReports = async () => {
     try {
-      const response = await expenseService.getMyReports(
-        (paginationModel?.page || 0) + 1,
-        paginationModel?.pageSize
-      );
+      const limit = paginationModel?.pageSize || 10;
+      const offset = (paginationModel?.page || 0) * limit;
+      const response = await expenseService.getMyReports(limit, offset);
       setAllReports(response.reports);
       setAllReportsPagination(response.pagination);
     } catch (error) {
@@ -152,10 +152,12 @@ export function MyReportsPage() {
 
   const fetchUnsubmittedReports = async () => {
     try {
+      const limit = paginationModel?.pageSize || 10;
+      const offset = (paginationModel?.page || 0) * limit;
       const response = await expenseService.getReportsByStatus(
         "DRAFT",
-        (paginationModel?.page || 0)+ 1,
-        paginationModel?.pageSize
+        limit,
+        offset
       );
       setUnsubmittedReports(response.reports);
       setUnsubmittedReportsPagination(response.pagination);
@@ -166,10 +168,12 @@ export function MyReportsPage() {
 
   const fetchSubmittedReports = async () => {
     try {
+      const limit = paginationModel?.pageSize || 10;
+      const offset = (paginationModel?.page || 0) * limit;
       const response = await expenseService.getReportsByStatus(
         "UNDER_REVIEW,APPROVED,REJECTED",
-        (paginationModel?.page || 0) + 1,
-        paginationModel?.pageSize
+        limit,
+        offset
       );
       setSubmittedReports(response.reports);
       setSubmittedReportsPagination(response.pagination);
@@ -233,16 +237,16 @@ export function MyReportsPage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         tabs={[
-          { key: "all", label: "All", count: allReportsPagination.total },
+          { key: "all", label: "All", count: allReportsPagination.count },
           {
             key: "unsubmitted",
             label: "Unsubmitted",
-            count: unsubmittedReportsPagination.total,
+            count: unsubmittedReportsPagination.count,
           },
           {
             key: "submitted",
             label: "Submitted",
-            count: submittedReportsPagination.total,
+            count: submittedReportsPagination.count,
           },
         ]}
         className="mb-8"
@@ -311,10 +315,10 @@ export function MyReportsPage() {
           showToolbar
           rowCount={
             activeTab === "all"
-              ? allReportsPagination.total
+              ? allReportsPagination.count
               : activeTab === "unsubmitted"
-              ? unsubmittedReportsPagination.total
-              : submittedReportsPagination.total
+              ? unsubmittedReportsPagination.count
+              : submittedReportsPagination.count
           }
           pagination
           paginationMode="server"
