@@ -1,11 +1,13 @@
 import { Card, CardContent } from "../ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Expense, Policy } from "@/types/expense";
+import { ExpenseComments } from "./ExpenseComments";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import {
+  Calendar,
   FileText,
   Loader2,
   RefreshCw,
@@ -25,7 +27,7 @@ import {
   PreApprovalType,
 } from "@/services/preApprovalService";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 
 const formatDate = (date: string) => {
   if (date) {
@@ -60,6 +62,11 @@ export function ViewExpenseWindow({
   const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(
     null
   );
+
+  // Comments states
+  const [activeTab, setActiveTab] = useState<"receipt" | "comments">("receipt");
+  const [activeMileageTab, setActiveMileageTab] = useState<"map" | "comments">("map");
+  const [activePerDiemTab, setActivePerDiemTab] = useState<"info" | "comments">("info");
 
   const loadPoliciesWithCategories = async () => {
     try {
@@ -156,12 +163,13 @@ export function ViewExpenseWindow({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[80%] max-w-full max-h-[80%] overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="w-[80%] max-w-full max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center justify-between">
             <div>View Expense</div>
           </DialogTitle>
         </DialogHeader>
+        <div className="flex-1 overflow-y-auto min-h-0">
         {data?.expense_type === "RECEIPT_BASED" ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
@@ -251,26 +259,47 @@ export function ViewExpenseWindow({
               </Card>
             </div>
             <div>
-              <Card>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between my-4">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Receipt
-                      </h3>
-                      {receiptUrl && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500">1</span>
-                          <span className="text-xs text-gray-400">•</span>
-                          <span className="text-xs text-gray-500">
-                            {receiptUrl.toLowerCase().includes(".pdf")
-                              ? "PDF"
-                              : "Image"}
-                          </span>
-                        </div>
-                      )}
+              <Card className="flex flex-col h-full">
+                <CardContent className="flex flex-col flex-1 p-0">
+                  <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-6 pb-4">
+                    <div className="flex items-center gap-3">
+                      {[
+                        { key: "receipt", label: "Receipt" },
+                        { key: "comments", label: "Comments" },
+                      ].map((tab) => (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          onClick={() =>
+                            setActiveTab(tab.key as "receipt" | "comments")
+                          }
+                          className={cn(
+                            "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                            activeTab === tab.key
+                              ? "bg-primary/10 text-primary"
+                              : "text-gray-500 hover:text-gray-900"
+                          )}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
                     </div>
+                    {receiptUrl && activeTab === "receipt" && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">1</span>
+                        <span className="text-xs text-gray-400">•</span>
+                        <span className="text-xs text-gray-500">
+                          {receiptUrl.toLowerCase().includes(".pdf")
+                            ? "PDF"
+                            : "Image"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
+                  <div className="flex-1 min-h-[520px] px-6 pb-6">
+                    {activeTab === "receipt" ? (
+                      <>
                     {!!receiptUrl ? (
                       <div className="space-y-4">
                         {/* Interactive Receipt Viewer */}
@@ -421,168 +450,282 @@ export function ViewExpenseWindow({
                         </div>
                       </div>
                     )}
+                      </>
+                    ) : (
+                      <ExpenseComments
+                        expenseId={data?.id}
+                        readOnly={false}
+                        autoFetch={activeTab === "comments"}
+                      />
+                    )}
                   </div>
                 </CardContent>
               </Card>
             </div>
           </div>
         ) : data?.expense_type === "PER_DIEM" ? (
-          <div>
-            <Card>
-              <CardContent className="p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-medium">
-                      Start Date *
-                    </label>
-                    <Input
-                      value={formatDate(data?.start_date || "")}
-                      disabled
-                    />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div>
+              <Card>
+                <CardContent className="p-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-medium">
+                        Start Date *
+                      </label>
+                      <Input
+                        value={formatDate(data?.start_date || "")}
+                        disabled
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-medium">
+                        End Date *
+                      </label>
+                      <Input value={formatDate(data?.end_date || "")} disabled />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-medium">
+                        Location *
+                      </label>
+                      <Input value={data?.location || ""} disabled />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-medium">
+                        Number of Days *
+                      </label>
+                      <Input value={days} disabled />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-medium">Policy *</label>
+                      <Input value={selectedPolicy?.name} disabled />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-medium">
+                        Category *
+                      </label>
+                      <Input value={data?.category} disabled />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[14px] font-medium">
-                      End Date *
-                    </label>
-                    <Input value={formatDate(data?.end_date || "")} disabled />
+                    <label className="text-[14px] font-medium">Purpose *</label>
+                    <Textarea value={data?.description} disabled />
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-medium">
-                      Location *
-                    </label>
-                    <Input value={data?.location || ""} disabled />
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">
+                      Total Per Diem
+                    </Label>
+                    <div className="text-2xl font-bold text-blue-600 mt-1">
+                      ₹{(Number(data?.amount) || 0).toFixed(2)}
+                    </div>
+                    <p className="text-sm text-gray-500">{days} days</p>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-medium">
-                      Number of Days *
-                    </label>
-                    <Input value={days} disabled />
+                </CardContent>
+              </Card>
+            </div>
+            <div>
+              <Card className="flex flex-col h-full">
+                <CardContent className="flex flex-col flex-1 p-0">
+                  <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-6 pb-4">
+                    <div className="flex items-center gap-3">
+                      {[
+                        { key: "info", label: "Info" },
+                        { key: "comments", label: "Comments" },
+                      ].map((tab) => (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          onClick={() =>
+                            setActivePerDiemTab(tab.key as "info" | "comments")
+                          }
+                          className={cn(
+                            "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                            activePerDiemTab === tab.key
+                              ? "bg-primary/10 text-primary"
+                              : "text-gray-500 hover:text-gray-900"
+                          )}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-medium">Policy *</label>
-                    <Input value={selectedPolicy?.name} disabled />
+
+                  <div className="flex-1 min-h-[520px] px-6 pb-6">
+                    {activePerDiemTab === "info" ? (
+                      <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center h-full">
+                        <Calendar className="h-14 w-14 text-gray-300" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            Per Diem Information
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Expense details will appear here
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <ExpenseComments
+                        expenseId={data?.id}
+                        readOnly={false}
+                        autoFetch={activePerDiemTab === "comments"}
+                      />
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-medium">
-                      Category *
-                    </label>
-                    <Input value={data?.category} disabled />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[14px] font-medium">Purpose *</label>
-                  <Textarea value={data?.description} disabled />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">
-                    Total Per Diem
-                  </Label>
-                  <div className="text-2xl font-bold text-blue-600 mt-1">
-                    ₹{(Number(data?.amount) || 0).toFixed(2)}
-                  </div>
-                  <p className="text-sm text-gray-500">{days} days</p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
             {/* Map Display Card */}
-            {data?.mileage_meta?.map_url && (
-              <div>
-                <Card>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between my-4">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          Route Map
-                        </h3>
-                      </div>
-
-                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-                        {/* Map Controls */}
-                        <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleMapZoomOut}
-                              disabled={mapZoom <= 0.5}
-                              className="h-8 w-8 p-0"
-                            >
-                              <ZoomOut className="h-4 w-4" />
-                            </Button>
-                            <span className="text-xs text-gray-600 min-w-[3rem] text-center">
-                              {Math.round(mapZoom * 100)}%
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleMapZoomIn}
-                              disabled={mapZoom >= 3}
-                              className="h-8 w-8 p-0"
-                            >
-                              <ZoomIn className="h-4 w-4" />
-                            </Button>
-                            <div className="w-px h-6 bg-gray-300 mx-2" />
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleMapRotate}
-                              className="h-8 w-8 p-0"
-                            >
-                              <RotateCw className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleMapReset}
-                              className="h-8 w-8 p-0"
-                            >
-                              <RefreshCw className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Map Display */}
-                        <div className="relative overflow-auto max-h-96 bg-gray-100">
-                          <div className="flex items-center justify-center p-4">
-                            <img
-                              src={data.mileage_meta.map_url}
-                              alt="Route map"
-                              className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                              style={{
-                                transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
-                                transformOrigin: "center",
-                                maxHeight: "100%",
-                                objectFit: "contain",
-                              }}
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                                const fallbackDiv =
-                                  document.createElement("div");
-                                fallbackDiv.className =
-                                  "flex flex-col items-center justify-center h-full text-center p-4";
-                                fallbackDiv.innerHTML = `<p class="text-gray-600 mb-4">Map preview not available.</p>`;
-                                e.currentTarget.parentNode?.appendChild(
-                                  fallbackDiv
-                                );
-                              }}
-                            />
-                          </div>
-                        </div>
+            <div>
+              <Card className="flex flex-col h-full">
+                <CardContent className="flex flex-col flex-1 p-0">
+                  <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-6 pb-4">
+                    <div className="flex items-center gap-3">
+                      {[
+                        { key: "map", label: "Route Map" },
+                        { key: "comments", label: "Comments" },
+                      ].map((tab) => (
+                          <button
+                            key={tab.key}
+                            type="button"
+                            onClick={() =>
+                              setActiveMileageTab(tab.key as "map" | "comments")
+                            }
+                            className={cn(
+                              "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                              activeMileageTab === tab.key
+                                ? "bg-primary/10 text-primary"
+                                : "text-gray-500 hover:text-gray-900"
+                            )}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+
+                  <div className="flex-1 min-h-[520px] px-6 pb-6">
+                    {activeMileageTab === "map" ? (
+                      <>
+                        {data?.mileage_meta?.map_url ? (
+                          <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                            {/* Map Controls */}
+                            <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleMapZoomOut}
+                                  disabled={mapZoom <= 0.5}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <ZoomOut className="h-4 w-4" />
+                                </Button>
+                                <span className="text-xs text-gray-600 min-w-[3rem] text-center">
+                                  {Math.round(mapZoom * 100)}%
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleMapZoomIn}
+                                  disabled={mapZoom >= 3}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <ZoomIn className="h-4 w-4" />
+                                </Button>
+                                <div className="w-px h-6 bg-gray-300 mx-2" />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleMapRotate}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <RotateCw className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleMapReset}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <RefreshCw className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Map Display */}
+                            <div className="relative overflow-auto max-h-96 bg-gray-100">
+                              <div className="flex items-center justify-center p-4">
+                                <img
+                                  src={data.mileage_meta.map_url}
+                                  alt="Route map"
+                                  className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                                  style={{
+                                    transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
+                                    transformOrigin: "center",
+                                    maxHeight: "100%",
+                                    objectFit: "contain",
+                                  }}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = "none";
+                                    const fallbackDiv =
+                                      document.createElement("div");
+                                    fallbackDiv.className =
+                                      "flex flex-col items-center justify-center h-full text-center p-4";
+                                    fallbackDiv.innerHTML = `<p class="text-gray-600 mb-4">Map preview not available.</p>`;
+                                    e.currentTarget.parentNode?.appendChild(
+                                      fallbackDiv
+                                    );
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 h-full flex items-center justify-center">
+                            <div className="text-center">
+                              <div className="mx-auto mb-4 h-16 w-16 text-gray-300">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="h-full w-full"
+                                >
+                                  <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
+                                  <circle cx="12" cy="10" r="3" />
+                                </svg>
+                              </div>
+                              <p className="text-base font-medium text-gray-700">Map View</p>
+                              <p className="text-sm text-gray-400 mt-1">
+                                Route visualization will appear here
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <ExpenseComments
+                        expenseId={data?.id}
+                        readOnly={false}
+                        autoFetch={activeMileageTab === "comments"}
+                      />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
             <div>
-              <Card className="max-h-[80%] flex flex-col">
+              <Card className="flex flex-col h-full">
                 <CardContent className="p-6 space-y-4 overflow-y-auto flex-1">
                   <div className="relative">
                     {data?.start_location && (
@@ -721,6 +864,7 @@ export function ViewExpenseWindow({
             </div>
           </div>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );

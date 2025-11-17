@@ -55,6 +55,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
+import { ExpenseComments } from "./ExpenseComments";
 import {
   fileParseService,
   ParsedInvoiceData,
@@ -231,6 +232,7 @@ export function ExpenseDetailsStep({
   >("receipt");
   const [receiptZoom, setReceiptZoom] = useState(1);
   const [receiptRotation, setReceiptRotation] = useState(0);
+
 
   // Fetch signed URL for duplicate receipts when component mounts
   useEffect(() => {
@@ -459,6 +461,7 @@ export function ExpenseDetailsStep({
       }
     }
   }, [parsedData, policies]);
+
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -706,7 +709,13 @@ export function ExpenseDetailsStep({
                   </div>
                 </div>
               </>
-            ) : null}
+            ) : (
+              <ExpenseComments
+                expenseId={expense?.id}
+                readOnly={false}
+                autoFetch={activeReceiptTab === "comments"}
+              />
+            )}
           </div>
         </div>
 

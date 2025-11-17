@@ -36,6 +36,8 @@ import { Expense, Policy, PolicyCategory } from "@/types/expense";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { DateField } from "@/components/ui/date-field";
+import { ExpenseComments } from "@/components/expenses/ExpenseComments";
+import { cn } from "@/lib/utils";
 import {
   Form,
   FormControl,
@@ -137,6 +139,7 @@ const MileagePage = ({
   const [mapZoom, setMapZoom] = useState(1);
   const [mapRotation, setMapRotation] = useState(0);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [activeMapTab, setActiveMapTab] = useState<"map" | "comments">("map");
   const [lastAddedStopId, setLastAddedStopId] = useState<string | null>(null);
   const today = new Date().toISOString().split("T")[0];
   const stopRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -833,55 +836,99 @@ const MileagePage = ({
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Section - Map */}
-        <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 flex items-center justify-center lg:min-h-[620px]">
-          {isCalculating ? <div className="text-center text-gray-500">
-              <div className="mx-auto mb-4 h-16 w-16 text-gray-300">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-full w-full"
+        {/* Left Section - Map/Comments */}
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col">
+          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              {[
+                { key: "map", label: "Map" },
+                { key: "comments", label: "Comments" },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveMapTab(tab.key as "map" | "comments")}
+                  className={cn(
+                    "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                    activeMapTab === tab.key
+                      ? "bg-primary/10 text-primary"
+                      : "text-gray-500 hover:text-gray-900"
+                  )}
                 >
-                  <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-              </div>
-              <p className="text-base font-medium">Loading Map View...</p>
-              <p className="text-sm text-gray-400 mt-1">
-                Route visualization will appear here
-              </p>
-            </div> : mapUrl ? (
-            <img
-              src={mapUrl}
-              alt="Route Map"
-              className="max-h-[520px] w-full object-contain"
-              onClick={handleMapFullscreen}
-            />
-          ) : (
-            <div className="text-center text-gray-500">
-              <div className="mx-auto mb-4 h-16 w-16 text-gray-300">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-full w-full"
-                >
-                  <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-              </div>
-              <p className="text-base font-medium">Map View</p>
-              <p className="text-sm text-gray-400 mt-1">
-                Route visualization will appear here
-              </p>
+                  {tab.label}
+                </button>
+              ))}
             </div>
+          </div>
+          {activeMapTab === "map" ? (
+            <div className="md:flex-1 md:overflow-hidden">
+              {isCalculating ? (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
+                  <div className="mx-auto h-16 w-16 text-gray-300">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-full w-full"
+                    >
+                      <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Loading Map View...
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Route visualization will appear here
+                    </p>
+                  </div>
+                </div>
+              ) : mapUrl ? (
+                <div className="flex items-start justify-center rounded-b-2xl bg-gray-50 pt-4 px-6 pb-6 md:h-full">
+                  <img
+                    src={mapUrl}
+                    alt="Route Map"
+                    className="h-[520px] w-full rounded-xl object-contain cursor-pointer"
+                    onClick={handleMapFullscreen}
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
+                  <div className="mx-auto h-16 w-16 text-gray-300">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-full w-full"
+                    >
+                      <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Map View
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Route visualization will appear here
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <ExpenseComments
+              expenseId={expenseData?.id}
+              readOnly={false}
+              autoFetch={activeMapTab === "comments"}
+            />
           )}
         </div>
 
