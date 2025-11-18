@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { GridOverlay } from "@mui/x-data-grid";
 // import { CustomLoader } from "./MyReportsPage";
 
-function getExpenseType(type: string) {
+export function getExpenseType(type: string) {
   if (type === "RECEIPT_BASED") return "Expense";
   if (type === "MILEAGE_BASED") return "Mileage";
   if (type === "PER_DIEM") return "Per Diem";
