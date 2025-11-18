@@ -861,7 +861,7 @@ const MileagePage = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Section - Map/Comments */}
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col h-full">
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 flex-shrink-0">
             <div className="flex items-center gap-3">
               {[
@@ -885,9 +885,9 @@ const MileagePage = ({
             </div>
           </div>
           {activeMapTab === "map" ? (
-            <div className="md:flex-1 md:overflow-hidden flex flex-col">
+            <div className="flex-1 flex flex-col overflow-hidden">
               {isCalculating ? (
-                <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
+                <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center h-full">
                   <div className="mx-auto h-16 w-16 text-gray-300">
                     <svg
                       viewBox="0 0 24 24"
@@ -912,13 +912,17 @@ const MileagePage = ({
                   </div>
                 </div>
               ) : mapUrl ? (
-                <div className="flex-1 rounded-b-2xl bg-gray-50 overflow-hidden">
-                  <img
-                    src={mapUrl}
-                    alt="Route Map"
-                    className="w-full h-full object-cover cursor-pointer"
-                    onClick={handleMapFullscreen}
-                  />
+                <div className="flex-1 rounded-b-2xl bg-gray-50 overflow-hidden flex flex-col">
+                  <div className="relative overflow-auto max-h-[600px] bg-gray-100 flex-1">
+                    <div className="flex items-center justify-center p-4">
+                      <img
+                        src={mapUrl}
+                        alt="Route Map"
+                        className="max-w-full h-auto cursor-pointer"
+                        onClick={handleMapFullscreen}
+                      />
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
