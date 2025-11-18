@@ -116,7 +116,6 @@ export function ApprovalsReportsPage() {
       const limit = paginationModel?.pageSize || 10;
       const offset = (paginationModel?.page || 0) * limit;
       const response = await approvalService.getAllReports(limit, offset);
-      console.log(response);
       setAllReports(response?.data.data);
       setAllReportsPagination({
         count: response?.data.count,

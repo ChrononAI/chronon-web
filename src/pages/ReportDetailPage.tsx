@@ -18,6 +18,7 @@ import {
   Activity,
   Target,
   Undo,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Dialog,
@@ -36,48 +37,153 @@ import { toast } from "sonner";
 import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
 import { ViewExpenseWindow } from "@/components/expenses/ViewExpenseWindow";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getExpenseType } from "./MyExpensesPage";
+
+// const columns: GridColDef[] = [
+//   {
+//     field: "category",
+//     headerName: "CATEGORY",
+//     flex: 1,
+//   },
+//   {
+//     field: "amount",
+//     headerName: "AMOUNT",
+//     flex: 0.8,
+//     align: "right",
+//     headerAlign: "right",
+//     valueFormatter: (val) => formatCurrency(val),
+//   },
+//   {
+//     field: "expense_date",
+//     headerName: "DATE",
+//     flex: 1,
+//     valueFormatter: (val) => formatDate(val),
+//   },
+//   {
+//     field: "vendor",
+//     headerName: "VENDOR",
+//     flex: 1,
+//     renderCell: (params) => {
+//       const expense = params.row;
+//       const displayVendor =
+//         expense.expense_type === "MILEAGE_BASED"
+//           ? "Mileage Reimbursement"
+//           : expense.expense_type === "PER_DIEM"
+//           ? "Per Diem"
+//           : expense.vendor || "—";
+//       return <span>{displayVendor}</span>;
+//     },
+//   },
+//   {
+//     field: "status",
+//     headerName: "STATUS",
+//     flex: 1,
+//     renderCell: (params) => (
+//       <Badge className={`${getStatusColor(params.value)} whitespace-nowrap`}>
+//         {params.value.replace("_", " ")}
+//       </Badge>
+//     ),
+//   },
+// ];
 
 const columns: GridColDef[] = [
   {
+    field: "sequence_number",
+    headerName: "EXPENSE ID",
+    width: 150,
+    renderCell: (params) => {
+      const expense = params.row;
+      return (
+        <div className="flex items-center gap-2">
+          {expense.original_expense_id && (
+            <TooltipProvider>
+              <Tooltip delayDuration={50}>
+                <TooltipTrigger asChild>
+                  <div className="relative cursor-pointer">
+                    <AlertTriangle
+                      className="h-4 w-4 text-yellow-400"
+                      fill="currentColor"
+                      stroke="none"
+                    />
+                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-800 text-[8px] font-bold">
+                      !
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  align="center"
+                  className="bg-yellow-100 border-yellow-300 text-yellow-800"
+                >
+                  <p>Duplicate expense</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <span>{expense.sequence_number}</span>
+        </div>
+      );
+    },
+  },
+  {
+    field: "expense_type",
+    headerName: "TYPE",
+    width: 120,
+    renderCell: (params) => getExpenseType(params.row.expense_type),
+  },
+  {
+    field: "policy",
+    headerName: "POLICY",
+    width: 140,
+    valueGetter: (params: any) => params?.name || "No Policy",
+  },
+  {
     field: "category",
     headerName: "CATEGORY",
-    flex: 1,
-  },
-  {
-    field: "amount",
-    headerName: "AMOUNT",
-    flex: 0.8,
-    align: "right",
-    headerAlign: "right",
-    valueFormatter: (val) => formatCurrency(val),
-  },
-  {
-    field: "expense_date",
-    headerName: "DATE",
-    flex: 1,
-    valueFormatter: (val) => formatDate(val),
+    width: 140,
   },
   {
     field: "vendor",
     headerName: "VENDOR",
-    flex: 1,
+    width: 200,
     renderCell: (params) => {
-      const expense = params.row;
-      const displayVendor =
-        expense.expense_type === "MILEAGE_BASED"
-          ? "Mileage Reimbursement"
-          : expense.expense_type === "PER_DIEM"
-          ? "Per Diem"
-          : expense.vendor || "—";
-      return <span>{displayVendor}</span>;
+      const { vendor, expense_type } = params.row;
+      if (vendor) return vendor;
+      if (expense_type === "RECEIPT_BASED") {
+        return <span className="text-gray-600 italic">Unknown Vendor</span>;
+      }
+      return "NA";
     },
+  },
+  {
+    field: "expense_date",
+    headerName: "DATE",
+    width: 120,
+    valueFormatter: (params: any) => formatDate(params),
+  },
+  {
+    field: "amount",
+    headerName: "AMOUNT",
+    width: 120,
+    type: "number",
+    align: "right",
+    headerAlign: "right",
+    valueFormatter: (params: any) => formatCurrency(params, "INR"),
+  },
+  {
+    field: "currency",
+    headerName: "CURRENCY",
+    width: 80,
+    renderCell: () => "INR",
   },
   {
     field: "status",
     headerName: "STATUS",
     flex: 1,
+    minWidth: 180,
     renderCell: (params) => (
-      <Badge className={`${getStatusColor(params.value)} whitespace-nowrap`}>
+      <Badge className={getStatusColor(params.value)}>
         {params.value.replace("_", " ")}
       </Badge>
     ),
@@ -103,35 +209,6 @@ export function ReportDetailPage() {
   const [showActionDialog, setShowActionDialog] = useState(false);
   const [showViewExpense, setShowViewExpense] = useState(false);
   const [expenseToView, setExpenseToView] = useState<Expense | null>(null);
-
-  const getUserSpecificStatus = (): string => {
-    if (!user || !approvalWorkflow || !approvalWorkflow.approval_steps) {
-      return report?.status || "UNDER_REVIEW";
-    }
-
-    const currentUserId = user.id.toString();
-
-    const userStep = approvalWorkflow.approval_steps
-      .reverse()
-      .find((step) =>
-        step.approvers.some((approver) => approver.user_id === currentUserId)
-      );
-    console.log(userStep);
-
-    if (!userStep) {
-      return report?.status || "UNDER_REVIEW";
-    }
-
-    return userStep.status === "APPROVED"
-      ? "APPROVED"
-      : userStep.status === "REJECTED"
-      ? "REJECTED"
-      : userStep.status === "SENT_BACK"
-      ? "SENT_BACK"
-      : "UNDER_REVIEW";
-  };
-
-  console.log(getStatusColor(getUserSpecificStatus()));
 
   const fetchReport = async () => {
     if (!id) {
@@ -262,32 +339,12 @@ export function ReportDetailPage() {
       (exp) => exp.status === "PENDING" || exp.status === "PENDING_APPROVAL"
     ).length;
 
-    // Check if user is in the current approval step
-    // const isUserInCurrentStep = approvalWorkflow?.approval_steps
-    //   .find((step) => step.step_order === approvalWorkflow.current_step)
-    //   ?.approvers.some((approver) => approver.user_id === user.id.toString());
-
     const isUserInCurrentStep = approvalWorkflow?.approval_steps
       .find((step) => step.status === "IN_PROGRESS")
       ?.approvers.some((approver) => approver.user_id === user.id.toString());
 
     return pendingExpenses > 0 && (isUserInCurrentStep || !approvalWorkflow);
   };
-
-  // const getStatusIcon = (status: string) => {
-  //   switch (status.toUpperCase()) {
-  //     case "APPROVED":
-  //     case "FULLY_APPROVED":
-  //       return <CheckCircle className="h-5 w-5 text-green-600" />;
-  //     case "PENDING":
-  //     case "PENDING_APPROVAL":
-  //       return <Clock className="h-5 w-5 text-yellow-600" />;
-  //     case "REJECTED":
-  //       return <XCircle className="h-5 w-5 text-red-600" />;
-  //     default:
-  //       return <Activity className="h-5 w-5 text-blue-600" />;
-  //   }
-  // };
 
   if (loading) {
     return (
