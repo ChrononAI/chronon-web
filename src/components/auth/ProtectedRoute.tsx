@@ -49,7 +49,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!enabled) {
-    return <Navigate to="/permisison-denied" replace />;
+    return <Navigate to="/permission-denied" replace />;
   }
 
   return <>{children}</>;
