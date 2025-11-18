@@ -9,7 +9,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { ExpenseDetailPage } from "@/pages/ExpenseDetailPage";
 import { MyReportsPage } from "@/pages/MyReportsPage";
-import { ReportDetailPage } from "@/pages/ReportDetailPage";
+// import { ReportDetailPage } from "@/pages/ReportDetailPage";
 import { MyAdvancesPage } from "@/pages/MyAdvancesPage";
 import { CreateAdvancePage } from "@/pages/CreateAdvancePage";
 import { CreateReportPage } from "@/pages/CreateReportPage";
@@ -57,6 +57,7 @@ import CreateCategoryLimitPage from "./pages/admin/CreateCategoryLimitPage";
 import EditCategoryLimitPage from "./pages/admin/EditCategoryLimitPage";
 import AdvanceAccounts from "./pages/AdvanceAccounts";
 import { AutoReportPage } from "./pages/admin/AutoReportPage";
+import { ReportDetailPage2 } from "./pages/ReportDetailPage2";
 
 function App() {
   return (
@@ -121,7 +122,7 @@ function App() {
             path="/reports/:id"
             element={
               <ProtectedRoute>
-                <ReportDetailPage />
+                <ReportDetailPage2 />
               </ProtectedRoute>
             }
           />
@@ -173,7 +174,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/approvals/reports/:id" element={<ReportDetailPage />} />
+          <Route path="/approvals/reports/:id" element={<ReportDetailPage2 />} />
           <Route
             path="/approvals/advances"
             element={
