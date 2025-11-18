@@ -498,17 +498,7 @@ const MileagePage = ({
           : stop
       ),
     }));
-
-    if (startLocation && endLocation && formData.vehiclesType) {
-      setTimeout(() => {
-        calculateMileageCost(
-          startLocation.place_id,
-          endLocation.place_id,
-          formData.vehiclesType,
-          formData.isRoundTrip
-        );
-      }, 100);
-    }
+    // The useEffect will automatically trigger calculateMileageCost when locationId changes
   };
 
   const handleAddStop = (insertAtIndex?: number) => {
@@ -573,12 +563,17 @@ const MileagePage = ({
       !isLoadingExistingData &&
       mode === "create"
     ) {
-      calculateMileageCost(
-        startLocation?.place_id,
-        endLocation?.place_id,
-        formData.vehiclesType,
-        formData.isRoundTrip
-      );
+      // Use a small delay to ensure all stop locationIds are updated after autocomplete selection
+      const timeoutId = setTimeout(() => {
+        calculateMileageCost(
+          startLocation?.place_id,
+          endLocation?.place_id,
+          formData.vehiclesType,
+          formData.isRoundTrip
+        );
+      }, 200); // Increased delay to ensure autocomplete completes and locationId is set
+
+      return () => clearTimeout(timeoutId);
     }
   }, [
     startLocation,
