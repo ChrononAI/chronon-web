@@ -11,7 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Expense } from '@/types/expense';
-import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
+import { formatDate, formatCurrency, getStatusColor, getOrgCurrency } from '@/lib/utils';
 
 interface ExpenseTableProps {
   expenses: Expense[];
@@ -82,10 +82,10 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
                   {formatDate(expense.expense_date)}
                 </TableCell>
                 <TableCell className='text-right'>
-                  {formatCurrency(expense.amount, 'INR')}
+                  {formatCurrency(expense.amount)}
                 </TableCell>
                <TableCell>
-                  INR
+                  {getOrgCurrency()}
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
                   <Badge className={getStatusColor(expense.status)}>

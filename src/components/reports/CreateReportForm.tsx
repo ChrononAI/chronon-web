@@ -639,7 +639,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
                               {expense.expense_type === "MILEAGE_BASED" ? "Mileage Expense" : expense.expense_type === "PER_DIEM" ? "Per Diem Expense" : expense.vendor}
                             </p>
                             <p className="font-semibold text-sm text-primary">
-                              {formatCurrency(expense.amount, 'INR')}
+                              {formatCurrency(expense.amount)}
                             </p>
                           </div>
                           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">

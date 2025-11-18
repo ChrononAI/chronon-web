@@ -133,5 +133,14 @@ export const authService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  async getOrgData() {
+    try {
+      const res = await api.get(`/orgs`);
+      return res.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
