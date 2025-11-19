@@ -37,7 +37,17 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { DateField } from "@/components/ui/date-field";
 import { ExpenseComments } from "@/components/expenses/ExpenseComments";
-import { cn } from "@/lib/utils";
+import { 
+  cn, 
+  formatCurrency, 
+  formatDistance, 
+  formatDistanceWithDefault,
+  parseDistanceToKm, 
+  parseDistanceUnit,
+  getDistanceUnit,
+  usesMetricSystem,
+  getOrgCurrency
+} from "@/lib/utils";
 import {
   Form,
   FormControl,
@@ -70,6 +80,7 @@ const mileageSchema = z.object({
   startLocation: z.string().min(1, "Start location is required"),
   endLocation: z.string().min(1, "End location is required"),
   distance: z.string().min(1, "Distance is required"),
+  chargeableDistance: z.string().optional(),
   amount: z.string().min(1, "Amount is required"),
   description: z.string().min(1, "Purpose of travel is required"),
   vehiclesType: z.string().min(1, "Vehicle type is required"),
@@ -95,13 +106,14 @@ const MileagePage = ({
 
   const form = useForm<MileageFormValues>({
     resolver: zodResolver(mileageSchema),
-    defaultValues: {
+      defaultValues: {
       startLocation: "",
       endLocation: "",
       distance: "",
+      chargeableDistance: "",
       amount: "",
       description: "",
-      vehiclesType: "",
+      vehiclesType: "car",
       expenseDate: new Date().toISOString().split("T")[0],
       isRoundTrip: false,
       policyId: "",
@@ -115,9 +127,10 @@ const MileagePage = ({
     endLocation: "",
     endLocationId: "",
     distance: "",
+    chargeableDistance: "",
     amount: "",
     description: "",
-    vehiclesType: "",
+    vehiclesType: "car",
     expenseDate: new Date().toISOString().split("T")[0],
     isRoundTrip: false,
     policyId: "",
@@ -129,6 +142,8 @@ const MileagePage = ({
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
+  const [mileagePrice, setMileagePrice] = useState<number | null>(null);
+  const [chargeableDistanceValue, setChargeableDistanceValue] = useState<number | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [startLocation, setStartLocation] = useState<PlaceSuggestion | null>();
@@ -256,8 +271,9 @@ const MileagePage = ({
         startLocationId: "",
         endLocation: expenseData.end_location || "",
         endLocationId: "",
-        distance: expenseData.distance ? `${expenseData.distance} km` : "",
-        amount: `₹${expenseData.amount.toString()}` || "₹0.00",
+        distance: expenseData.distance ? formatDistance(typeof expenseData.distance === 'string' ? parseFloat(expenseData.distance) || 0 : expenseData.distance, expenseData.distance_unit || getDistanceUnit().toUpperCase()) : "",
+        chargeableDistance: (expenseData as any).chargeable_distance || "",
+        amount: formatCurrency(expenseData.amount) || formatCurrency(0),
         description: expenseData.description || "",
         vehiclesType: getVehicleType(expenseData.vehicle_type || ""),
         expenseDate:
@@ -318,12 +334,14 @@ const MileagePage = ({
   };
 
   const extractDistance = (distanceStr: string) => {
-    const match = distanceStr.match(/(\d+\.?\d*)/);
-    return match ? parseFloat(match[1]) : 0;
+    // Parse distance string and convert to km
+    return parseDistanceToKm(distanceStr);
   };
 
   const extractAmount = (amountStr: string) => {
-    const match = amountStr.match(/₹?(\d+\.?\d*)/);
+    // Remove currency symbols, commas, and parse number
+    const cleaned = amountStr.replace(/[\$€₹,\s]/g, '');
+    const match = cleaned.match(/(\d+\.?\d*)/);
     return match ? parseFloat(match[1]) : 0;
   };
 
@@ -434,12 +452,12 @@ const MileagePage = ({
         ...prev,
         startLocation: "",
         startLocationId: "",
-        distance: "0 km",
-        amount: "₹0.00",
+        distance: formatDistanceWithDefault(0),
+        amount: formatCurrency(0),
       }));
       form.setValue("startLocation", "");
-      form.setValue("distance", "0 km");
-      form.setValue("amount", "₹0.00");
+      form.setValue("distance", formatDistanceWithDefault(0));
+      form.setValue("amount", formatCurrency(0));
       setMapUrl(null);
     }
   };
@@ -461,12 +479,12 @@ const MileagePage = ({
         ...prev,
         endLocation: "",
         endLocationId: "",
-        distance: "0 km",
-        amount: "₹0.00",
+        distance: formatDistanceWithDefault(0),
+        amount: formatCurrency(0),
       }));
       form.setValue("endLocation", "");
-      form.setValue("distance", "0 km");
-      form.setValue("amount", "₹0.00");
+      form.setValue("distance", formatDistanceWithDefault(0));
+      form.setValue("amount", formatCurrency(0));
       setMapUrl(null);
     }
   };
@@ -480,17 +498,7 @@ const MileagePage = ({
           : stop
       ),
     }));
-
-    if (startLocation && endLocation && formData.vehiclesType) {
-      setTimeout(() => {
-        calculateMileageCost(
-          startLocation.place_id,
-          endLocation.place_id,
-          formData.vehiclesType,
-          formData.isRoundTrip
-        );
-      }, 100);
-    }
+    // The useEffect will automatically trigger calculateMileageCost when locationId changes
   };
 
   const handleAddStop = (insertAtIndex?: number) => {
@@ -555,12 +563,17 @@ const MileagePage = ({
       !isLoadingExistingData &&
       mode === "create"
     ) {
-      calculateMileageCost(
-        startLocation?.place_id,
-        endLocation?.place_id,
-        formData.vehiclesType,
-        formData.isRoundTrip
-      );
+      // Use a small delay to ensure all stop locationIds are updated after autocomplete selection
+      const timeoutId = setTimeout(() => {
+        calculateMileageCost(
+          startLocation?.place_id,
+          endLocation?.place_id,
+          formData.vehiclesType,
+          formData.isRoundTrip
+        );
+      }, 200); // Increased delay to ensure autocomplete completes and locationId is set
+
+      return () => clearTimeout(timeoutId);
     }
   }, [
     startLocation,
@@ -619,8 +632,8 @@ const MileagePage = ({
       description: values.description,
       start_location: values.startLocation,
       end_location: values.endLocation,
-      distance: extractDistance(values.distance),
-      distance_unit: "KM",
+      distance: chargeableDistanceValue ?? extractDistance(values.distance),
+      distance_unit: parseDistanceUnit(values.distance) || getDistanceUnit().toUpperCase(),
       vehicle_type:
         vehicleTypeMapping[
           values.vehiclesType as keyof typeof vehicleTypeMapping
@@ -752,14 +765,25 @@ const MileagePage = ({
 
       if (costData) {
         const calculatedDistance = costData.total_distance || 0;
-
+        // Use distance_unit from API response (already in correct unit - MILES for USD/EUR, KM for INR)
+        const formattedDistance = formatDistance(calculatedDistance, costData.distance_unit);
+        const formattedAmount = formatCurrency(costData.cost);
+        const formattedChargeableDistance = costData.chargeable_distance 
+          ? formatDistance(costData.chargeable_distance, costData.distance_unit)
+          : "";
+        
+        setMileagePrice(costData.mileage_info?.price || null);
+        setChargeableDistanceValue(costData.chargeable_distance || null);
+        
         setFormData((prev) => ({
           ...prev,
-          distance: `${calculatedDistance.toFixed(1)} km`,
-          amount: `₹${costData.cost.toFixed(2)}`,
+          distance: formattedDistance,
+          chargeableDistance: formattedChargeableDistance,
+          amount: formattedAmount,
         }));
-        form.setValue("distance", `${calculatedDistance.toFixed(1)} km`);
-        form.setValue("amount", `₹${costData.cost.toFixed(2)}`);
+        form.setValue("distance", formattedDistance);
+        form.setValue("chargeableDistance", formattedChargeableDistance);
+        form.setValue("amount", formattedAmount);
 
         if (costData.map_url) {
           setMapUrl(costData.map_url);
@@ -837,7 +861,7 @@ const MileagePage = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Section - Map/Comments */}
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col h-full">
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 flex-shrink-0">
             <div className="flex items-center gap-3">
               {[
@@ -861,9 +885,9 @@ const MileagePage = ({
             </div>
           </div>
           {activeMapTab === "map" ? (
-            <div className="md:flex-1 md:overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden">
               {isCalculating ? (
-                <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
+                <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center h-full">
                   <div className="mx-auto h-16 w-16 text-gray-300">
                     <svg
                       viewBox="0 0 24 24"
@@ -888,13 +912,17 @@ const MileagePage = ({
                   </div>
                 </div>
               ) : mapUrl ? (
-                <div className="flex items-start justify-center rounded-b-2xl bg-gray-50 pt-4 px-6 pb-6 md:h-full">
-                  <img
-                    src={mapUrl}
-                    alt="Route Map"
-                    className="h-[520px] w-full rounded-xl object-contain cursor-pointer"
-                    onClick={handleMapFullscreen}
-                  />
+                <div className="flex-1 rounded-b-2xl bg-gray-50 overflow-hidden flex flex-col">
+                  <div className="relative overflow-auto max-h-[600px] bg-gray-100 flex-1">
+                    <div className="flex items-center justify-center p-4">
+                      <img
+                        src={mapUrl}
+                        alt="Route Map"
+                        className="max-w-full h-auto cursor-pointer"
+                        onClick={handleMapFullscreen}
+                      />
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
@@ -1112,10 +1140,14 @@ const MileagePage = ({
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="car">Car</SelectItem>
-                            <SelectItem value="bike">Bike</SelectItem>
-                            <SelectItem value="public_transport">
-                              Public Transport
-                            </SelectItem>
+                            {getOrgCurrency() !== 'USD' && (
+                              <>
+                                <SelectItem value="bike">Bike</SelectItem>
+                                <SelectItem value="public_transport">
+                                  Public Transport
+                                </SelectItem>
+                              </>
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -1128,7 +1160,7 @@ const MileagePage = ({
                     name="distance"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Distance *</FormLabel>
+                        <FormLabel>Travel Distance *</FormLabel>
                         <div className="relative">
                           <FormControl>
                             <Input
@@ -1154,6 +1186,40 @@ const MileagePage = ({
                       </FormItem>
                     )}
                   />
+
+                  {!usesMetricSystem() && mode === "create" && (
+                    <FormField
+                      control={form.control}
+                      name="chargeableDistance"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Chargeable Distance</FormLabel>
+                          <div className="relative">
+                            <FormControl>
+                              <Input
+                                type="text"
+                                value={
+                                  isCalculating
+                                    ? "Calculating..."
+                                    : formData.chargeableDistance || "Auto-calculated"
+                                }
+                                onChange={(e) => {
+                                  handleInputChange("chargeableDistance", e.target.value);
+                                  field.onChange(e.target.value);
+                                }}
+                                className="bg-gray-50 text-gray-500"
+                                disabled={true}
+                              />
+                            </FormControl>
+                            {isCalculating && (
+                              <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
+                            )}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -1258,9 +1324,13 @@ const MileagePage = ({
                         Total Amount
                       </Label>
                       <div className="text-2xl font-bold text-blue-600 mt-1">
-                        {formData.amount || "₹0.00"}
+                        {formData.amount || formatCurrency(0)}
                       </div>
-                      {formData.distance && (
+                      {chargeableDistanceValue && mileagePrice && !usesMetricSystem() ? (
+                        <p className="text-sm font-semibold text-gray-600 mt-1">
+                          {chargeableDistanceValue.toFixed(2)} {getDistanceUnit()} × {formatCurrency(mileagePrice)} per {getDistanceUnit()}
+                        </p>
+                      ) : formData.distance && (
                         <p className="text-sm text-gray-500">
                           {formData.distance}
                         </p>
@@ -1295,9 +1365,13 @@ const MileagePage = ({
                         Total Amount
                       </span>
                       <span className="text-2xl font-bold text-blue-600 mt-1">
-                        {formData.amount || "₹0.00"}
+                        {formData.amount || formatCurrency(0)}
                       </span>
-                      {formData.distance && (
+                      {chargeableDistanceValue && mileagePrice && !usesMetricSystem() ? (
+                        <span className="text-sm font-semibold text-gray-600 mt-1 block">
+                          {chargeableDistanceValue.toFixed(2)} {getDistanceUnit()} × {formatCurrency(mileagePrice)} per {getDistanceUnit()}
+                        </span>
+                      ) : formData.distance && (
                         <span className="text-sm text-gray-500">
                           {formData.distance}
                         </span>

@@ -1,12 +1,25 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Layout } from '@/components/layout/Layout'
 import { CreateExpenseForm } from '@/components/expenses/CreateExpenseForm'
 import MileagePage from './MileagePage'
 import PerdiemPage from './PerdiemPage'
 import { ReportTabs } from '@/components/reports/ReportTabs'
+import { useAuthStore } from '@/store/authStore'
 
 export function UnifiedExpensesPage() {
   const [activeTab, setActiveTab] = useState('regular')
+  const { orgSettings } = useAuthStore()
+  const isPerDiemEnabled = orgSettings?.per_diem_settings?.enabled !== false
+  const tabs = [
+    { key: 'regular', label: 'Regular Expense', count: 0 },
+    { key: 'mileage', label: 'Mileage', count: 0 },
+    ...(isPerDiemEnabled ? [{ key: 'perdiem', label: 'Per Diem', count: 0 }] : []),
+  ]
+  useEffect(() => {
+    if (activeTab === 'perdiem' && !isPerDiemEnabled) {
+      setActiveTab('regular')
+    }
+  }, [activeTab, isPerDiemEnabled])
 
   return (
     <Layout>
@@ -18,11 +31,7 @@ export function UnifiedExpensesPage() {
         <ReportTabs
           activeTab={activeTab}
           onTabChange={(tab) => setActiveTab(tab)}
-          tabs={[
-            { key: 'regular', label: 'Regular Expense', count: 0 },
-            { key: 'mileage', label: 'Mileage', count: 0 },
-            { key: 'perdiem', label: 'Per Diem', count: 0 },
-          ]}
+          tabs={tabs}
           className="mb-6"
         />
 
@@ -38,7 +47,7 @@ export function UnifiedExpensesPage() {
           </div>
         )}
 
-        {activeTab === 'perdiem' && (
+        {activeTab === 'perdiem' && isPerDiemEnabled && (
           <div className="mt-6">
             <PerdiemPage mode="create" />
           </div>

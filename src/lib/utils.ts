@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { format } from 'date-fns';
+import { useAuthStore } from '@/store/authStore';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -8,22 +9,67 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatDate(date: number[] | string): string {
   if (Array.isArray(date)) {
-    // Handle [2025, 7, 8] format
     const [year, month, day] = date;
     return format(new Date(year, month - 1, day), 'MMM dd, yyyy');
   }
-  // Handle ISO string format
   return format(new Date(date), 'MMM dd, yyyy');
 }
 
-export function formatCurrency(amount: number, currency: string = 'INR'): string {
-  return new Intl.NumberFormat('en-IN', {
+export function getOrgCurrency(): string {
+  const orgSettings = useAuthStore.getState().orgSettings;
+  return orgSettings?.currency || 'INR';
+}
+
+export function usesMetricSystem(): boolean {
+  const currency = getOrgCurrency();
+  return currency === 'INR';
+}
+
+export function getDistanceUnit(): 'km' | 'miles' {
+  return usesMetricSystem() ? 'km' : 'miles';
+}
+
+export function formatDistance(distance: number, distanceUnit: string): string {
+  const unit = distanceUnit.toUpperCase() === 'MILES' ? 'miles' : 'km';
+  return `${distance.toFixed(2)} ${unit}`;
+}
+
+export function formatDistanceWithDefault(distance: number): string {
+  const unit = getDistanceUnit();
+  return `${distance.toFixed(2)} ${unit}`;
+}
+
+export function parseDistanceToKm(distanceStr: string): number {
+  const match = distanceStr.match(/(\d+\.?\d*)/);
+  if (!match) return 0;
+  
+  return parseFloat(match[1]);
+}
+
+export function parseDistanceUnit(distanceStr: string): string {
+  const unit = distanceStr.toLowerCase();
+  if (unit.includes('mile')) {
+    return 'MILES';
+  }
+  return 'KM';
+}
+
+export function formatCurrency(amount: number, overrideCurrency?: string): string {
+  const currency = overrideCurrency || getOrgCurrency();
+  
+  let locale = 'en-IN';
+  if (currency === 'USD') {
+    locale = 'en-US';
+  } else if (currency === 'EUR') {
+    locale = 'en-DE';
+  }
+  
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
   }).format(amount);
 }
 
-// Status color helper
 export const getStatusColor = (status: string): string => {
   switch (status.toUpperCase()) {
     case 'PENDING':
@@ -48,7 +94,6 @@ export const getStatusColor = (status: string): string => {
   }
 };
 
-// Workflow status color helper
 export const getWorkflowStatusColor = (status: string): string => {
   switch (status.toUpperCase()) {
     case 'INITIATED':
