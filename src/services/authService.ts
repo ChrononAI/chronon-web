@@ -135,6 +135,15 @@ export const authService = {
     }
   },
 
+  async getOrgData() {
+    try {
+      const res = await api.get(`/orgs`);
+      return res.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async getUserProfile() {
     try {
       return await api.get('/auth/profile')

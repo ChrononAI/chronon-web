@@ -25,18 +25,22 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     enabled = true;
   }
 
-  const getOrgSettings = async () => {
-    try {
-      const res = await authService.getOrgSetting();
-      setOrgSettings(res.data.data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
   useEffect(() => {
     if (user) {
-      getOrgSettings();
+      // Fetch both in parallel and merge together to ensure currency is preserved
+      Promise.all([
+        authService.getOrgData().catch(() => null),
+        authService.getOrgSetting().catch(() => null),
+      ]).then(([orgDataResponse, orgSettingsResponse]) => {
+        const currentSettings = useAuthStore.getState().orgSettings;
+        // Merge settings, prioritizing currency from orgData (which has the currency field)
+        const mergedSettings = {
+          ...currentSettings,
+          ...(orgSettingsResponse?.data?.data || {}),
+          ...(orgDataResponse?.data || {}), // This should come last to preserve currency
+        };
+        setOrgSettings(mergedSettings);
+      });
     }
   }, [user]);
 
@@ -45,7 +49,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!enabled) {
-    return <Navigate to="/permisison-denied" replace />;
+    return <Navigate to="/permission-denied" replace />;
   }
 
   return <>{children}</>;

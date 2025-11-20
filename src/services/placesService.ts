@@ -39,6 +39,7 @@ export interface MileageCostData {
   cost: number;
   distance_unit: string;
   total_distance: number;
+  chargeable_distance?: number;
   map_url: string;
   mileage_info: MileageInfo;
   trip_info: TripInfo[];

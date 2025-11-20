@@ -27,7 +27,7 @@ import {
   PreApprovalType,
 } from "@/services/preApprovalService";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, getDistanceUnit, formatDistance } from "@/lib/utils";
 
 const formatDate = (date: string) => {
   if (date) {
@@ -520,7 +520,7 @@ export function ViewExpenseWindow({
                       Total Per Diem
                     </Label>
                     <div className="text-2xl font-bold text-blue-600 mt-1">
-                      ₹{(Number(data?.amount) || 0).toFixed(2)}
+                      {formatCurrency(Number(data?.amount) || 0)}
                     </div>
                     <p className="text-sm text-gray-500">{days} days</p>
                   </div>
@@ -808,7 +808,7 @@ export function ViewExpenseWindow({
                       Distance *
                     </label>
                     <Input
-                      value={data?.distance ? `${data.distance} km` : ""}
+                      value={data?.distance ? formatDistance(Number(data.distance), data?.distance_unit || getDistanceUnit().toUpperCase()) : ""}
                       disabled
                     />
                   </div>
@@ -851,11 +851,11 @@ export function ViewExpenseWindow({
                       Total Amount
                     </Label>
                     <div className="text-2xl font-bold text-blue-600 mt-1">
-                      ₹{(Number(data?.amount) || 0).toFixed(2)}
+                      {formatCurrency(Number(data?.amount) || 0)}
                     </div>
                     {data?.distance && (
                       <p className="text-sm text-gray-500">
-                        {data.distance} km
+                        {formatDistance(Number(data.distance), data?.distance_unit || getDistanceUnit().toUpperCase())}
                       </p>
                     )}
                   </div>

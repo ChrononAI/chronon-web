@@ -425,7 +425,7 @@ export function ReportDetailPage() {
                       Total Amount
                     </div>
                     <p className="text-lg font-semibold">
-                      {formatCurrency(totalAmount, "INR")}
+                      {formatCurrency(totalAmount)}
                     </p>
                   </div>
 
@@ -616,7 +616,7 @@ export function ReportDetailPage() {
                       Total Value:
                     </span>
                     <span className="text-sm font-medium">
-                      {formatCurrency(totalAmount, "INR")}
+                      {formatCurrency(totalAmount)}
                     </span>
                   </div>
                   <div className="flex justify-between">

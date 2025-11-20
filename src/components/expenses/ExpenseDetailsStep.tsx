@@ -51,7 +51,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, getOrgCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
@@ -157,7 +157,7 @@ export function ExpenseDetailsStep({
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [advances, setAdvances] = useState<AdvanceType[]>([]);
   // const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
-  const [selectedCurrency, setSelectedCurrency] = useState("INR");
+  const [selectedCurrency, setSelectedCurrency] = useState(getOrgCurrency());
   const conversionRates = selectedPreApproval?.currency_conversion_rates || [];
 
   const selectedConversion = conversionRates?.find(
@@ -181,6 +181,7 @@ export function ExpenseDetailsStep({
           destination: "",
           pre_approval_id: "",
           advance_id: "",
+          foreign_currency: getOrgCurrency(),
         },
   });
 
@@ -913,14 +914,12 @@ export function ExpenseDetailsStep({
                             <FormLabel>Currency *</FormLabel>
                             <FormControl>
                               <Select
-                                value={field.value || "INR"}
+                                value={field.value || getOrgCurrency()}
                                 onValueChange={(value) => {
                                   field.onChange(value);
                                   setSelectedCurrency(value);
                                 }}
-                                disabled={
-                                  readOnly || !form.getValues("pre_approval_id")
-                                }
+                                disabled={readOnly}
                               >
                                 <SelectTrigger className={selectTriggerClass}>
                                   <SelectValue placeholder="Select a currency" />
