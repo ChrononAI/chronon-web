@@ -143,75 +143,10 @@ const MileagePage = ({
   const [lastAddedStopId, setLastAddedStopId] = useState<string | null>(null);
   const today = new Date().toISOString().split("T")[0];
   const stopRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [mileageRates, setMileageRates] = useState([]);
+  const [selectedVehicle, setSelectedVehicle] = useState<any>();
 
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const preloadDefaultLocations = async () => {
-      try {
-        const defaults = await placesService.getDefaultStartEndLocations();
-
-        if (!isMounted) {
-          return;
-        }
-
-        const startLabel = defaults?.start_location_name ?? "";
-        const endLabel = defaults?.end_location_name ?? "";
-        const hasDefaults = Boolean(
-          defaults?.start_location &&
-            defaults?.end_location &&
-            startLabel &&
-            endLabel
-        );
-
-        setHasPrefilledLocations(hasDefaults);
-
-        if (hasDefaults && defaults && mode === "create" && !expenseData) {
-          const startPlace: PlaceSuggestion = {
-            place_id: defaults.start_location,
-            description: startLabel,
-            main_text: startLabel,
-            secondary_text: "",
-            types: [],
-          };
-
-          const endPlace: PlaceSuggestion = {
-            place_id: defaults.end_location,
-            description: endLabel,
-            main_text: endLabel,
-            secondary_text: "",
-            types: [],
-          };
-
-          setStartLocation(startPlace);
-          setEndLocation(endPlace);
-          setFormData((prev) => ({
-            ...prev,
-            startLocation: startLabel,
-            startLocationId: defaults.start_location,
-            endLocation: endLabel,
-            endLocationId: defaults.end_location,
-          }));
-
-          form.setValue("startLocation", startLabel);
-          form.setValue("endLocation", endLabel);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setHasPrefilledLocations(false);
-        }
-        console.error("Error preloading default mileage locations:", error);
-      }
-    };
-
-    preloadDefaultLocations();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [mode, expenseData, form]);
 
   const isUpdateFlow = mode === "edit" || editMode;
   const isStartEndLocationLocked =
@@ -240,81 +175,13 @@ const MileagePage = ({
     return isUpdateFlow ? "Update Expense" : "Create Expense";
   };
 
-  useEffect(() => {
-    if (expenseData && policies.length > 0) {
-      setIsLoadingExistingData(true);
-
-      const stops =
-        expenseData.mileage_meta?.stops?.map((stop: any) => ({
-          id: stop.id || `stop-${Date.now()}`,
-          location: stop.location || "",
-          locationId: stop.locationId || "",
-        })) || [];
-
-      const data = {
-        startLocation: expenseData.start_location || "",
-        startLocationId: "",
-        endLocation: expenseData.end_location || "",
-        endLocationId: "",
-        distance: expenseData.distance ? `${expenseData.distance} km` : "",
-        amount: `₹${expenseData.amount.toString()}` || "₹0.00",
-        description: expenseData.description || "",
-        vehiclesType: getVehicleType(expenseData.vehicle_type || ""),
-        expenseDate:
-          format(new Date(expenseData.expense_date), "yyyy-MM-dd") || "",
-        isRoundTrip: expenseData.is_round_trip,
-        policyId: expenseData.expense_policy_id || "",
-        categoryId: expenseData.category_id || "",
-        stops: stops,
-      };
-
-      setFormData(data);
-
-      if (expenseData.mileage_meta?.map_url) {
-        setMapUrl(expenseData.mileage_meta.map_url);
-      }
-
-      form.setValue("startLocation", data.startLocation);
-      form.setValue("endLocation", data.endLocation);
-      form.setValue("distance", data.distance);
-      form.setValue("amount", data.amount);
-      form.setValue("description", data.description);
-      form.setValue("vehiclesType", data.vehiclesType);
-      form.setValue("expenseDate", data.expenseDate);
-      form.setValue("isRoundTrip", data.isRoundTrip);
-      form.setValue("policyId", data.policyId);
-      form.setValue("categoryId", data.categoryId);
-
-      const policy = policies.find((p) => p.id === data.policyId);
-      if (policy) {
-        setSelectedPolicy(policy);
-        if (policy.categories) {
-          setCategories(policy.categories);
-        }
-      }
-
-      setTimeout(() => setIsLoadingExistingData(false), 100);
+  const getMileageRates = async () => {
+    try {
+      const res = await expenseService.getMileageRates();
+      setMileageRates(res.data.data);
+    } catch (error) {
+      throw error;
     }
-  }, [expenseData, policies, form]);
-
-  useEffect(() => {
-    if (mode === "view" && isEditable && !isEditing) {
-      setEditMode(false);
-    } else if (mode === "view" && isEditable && isEditing) {
-      setEditMode(true);
-    }
-  }, [mode, isEditable, isEditing]);
-
-  const vehicleTypeMapping = {
-    car: "FOUR_WHEELERS",
-    bike: "TWO_WHEELERS",
-    public_transport: "PUBLIC_TRANSPORT",
-  };
-
-  const vehicleTypeMappingForCost = {
-    car: "four_wheeler",
-    bike: "two_wheeler",
-    public_transport: "public_transport",
   };
 
   const extractDistance = (distanceStr: string) => {
@@ -327,6 +194,162 @@ const MileagePage = ({
     return match ? parseFloat(match[1]) : 0;
   };
 
+  const calculateMileageCost = async (
+    originId: string,
+    destinationId: string,
+    vehicle: string,
+    isRoundTrip: boolean = false,
+    stopsOverride?: { id: string; location: string; locationId: string }[]
+  ) => {
+    if (!originId || !destinationId || !vehicle) return;
+
+    const orgId = getOrgIdFromToken();
+    if (!orgId) return;
+
+    // const mappedVehicle =
+    //   vehicleTypeMappingForCost[
+    //     vehicle as keyof typeof vehicleTypeMappingForCost
+    //   ] || vehicle;
+
+    setIsCalculating(true);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // 🔸 Create a new controller for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    try {
+      const destinations: string[] = [];
+      const stopsToUse = stopsOverride || formData.stops;
+
+      stopsToUse.forEach((stop) => {
+        if (stop.locationId) {
+          destinations.push(stop.locationId);
+        }
+      });
+
+      if (destinationId) {
+        destinations.push(destinationId);
+      }
+      const costData = await placesService.getMileageCost({
+        originPlaceId: originId,
+        destinationPlaceIds:
+          destinations.length > 0 ? destinations : destinationId,
+        vehicle: selectedVehicle?.id,
+        isRoundTrip,
+        signal: controller.signal,
+      });
+
+      if (costData) {
+        const calculatedDistance = costData.total_distance || 0;
+
+        setFormData((prev) => ({
+          ...prev,
+          distance: `${calculatedDistance.toFixed(1)} km`,
+          amount: `₹${costData.cost.toFixed(2)}`,
+        }));
+        form.setValue("distance", `${calculatedDistance.toFixed(1)} km`);
+        form.setValue("amount", `₹${costData.cost.toFixed(2)}`);
+
+        if (costData.map_url) {
+          setMapUrl(costData.map_url);
+        }
+      }
+      setIsCalculating(false);
+    } catch (error: any) {
+      if (error.name === "CanceledError") {
+        return;
+      }
+      setIsCalculating(false);
+    }
+  };
+
+  const loadMileagePolicies = async () => {
+    setLoadingPolicies(true);
+    try {
+      const allPolicies = await expenseService.getAllPoliciesWithCategories();
+
+      const mileagePolicies = allPolicies.filter((policy: Policy) => {
+        const policyName = policy.name?.toLowerCase() || "";
+        const policyDescription = policy.description?.toLowerCase() || "";
+        const policyType = policy.policy_type?.toLowerCase() || "";
+
+        return (
+          policyName.includes("mileage") ||
+          policyName.includes("mile") ||
+          policyDescription.includes("mileage") ||
+          policyDescription.includes("mile") ||
+          policyType.includes("mileage") ||
+          policyType.includes("mile") ||
+          policy.categories?.some((category) => {
+            const categoryName = category.name?.toLowerCase() || "";
+            const categoryType = category.category_type?.toLowerCase() || "";
+            return (
+              categoryName.includes("mileage") ||
+              categoryName.includes("mile") ||
+              categoryType.includes("mileage") ||
+              categoryType.includes("mile")
+            );
+          })
+        );
+      });
+
+      setPolicies(mileagePolicies);
+      setCategories(mileagePolicies[0]?.categories || []);
+
+      if (mileagePolicies.length > 0) {
+        const firstPolicy = mileagePolicies[0];
+        setSelectedPolicy(firstPolicy);
+        setFormData((prev) => ({ ...prev, policyId: firstPolicy.id }));
+
+        form.setValue("policyId", firstPolicy.id);
+
+        if (firstPolicy.categories && firstPolicy.categories.length > 0) {
+          const firstCategory = firstPolicy.categories[0];
+          setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
+        }
+      }
+    } catch (error) {
+      console.error("Error loading mileage policies:", error);
+      toast.error("Failed to load policies");
+    } finally {
+      setLoadingPolicies(false);
+    }
+  };
+
+  const handleMapZoomIn = () => {
+    setMapZoom((prev) => Math.min(prev + 0.25, 3));
+  };
+
+  const handleMapZoomOut = () => {
+    setMapZoom((prev) => Math.max(prev - 0.25, 0.5));
+  };
+
+  const handleMapRotate = () => {
+    setMapRotation((prev) => (prev + 90) % 360);
+  };
+
+  const handleMapReset = () => {
+    setMapZoom(1);
+    setMapRotation(0);
+  };
+
+  const handleMapFullscreen = () => {
+    setIsMapFullscreen(true);
+  };
+
+  const handleMapDownload = () => {
+    if (mapUrl) {
+      const a = document.createElement("a");
+      a.href = mapUrl;
+      a.download = "mileage-route-map.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => {
       const updatedData = {
@@ -337,14 +360,16 @@ const MileagePage = ({
       if (field === "vehiclesType" || field === "isRoundTrip") {
         const originId = startLocation?.place_id || updatedData.startLocationId;
         const destId = endLocation?.place_id || updatedData.endLocationId;
+        const selectedVehicleId =
+          field === "vehiclesType"
+            ? (value as string)
+            : updatedData.vehiclesType;
 
         const triggerCalculation = (oid: string, did: string) => {
           calculateMileageCost(
             oid,
             did,
-            field === "vehiclesType"
-              ? (value as string)
-              : updatedData.vehiclesType,
+            selectedVehicleId,
             field === "vehiclesType"
               ? updatedData.isRoundTrip
               : (value as boolean)
@@ -415,6 +440,67 @@ const MileagePage = ({
 
       return updatedData;
     });
+  };
+
+  const handleSubmit = async (values: MileageFormValues) => {
+    const orgId = getOrgIdFromToken();
+    if (!orgId) {
+      toast.error("Organization ID not found");
+      return;
+    }
+
+    console.log(values);
+
+    if (isCalculating) {
+      toast.info(
+        "Please wait for distance and amount calculation to complete..."
+      );
+      return;
+    }
+    const mileage_meta: any = {
+      trip_purpose: "business_travel",
+      notes: values.isRoundTrip ? "Round trip" : "",
+    };
+
+    if (formData.stops && formData.stops.length > 0) {
+      mileage_meta.stops = formData.stops.map((stop) => ({
+        id: stop.id,
+        location: stop.location,
+        locationId: stop.locationId,
+      }));
+    }
+
+    if (mapUrl) {
+      mileage_meta.map_url = mapUrl;
+    }
+
+    const submitData = {
+      expense_policy_id: values.policyId,
+      category_id: values.categoryId,
+      amount: extractAmount(values.amount),
+      expense_date: values.expenseDate,
+      description: values.description,
+      start_location: values.startLocation,
+      end_location: values.endLocation,
+      distance: extractDistance(values.distance),
+      mileage_rate_id: values.vehiclesType,
+      is_round_trip: values.isRoundTrip.toString(),
+      mileage_meta: mileage_meta,
+      vendor: expenseData?.vendor || "Mileage Reimbursement",
+    };
+
+    try {
+      if (mode === "create") {
+        await placesService.createMileageExpense(submitData, orgId);
+        toast.success("Successfully created mileage expense");
+        navigate("/expenses");
+      } else if (mode === "edit" && onUpdate) {
+        await onUpdate(submitData);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save mileage expense");
+    }
   };
 
   const handleStartLocationSelect = (place: PlaceSuggestion) => {
@@ -549,6 +635,131 @@ const MileagePage = ({
   };
 
   useEffect(() => {
+    if (expenseData && policies.length > 0) {
+      console.log(expenseData);
+      setIsLoadingExistingData(true);
+
+      const stops =
+        expenseData.mileage_meta?.stops?.map((stop: any) => ({
+          id: stop.id || `stop-${Date.now()}`,
+          location: stop.location || "",
+          locationId: stop.locationId || "",
+        })) || [];
+
+      const data = {
+        startLocation: expenseData.start_location || "",
+        startLocationId: "",
+        endLocation: expenseData.end_location || "",
+        endLocationId: "",
+        distance: expenseData.distance ? `${expenseData.distance} km` : "",
+        amount: `₹${expenseData.amount.toString()}` || "₹0.00",
+        description: expenseData.description || "",
+        vehiclesType: expenseData.mileage_rate_id,
+        expenseDate:
+          format(new Date(expenseData.expense_date), "yyyy-MM-dd") || "",
+        isRoundTrip: expenseData.is_round_trip,
+        policyId: expenseData.expense_policy_id || "",
+        categoryId: expenseData.category_id || "",
+        stops: stops,
+      };
+
+      setFormData(data);
+
+      if (expenseData.mileage_meta?.map_url) {
+        setMapUrl(expenseData.mileage_meta.map_url);
+      }
+
+      form.setValue("startLocation", data.startLocation);
+      form.setValue("endLocation", data.endLocation);
+      form.setValue("distance", data.distance);
+      form.setValue("amount", data.amount);
+      form.setValue("description", data.description);
+      form.setValue("vehiclesType", data.vehiclesType);
+      form.setValue("expenseDate", data.expenseDate);
+      form.setValue("isRoundTrip", data.isRoundTrip);
+      form.setValue("policyId", data.policyId);
+      form.setValue("categoryId", data.categoryId);
+
+      const policy = policies.find((p) => p.id === data.policyId);
+      if (policy) {
+        setSelectedPolicy(policy);
+        if (policy.categories) {
+          setCategories(policy.categories);
+        }
+      }
+
+      setTimeout(() => setIsLoadingExistingData(false), 100);
+    }
+  }, [expenseData, policies, form]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const preloadDefaultLocations = async () => {
+      try {
+        const defaults = await placesService.getDefaultStartEndLocations();
+
+        if (!isMounted) {
+          return;
+        }
+
+        const startLabel = defaults?.start_location_name ?? "";
+        const endLabel = defaults?.end_location_name ?? "";
+        const hasDefaults = Boolean(
+          defaults?.start_location &&
+            defaults?.end_location &&
+            startLabel &&
+            endLabel
+        );
+
+        setHasPrefilledLocations(hasDefaults);
+
+        if (hasDefaults && defaults && mode === "create" && !expenseData) {
+          const startPlace: PlaceSuggestion = {
+            place_id: defaults.start_location,
+            description: startLabel,
+            main_text: startLabel,
+            secondary_text: "",
+            types: [],
+          };
+
+          const endPlace: PlaceSuggestion = {
+            place_id: defaults.end_location,
+            description: endLabel,
+            main_text: endLabel,
+            secondary_text: "",
+            types: [],
+          };
+
+          setStartLocation(startPlace);
+          setEndLocation(endPlace);
+          setFormData((prev) => ({
+            ...prev,
+            startLocation: startLabel,
+            startLocationId: defaults.start_location,
+            endLocation: endLabel,
+            endLocationId: defaults.end_location,
+          }));
+
+          form.setValue("startLocation", startLabel);
+          form.setValue("endLocation", endLabel);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setHasPrefilledLocations(false);
+        }
+        console.error("Error preloading default mileage locations:", error);
+      }
+    };
+
+    preloadDefaultLocations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [mode, expenseData, form]);
+
+  useEffect(() => {
     if (
       startLocation &&
       endLocation &&
@@ -572,6 +783,14 @@ const MileagePage = ({
   ]);
 
   useEffect(() => {
+    if (mode === "view" && isEditable && !isEditing) {
+      setEditMode(false);
+    } else if (mode === "view" && isEditable && isEditing) {
+      setEditMode(true);
+    }
+  }, [mode, isEditable, isEditing]);
+
+  useEffect(() => {
     if (lastAddedStopId) {
       const stopElement = stopRefs.current[lastAddedStopId];
       if (stopElement) {
@@ -581,239 +800,13 @@ const MileagePage = ({
     }
   }, [formData.stops, lastAddedStopId]);
 
-  const handleSubmit = async (values: MileageFormValues) => {
-    const orgId = getOrgIdFromToken();
-    if (!orgId) {
-      toast.error("Organization ID not found");
-      return;
-    }
-
-    if (isCalculating) {
-      toast.info(
-        "Please wait for distance and amount calculation to complete..."
-      );
-      return;
-    }
-    const mileage_meta: any = {
-      trip_purpose: "business_travel",
-      notes: values.isRoundTrip ? "Round trip" : "",
-    };
-
-    if (formData.stops && formData.stops.length > 0) {
-      mileage_meta.stops = formData.stops.map((stop) => ({
-        id: stop.id,
-        location: stop.location,
-        locationId: stop.locationId,
-      }));
-    }
-
-    if (mapUrl) {
-      mileage_meta.map_url = mapUrl;
-    }
-
-    const submitData = {
-      expense_policy_id: values.policyId,
-      category_id: values.categoryId,
-      amount: extractAmount(values.amount),
-      expense_date: values.expenseDate,
-      description: values.description,
-      start_location: values.startLocation,
-      end_location: values.endLocation,
-      distance: extractDistance(values.distance),
-      distance_unit: "KM",
-      vehicle_type:
-        vehicleTypeMapping[
-          values.vehiclesType as keyof typeof vehicleTypeMapping
-        ] || "four_wheeler",
-      is_round_trip: values.isRoundTrip.toString(),
-      mileage_meta: mileage_meta,
-      vendor: expenseData?.vendor || "Mileage Reimbursement",
-    };
-
-    try {
-      if (mode === "create") {
-        await placesService.createMileageExpense(submitData, orgId);
-        toast.success("Successfully created mileage expense");
-        navigate("/expenses");
-      } else if (mode === "edit" && onUpdate) {
-        await onUpdate(submitData);
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to save mileage expense");
-    }
-  };
-
-  const loadMileagePolicies = async () => {
-    setLoadingPolicies(true);
-    try {
-      const allPolicies = await expenseService.getAllPoliciesWithCategories();
-
-      const mileagePolicies = allPolicies.filter((policy: Policy) => {
-        const policyName = policy.name?.toLowerCase() || "";
-        const policyDescription = policy.description?.toLowerCase() || "";
-        const policyType = policy.policy_type?.toLowerCase() || "";
-
-        return (
-          policyName.includes("mileage") ||
-          policyName.includes("mile") ||
-          policyDescription.includes("mileage") ||
-          policyDescription.includes("mile") ||
-          policyType.includes("mileage") ||
-          policyType.includes("mile") ||
-          policy.categories?.some((category) => {
-            const categoryName = category.name?.toLowerCase() || "";
-            const categoryType = category.category_type?.toLowerCase() || "";
-            return (
-              categoryName.includes("mileage") ||
-              categoryName.includes("mile") ||
-              categoryType.includes("mileage") ||
-              categoryType.includes("mile")
-            );
-          })
-        );
-      });
-
-      setPolicies(mileagePolicies);
-      setCategories(mileagePolicies[0]?.categories || []);
-
-      if (mileagePolicies.length > 0) {
-        const firstPolicy = mileagePolicies[0];
-        setSelectedPolicy(firstPolicy);
-        setFormData((prev) => ({ ...prev, policyId: firstPolicy.id }));
-
-        form.setValue("policyId", firstPolicy.id);
-
-        if (firstPolicy.categories && firstPolicy.categories.length > 0) {
-          const firstCategory = firstPolicy.categories[0];
-          setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
-        }
-      }
-    } catch (error) {
-      console.error("Error loading mileage policies:", error);
-      toast.error("Failed to load policies");
-    } finally {
-      setLoadingPolicies(false);
-    }
-  };
-
   useEffect(() => {
     loadMileagePolicies();
+    getMileageRates();
   }, []);
-
-  const calculateMileageCost = async (
-    originId: string,
-    destinationId: string,
-    vehicle: string,
-    isRoundTrip: boolean = false,
-    stopsOverride?: { id: string; location: string; locationId: string }[]
-  ) => {
-    if (!originId || !destinationId || !vehicle) return;
-
-    const orgId = getOrgIdFromToken();
-    if (!orgId) return;
-
-    const mappedVehicle =
-      vehicleTypeMappingForCost[
-        vehicle as keyof typeof vehicleTypeMappingForCost
-      ] || vehicle;
-
-    setIsCalculating(true);
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // 🔸 Create a new controller for this request
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    try {
-      const destinations: string[] = [];
-      const stopsToUse = stopsOverride || formData.stops;
-
-      stopsToUse.forEach((stop) => {
-        if (stop.locationId) {
-          destinations.push(stop.locationId);
-        }
-      });
-
-      if (destinationId) {
-        destinations.push(destinationId);
-      }
-
-      const costData = await placesService.getMileageCost({
-        originPlaceId: originId,
-        destinationPlaceIds:
-          destinations.length > 0 ? destinations : destinationId,
-        vehicle: mappedVehicle,
-        orgId,
-        isRoundTrip,
-        signal: controller.signal
-      });
-
-      if (costData) {
-        const calculatedDistance = costData.total_distance || 0;
-
-        setFormData((prev) => ({
-          ...prev,
-          distance: `${calculatedDistance.toFixed(1)} km`,
-          amount: `₹${costData.cost.toFixed(2)}`,
-        }));
-        form.setValue("distance", `${calculatedDistance.toFixed(1)} km`);
-        form.setValue("amount", `₹${costData.cost.toFixed(2)}`);
-
-        if (costData.map_url) {
-          setMapUrl(costData.map_url);
-        }
-      }
-      setIsCalculating(false);
-    } catch (error: any) {
-      if (error.name === "CanceledError") {
-        return;
-      }
-      setIsCalculating(false);
-    }
-  };
-
-  const handleMapZoomIn = () => {
-    setMapZoom((prev) => Math.min(prev + 0.25, 3));
-  };
-
-  const handleMapZoomOut = () => {
-    setMapZoom((prev) => Math.max(prev - 0.25, 0.5));
-  };
-
-  const handleMapRotate = () => {
-    setMapRotation((prev) => (prev + 90) % 360);
-  };
-
-  const handleMapReset = () => {
-    setMapZoom(1);
-    setMapRotation(0);
-  };
-
-  const handleMapFullscreen = () => {
-    setIsMapFullscreen(true);
-  };
-
-  const handleMapDownload = () => {
-    if (mapUrl) {
-      const a = document.createElement("a");
-      a.href = mapUrl;
-      a.download = "mileage-route-map.png";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  };
 
   return (
     <div className="max-w-full mx-auto pt-1 pb-6">
-      {/* {mode === "view" && <div className="mb-3">
-        <h1 className="text-2xl font-bold text-gray-800">
-          Mileage Expense Details
-        </h1>
-      </div>} */}
-
       {expenseData?.original_expense_id && (
         <Alert className="bg-yellow-50 border-yellow-200 mb-4">
           <Copy className="h-4 w-4 text-yellow-600" />
@@ -1101,6 +1094,8 @@ const MileagePage = ({
                           value={field.value}
                           onValueChange={(v) => {
                             handleInputChange("vehiclesType", v);
+                            const sel = mileageRates.find((rate: any) => rate.id === +v);
+                            setSelectedVehicle(sel);
                             field.onChange(v);
                           }}
                           disabled={mode === "view" && !editMode}
@@ -1111,11 +1106,11 @@ const MileagePage = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="car">Car</SelectItem>
-                            <SelectItem value="bike">Bike</SelectItem>
-                            <SelectItem value="public_transport">
-                              Public Transport
-                            </SelectItem>
+                            {mileageRates?.map((v: any) => (
+                              <SelectItem key={v.id} value={String(v.id)}>
+                                {v.vehicle_name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />

@@ -133,5 +133,13 @@ export const authService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  async getUserProfile() {
+    try {
+      return await api.get('/auth/profile')
+    } catch (error) {
+      throw error;
+    }
   }
 };
