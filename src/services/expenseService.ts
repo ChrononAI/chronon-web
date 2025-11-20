@@ -523,4 +523,12 @@ export const expenseService = {
       throw error;
     }
   },
+
+  async getMileageRates() {
+    try {
+      return await api.get('/em/expenses/mileage_rates')
+    } catch (error) {
+      throw error;
+    }
+  }
 };

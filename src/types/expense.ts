@@ -32,6 +32,7 @@ export interface Expense {
     updated_at: string;
     workflow_config_id: string | null;
   };
+  mileage_rate_id: string;
   receipt_id: string | null;
   report_id: string | null;
   is_round_trip: boolean;
