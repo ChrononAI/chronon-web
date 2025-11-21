@@ -40,6 +40,7 @@ export interface UpdateExpenseData {
   end_location?: string | null;
   start_location?: string | null;
   vehicle_type?: string | null;
+  mileage_rate_id?: string;
   mileage_meta?: any;
   custom_attributes?: any;
   is_round_trip?: boolean;

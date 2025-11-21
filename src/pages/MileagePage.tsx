@@ -52,6 +52,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useAuthStore } from "@/store/authStore";
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -133,7 +134,7 @@ const MileagePage = ({
     categoryId: "",
     stops: [] as { id: string; location: string; locationId: string }[],
   });
-
+  const { orgSettings } = useAuthStore();
   const [isCalculating, setIsCalculating] = useState(false);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
@@ -222,11 +223,6 @@ const MileagePage = ({
     const orgId = getOrgIdFromToken();
     if (!orgId) return;
 
-    // const mappedVehicle =
-    //   vehicleTypeMappingForCost[
-    //     vehicle as keyof typeof vehicleTypeMappingForCost
-    //   ] || vehicle;
-
     setIsCalculating(true);
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -256,6 +252,7 @@ const MileagePage = ({
         isRoundTrip,
         signal: controller.signal,
       });
+      console.log(costData);
 
       if (costData) {
         const calculatedDistance = costData.total_distance || 0;
@@ -264,7 +261,7 @@ const MileagePage = ({
           calculatedDistance,
           costData.distance_unit
         );
-        const formattedAmount = formatCurrency(costData.cost);
+        const formattedAmount = formatCurrency(costData.cost, orgSettings.currency);
         const formattedChargeableDistance = costData.chargeable_distance
           ? formatDistance(costData.chargeable_distance, costData.distance_unit)
           : "";
@@ -666,7 +663,6 @@ const MileagePage = ({
 
   useEffect(() => {
     if (expenseData && policies.length > 0) {
-      console.log(expenseData);
       setIsLoadingExistingData(true);
 
       const stops =
@@ -681,9 +677,9 @@ const MileagePage = ({
         startLocationId: "",
         endLocation: expenseData.end_location || "",
         endLocationId: "",
-        distance: expenseData.distance ? `${expenseData.distance} km` : "",
+        distance: expenseData.distance ? formatDistance(typeof expenseData.distance === 'string' ? parseFloat(expenseData.distance) || 0 : expenseData.distance, expenseData.distance_unit || getDistanceUnit().toUpperCase()) : "",
         chargeableDistance: (expenseData as any).chargeable_distance || "",
-        amount: `₹${expenseData.amount.toString()}` || "₹0.00",
+        amount: formatCurrency(expenseData.amount, orgSettings.currency) || formatCurrency(0, orgSettings.currency),
         description: expenseData.description || "",
         vehiclesType: expenseData.mileage_rate_id,
         expenseDate:
@@ -693,7 +689,8 @@ const MileagePage = ({
         categoryId: expenseData.category_id || "",
         stops: stops,
       };
-
+      const sel = mileageRates.find((rate: any) => rate.id === +expenseData.mileage_rate_id )
+      setSelectedVehicle(sel);
       setFormData(data);
 
       if (expenseData.mileage_meta?.map_url) {
@@ -1324,14 +1321,14 @@ const MileagePage = ({
                         Total Amount
                       </Label>
                       <div className="text-2xl font-bold text-blue-600 mt-1">
-                        {formData.amount || formatCurrency(0)}
+                        {formData.amount || formatCurrency(0, orgSettings.currency)}
                       </div>
                       {chargeableDistanceValue &&
                       mileagePrice &&
                       !usesMetricSystem() ? (
                         <p className="text-sm font-semibold text-gray-600 mt-1">
                           {chargeableDistanceValue.toFixed(2)}{" "}
-                          {getDistanceUnit()} × {formatCurrency(mileagePrice)}{" "}
+                          {getDistanceUnit()} × {formatCurrency(mileagePrice, orgSettings.currency)}{" "}
                           per {getDistanceUnit()}
                         </p>
                       ) : (
@@ -1371,14 +1368,14 @@ const MileagePage = ({
                         Total Amount
                       </span>
                       <span className="text-2xl font-bold text-blue-600 mt-1">
-                        {formData.amount || formatCurrency(0)}
+                        {formData.amount || formatCurrency(0, orgSettings.currency)}
                       </span>
                       {chargeableDistanceValue &&
                       mileagePrice &&
                       !usesMetricSystem() ? (
                         <span className="text-sm font-semibold text-gray-600 mt-1 block">
                           {chargeableDistanceValue.toFixed(2)}{" "}
-                          {getDistanceUnit()} × {formatCurrency(mileagePrice)}{" "}
+                          {getDistanceUnit()} × {formatCurrency(mileagePrice, orgSettings.currency)}{" "}
                           per {getDistanceUnit()}
                         </span>
                       ) : (
