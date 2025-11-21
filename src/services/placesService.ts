@@ -90,7 +90,8 @@ export const placesService = {
         `/em/expenses/mileage/cost?origin_placeid=${originPlaceId}&destination_placeids=${destinations}&mileage_rate_id=${vehicle}&is_round_trip=${isRoundTrip}`,
         { signal }
       );
-      return response.data.data.data || null;
+      console.log(response);
+      return response.data.data || null;
     } catch (error) {
       throw error;
     }
