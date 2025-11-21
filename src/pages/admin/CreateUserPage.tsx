@@ -22,6 +22,19 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
   Card,
   CardContent,
   CardDescription,
@@ -38,7 +51,7 @@ import {
 } from "@/components/ui/dialog"
 import { getTemplates } from "@/services/admin/templates"
 import { getEntities } from "@/services/admin/entities"
-import { Loader2 } from "lucide-react"
+import { Loader2, ChevronDown, Check } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import api from "@/lib/api"
 import { toast } from "sonner"
@@ -183,6 +196,7 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
   const [loadingManagers, setLoadingManagers] = useState(false)
   const [managersLoaded, setManagersLoaded] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [reportingManagerOpen, setReportingManagerOpen] = useState(false)
   const isMounted = useRef(true)
 
   useEffect(() => {
@@ -218,7 +232,7 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
       }
 
       const response = await api.get(`/auth/em/users?org_id=${orgId}`)
-      const users: ApiReportingUser[] = response.data?.data?.data || []
+      const users: ApiReportingUser[] = response.data?.data || []
       const managers: UserOption[] = users
         .map((user) => ({
           id: user.id !== undefined && user.id !== null ? String(user.id) : "",
@@ -244,6 +258,7 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
 
   const handleReportingManagerOpen = useCallback(
     (open: boolean) => {
+      setReportingManagerOpen(open)
       if (open) {
         loadReportingManagers()
       }
@@ -259,7 +274,7 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
         const value = values[entityId]
         if (entityId && typeof value === "string" && value.trim().length > 0) {
           entityAssignments.push({
-            entity_id: entityId,
+            entity_id: `user.${entityId}`,
             value: value.trim(),
           })
         }
@@ -488,41 +503,63 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
                 <FormField
                   control={form.control}
                   name="reportingManager"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reporting Manager</FormLabel>
-                      <Select
-                        onValueChange={(val) => field.onChange(val || undefined)}
-                        value={field.value || ""}
-                        disabled={loadingManagers || loadingEntityFields}
-                        onOpenChange={handleReportingManagerOpen}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue
-                              placeholder={
-                                loadingManagers ? "Loading..." : "Select reporting manager"
-                              }
-                            />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {reportingManagers.length > 0 ? (
-                            reportingManagers.map((manager) => (
-                              <SelectItem key={manager.id} value={manager.id}>
-                                {manager.firstName} {manager.lastName} ({manager.email})
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem disabled value="__no_managers__">
-                              {loadingManagers ? "Loading..." : "No reporting managers found"}
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const selectedManager = reportingManagers.find((m) => m.id === field.value)
+                    return (
+                      <FormItem>
+                        <FormLabel>Reporting Manager</FormLabel>
+                        <Popover open={reportingManagerOpen} onOpenChange={handleReportingManagerOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                disabled={loadingManagers || loadingEntityFields}
+                                className="w-full justify-between"
+                              >
+                                {selectedManager
+                                  ? `${selectedManager.firstName} ${selectedManager.lastName} (${selectedManager.email})`
+                                  : loadingManagers
+                                  ? "Loading..."
+                                  : "Select reporting manager"}
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                              <CommandInput placeholder="Search reporting manager..." />
+                              <CommandList className="max-h-[180px] overflow-y-auto">
+                                <CommandEmpty>
+                                  {loadingManagers ? "Loading..." : "No reporting manager found."}
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {reportingManagers.map((manager) => (
+                                    <CommandItem
+                                      key={manager.id}
+                                      value={`${manager.firstName} ${manager.lastName} ${manager.email}`}
+                                      onSelect={() => {
+                                        field.onChange(manager.id)
+                                        setReportingManagerOpen(false)
+                                      }}
+                                    >
+                                      <Check
+                                        className={`mr-2 h-4 w-4 ${
+                                          field.value === manager.id ? "opacity-100" : "opacity-0"
+                                        }`}
+                                      />
+                                      {manager.firstName} {manager.lastName} ({manager.email})
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )
+                  }}
                 />
               </div>
 
