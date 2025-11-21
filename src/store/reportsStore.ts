@@ -1,37 +1,27 @@
-import { Report } from "@/types/expense";
+import { NewPaginationMeta, Report } from "@/types/expense";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
-interface PaginationInfo {
-  has_next: boolean;
-  has_prev: boolean;
-  page: number;
-  pages: number;
-  per_page: number;
-  total: number;
-}
-
 interface ReportsState {
-
   allReports: Report[];
-  allReportsPagination: PaginationInfo;
+  allReportsPagination: NewPaginationMeta;
 
   unsubmittedReports: Report[];
-  unsubmittedReportsPagination: PaginationInfo;
+  unsubmittedReportsPagination: NewPaginationMeta;
 
   submittedReports: Report[];
-  submittedReportsPagination: PaginationInfo;
+  submittedReportsPagination: NewPaginationMeta;
 
   // Methods
 
   setAllReports: (data: Report[]) => void;
-  setAllReportsPagination: (pagination: PaginationInfo) => void;
+  setAllReportsPagination: (pagination: NewPaginationMeta) => void;
 
   setUnsubmittedReports: (data: Report[]) => void;
-  setUnsubmittedReportsPagination: (pagination: PaginationInfo) => void;
+  setUnsubmittedReportsPagination: (pagination: NewPaginationMeta) => void;
 
   setSubmittedReports: (data: Report[]) => void;
-  setSubmittedReportsPagination: (pagination: PaginationInfo) => void;
+  setSubmittedReportsPagination: (pagination: NewPaginationMeta) => void;
 }
 
 export const useReportsStore = create<ReportsState>()(
@@ -40,34 +30,22 @@ export const useReportsStore = create<ReportsState>()(
       (set) => ({
         allReports: [],
         allReportsPagination: {
-          has_next: false,
-          has_prev: false,
-          page: 1,
-          pages: 1,
-          per_page: 10,
-          total: 0,
+          count: 0,
+          offset: 0,
         },
         unsubmittedReports: [],
         unsubmittedReportsPagination: {
-          has_next: false,
-          has_prev: false,
-          page: 1,
-          pages: 1,
-          per_page: 10,
-          total: 0,
+          count: 0,
+          offset: 0,
         },
         submittedReports: [],
         submittedReportsPagination: {
-          has_next: false,
-          has_prev: false,
-          page: 1,
-          pages: 1,
-          per_page: 10,
-          total: 0,
+          count: 0,
+          offset: 0,
         },
 
         setAllReports: (data) =>
-          set({ allReports: data }, false, 'reports/setAllReports'),
+          set({ allReports: data }, false, "reports/setAllReports"),
 
         setAllReportsPagination: (pagination) =>
           set(
@@ -77,7 +55,11 @@ export const useReportsStore = create<ReportsState>()(
           ),
 
         setUnsubmittedReports: (data) =>
-          set({ unsubmittedReports: data }, false, 'reports/setUnsubmittedReports'),
+          set(
+            { unsubmittedReports: data },
+            false,
+            "reports/setUnsubmittedReports"
+          ),
 
         setUnsubmittedReportsPagination: (pagination) =>
           set(
@@ -87,7 +69,11 @@ export const useReportsStore = create<ReportsState>()(
           ),
 
         setSubmittedReports: (data) =>
-          set({ submittedReports: data }, false, 'rerports/setSubmittedReports'),
+          set(
+            { submittedReports: data },
+            false,
+            "rerports/setSubmittedReports"
+          ),
 
         setSubmittedReportsPagination: (pagination) =>
           set(
@@ -97,11 +83,11 @@ export const useReportsStore = create<ReportsState>()(
           ),
       }),
       {
-        name: 'reports-storage',
+        name: "reports-storage",
       }
     ),
     {
-      name: 'ReportsStore',
+      name: "ReportsStore",
     }
   )
 );

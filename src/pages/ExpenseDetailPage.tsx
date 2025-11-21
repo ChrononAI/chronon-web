@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
-const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE"];
+const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE", "SENT_BACK"];
 
 // Check if expense is a mileage expense
 const isMileageExpense = (expense: Expense): boolean => {
@@ -43,6 +43,7 @@ const isPerDiemExpense = (expense: Expense): boolean => {
 
 // Transform Expense data to form format
 const transformExpenseToFormData = (expense: Expense) => {
+  console.log(expense);
   return {
     policyId: expense.expense_policy_id,
     categoryId: expense.category_id,
@@ -56,6 +57,7 @@ const transformExpenseToFormData = (expense: Expense) => {
     destination: "",
     advance_id: expense.advance_id || null,
     pre_approval_id: expense.pre_approval_id || null,
+    currency: "INR",
     foreign_currency: expense.foreign_currency || null,
     foreign_amount: expense.foreign_amount || null,
   };
@@ -133,6 +135,7 @@ export function ExpenseDetailPage() {
 
   const handleExpenseSubmit = async (formData: any) => {
     if (!expense || !id) return;
+    console.log(formData);
 
     const copiedData = JSON.parse(JSON.stringify(formData));
     let isForeign = false;
@@ -166,14 +169,14 @@ export function ExpenseDetailPage() {
         distance_unit: formData.distance_unit || null,
         end_location: formData.end_location || null,
         start_location: formData.start_location || null,
-        vehicle_type: formData.vehicle_type || null,
+        mileage_rate_id: formData.mileage_rate_id,
         mileage_meta: formData.mileage_meta || null,
         is_round_trip: formData.is_round_trip === "true" ? true : false,
         custom_attributes: {},
         foreign_amount: isForeign ? parseFloat(formData.amount) : null,
         foreign_currency: isForeign ? formData.foreign_currency : null,
       };
-      console.log(formData);
+      console.log(expenseData);
 
       const response = await expenseService.updateExpense(id, expenseData);
       if (response.success) {
@@ -369,7 +372,7 @@ export function ExpenseDetailPage() {
         ) : isPerDiemExpense(expense) ? (
           <PerdiemPage
             mode={
-              expense.status === "INCOMPLETE" || expense.status === "COMPLETE"
+              expense.status === "INCOMPLETE" || expense.status === "COMPLETE" || expense.status === "SENT_BACK"
                 ? "edit"
                 : "view"
             }
@@ -385,7 +388,7 @@ export function ExpenseDetailPage() {
               }
             }}
             mode={
-              expense.status === "COMPLETE" || expense.status === "INCOMPLETE"
+              expense.status === "COMPLETE" || expense.status === "INCOMPLETE" || expense.status === "SENT_BACK"
                 ? "edit"
                 : "view"
             }

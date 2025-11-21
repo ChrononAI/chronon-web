@@ -12,12 +12,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { formatCurrency, formatDate, getStatusColor, getOrgCurrency } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { GridOverlay } from "@mui/x-data-grid";
 // import { CustomLoader } from "./MyReportsPage";
 
-function getExpenseType(type: string) {
+export function getExpenseType(type: string) {
   if (type === "RECEIPT_BASED") return "Expense";
   if (type === "MILEAGE_BASED") return "Mileage";
   if (type === "PER_DIEM") return "Per Diem";
@@ -143,13 +143,13 @@ const columns: GridColDef[] = [
     type: "number",
     align: "right",
     headerAlign: "right",
-    valueFormatter: (params: any) => formatCurrency(params, "INR"),
+    valueFormatter: (params: any) => formatCurrency(params),
   },
   {
     field: "currency",
     headerName: "CURRENCY",
     width: 80,
-    renderCell: () => "INR",
+    renderCell: () => getOrgCurrency(),
   },
   {
     field: "status",

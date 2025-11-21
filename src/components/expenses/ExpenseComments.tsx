@@ -1,0 +1,245 @@
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Send } from "lucide-react";
+import { expenseService } from "@/services/expenseService";
+import { ExpenseComment } from "@/types/expense";
+import { useAuthStore } from "@/store/authStore";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+const formatDateOnly = (dateString: string | undefined | null): string => {
+  if (!dateString) return "Invalid date";
+  const datePart = dateString.split("T")[0];
+  if (!datePart) return "Invalid date";
+  const date = new Date(datePart);
+  if (isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+
+  const parts = formatter.formatToParts(date);
+  const month = parts.find((p) => p.type === "month")?.value || "";
+  const day = parts.find((p) => p.type === "day")?.value || "";
+
+  return `${month} ${day}`;
+};
+
+interface ExpenseCommentsProps {
+  expenseId: string | undefined;
+  readOnly?: boolean;
+  className?: string;
+  onCommentPosted?: () => void;
+  autoFetch?: boolean; // Whether to automatically fetch comments when expenseId changes
+}
+
+export function ExpenseComments({
+  expenseId,
+  readOnly = false,
+  className,
+  onCommentPosted,
+  autoFetch = true,
+}: ExpenseCommentsProps) {
+  const { user } = useAuthStore();
+  const [comments, setComments] = useState<ExpenseComment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [postingComment, setPostingComment] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState("");
+  const commentsEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch comments when expenseId is available
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (autoFetch && expenseId) {
+        setLoadingComments(true);
+        setCommentError(null);
+        try {
+          const fetchedComments = await expenseService.getExpenseComments(
+            expenseId
+          );
+          // Sort comments by created_at timestamp (oldest first)
+          const sortedComments = [...fetchedComments].sort((a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateA - dateB;
+          });
+          setComments(sortedComments);
+        } catch (error: any) {
+          console.error("Error fetching comments:", error);
+          setCommentError(
+            error.response?.data?.message || "Failed to load comments"
+          );
+        } finally {
+          setLoadingComments(false);
+        }
+      }
+    };
+
+    fetchComments();
+  }, [expenseId, autoFetch]);
+
+  // Auto-scroll to bottom when new comments are added
+  useEffect(() => {
+    if (commentsEndRef.current) {
+      commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [comments]);
+
+  // Handle posting a new comment
+  const handlePostComment = async () => {
+    if (!expenseId || !newComment.trim() || postingComment) return;
+
+    setPostingComment(true);
+    setCommentError(null);
+
+    try {
+      await expenseService.postExpenseComment(
+        expenseId,
+        newComment.trim(),
+        false // notify: false
+      );
+      // Refetch comments to get the updated list with the new comment
+      const fetchedComments = await expenseService.getExpenseComments(
+        expenseId
+      );
+      // Sort comments by created_at timestamp (oldest first)
+      const sortedComments = [...fetchedComments].sort((a, b) => {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+        return dateA - dateB;
+      });
+      setComments(sortedComments);
+      setNewComment("");
+      toast.success("Comment posted successfully");
+      onCommentPosted?.();
+    } catch (error: any) {
+      console.error("Error posting comment:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to post comment";
+      setCommentError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setPostingComment(false);
+    }
+  };
+
+  return (
+    <div className={cn("flex flex-col h-full md:h-[520px]", className)}>
+      {/* Comments display area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {loadingComments ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          </div>
+        ) : commentError ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm text-red-500">{commentError}</p>
+          </div>
+        ) : comments.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm text-gray-500">No comments yet</p>
+          </div>
+        ) : (
+          comments.map((comment) => {
+            const isCurrentUser =
+              comment.creator_user_id === user?.id?.toString();
+            return (
+              <div
+                key={comment.id}
+                className={cn(
+                  "flex animate-in fade-in slide-in-from-bottom-2",
+                  isCurrentUser ? "justify-end" : "justify-start"
+                )}
+              >
+                <div
+                  className={cn(
+                    "max-w-[80%] rounded-2xl px-4 py-2.5",
+                    isCurrentUser ? "bg-primary/10" : "bg-gray-100"
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-sm text-gray-700 font-medium">
+                      {isCurrentUser
+                        ? "You"
+                        : comment.creator_user?.full_name ||
+                          comment.creator_user?.email ||
+                          "Unknown"}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {formatDateOnly(comment.created_at)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                    {comment.comment}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={commentsEndRef} />
+      </div>
+
+      {/* Input area */}
+      <div className="border-t border-gray-100 p-4">
+        {expenseId ? (
+          <div className="flex items-end gap-2">
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Type a message..."
+              disabled={readOnly || postingComment}
+              rows={1}
+              className="flex-1 resize-none rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent max-h-32 overflow-y-auto"
+              style={{
+                minHeight: "48px",
+                height: "auto",
+              }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = "auto";
+                target.style.height = `${Math.min(
+                  target.scrollHeight,
+                  128
+                )}px`;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (newComment.trim() && !postingComment) {
+                    handlePostComment();
+                  }
+                }
+              }}
+            />
+            {!readOnly && (
+              <Button
+                type="button"
+                size="icon"
+                className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90 shrink-0 disabled:opacity-50"
+                disabled={!newComment.trim() || postingComment}
+                onClick={handlePostComment}
+              >
+                {postingComment ? (
+                  <Loader2 className="h-5 w-5 text-white animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5 text-white" />
+                )}
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-sm text-gray-500">
+              Save expense to add comments
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

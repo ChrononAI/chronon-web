@@ -36,6 +36,14 @@ import { Expense, Policy, PolicyCategory } from "@/types/expense";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { DateField } from "@/components/ui/date-field";
+import { ExpenseComments } from "@/components/expenses/ExpenseComments";
+import {
+  cn,
+  formatCurrency,
+  formatDistance,
+  getDistanceUnit,
+  usesMetricSystem,
+} from "@/lib/utils";
 import {
   Form,
   FormControl,
@@ -44,6 +52,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useAuthStore } from "@/store/authStore";
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -68,6 +77,7 @@ const mileageSchema = z.object({
   startLocation: z.string().min(1, "Start location is required"),
   endLocation: z.string().min(1, "End location is required"),
   distance: z.string().min(1, "Distance is required"),
+  chargeableDistance: z.string().optional(),
   amount: z.string().min(1, "Amount is required"),
   description: z.string().min(1, "Purpose of travel is required"),
   vehiclesType: z.string().min(1, "Vehicle type is required"),
@@ -97,6 +107,7 @@ const MileagePage = ({
       startLocation: "",
       endLocation: "",
       distance: "",
+      chargeableDistance: "",
       amount: "",
       description: "",
       vehiclesType: "",
@@ -113,6 +124,7 @@ const MileagePage = ({
     endLocation: "",
     endLocationId: "",
     distance: "",
+    chargeableDistance: "",
     amount: "",
     description: "",
     vehiclesType: "",
@@ -122,11 +134,15 @@ const MileagePage = ({
     categoryId: "",
     stops: [] as { id: string; location: string; locationId: string }[],
   });
-
+  const { orgSettings } = useAuthStore();
   const [isCalculating, setIsCalculating] = useState(false);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
+  const [mileagePrice, setMileagePrice] = useState<number | null>(null);
+  const [chargeableDistanceValue, setChargeableDistanceValue] = useState<
+    number | null
+  >(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [startLocation, setStartLocation] = useState<PlaceSuggestion | null>();
@@ -137,78 +153,14 @@ const MileagePage = ({
   const [mapZoom, setMapZoom] = useState(1);
   const [mapRotation, setMapRotation] = useState(0);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [activeMapTab, setActiveMapTab] = useState<"map" | "comments">("map");
   const [lastAddedStopId, setLastAddedStopId] = useState<string | null>(null);
   const today = new Date().toISOString().split("T")[0];
   const stopRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [mileageRates, setMileageRates] = useState([]);
+  const [selectedVehicle, setSelectedVehicle] = useState<any>();
 
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const preloadDefaultLocations = async () => {
-      try {
-        const defaults = await placesService.getDefaultStartEndLocations();
-
-        if (!isMounted) {
-          return;
-        }
-
-        const startLabel = defaults?.start_location_name ?? "";
-        const endLabel = defaults?.end_location_name ?? "";
-        const hasDefaults = Boolean(
-          defaults?.start_location &&
-            defaults?.end_location &&
-            startLabel &&
-            endLabel
-        );
-
-        setHasPrefilledLocations(hasDefaults);
-
-        if (hasDefaults && defaults && mode === "create" && !expenseData) {
-          const startPlace: PlaceSuggestion = {
-            place_id: defaults.start_location,
-            description: startLabel,
-            main_text: startLabel,
-            secondary_text: "",
-            types: [],
-          };
-
-          const endPlace: PlaceSuggestion = {
-            place_id: defaults.end_location,
-            description: endLabel,
-            main_text: endLabel,
-            secondary_text: "",
-            types: [],
-          };
-
-          setStartLocation(startPlace);
-          setEndLocation(endPlace);
-          setFormData((prev) => ({
-            ...prev,
-            startLocation: startLabel,
-            startLocationId: defaults.start_location,
-            endLocation: endLabel,
-            endLocationId: defaults.end_location,
-          }));
-
-          form.setValue("startLocation", startLabel);
-          form.setValue("endLocation", endLabel);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setHasPrefilledLocations(false);
-        }
-        console.error("Error preloading default mileage locations:", error);
-      }
-    };
-
-    preloadDefaultLocations();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [mode, expenseData, form]);
 
   const isUpdateFlow = mode === "edit" || editMode;
   const isStartEndLocationLocked =
@@ -237,81 +189,13 @@ const MileagePage = ({
     return isUpdateFlow ? "Update Expense" : "Create Expense";
   };
 
-  useEffect(() => {
-    if (expenseData && policies.length > 0) {
-      setIsLoadingExistingData(true);
-
-      const stops =
-        expenseData.mileage_meta?.stops?.map((stop: any) => ({
-          id: stop.id || `stop-${Date.now()}`,
-          location: stop.location || "",
-          locationId: stop.locationId || "",
-        })) || [];
-
-      const data = {
-        startLocation: expenseData.start_location || "",
-        startLocationId: "",
-        endLocation: expenseData.end_location || "",
-        endLocationId: "",
-        distance: expenseData.distance ? `${expenseData.distance} km` : "",
-        amount: `₹${expenseData.amount.toString()}` || "₹0.00",
-        description: expenseData.description || "",
-        vehiclesType: getVehicleType(expenseData.vehicle_type || ""),
-        expenseDate:
-          format(new Date(expenseData.expense_date), "yyyy-MM-dd") || "",
-        isRoundTrip: expenseData.is_round_trip,
-        policyId: expenseData.expense_policy_id || "",
-        categoryId: expenseData.category_id || "",
-        stops: stops,
-      };
-
-      setFormData(data);
-
-      if (expenseData.mileage_meta?.map_url) {
-        setMapUrl(expenseData.mileage_meta.map_url);
-      }
-
-      form.setValue("startLocation", data.startLocation);
-      form.setValue("endLocation", data.endLocation);
-      form.setValue("distance", data.distance);
-      form.setValue("amount", data.amount);
-      form.setValue("description", data.description);
-      form.setValue("vehiclesType", data.vehiclesType);
-      form.setValue("expenseDate", data.expenseDate);
-      form.setValue("isRoundTrip", data.isRoundTrip);
-      form.setValue("policyId", data.policyId);
-      form.setValue("categoryId", data.categoryId);
-
-      const policy = policies.find((p) => p.id === data.policyId);
-      if (policy) {
-        setSelectedPolicy(policy);
-        if (policy.categories) {
-          setCategories(policy.categories);
-        }
-      }
-
-      setTimeout(() => setIsLoadingExistingData(false), 100);
+  const getMileageRates = async () => {
+    try {
+      const res = await expenseService.getMileageRates();
+      setMileageRates(res.data.data);
+    } catch (error) {
+      throw error;
     }
-  }, [expenseData, policies, form]);
-
-  useEffect(() => {
-    if (mode === "view" && isEditable && !isEditing) {
-      setEditMode(false);
-    } else if (mode === "view" && isEditable && isEditing) {
-      setEditMode(true);
-    }
-  }, [mode, isEditable, isEditing]);
-
-  const vehicleTypeMapping = {
-    car: "FOUR_WHEELERS",
-    bike: "TWO_WHEELERS",
-    public_transport: "PUBLIC_TRANSPORT",
-  };
-
-  const vehicleTypeMappingForCost = {
-    car: "four_wheeler",
-    bike: "two_wheeler",
-    public_transport: "public_transport",
   };
 
   const extractDistance = (distanceStr: string) => {
@@ -320,8 +204,177 @@ const MileagePage = ({
   };
 
   const extractAmount = (amountStr: string) => {
-    const match = amountStr.match(/₹?(\d+\.?\d*)/);
+    // Remove currency symbols, commas, and parse number
+    const cleaned = amountStr.replace(/[\$€₹,\s]/g, '');
+    const match = cleaned.match(/(\d+\.?\d*)/);
     return match ? parseFloat(match[1]) : 0;
+  };
+
+
+  const calculateMileageCost = async (
+    originId: string,
+    destinationId: string,
+    vehicle: string,
+    isRoundTrip: boolean = false,
+    stopsOverride?: { id: string; location: string; locationId: string }[]
+  ) => {
+    if (!originId || !destinationId || !vehicle) return;
+
+    const orgId = getOrgIdFromToken();
+    if (!orgId) return;
+
+    setIsCalculating(true);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // 🔸 Create a new controller for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    try {
+      const destinations: string[] = [];
+      const stopsToUse = stopsOverride || formData.stops;
+
+      stopsToUse.forEach((stop) => {
+        if (stop.locationId) {
+          destinations.push(stop.locationId);
+        }
+      });
+
+      if (destinationId) {
+        destinations.push(destinationId);
+      }
+      const costData = await placesService.getMileageCost({
+        originPlaceId: originId,
+        destinationPlaceIds:
+          destinations.length > 0 ? destinations : destinationId,
+        vehicle: selectedVehicle?.id,
+        isRoundTrip,
+        signal: controller.signal,
+      });
+      console.log(costData);
+
+      if (costData) {
+        const calculatedDistance = costData.total_distance || 0;
+        // Use distance_unit from API response (already in correct unit - MILES for USD/EUR, KM for INR)
+        const formattedDistance = formatDistance(
+          calculatedDistance,
+          costData.distance_unit
+        );
+        const formattedAmount = formatCurrency(costData.cost, orgSettings.currency);
+        const formattedChargeableDistance = costData.chargeable_distance
+          ? formatDistance(costData.chargeable_distance, costData.distance_unit)
+          : "";
+
+        setMileagePrice(costData.mileage_info?.price || null);
+        setChargeableDistanceValue(costData.chargeable_distance || null);
+
+        setFormData((prev) => ({
+          ...prev,
+          distance: formattedDistance,
+          chargeableDistance: formattedChargeableDistance,
+          amount: formattedAmount,
+        }));
+        form.setValue("distance", formattedDistance);
+        form.setValue("chargeableDistance", formattedChargeableDistance);
+        form.setValue("amount", formattedAmount);
+
+        if (costData.map_url) {
+          setMapUrl(costData.map_url);
+        }
+      }
+      setIsCalculating(false);
+    } catch (error: any) {
+      if (error.name === "CanceledError") {
+        return;
+      }
+      setIsCalculating(false);
+    }
+  };
+
+  const loadMileagePolicies = async () => {
+    setLoadingPolicies(true);
+    try {
+      const allPolicies = await expenseService.getAllPoliciesWithCategories();
+
+      const mileagePolicies = allPolicies.filter((policy: Policy) => {
+        const policyName = policy.name?.toLowerCase() || "";
+        const policyDescription = policy.description?.toLowerCase() || "";
+        const policyType = policy.policy_type?.toLowerCase() || "";
+
+        return (
+          policyName.includes("mileage") ||
+          policyName.includes("mile") ||
+          policyDescription.includes("mileage") ||
+          policyDescription.includes("mile") ||
+          policyType.includes("mileage") ||
+          policyType.includes("mile") ||
+          policy.categories?.some((category) => {
+            const categoryName = category.name?.toLowerCase() || "";
+            const categoryType = category.category_type?.toLowerCase() || "";
+            return (
+              categoryName.includes("mileage") ||
+              categoryName.includes("mile") ||
+              categoryType.includes("mileage") ||
+              categoryType.includes("mile")
+            );
+          })
+        );
+      });
+
+      setPolicies(mileagePolicies);
+      setCategories(mileagePolicies[0]?.categories || []);
+
+      if (mileagePolicies.length > 0) {
+        const firstPolicy = mileagePolicies[0];
+        setSelectedPolicy(firstPolicy);
+        setFormData((prev) => ({ ...prev, policyId: firstPolicy.id }));
+
+        form.setValue("policyId", firstPolicy.id);
+
+        if (firstPolicy.categories && firstPolicy.categories.length > 0) {
+          const firstCategory = firstPolicy.categories[0];
+          setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
+        }
+      }
+    } catch (error) {
+      console.error("Error loading mileage policies:", error);
+      toast.error("Failed to load policies");
+    } finally {
+      setLoadingPolicies(false);
+    }
+  };
+
+  const handleMapZoomIn = () => {
+    setMapZoom((prev) => Math.min(prev + 0.25, 3));
+  };
+
+  const handleMapZoomOut = () => {
+    setMapZoom((prev) => Math.max(prev - 0.25, 0.5));
+  };
+
+  const handleMapRotate = () => {
+    setMapRotation((prev) => (prev + 90) % 360);
+  };
+
+  const handleMapReset = () => {
+    setMapZoom(1);
+    setMapRotation(0);
+  };
+
+  const handleMapFullscreen = () => {
+    setIsMapFullscreen(true);
+  };
+
+  const handleMapDownload = () => {
+    if (mapUrl) {
+      const a = document.createElement("a");
+      a.href = mapUrl;
+      a.download = "mileage-route-map.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -334,14 +387,16 @@ const MileagePage = ({
       if (field === "vehiclesType" || field === "isRoundTrip") {
         const originId = startLocation?.place_id || updatedData.startLocationId;
         const destId = endLocation?.place_id || updatedData.endLocationId;
+        const selectedVehicleId =
+          field === "vehiclesType"
+            ? (value as string)
+            : updatedData.vehiclesType;
 
         const triggerCalculation = (oid: string, did: string) => {
           calculateMileageCost(
             oid,
             did,
-            field === "vehiclesType"
-              ? (value as string)
-              : updatedData.vehiclesType,
+            selectedVehicleId,
             field === "vehiclesType"
               ? updatedData.isRoundTrip
               : (value as boolean)
@@ -412,6 +467,67 @@ const MileagePage = ({
 
       return updatedData;
     });
+  };
+
+  const handleSubmit = async (values: MileageFormValues) => {
+    const orgId = getOrgIdFromToken();
+    if (!orgId) {
+      toast.error("Organization ID not found");
+      return;
+    }
+
+    console.log(values);
+
+    if (isCalculating) {
+      toast.info(
+        "Please wait for distance and amount calculation to complete..."
+      );
+      return;
+    }
+    const mileage_meta: any = {
+      trip_purpose: "business_travel",
+      notes: values.isRoundTrip ? "Round trip" : "",
+    };
+
+    if (formData.stops && formData.stops.length > 0) {
+      mileage_meta.stops = formData.stops.map((stop) => ({
+        id: stop.id,
+        location: stop.location,
+        locationId: stop.locationId,
+      }));
+    }
+
+    if (mapUrl) {
+      mileage_meta.map_url = mapUrl;
+    }
+
+    const submitData = {
+      expense_policy_id: values.policyId,
+      category_id: values.categoryId,
+      amount: extractAmount(values.amount),
+      expense_date: values.expenseDate,
+      description: values.description,
+      start_location: values.startLocation,
+      end_location: values.endLocation,
+      distance: chargeableDistanceValue ?? extractDistance(values.distance),
+      mileage_rate_id: values.vehiclesType,
+      is_round_trip: values.isRoundTrip.toString(),
+      mileage_meta: mileage_meta,
+      vendor: expenseData?.vendor || "Mileage Reimbursement",
+    };
+
+    try {
+      if (mode === "create") {
+        await placesService.createMileageExpense(submitData, orgId);
+        toast.success("Successfully created mileage expense");
+        navigate("/expenses");
+      } else if (mode === "edit" && onUpdate) {
+        await onUpdate(submitData);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save mileage expense");
+    }
   };
 
   const handleStartLocationSelect = (place: PlaceSuggestion) => {
@@ -546,6 +662,132 @@ const MileagePage = ({
   };
 
   useEffect(() => {
+    if (expenseData && policies.length > 0) {
+      setIsLoadingExistingData(true);
+
+      const stops =
+        expenseData.mileage_meta?.stops?.map((stop: any) => ({
+          id: stop.id || `stop-${Date.now()}`,
+          location: stop.location || "",
+          locationId: stop.locationId || "",
+        })) || [];
+
+      const data = {
+        startLocation: expenseData.start_location || "",
+        startLocationId: "",
+        endLocation: expenseData.end_location || "",
+        endLocationId: "",
+        distance: expenseData.distance ? formatDistance(typeof expenseData.distance === 'string' ? parseFloat(expenseData.distance) || 0 : expenseData.distance, expenseData.distance_unit || getDistanceUnit().toUpperCase()) : "",
+        chargeableDistance: (expenseData as any).chargeable_distance || "",
+        amount: formatCurrency(expenseData.amount, orgSettings.currency) || formatCurrency(0, orgSettings.currency),
+        description: expenseData.description || "",
+        vehiclesType: expenseData.mileage_rate_id,
+        expenseDate:
+          format(new Date(expenseData.expense_date), "yyyy-MM-dd") || "",
+        isRoundTrip: expenseData.is_round_trip,
+        policyId: expenseData.expense_policy_id || "",
+        categoryId: expenseData.category_id || "",
+        stops: stops,
+      };
+      const sel = mileageRates.find((rate: any) => rate.id === +expenseData.mileage_rate_id )
+      setSelectedVehicle(sel);
+      setFormData(data);
+
+      if (expenseData.mileage_meta?.map_url) {
+        setMapUrl(expenseData.mileage_meta.map_url);
+      }
+
+      form.setValue("startLocation", data.startLocation);
+      form.setValue("endLocation", data.endLocation);
+      form.setValue("distance", data.distance);
+      form.setValue("amount", data.amount);
+      form.setValue("description", data.description);
+      form.setValue("vehiclesType", data.vehiclesType);
+      form.setValue("expenseDate", data.expenseDate);
+      form.setValue("isRoundTrip", data.isRoundTrip);
+      form.setValue("policyId", data.policyId);
+      form.setValue("categoryId", data.categoryId);
+
+      const policy = policies.find((p) => p.id === data.policyId);
+      if (policy) {
+        setSelectedPolicy(policy);
+        if (policy.categories) {
+          setCategories(policy.categories);
+        }
+      }
+
+      setTimeout(() => setIsLoadingExistingData(false), 100);
+    }
+  }, [expenseData, policies, form]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const preloadDefaultLocations = async () => {
+      try {
+        const defaults = await placesService.getDefaultStartEndLocations();
+
+        if (!isMounted) {
+          return;
+        }
+
+        const startLabel = defaults?.start_location_name ?? "";
+        const endLabel = defaults?.end_location_name ?? "";
+        const hasDefaults = Boolean(
+          defaults?.start_location &&
+            defaults?.end_location &&
+            startLabel &&
+            endLabel
+        );
+
+        setHasPrefilledLocations(hasDefaults);
+
+        if (hasDefaults && defaults && mode === "create" && !expenseData) {
+          const startPlace: PlaceSuggestion = {
+            place_id: defaults.start_location,
+            description: startLabel,
+            main_text: startLabel,
+            secondary_text: "",
+            types: [],
+          };
+
+          const endPlace: PlaceSuggestion = {
+            place_id: defaults.end_location,
+            description: endLabel,
+            main_text: endLabel,
+            secondary_text: "",
+            types: [],
+          };
+
+          setStartLocation(startPlace);
+          setEndLocation(endPlace);
+          setFormData((prev) => ({
+            ...prev,
+            startLocation: startLabel,
+            startLocationId: defaults.start_location,
+            endLocation: endLabel,
+            endLocationId: defaults.end_location,
+          }));
+
+          form.setValue("startLocation", startLabel);
+          form.setValue("endLocation", endLabel);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setHasPrefilledLocations(false);
+        }
+        console.error("Error preloading default mileage locations:", error);
+      }
+    };
+
+    preloadDefaultLocations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [mode, expenseData, form]);
+
+  useEffect(() => {
     if (
       startLocation &&
       endLocation &&
@@ -569,6 +811,14 @@ const MileagePage = ({
   ]);
 
   useEffect(() => {
+    if (mode === "view" && isEditable && !isEditing) {
+      setEditMode(false);
+    } else if (mode === "view" && isEditable && isEditing) {
+      setEditMode(true);
+    }
+  }, [mode, isEditable, isEditing]);
+
+  useEffect(() => {
     if (lastAddedStopId) {
       const stopElement = stopRefs.current[lastAddedStopId];
       if (stopElement) {
@@ -578,239 +828,13 @@ const MileagePage = ({
     }
   }, [formData.stops, lastAddedStopId]);
 
-  const handleSubmit = async (values: MileageFormValues) => {
-    const orgId = getOrgIdFromToken();
-    if (!orgId) {
-      toast.error("Organization ID not found");
-      return;
-    }
-
-    if (isCalculating) {
-      toast.info(
-        "Please wait for distance and amount calculation to complete..."
-      );
-      return;
-    }
-    const mileage_meta: any = {
-      trip_purpose: "business_travel",
-      notes: values.isRoundTrip ? "Round trip" : "",
-    };
-
-    if (formData.stops && formData.stops.length > 0) {
-      mileage_meta.stops = formData.stops.map((stop) => ({
-        id: stop.id,
-        location: stop.location,
-        locationId: stop.locationId,
-      }));
-    }
-
-    if (mapUrl) {
-      mileage_meta.map_url = mapUrl;
-    }
-
-    const submitData = {
-      expense_policy_id: values.policyId,
-      category_id: values.categoryId,
-      amount: extractAmount(values.amount),
-      expense_date: values.expenseDate,
-      description: values.description,
-      start_location: values.startLocation,
-      end_location: values.endLocation,
-      distance: extractDistance(values.distance),
-      distance_unit: "KM",
-      vehicle_type:
-        vehicleTypeMapping[
-          values.vehiclesType as keyof typeof vehicleTypeMapping
-        ] || "four_wheeler",
-      is_round_trip: values.isRoundTrip.toString(),
-      mileage_meta: mileage_meta,
-      vendor: expenseData?.vendor || "Mileage Reimbursement",
-    };
-
-    try {
-      if (mode === "create") {
-        await placesService.createMileageExpense(submitData, orgId);
-        toast.success("Successfully created mileage expense");
-        navigate("/expenses");
-      } else if (mode === "edit" && onUpdate) {
-        await onUpdate(submitData);
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to save mileage expense");
-    }
-  };
-
-  const loadMileagePolicies = async () => {
-    setLoadingPolicies(true);
-    try {
-      const allPolicies = await expenseService.getAllPoliciesWithCategories();
-
-      const mileagePolicies = allPolicies.filter((policy: Policy) => {
-        const policyName = policy.name?.toLowerCase() || "";
-        const policyDescription = policy.description?.toLowerCase() || "";
-        const policyType = policy.policy_type?.toLowerCase() || "";
-
-        return (
-          policyName.includes("mileage") ||
-          policyName.includes("mile") ||
-          policyDescription.includes("mileage") ||
-          policyDescription.includes("mile") ||
-          policyType.includes("mileage") ||
-          policyType.includes("mile") ||
-          policy.categories?.some((category) => {
-            const categoryName = category.name?.toLowerCase() || "";
-            const categoryType = category.category_type?.toLowerCase() || "";
-            return (
-              categoryName.includes("mileage") ||
-              categoryName.includes("mile") ||
-              categoryType.includes("mileage") ||
-              categoryType.includes("mile")
-            );
-          })
-        );
-      });
-
-      setPolicies(mileagePolicies);
-      setCategories(mileagePolicies[0]?.categories || []);
-
-      if (mileagePolicies.length > 0) {
-        const firstPolicy = mileagePolicies[0];
-        setSelectedPolicy(firstPolicy);
-        setFormData((prev) => ({ ...prev, policyId: firstPolicy.id }));
-
-        form.setValue("policyId", firstPolicy.id);
-
-        if (firstPolicy.categories && firstPolicy.categories.length > 0) {
-          const firstCategory = firstPolicy.categories[0];
-          setFormData((prev) => ({ ...prev, categoryId: firstCategory.id }));
-        }
-      }
-    } catch (error) {
-      console.error("Error loading mileage policies:", error);
-      toast.error("Failed to load policies");
-    } finally {
-      setLoadingPolicies(false);
-    }
-  };
-
   useEffect(() => {
     loadMileagePolicies();
+    getMileageRates();
   }, []);
-
-  const calculateMileageCost = async (
-    originId: string,
-    destinationId: string,
-    vehicle: string,
-    isRoundTrip: boolean = false,
-    stopsOverride?: { id: string; location: string; locationId: string }[]
-  ) => {
-    if (!originId || !destinationId || !vehicle) return;
-
-    const orgId = getOrgIdFromToken();
-    if (!orgId) return;
-
-    const mappedVehicle =
-      vehicleTypeMappingForCost[
-        vehicle as keyof typeof vehicleTypeMappingForCost
-      ] || vehicle;
-
-    setIsCalculating(true);
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // 🔸 Create a new controller for this request
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    try {
-      const destinations: string[] = [];
-      const stopsToUse = stopsOverride || formData.stops;
-
-      stopsToUse.forEach((stop) => {
-        if (stop.locationId) {
-          destinations.push(stop.locationId);
-        }
-      });
-
-      if (destinationId) {
-        destinations.push(destinationId);
-      }
-
-      const costData = await placesService.getMileageCost({
-        originPlaceId: originId,
-        destinationPlaceIds:
-          destinations.length > 0 ? destinations : destinationId,
-        vehicle: mappedVehicle,
-        orgId,
-        isRoundTrip,
-        signal: controller.signal
-      });
-
-      if (costData) {
-        const calculatedDistance = costData.total_distance || 0;
-
-        setFormData((prev) => ({
-          ...prev,
-          distance: `${calculatedDistance.toFixed(1)} km`,
-          amount: `₹${costData.cost.toFixed(2)}`,
-        }));
-        form.setValue("distance", `${calculatedDistance.toFixed(1)} km`);
-        form.setValue("amount", `₹${costData.cost.toFixed(2)}`);
-
-        if (costData.map_url) {
-          setMapUrl(costData.map_url);
-        }
-      }
-      setIsCalculating(false);
-    } catch (error: any) {
-      if (error.name === "CanceledError") {
-        return;
-      }
-      setIsCalculating(false);
-    }
-  };
-
-  const handleMapZoomIn = () => {
-    setMapZoom((prev) => Math.min(prev + 0.25, 3));
-  };
-
-  const handleMapZoomOut = () => {
-    setMapZoom((prev) => Math.max(prev - 0.25, 0.5));
-  };
-
-  const handleMapRotate = () => {
-    setMapRotation((prev) => (prev + 90) % 360);
-  };
-
-  const handleMapReset = () => {
-    setMapZoom(1);
-    setMapRotation(0);
-  };
-
-  const handleMapFullscreen = () => {
-    setIsMapFullscreen(true);
-  };
-
-  const handleMapDownload = () => {
-    if (mapUrl) {
-      const a = document.createElement("a");
-      a.href = mapUrl;
-      a.download = "mileage-route-map.png";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  };
 
   return (
     <div className="max-w-full mx-auto pt-1 pb-6">
-      {/* {mode === "view" && <div className="mb-3">
-        <h1 className="text-2xl font-bold text-gray-800">
-          Mileage Expense Details
-        </h1>
-      </div>} */}
-
       {expenseData?.original_expense_id && (
         <Alert className="bg-yellow-50 border-yellow-200 mb-4">
           <Copy className="h-4 w-4 text-yellow-600" />
@@ -833,55 +857,99 @@ const MileagePage = ({
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Section - Map */}
-        <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 flex items-center justify-center lg:min-h-[620px]">
-          {isCalculating ? <div className="text-center text-gray-500">
-              <div className="mx-auto mb-4 h-16 w-16 text-gray-300">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-full w-full"
+        {/* Left Section - Map/Comments */}
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col">
+          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              {[
+                { key: "map", label: "Map" },
+                { key: "comments", label: "Comments" },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveMapTab(tab.key as "map" | "comments")}
+                  className={cn(
+                    "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                    activeMapTab === tab.key
+                      ? "bg-primary/10 text-primary"
+                      : "text-gray-500 hover:text-gray-900"
+                  )}
                 >
-                  <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-              </div>
-              <p className="text-base font-medium">Loading Map View...</p>
-              <p className="text-sm text-gray-400 mt-1">
-                Route visualization will appear here
-              </p>
-            </div> : mapUrl ? (
-            <img
-              src={mapUrl}
-              alt="Route Map"
-              className="max-h-[520px] w-full object-contain"
-              onClick={handleMapFullscreen}
-            />
-          ) : (
-            <div className="text-center text-gray-500">
-              <div className="mx-auto mb-4 h-16 w-16 text-gray-300">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-full w-full"
-                >
-                  <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-              </div>
-              <p className="text-base font-medium">Map View</p>
-              <p className="text-sm text-gray-400 mt-1">
-                Route visualization will appear here
-              </p>
+                  {tab.label}
+                </button>
+              ))}
             </div>
+          </div>
+          {activeMapTab === "map" ? (
+            <div className="md:flex-1 md:overflow-hidden">
+              {isCalculating ? (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
+                  <div className="mx-auto h-16 w-16 text-gray-300">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-full w-full"
+                    >
+                      <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Loading Map View...
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Route visualization will appear here
+                    </p>
+                  </div>
+                </div>
+              ) : mapUrl ? (
+                <div className="flex items-start justify-center rounded-b-2xl bg-gray-50 pt-4 px-6 pb-6 md:h-full">
+                  <img
+                    src={mapUrl}
+                    alt="Route Map"
+                    className="h-[520px] w-full rounded-xl object-contain cursor-pointer"
+                    onClick={handleMapFullscreen}
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
+                  <div className="mx-auto h-16 w-16 text-gray-300">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-full w-full"
+                    >
+                      <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Map View
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Route visualization will appear here
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <ExpenseComments
+              expenseId={expenseData?.id}
+              readOnly={false}
+              autoFetch={activeMapTab === "comments"}
+            />
           )}
         </div>
 
@@ -1054,6 +1122,10 @@ const MileagePage = ({
                           value={field.value}
                           onValueChange={(v) => {
                             handleInputChange("vehiclesType", v);
+                            const sel = mileageRates.find(
+                              (rate: any) => rate.id === +v
+                            );
+                            setSelectedVehicle(sel);
                             field.onChange(v);
                           }}
                           disabled={mode === "view" && !editMode}
@@ -1064,11 +1136,11 @@ const MileagePage = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="car">Car</SelectItem>
-                            <SelectItem value="bike">Bike</SelectItem>
-                            <SelectItem value="public_transport">
-                              Public Transport
-                            </SelectItem>
+                            {mileageRates?.map((v: any) => (
+                              <SelectItem key={v.id} value={String(v.id)}>
+                                {v.vehicle_name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -1107,6 +1179,44 @@ const MileagePage = ({
                       </FormItem>
                     )}
                   />
+
+                  {!usesMetricSystem() && mode === "create" && (
+                    <FormField
+                      control={form.control}
+                      name="chargeableDistance"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Chargeable Distance</FormLabel>
+                          <div className="relative">
+                            <FormControl>
+                              <Input
+                                type="text"
+                                value={
+                                  isCalculating
+                                    ? "Calculating..."
+                                    : formData.chargeableDistance ||
+                                      "Auto-calculated"
+                                }
+                                onChange={(e) => {
+                                  handleInputChange(
+                                    "chargeableDistance",
+                                    e.target.value
+                                  );
+                                  field.onChange(e.target.value);
+                                }}
+                                className="bg-gray-50 text-gray-500"
+                                disabled={true}
+                              />
+                            </FormControl>
+                            {isCalculating && (
+                              <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
+                            )}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -1211,12 +1321,22 @@ const MileagePage = ({
                         Total Amount
                       </Label>
                       <div className="text-2xl font-bold text-blue-600 mt-1">
-                        {formData.amount || "₹0.00"}
+                        {formData.amount || formatCurrency(0, orgSettings.currency)}
                       </div>
-                      {formData.distance && (
-                        <p className="text-sm text-gray-500">
-                          {formData.distance}
+                      {chargeableDistanceValue &&
+                      mileagePrice &&
+                      !usesMetricSystem() ? (
+                        <p className="text-sm font-semibold text-gray-600 mt-1">
+                          {chargeableDistanceValue.toFixed(2)}{" "}
+                          {getDistanceUnit()} × {formatCurrency(mileagePrice, orgSettings.currency)}{" "}
+                          per {getDistanceUnit()}
                         </p>
+                      ) : (
+                        formData.distance && (
+                          <p className="text-sm text-gray-500">
+                            {formData.distance}
+                          </p>
+                        )
                       )}
                     </div>
                   </div>
@@ -1248,12 +1368,22 @@ const MileagePage = ({
                         Total Amount
                       </span>
                       <span className="text-2xl font-bold text-blue-600 mt-1">
-                        {formData.amount || "₹0.00"}
+                        {formData.amount || formatCurrency(0, orgSettings.currency)}
                       </span>
-                      {formData.distance && (
-                        <span className="text-sm text-gray-500">
-                          {formData.distance}
+                      {chargeableDistanceValue &&
+                      mileagePrice &&
+                      !usesMetricSystem() ? (
+                        <span className="text-sm font-semibold text-gray-600 mt-1 block">
+                          {chargeableDistanceValue.toFixed(2)}{" "}
+                          {getDistanceUnit()} × {formatCurrency(mileagePrice, orgSettings.currency)}{" "}
+                          per {getDistanceUnit()}
                         </span>
+                      ) : (
+                        formData.distance && (
+                          <span className="text-sm text-gray-500">
+                            {formData.distance}
+                          </span>
+                        )
                       )}
                     </div>
 

@@ -6,6 +6,7 @@ import {
   ExpensesResponse,
   ReportsResponse,
   Policy,
+  ExpenseComment,
 } from "@/types/expense";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { toast } from "sonner";
@@ -40,6 +41,7 @@ export interface UpdateExpenseData {
   end_location?: string | null;
   start_location?: string | null;
   vehicle_type?: string | null;
+  mileage_rate_id?: string;
   mileage_meta?: any;
   custom_attributes?: any;
   is_round_trip?: boolean;
@@ -130,20 +132,20 @@ export const expenseService = {
   },
 
   async getMyReports(
-    page: number = 1,
-    perPage: number = 20
+    limit: number = 1,
+    offset: number = 20
   ): Promise<ReportsResponse> {
     try {
-      const orgId = getOrgIdFromToken();
-      if (!orgId) {
-        throw new Error("Organization ID not found in token");
-      }
       const response = await api.get(
-        `/reports/reports?org_id=${orgId}&page=${page}&per_page=${perPage}`
+        `/reports/reports?limit=${limit}&offset=${offset}`
       );
+      console.log(response);
 
-      const reports = response.data.data.data || [];
-      const pagination = response.data.data.pagination;
+      const reports = response.data.data || [];
+      const pagination = {
+        count: response.data.count,
+        offset: response.data.offset
+      };
 
       return {
         reports,
@@ -154,12 +156,8 @@ export const expenseService = {
       return {
         reports: [],
         pagination: {
-          has_next: false,
-          has_prev: false,
-          page: 1,
-          pages: 0,
-          per_page: 20,
-          total: 0,
+          count: 0,
+          offset: 0
         },
       };
     }
@@ -167,27 +165,19 @@ export const expenseService = {
 
   async getReportsByStatus(
     status: string,
-    page: number = 1,
-    perPage: number = 20
+    limit: number = 1,
+    offset: number = 20
   ): Promise<ReportsResponse> {
     try {
-      const orgId = getOrgIdFromToken();
-      if (!orgId) {
-        throw new Error("Organization ID not found in token");
-      }
       const response = await api.get(
-        `/reports/reports?org_id=${orgId}&status=${status}&page=${page}&per_page=${perPage}`
+        `/reports/reports?status=${status}&limit=${limit}&offset=${offset}`
       );
 
-      const reports = response.data.data.data || [];
-      const pagination = response.data.data.pagination || {
-        has_next: false,
-        has_prev: false,
-        page: 1,
-        pages: 0,
-        per_page: 20,
-        total: 0,
-      };
+      const reports = response.data.data || [];
+      const pagination = {
+        count: response.data.count,
+        offset: response.data.offset
+      }
 
       return {
         reports,
@@ -198,12 +188,8 @@ export const expenseService = {
       return {
         reports: [],
         pagination: {
-          has_next: false,
-          has_prev: false,
-          page: 1,
-          pages: 0,
-          per_page: 20,
-          total: 0,
+          count: 0,
+          offset: 0
         },
       };
     }
@@ -490,6 +476,70 @@ export const expenseService = {
           error.message ||
           "Failed to delete expense",
       };
+    }
+  },
+
+  async getExpenseComments(expenseId: string): Promise<ExpenseComment[]> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        throw new Error("Organization ID not found in token");
+      }
+      const response = await api.get(
+        `/api/v1/expense_comments?expense_id=${expenseId}&org_id=${orgId}`
+      );
+      return response.data.data || [];
+    } catch (error: any) {
+      console.error("Error fetching expense comments:", error);
+      throw error;
+    }
+  },
+
+  async postExpenseComment(
+    expenseId: string,
+    comment: string,
+    notify: boolean = false
+  ): Promise<ExpenseComment> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        throw new Error("Organization ID not found in token");
+      }
+      const response = await api.post(
+        `/api/v1/expense_comments`,
+        JSON.stringify({
+          expense_id: expenseId,
+          comment: comment.trim(),
+          notify: notify,
+        })
+      );
+      // Return the created comment from response.data.data if available
+      // Otherwise return a minimal comment object
+      return response.data.data || {
+        id: "",
+        expense_id: expenseId,
+        comment: comment.trim(),
+        creator_user_id: "",
+        creator_user: {
+          id: "",
+          email: "",
+          full_name: "",
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        org_id: orgId,
+      };
+    } catch (error: any) {
+      console.error("Error posting expense comment:", error);
+      throw error;
+    }
+  },
+
+  async getMileageRates() {
+    try {
+      return await api.get('/em/expenses/mileage_rates')
+    } catch (error) {
+      throw error;
     }
   },
 

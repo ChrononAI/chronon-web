@@ -2,23 +2,18 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
-  FileText,
-  Calendar,
   Building,
   CheckCircle,
   AlertCircle,
   XCircle,
-  IndianRupee,
-  Receipt,
-  Activity,
   Target,
   Undo,
   AlertTriangle,
+  ArrowLeft,
 } from "lucide-react";
 import {
   Dialog,
@@ -37,8 +32,15 @@ import { toast } from "sonner";
 import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
 import { ViewExpenseWindow } from "@/components/expenses/ViewExpenseWindow";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getExpenseType } from "./MyExpensesPage";
+import { Input } from "@/components/ui/input";
+import { ReportTabs } from "@/components/reports/ReportTabs";
 
 const columns: GridColDef[] = [
   {
@@ -127,7 +129,7 @@ const columns: GridColDef[] = [
   {
     field: "currency",
     headerName: "CURRENCY",
-    width: 80,
+    width: 100,
     renderCell: () => "INR",
   },
   {
@@ -143,7 +145,7 @@ const columns: GridColDef[] = [
   },
 ];
 
-export function ReportDetailPage() {
+export function ReportDetailPage2() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -162,6 +164,13 @@ export function ReportDetailPage() {
   const [showActionDialog, setShowActionDialog] = useState(false);
   const [showViewExpense, setShowViewExpense] = useState(false);
   const [expenseToView, setExpenseToView] = useState<Expense | null>(null);
+  const [activeTab, setActiveTab] = useState<"expenses" | "history">(
+    "expenses"
+  );
+  const tabs = [
+    { key: "expenses", label: "Expenses", count: 0 },
+    { key: "history", label: "Audit History", count: 0 },
+  ];
 
   const fetchReport = async () => {
     if (!id) {
@@ -356,225 +365,166 @@ export function ReportDetailPage() {
     <Layout>
       <div className="space-y-6">
         <Breadcrumb items={breadcrumbItems} />
-
-        {/* Action Buttons Header */}
-        {isFromApprovals && canApproveReport() && (
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-700">
-                  {report?.title}
-                </h1>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => handleAction("approve")}
-                  disabled={actionLoading}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Approve
-                </Button>
-                <Button
-                  onClick={() => handleAction("reject")}
-                  disabled={actionLoading}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Reject
-                </Button>
-                <Button
-                  onClick={() => handleAction("send_back")}
-                  disabled={actionLoading}
-                  className="bg-orange-600 hover:bg-orange-700"
-                >
-                  <Undo className="h-4 w-4 mr-2" />
-                  Send Back
-                </Button>
-              </div>
-            </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-2xl font-bold">Report Approval</h1>
           </div>
-        )}
+          {isFromApprovals && canApproveReport() && (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleAction("approve")}
+                disabled={actionLoading}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Approve
+              </Button>
+              <Button
+                onClick={() => handleAction("reject")}
+                disabled={actionLoading}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Reject
+              </Button>
+              <Button
+                onClick={() => handleAction("send_back")}
+                disabled={actionLoading}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                <Undo className="h-4 w-4 mr-2" />
+                Send Back
+              </Button>
+            </div>
+          )}
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Report Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Report Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <FileText className="h-4 w-4" />
-                      Submitted By
-                    </div>
-                    <p className="text-lg font-semibold">
-                      {report.created_by.email}
-                    </p>
-                  </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 lg:col-span-2 gap-4">
+          {/* Report Name */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Report Name</label>
+            <Input value={report.title} disabled />
+          </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <IndianRupee className="h-4 w-4" />
-                      Total Amount
-                    </div>
-                    <p className="text-lg font-semibold">
-                      {formatCurrency(totalAmount)}
-                    </p>
-                  </div>
+          {/* Description */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Description</label>
+            <Input value={report.description} disabled />
+          </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      Created Date
-                    </div>
-                    <p className="text-lg font-semibold">
-                      {formatDate(report.created_at)}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      Submitted Date
-                    </div>
-                    <p className="text-lg font-semibold">
-                      {report.submitted_at
-                        ? formatDate(report.submitted_at)
-                        : "Not submitted"}
-                    </p>
-                  </div>
-                </div>
-
+          {report.custom_attributes &&
+            Object.keys(report.custom_attributes).length > 0 && (
+              <>
                 <Separator />
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <FileText className="h-4 w-4" />
-                    Description
-                  </div>
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-sm leading-relaxed">
-                      {report.description}
-                    </p>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Building className="h-5 w-5" />
+                    Custom Attributes
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.entries(report.custom_attributes).map(
+                      ([key, value]) => (
+                        <div key={key} className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground capitalize">
+                            {key.replace(/_/g, " ")}
+                          </label>
+                          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+                            <Target className="h-4 w-4 text-muted-foreground" />
+                            <Input value={value} disabled />
+                          </div>
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
-
-                {/* Custom Attributes */}
-                {report.custom_attributes &&
-                  Object.keys(report.custom_attributes).length > 0 && (
-                    <>
-                      <Separator />
-
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                          <Building className="h-5 w-5" />
-                          Custom Attributes
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {Object.entries(report.custom_attributes).map(
-                            ([key, value]) => (
-                              <div key={key} className="space-y-2">
-                                <label className="text-sm font-medium text-muted-foreground capitalize">
-                                  {key.replace(/_/g, " ")}
-                                </label>
-                                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                                  <Target className="h-4 w-4 text-muted-foreground" />
-                                  <span className="text-sm">{value}</span>
-                                </div>
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
-              </CardContent>
-            </Card>
-
-            {/* Expenses Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Receipt className="h-5 w-5" />
-                  Expenses in this Report ({report.expenses.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border">
-                  <DataGrid
-                    className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-                    rows={report.expenses}
-                    columns={columns}
-                    sx={{
-                      border: 0,
-                      "& .MuiDataGrid-columnHeaderTitle": {
-                        color: "#9AA0A6",
-                        fontWeight: "bold",
-                        fontSize: "12px",
-                      },
-                      "& .MuiDataGrid-main": {
-                        border: "0.2px solid #f3f4f6",
-                      },
-                      "& .MuiDataGrid-columnHeader": {
-                        backgroundColor: "#f3f4f6",
-                        border: "none",
-                      },
-                      "& .MuiDataGrid-columnHeaders": {
-                        border: "none",
-                      },
-                      "& .MuiDataGrid-row:hover": {
-                        cursor: "pointer",
-                        backgroundColor: "#f5f5f5",
-                      },
-                      "& .MuiDataGrid-cell": {
-                        color: "#2E2E2E",
-                        border: "0.2px solid #f3f4f6",
-                      },
-                      "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                        {
-                          outline: "none",
-                        },
-                      "& .MuiDataGrid-cell:focus-within": {
+              </>
+            )}
+        </div>
+        <div>
+          <div>
+            <ReportTabs
+              activeTab={activeTab}
+              onTabChange={(tabId) =>
+                setActiveTab(tabId as "expenses" | "history")
+              }
+              tabs={tabs}
+              className="mb-8"
+            />
+          </div>
+          {activeTab === "expenses" && (
+            <div className="space-y-6">
+              <div className="rounded-lg border">
+                <DataGrid
+                  className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+                  rows={report.expenses}
+                  columns={columns}
+                  sx={{
+                    border: 0,
+                    "& .MuiDataGrid-columnHeaderTitle": {
+                      color: "#9AA0A6",
+                      fontWeight: "bold",
+                      fontSize: "12px",
+                    },
+                    "& .MuiDataGrid-main": {
+                      border: "0.2px solid #f3f4f6",
+                    },
+                    "& .MuiDataGrid-columnHeader": {
+                      backgroundColor: "#f3f4f6",
+                      border: "none",
+                    },
+                    "& .MuiDataGrid-columnHeaders": {
+                      border: "none",
+                    },
+                    "& .MuiDataGrid-row:hover": {
+                      cursor: "pointer",
+                      backgroundColor: "#f5f5f5",
+                    },
+                    "& .MuiDataGrid-cell": {
+                      color: "#2E2E2E",
+                      border: "0.2px solid #f3f4f6",
+                    },
+                    "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
+                      {
                         outline: "none",
                       },
-                      "& .MuiDataGrid-columnSeparator": {
-                        color: "#f3f4f6",
-                      },
-                    }}
-                    density="compact"
-                    getRowClassName={(params) =>
-                      params.row.original_expense_id ? "bg-yellow-50" : ""
-                    }
-                    hideFooter
-                    disableRowSelectionOnClick
-                    showCellVerticalBorder
-                    onRowClick={(params) => handleViewExpense(params.row)}
-                  />
+                    "& .MuiDataGrid-cell:focus-within": {
+                      outline: "none",
+                    },
+                    "& .MuiDataGrid-columnSeparator": {
+                      color: "#f3f4f6",
+                    },
+                  }}
+                  density="compact"
+                  getRowClassName={(params) =>
+                    params.row.original_expense_id ? "bg-yellow-50" : ""
+                  }
+                  hideFooter
+                  disableRowSelectionOnClick
+                  showCellVerticalBorder
+                  onRowClick={(params) => handleViewExpense(params.row)}
+                />
+              </div>
+              <div className="flex">
+                <div className="bg-gray-50 rounded-lg px-8 py-3 min-w-[680px] flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Total Amount:</span>
+                  <span className="text-lg font-bold text-primary">
+                    {formatCurrency(totalAmount || 0)}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-          {/* Workflow Timeline */}
-          {approvalWorkflow && approvalWorkflow.approval_steps && (
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5" />
-                    Approval Workflow Timeline
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "history" && (
+            <div className="w-1/3">
+              {approvalWorkflow && approvalWorkflow.approval_steps && (
+                <div className="mt-6">
                   <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
-                </CardContent>
-              </Card>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -616,7 +566,7 @@ export function ReportDetailPage() {
                       Total Value:
                     </span>
                     <span className="text-sm font-medium">
-                      {formatCurrency(totalAmount)}
+                      {formatCurrency(totalAmount, "INR")}
                     </span>
                   </div>
                   <div className="flex justify-between">

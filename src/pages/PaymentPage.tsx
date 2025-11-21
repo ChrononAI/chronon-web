@@ -234,7 +234,7 @@ export function PaymentPage() {
                 <div>
                   <p className="text-sm font-medium text-purple-700 ">Total Value</p>
                   <p className="text-2xl font-bold text-purple-900 ">
-                    {formatCurrency(totalAmount, 'INR')}
+                    {formatCurrency(totalAmount)}
                   </p>
                 </div>
                 <div className="p-3 bg-purple-100  rounded-full">

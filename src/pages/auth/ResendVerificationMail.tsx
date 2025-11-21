@@ -21,8 +21,9 @@ function ResendVerificationMail() {
     if (!email) toast.error("Please enter registered mail");
     setIsLoading(true);
     try {
-      await authService.resetPassword({ email });
-      toast.success("Password reset link sent to mail");
+      const res = await authService.resendVerificationMail({ email });
+      toast.success(res.data.message);
+      navigate('/login');
     } catch (error: any) {
       setError(
         error?.response?.data.message ||
@@ -42,7 +43,7 @@ function ResendVerificationMail() {
             Email Verification Failed
           </h2>
           <p className="text-gray-600 text-base">
-            Enter your email address to get a verification link.
+            Your Verification Link has expired. Please enter your email id below to generate a new link.
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-10 w-full">

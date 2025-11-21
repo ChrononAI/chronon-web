@@ -32,6 +32,7 @@ export interface Expense {
     updated_at: string;
     workflow_config_id: string | null;
   };
+  mileage_rate_id: string;
   receipt_id: string | null;
   report_id: string | null;
   is_round_trip: boolean;
@@ -71,6 +72,22 @@ export interface Expense {
   pre_approval_id?: string | null;
   foreign_currency?: string | null;
   foreign_amount?: string | null;
+  comments?: ExpenseComment[];
+}
+
+export interface ExpenseComment {
+  id: string;
+  expense_id: string;
+  comment: string;
+  creator_user_id: string;
+  creator_user: {
+    id: string;
+    email: string;
+    full_name: string;
+  };
+  created_at: string;
+  updated_at: string;
+  org_id: string;
 }
 
 export interface PaginationMeta {
@@ -80,6 +97,11 @@ export interface PaginationMeta {
   pages: number;
   per_page: number;
   total: number;
+}
+
+export interface NewPaginationMeta {
+  count: number;
+  offset: number;
 }
 
 export interface ExpensesResponse {
@@ -137,8 +159,8 @@ export interface ReportWithExpenses extends Report {
 
 export interface ApprovalWorkflow {
   report_id: string;
-  workflow_execution_id: string;
-  workflow_status: string;
+  workflow_execution_id?: string;
+  workflow_status?: string;
   current_step: number;
   total_steps: number;
   approval_steps: ApprovalStep[];
@@ -164,7 +186,7 @@ export interface Approver {
 
 export interface ReportsResponse {
   reports: Report[];
-  pagination: PaginationMeta;
+  pagination: NewPaginationMeta;
 }
 
 export interface DownloadReport {

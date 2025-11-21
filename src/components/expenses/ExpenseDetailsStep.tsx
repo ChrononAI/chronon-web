@@ -51,10 +51,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, getOrgCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
+import { ExpenseComments } from "./ExpenseComments";
 import {
   fileParseService,
   ParsedInvoiceData,
@@ -158,7 +159,7 @@ export function ExpenseDetailsStep({
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [advances, setAdvances] = useState<AdvanceType[]>([]);
   // const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
-  const [selectedCurrency, setSelectedCurrency] = useState("INR");
+  const [selectedCurrency, setSelectedCurrency] = useState(getOrgCurrency());
   const conversionRates = selectedPreApproval?.currency_conversion_rates || [];
 
   const selectedConversion = conversionRates?.find(
@@ -182,6 +183,7 @@ export function ExpenseDetailsStep({
           destination: "",
           pre_approval_id: "",
           advance_id: "",
+          foreign_currency: getOrgCurrency(),
         },
   });
 
@@ -233,6 +235,7 @@ export function ExpenseDetailsStep({
   >("receipt");
   const [receiptZoom, setReceiptZoom] = useState(1);
   const [receiptRotation, setReceiptRotation] = useState(0);
+
 
   // Fetch signed URL for duplicate receipts when component mounts
   useEffect(() => {
@@ -461,6 +464,7 @@ export function ExpenseDetailsStep({
       }
     }
   }, [parsedData, policies]);
+
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -708,7 +712,13 @@ export function ExpenseDetailsStep({
                   </div>
                 </div>
               </>
-            ) : null}
+            ) : (
+              <ExpenseComments
+                expenseId={expense?.id}
+                readOnly={false}
+                autoFetch={activeReceiptTab === "comments"}
+              />
+            )}
           </div>
         </div>
 
@@ -906,7 +916,7 @@ export function ExpenseDetailsStep({
                             <FormLabel>Currency *</FormLabel>
                             <FormControl>
                               <Select
-                                value={field.value || "INR"}
+                                value={field.value || getOrgCurrency()}
                                 onValueChange={(value) => {
                                   field.onChange(value);
                                   setSelectedCurrency(value);

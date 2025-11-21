@@ -142,22 +142,11 @@ const columns: GridColDef[] = [
   },
 ];
 
-function CustomToolbar({ selectedCategory, setSelectedCategory }: any) {
-  const [categories, setCategories] = useState([]);
-
-  const getAllCategories = async () => {
-    try {
-      const res = await categoryService.getAllCategories();
-      console.log(res);
-      setCategories(res.data.data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  useEffect(() => {
-    getAllCategories();
-  }, []);
+function CustomToolbar({
+  categories,
+  selectedCategory,
+  setSelectedCategory,
+}: any) {
   return (
     <Toolbar
       sx={{
@@ -225,9 +214,25 @@ export function CreateReportForm2({
   const [selectedIds, setSelectedIds] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<any>();
 
-  const filteredExpenses = selectedCategory ? allExpenses.filter((exp) => exp.category_id === selectedCategory.id) : allExpenses;
+  const filteredExpenses = selectedCategory
+    ? allExpenses.filter((exp) => exp.category_id === selectedCategory.id)
+    : allExpenses;
 
-  console.log(selectedCategory);
+  const [categories, setCategories] = useState([]);
+
+  const getAllCategories = async () => {
+    try {
+      const res = await categoryService.getAllCategories();
+      console.log(res);
+      setCategories(res.data.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    getAllCategories();
+  }, []);
 
   const [rowSelection, setRowSelection] = useState<any>({
     type: "include",
@@ -256,10 +261,10 @@ export function CreateReportForm2({
   }, [rowSelection]);
 
   useEffect(() => {
-      if (selectedCategory) {
-        setSelectedIds([]);
-        setRowSelection({type: 'include', ids: new Set([])});
-      }
+    if (selectedCategory) {
+      setSelectedIds([]);
+      setRowSelection({ type: "include", ids: new Set([]) });
+    }
   }, [selectedCategory]);
 
   // Determine if Hospital Name and Campaign Code should be shown
@@ -687,12 +692,13 @@ export function CreateReportForm2({
           slots={{
             loadingOverlay: CustomLoader,
             // noRowsOverlay: CustomNoRows,
-            toolbar: () =>
+            toolbar: () => (
               <CustomToolbar
+                categories={categories}
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
               />
-            ,
+            ),
           }}
           sx={{
             border: 0,
