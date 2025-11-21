@@ -158,7 +158,6 @@ const MileagePage = ({
   const today = new Date().toISOString().split("T")[0];
   const stopRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [mileageRates, setMileageRates] = useState([]);
-  const [selectedVehicle, setSelectedVehicle] = useState<any>();
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -248,11 +247,10 @@ const MileagePage = ({
         originPlaceId: originId,
         destinationPlaceIds:
           destinations.length > 0 ? destinations : destinationId,
-        vehicle: selectedVehicle?.id,
+        vehicle: vehicle,
         isRoundTrip,
         signal: controller.signal,
       });
-      console.log(costData);
 
       if (costData) {
         const calculatedDistance = costData.total_distance || 0;
@@ -391,12 +389,11 @@ const MileagePage = ({
           field === "vehiclesType"
             ? (value as string)
             : updatedData.vehiclesType;
-
-        const triggerCalculation = (oid: string, did: string) => {
+        const triggerCalculation = (oid: string, did: string, vehicleId: string) => {
           calculateMileageCost(
             oid,
             did,
-            selectedVehicleId,
+            vehicleId,
             field === "vehiclesType"
               ? updatedData.isRoundTrip
               : (value as boolean)
@@ -404,7 +401,7 @@ const MileagePage = ({
         };
 
         if (originId && destId) {
-          triggerCalculation(originId, destId);
+          triggerCalculation(originId, destId, selectedVehicleId);
         } else if (updatedData.startLocation && updatedData.endLocation) {
           (async () => {
             try {
@@ -430,7 +427,7 @@ const MileagePage = ({
                   startLocationId: startPlace.place_id,
                   endLocationId: endPlace.place_id,
                 }));
-                triggerCalculation(startPlace.place_id, endPlace.place_id);
+                triggerCalculation(startPlace.place_id, endPlace.place_id, selectedVehicleId);
               } else {
                 toast.error(
                   "Unable to find location place IDs. Please reselect locations."
@@ -689,10 +686,9 @@ const MileagePage = ({
         categoryId: expenseData.category_id || "",
         stops: stops,
       };
-      const sel = mileageRates.find((rate: any) => rate.id === +expenseData.mileage_rate_id )
-      setSelectedVehicle(sel);
+      // const sel = mileageRates.find((rate: any) => rate.id === +expenseData.mileage_rate_id )
+      // setSelectedVehicle(sel);
       setFormData(data);
-
       if (expenseData.mileage_meta?.map_url) {
         setMapUrl(expenseData.mileage_meta.map_url);
       }
@@ -718,7 +714,7 @@ const MileagePage = ({
 
       setTimeout(() => setIsLoadingExistingData(false), 100);
     }
-  }, [expenseData, policies, form]);
+  }, [expenseData, policies, form, mileageRates]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1122,10 +1118,10 @@ const MileagePage = ({
                           value={field.value}
                           onValueChange={(v) => {
                             handleInputChange("vehiclesType", v);
-                            const sel = mileageRates.find(
-                              (rate: any) => rate.id === +v
-                            );
-                            setSelectedVehicle(sel);
+                            // const sel = mileageRates.find(
+                            //   (rate: any) => rate.id === +v
+                            // );
+                            // setSelectedVehicle(sel);
                             field.onChange(v);
                           }}
                           disabled={mode === "view" && !editMode}
