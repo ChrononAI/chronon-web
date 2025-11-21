@@ -97,6 +97,8 @@ const expenseSchema = z.object({
   foreign_currency: z.string().optional().default("INR").nullable(),
   currency: z.string().optional().default("INR").nullable(),
   foreign_amount: z.string().optional().nullable(),
+  conversion_rate: z.string().optional(),
+  
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -135,7 +137,6 @@ export function ExpenseDetailsStep({
   isEditMode = false,
   expense,
 }: ExpenseDetailsStepProps) {
-  // console.log(previewUrl);
   const navigate = useNavigate();
   const orgId = getOrgIdFromToken();
   const {
@@ -160,6 +161,7 @@ export function ExpenseDetailsStep({
   const [advances, setAdvances] = useState<AdvanceType[]>([]);
   // const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState(getOrgCurrency());
+  const [showConversion, setShowConversion] = useState(false);
   const conversionRates = selectedPreApproval?.currency_conversion_rates || [];
 
   const selectedConversion = conversionRates?.find(
@@ -184,6 +186,7 @@ export function ExpenseDetailsStep({
           pre_approval_id: "",
           advance_id: "",
           foreign_currency: getOrgCurrency(),
+          currency: getOrgCurrency()
         },
   });
 
@@ -269,6 +272,13 @@ export function ExpenseDetailsStep({
       console.log(error);
     }
   };
+
+  useEffect(() => {
+    if (form.getValues('currency') !== getOrgCurrency()){
+      console.log('inside form useEffect', form.getValues('currency'));
+      setShowConversion(true);
+    }
+  }, [form.getValues('currency')]);
 
   useEffect(() => {
     loadPoliciesWithCategories();
@@ -991,6 +1001,25 @@ export function ExpenseDetailsStep({
                                 {formatCurrency(baseAmount)}
                               </p>
                             )}
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="conversion_rate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Conversion Rate</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Conversion Rate"
+                                type="number"
+                                disabled={readOnly}
+                                className={inputFieldClass}
+                              />
+                            </FormControl>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />

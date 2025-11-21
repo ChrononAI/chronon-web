@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { UploadReceiptStep } from './UploadReceiptStep';
 import { ExpenseDetailsStep } from './ExpenseDetailsStep';
 import { useExpenseStore } from '@/store/expenseStore';
+import { useAuthStore } from '@/store/authStore';
 
 // Form schema for step 2
 type ExpenseFormValues = {
@@ -27,10 +28,18 @@ type ExpenseFormValues = {
   foreign_currency?: string | null;
 };
 
+function getYesterday() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split("T")[0];
+}
+
+
 export function CreateExpenseForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const { parsedData, setParsedData, selectedPreApproval, setSelectedPreApproval } = useExpenseStore();
+  const { orgSettings } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -40,6 +49,7 @@ export function CreateExpenseForm() {
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [uploadStepKey, setUploadStepKey] = useState(0);
   const [isReceiptReplaced, setIsReceiptReplaced] = useState(false);
+  // const 
 
   // const stepTitles = ['Upload Receipt', 'Expense Details'];
 
@@ -125,22 +135,26 @@ export function CreateExpenseForm() {
     let isBase = true;
     let isForeign = false;
     let apiConversionRate = null;
+    const yesterday = getYesterday();
+    console.log(yesterday);
     try {
-      if (copiedData !== 'INR') {
+      if (copiedData.currency !== orgSettings.currency) {
         isBase = false;
         // Make api call here to fetch currency conversion rate
-        apiConversionRate = 80;
+        const res = await expenseService.getCurrencyConversionRate({ date: yesterday, to: orgSettings.currency, from: copiedData.currency });
+        console.log(res);
+        apiConversionRate = 100;
       }
-      // console.log(apiConversionRate);
+      console.log(copiedData);
   
       const curr = selectedPreApproval?.currency_conversion_rates?.find((cur) => cur.currency === copiedData.foreign_currency);
-      if (copiedData.foreign_currency !== "INR" && selectedPreApproval?.currency_conversion_rates) {
+      if (copiedData.foreign_currency !== orgSettings.currency && selectedPreApproval?.currency_conversion_rates) {
         isForeign = true;
       }
       const formattedDate = format(data.dateOfExpense, 'yyyy-MM-dd');
       const expenseData: CreateExpenseData = {
         amount: isForeign ? (+copiedData.amount * (curr ? +curr.rate : 0)) : !isBase ? (+copiedData.amount * (apiConversionRate || 1)) : parseFloat(data.amount),
-        currency: 'INR',
+        currency: orgSettings.currency,
         foreign_amount: (isForeign || !isBase)? parseFloat(data.amount) : null,
         foreign_currency: isForeign ? data.foreign_currency : !isBase ? copiedData.currency : null,
         category_id: data.categoryId,
