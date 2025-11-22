@@ -25,6 +25,8 @@ export interface CreateExpenseData {
   foreign_amount?: number | null;
   foreign_currency?: string | null;
   currency?: string | null;
+  api_conversion_rate?: number;
+  user_conversion_rate?: number;
 }
 
 export interface UpdateExpenseData {
@@ -49,6 +51,9 @@ export interface UpdateExpenseData {
   pre_approval_id?: string;
   foreign_amount?: number | null;
   foreign_currency?: string | null;
+  currency?: string | null;
+  api_conversion_rate?: number;
+  user_conversion_rate?: number;
 }
 
 export interface CreateExpenseResponse {
@@ -144,7 +149,7 @@ export const expenseService = {
       const reports = response.data.data || [];
       const pagination = {
         count: response.data.count,
-        offset: response.data.offset
+        offset: response.data.offset,
       };
 
       return {
@@ -157,7 +162,7 @@ export const expenseService = {
         reports: [],
         pagination: {
           count: 0,
-          offset: 0
+          offset: 0,
         },
       };
     }
@@ -176,8 +181,8 @@ export const expenseService = {
       const reports = response.data.data || [];
       const pagination = {
         count: response.data.count,
-        offset: response.data.offset
-      }
+        offset: response.data.offset,
+      };
 
       return {
         reports,
@@ -189,7 +194,7 @@ export const expenseService = {
         reports: [],
         pagination: {
           count: 0,
-          offset: 0
+          offset: 0,
         },
       };
     }
@@ -515,20 +520,22 @@ export const expenseService = {
       );
       // Return the created comment from response.data.data if available
       // Otherwise return a minimal comment object
-      return response.data.data || {
-        id: "",
-        expense_id: expenseId,
-        comment: comment.trim(),
-        creator_user_id: "",
-        creator_user: {
+      return (
+        response.data.data || {
           id: "",
-          email: "",
-          full_name: "",
-        },
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        org_id: orgId,
-      };
+          expense_id: expenseId,
+          comment: comment.trim(),
+          creator_user_id: "",
+          creator_user: {
+            id: "",
+            email: "",
+            full_name: "",
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          org_id: orgId,
+        }
+      );
     } catch (error: any) {
       console.error("Error posting expense comment:", error);
       throw error;
@@ -537,7 +544,7 @@ export const expenseService = {
 
   async getMileageRates() {
     try {
-      return await api.get('/em/expenses/mileage_rates')
+      return await api.get("/em/expenses/mileage_rates");
     } catch (error) {
       throw error;
     }
