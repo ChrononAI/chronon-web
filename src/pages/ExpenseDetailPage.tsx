@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store/authStore";
 
 const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE", "SENT_BACK"];
 
@@ -56,13 +57,15 @@ const transformExpenseToFormData = (expense: Expense) => {
     destination: "",
     advance_id: expense.advance_id || null,
     pre_approval_id: expense.pre_approval_id || null,
+    currency: "INR",
     foreign_currency: expense.foreign_currency || null,
     foreign_amount: expense.foreign_amount || null,
   };
 };
 
 export function ExpenseDetailPage() {
-  const { parsedData, setParsedData, selectedPreApproval } = useExpenseStore();
+  const { parsedData, setParsedData } = useExpenseStore();
+  const { orgSettings } = useAuthStore();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -75,6 +78,7 @@ export function ExpenseDetailPage() {
   const [saving, setSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  // const [conversionRate, setConversionRate] = useState();
 
   const searchParams = new URLSearchParams(location.search);
   const isFromReport = searchParams.get("from") === "report";
@@ -133,27 +137,18 @@ export function ExpenseDetailPage() {
 
   const handleExpenseSubmit = async (formData: any) => {
     if (!expense || !id) return;
-    console.log(formData);
-
-    const copiedData = JSON.parse(JSON.stringify(formData));
-    let isForeign = false;
-    const curr = selectedPreApproval?.currency_conversion_rates?.find(
-      (cur) => cur.currency === copiedData.foreign_currency
-    );
-    if (
-      copiedData.foreign_currency && copiedData.foreign_currency !== "INR" &&
-      selectedPreApproval?.currency_conversion_rates
-    ) {
-      isForeign = true;
-    }
-
     setSaving(true);
     try {
       // Transform form data to UpdateExpenseData format
       const expenseData: UpdateExpenseData = {
-        amount: isForeign
-          ? +copiedData.amount * (curr ? +curr.rate : 0)
-          : parseFloat(formData.amount),
+        foreign_amount:
+          formData.currency !== formData.foreign_currency
+            ? +(formData.base_currency_amount || 0)
+            : parseFloat(formData.amount),
+        amount:
+          formData.currency !== formData.foreign_currency
+            ? parseFloat(formData.amount)
+            : +(formData.base_currency_amount || 0),
         category_id: formData.categoryId,
         description: formData.description,
         expense_date: formData.expense_date,
@@ -171,10 +166,14 @@ export function ExpenseDetailPage() {
         mileage_meta: formData.mileage_meta || null,
         is_round_trip: formData.is_round_trip === "true" ? true : false,
         custom_attributes: {},
-        foreign_amount: isForeign ? parseFloat(formData.amount) : null,
-        foreign_currency: isForeign ? formData.foreign_currency : null,
+        currency: orgSettings.currency,
+        foreign_currency:
+          formData.currency !== formData.foreign_currency
+            ? formData.currency
+            : null,
+        api_conversion_rate: +(formData.api_conversion_rate || 0),
+        user_conversion_rate: +(formData.user_conversion_rate || 0),
       };
-      console.log(expenseData);
 
       const response = await expenseService.updateExpense(id, expenseData);
       if (response.success) {
@@ -370,7 +369,9 @@ export function ExpenseDetailPage() {
         ) : isPerDiemExpense(expense) ? (
           <PerdiemPage
             mode={
-              expense.status === "INCOMPLETE" || expense.status === "COMPLETE" || expense.status === "SENT_BACK"
+              expense.status === "INCOMPLETE" ||
+              expense.status === "COMPLETE" ||
+              expense.status === "SENT_BACK"
                 ? "edit"
                 : "view"
             }
@@ -386,7 +387,9 @@ export function ExpenseDetailPage() {
               }
             }}
             mode={
-              expense.status === "COMPLETE" || expense.status === "INCOMPLETE" || expense.status === "SENT_BACK"
+              expense.status === "COMPLETE" ||
+              expense.status === "INCOMPLETE" ||
+              expense.status === "SENT_BACK"
                 ? "edit"
                 : "view"
             }

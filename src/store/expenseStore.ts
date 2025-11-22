@@ -39,7 +39,7 @@ interface ExpenseState {
   setReportedExpenses: (data: Expense[]) => void;
   setReportedExpensesPagination: (pagination: PaginationInfo) => void;
 
-  setSelectedPreApproval: (data: PreApprovalType) => void;
+  setSelectedPreApproval: (data: PreApprovalType | null) => void;
 }
 
 export const useExpenseStore = create<ExpenseState>()(

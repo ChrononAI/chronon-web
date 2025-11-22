@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { UploadReceiptStep } from './UploadReceiptStep';
 import { ExpenseDetailsStep } from './ExpenseDetailsStep';
 import { useExpenseStore } from '@/store/expenseStore';
+import { useAuthStore } from '@/store/authStore';
 
 // Form schema for step 2
 type ExpenseFormValues = {
@@ -25,22 +26,34 @@ type ExpenseFormValues = {
   pre_approval_id?: string | null;
   advance_id?: string | null;
   foreign_currency?: string | null;
+  currency?: string;
+  base_currency_amount?: string;
+  api_conversion_rate?: string;
+  user_conversion_rate?: string;
 };
+
+export function getYesterday() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split("T")[0];
+}
+
 
 export function CreateExpenseForm() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { parsedData, setParsedData, selectedPreApproval } = useExpenseStore();
+  const { parsedData, setParsedData, setSelectedPreApproval } = useExpenseStore();
+  const { orgSettings } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  console.log(uploadedFile);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   // const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [uploadStepKey, setUploadStepKey] = useState(0);
   const [isReceiptReplaced, setIsReceiptReplaced] = useState(false);
+  // const 
 
   // const stepTitles = ['Upload Receipt', 'Expense Details'];
 
@@ -121,20 +134,14 @@ export function CreateExpenseForm() {
   };
 
   const actuallySubmit = async (data: ExpenseFormValues) => {
-    // setLoading(true);
-    const copiedData = JSON.parse(JSON.stringify(data));
-    let isForeign = false;
-    const curr = selectedPreApproval?.currency_conversion_rates?.find((cur) => cur.currency === copiedData.foreign_currency);
-    if (copiedData.foreign_currency !== "INR" && selectedPreApproval?.currency_conversion_rates) {
-      isForeign = true;
-    }
+    setLoading(true);
     try {
       const formattedDate = format(data.dateOfExpense, 'yyyy-MM-dd');
-
       const expenseData: CreateExpenseData = {
-        amount: isForeign ? (+copiedData.amount * (curr ? +curr.rate : 0)) : parseFloat(data.amount),
-        foreign_amount: isForeign ? parseFloat(data.amount) : null,
-        foreign_currency: isForeign ? data.foreign_currency : null,
+        amount: data.currency !== data.foreign_currency ? +(data.base_currency_amount || 0) : parseFloat(data.amount),
+        foreign_amount: data.currency !== data.foreign_currency ? parseFloat(data.amount) : +(data.base_currency_amount || 0),
+        currency: orgSettings.currency,
+        foreign_currency: data.currency !== data.foreign_currency ? data.currency : null,
         category_id: data.categoryId,
         description: data.comments || data.merchant || 'Expense description',
         expense_date: formattedDate,
@@ -143,7 +150,9 @@ export function CreateExpenseForm() {
         receipt_id: parsedData?.id || undefined,
         invoice_number: data.invoiceNumber || parsedData?.ocr_result?.invoice_number || null,
         advance_id: data.advance_id || undefined,
-        pre_approval_id: data.pre_approval_id || undefined
+        pre_approval_id: data.pre_approval_id || undefined,
+        api_conversion_rate: +(data.api_conversion_rate || 0),
+        user_conversion_rate: +(data.user_conversion_rate || 0)
       };
       const result = await expenseService.createExpense(expenseData);
       if (result.success) {
@@ -168,6 +177,10 @@ export function CreateExpenseForm() {
   const handleStep2Submit = async (data: ExpenseFormValues) => {
     await actuallySubmit(data);
   };
+
+  useEffect(() => {
+    setSelectedPreApproval(null);
+  }, []);
 
   return (
     <div className="space-y-6">

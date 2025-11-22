@@ -76,6 +76,7 @@ import {
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Copy, ExternalLink } from "lucide-react";
+import { getYesterday } from "./CreateExpenseForm";
 
 // Form schema
 const expenseSchema = z.object({
@@ -84,6 +85,7 @@ const expenseSchema = z.object({
   invoiceNumber: z.string().min(1, "Invoice number is required"),
   merchant: z.string().min(1, "Merchant is required"),
   amount: z.string().min(1, "Amount is required"),
+  base_currency_amount: z.string().optional(),
   dateOfExpense: z.date({
     required_error: "Date is required",
   }),
@@ -95,7 +97,10 @@ const expenseSchema = z.object({
   pre_approval_id: z.string().nullable().optional(),
   advance_id: z.string().nullable().optional(),
   foreign_currency: z.string().optional().default("INR").nullable(),
+  currency: z.string().optional().default("INR"),
   foreign_amount: z.string().optional().nullable(),
+  user_conversion_rate: z.string().optional(),
+  api_conversion_rate: z.string().optional(),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -115,6 +120,7 @@ interface ExpenseDetailsStepProps {
   receiptUrls?: string[];
   isEditMode?: boolean;
   foreign_currency?: string | null;
+  currency?: string | null;
   expense?: any; // Full expense object with original_expense_id
 }
 
@@ -133,7 +139,6 @@ export function ExpenseDetailsStep({
   isEditMode = false,
   expense,
 }: ExpenseDetailsStepProps) {
-  // console.log(previewUrl);
   const navigate = useNavigate();
   const orgId = getOrgIdFromToken();
   const {
@@ -158,6 +163,7 @@ export function ExpenseDetailsStep({
   const [advances, setAdvances] = useState<AdvanceType[]>([]);
   // const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState(getOrgCurrency());
+  const [showConversion, setShowConversion] = useState(false);
   const conversionRates = selectedPreApproval?.currency_conversion_rates || [];
 
   const selectedConversion = conversionRates?.find(
@@ -182,6 +188,7 @@ export function ExpenseDetailsStep({
           pre_approval_id: "",
           advance_id: "",
           foreign_currency: getOrgCurrency(),
+          currency: getOrgCurrency(),
         },
   });
 
@@ -234,7 +241,6 @@ export function ExpenseDetailsStep({
   const [receiptZoom, setReceiptZoom] = useState(1);
   const [receiptRotation, setReceiptRotation] = useState(0);
 
-
   // Fetch signed URL for duplicate receipts when component mounts
   useEffect(() => {
     if (
@@ -267,6 +273,50 @@ export function ExpenseDetailsStep({
       console.log(error);
     }
   };
+
+  const getCurrencyConversion = async ({
+    date,
+    from,
+    to,
+  }: {
+    date: string;
+    from: string;
+    to: string;
+  }) => {
+    try {
+      const res = await expenseService.getCurrencyConversionRate({
+        date,
+        to,
+        from,
+      });
+      const conversion = res.data.data.exchange_rate;
+        form.setValue('base_currency_amount', `${(+conversion * +form.getValues('amount')).toFixed(3)}`)
+      form.setValue("api_conversion_rate", conversion);
+      setShowConversion(true);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  useEffect(() => {
+    if (form.getValues("currency") !== getOrgCurrency()) {
+      const yesterday = getYesterday();
+      getCurrencyConversion({
+        date: yesterday,
+        from: form.getValues("currency"),
+        to: getOrgCurrency(),
+      });
+      // setShowConversion(true);
+    } else {
+      setShowConversion(false);
+      form.setValue("api_conversion_rate", undefined);
+    }
+  }, [form.getValues("currency")]);
+
+  useEffect(() => {
+    if (form.getValues('api_conversion_rate') && form.getValues('amount')) {
+      form.setValue('base_currency_amount', `${(+(form.getValues('api_conversion_rate') || 0) * +form.getValues('amount')).toFixed(3)}`)
+    }
+  }, [form.watch('api_conversion_rate'), form.watch('amount')]);
 
   useEffect(() => {
     loadPoliciesWithCategories();
@@ -462,7 +512,6 @@ export function ExpenseDetailsStep({
       }
     }
   }, [parsedData, policies]);
-
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -906,35 +955,67 @@ export function ExpenseDetailsStep({
                     />
 
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="foreign_currency"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Currency *</FormLabel>
-                            <FormControl>
-                              <Select
-                                value={field.value || getOrgCurrency()}
-                                onValueChange={(value) => {
-                                  field.onChange(value);
-                                  setSelectedCurrency(value);
-                                }}
-                                disabled={readOnly}
-                              >
-                                <SelectTrigger className={selectTriggerClass}>
-                                  <SelectValue placeholder="Select a currency" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="INR">INR (₹)</SelectItem>
-                                  <SelectItem value="USD">USD ($)</SelectItem>
-                                  <SelectItem value="EUR">EUR (€)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {selectedPreApproval ? (
+                        <FormField
+                          control={form.control}
+                          name="foreign_currency"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Currency *</FormLabel>
+                              <FormControl>
+                                <Select
+                                  value={field.value || getOrgCurrency()}
+                                  onValueChange={(value) => {
+                                    field.onChange(value);
+                                    setSelectedCurrency(value);
+                                  }}
+                                  disabled={readOnly}
+                                >
+                                  <SelectTrigger className={selectTriggerClass}>
+                                    <SelectValue placeholder="Select a currency" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="INR">INR (₹)</SelectItem>
+                                    <SelectItem value="USD">USD ($)</SelectItem>
+                                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ) : (
+                        <FormField
+                          control={form.control}
+                          name="currency"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Currency *</FormLabel>
+                              <FormControl>
+                                <Select
+                                  value={field.value || "INR"}
+                                  onValueChange={(value) => {
+                                    field.onChange(value);
+                                    setSelectedCurrency(value);
+                                  }}
+                                  disabled={readOnly}
+                                >
+                                  <SelectTrigger className={selectTriggerClass}>
+                                    <SelectValue placeholder="Select a currency" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="INR">INR (₹)</SelectItem>
+                                    <SelectItem value="USD">USD ($)</SelectItem>
+                                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
 
                       <FormField
                         control={form.control}
@@ -964,6 +1045,63 @@ export function ExpenseDetailsStep({
                           </FormItem>
                         )}
                       />
+                      {showConversion && (
+                        <>
+                          <FormField
+                            control={form.control}
+                            name="api_conversion_rate"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Conversion Rate</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder="Conversion Rate"
+                                    type="number"
+                                    disabled={readOnly}
+                                    className={inputFieldClass}
+                                    onChange={(e) => {
+                                      field.onChange(e);
+                                      form.setValue(
+                                        "user_conversion_rate",
+                                        e.target.value
+                                      );
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="base_currency_amount"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{`Total Amount (in ${getOrgCurrency()})`}</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder="Conversion Rate"
+                                    type="string"
+                                    // disabled={readOnly}
+                                    readOnly={true}
+                                    className={inputFieldClass}
+                                    onChange={(e) => {
+                                      field.onChange(e);
+                                      form.setValue(
+                                        "user_conversion_rate",
+                                        e.target.value
+                                      );
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </>
+                      )}
                     </div>
 
                     {!isConveyanceCategory && (
