@@ -100,7 +100,7 @@ const expenseSchema = z.object({
   currency: z.string().optional().default("INR"),
   foreign_amount: z.string().optional().nullable(),
   user_conversion_rate: z.string().optional(),
-  api_conversion_rate: z.string().optional(),
+  api_conversion_rate: z.string().min(1, "Conversion rate is required"),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -308,7 +308,7 @@ export function ExpenseDetailsStep({
       // setShowConversion(true);
     } else {
       setShowConversion(false);
-      form.setValue("api_conversion_rate", undefined);
+      form.setValue("api_conversion_rate", "0");
     }
   }, [form.getValues("currency")]);
 

@@ -44,6 +44,7 @@ const isPerDiemExpense = (expense: Expense): boolean => {
 
 // Transform Expense data to form format
 const transformExpenseToFormData = (expense: Expense) => {
+  console.log(expense);
   return {
     policyId: expense.expense_policy_id,
     categoryId: expense.category_id,
@@ -60,6 +61,8 @@ const transformExpenseToFormData = (expense: Expense) => {
     currency: "INR",
     foreign_currency: expense.foreign_currency || null,
     foreign_amount: expense.foreign_amount || null,
+    api_conversion_rate: expense.api_conversion_rate.toString(),
+    user_conversion_rate: expense.user_conversion_rate.toString()
   };
 };
 
