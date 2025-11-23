@@ -72,6 +72,8 @@ export interface Expense {
   pre_approval_id?: string | null;
   foreign_currency?: string | null;
   foreign_amount?: string | null;
+  api_conversion_rate: string | number;
+  user_conversion_rate: string | number;
   comments?: ExpenseComment[];
 }
 
