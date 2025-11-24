@@ -9,6 +9,7 @@ export interface AdvanceType {
   sequence_number: string;
   org_id: string;
   user_id: string;
+  amount: string;
   created_at: string;
   updated_at: string;
   created_by: {
@@ -164,9 +165,9 @@ export const AdvanceService = {
     }
   },
 
-  processAdvance: async ({ id, action }: { id: string; action: string }) => {
+  processAdvance: async ({ id, action, payload }: { id: string; action: string, payload?: any }) => {
     try {
-      return await api.post(`/api/v1/advances/${id}/${action}`);
+      return await api.post(`/api/v1/advances/${id}/${action}`, payload);
     } catch (error) {
       throw error;
     }
