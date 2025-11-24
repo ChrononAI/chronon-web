@@ -7,10 +7,12 @@ interface AuthState {
   user: User | null;
   token: string | null;
   orgSettings: any | null;
+  orgDetails: any | null;
   isAuthenticated: boolean;
   login: (user: User, token: string) => void;
   logout: () => void;
   setOrgSettings: (data: any) => void;
+  setOrgDetails: (data: any) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -19,6 +21,7 @@ export const useAuthStore = create<AuthState>()(
       (set) => ({
         user: null,
         orgSettings: null,
+        orgDetails: null,
         token: null,
         isAuthenticated: false,
         login: (user: User, token: string) => {
@@ -31,6 +34,9 @@ export const useAuthStore = create<AuthState>()(
         },
         setOrgSettings: (data) => {
           set({orgSettings: data})
+        },
+        setOrgDetails: (data) => {
+          set({orgDetails: data})
         }
       }),
       {

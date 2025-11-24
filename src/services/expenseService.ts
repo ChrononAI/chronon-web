@@ -25,8 +25,8 @@ export interface CreateExpenseData {
   foreign_amount?: number | null;
   foreign_currency?: string | null;
   currency?: string | null;
-  api_conversion_rate?: number;
-  user_conversion_rate?: number;
+  api_conversion_rate?: number | null;
+  user_conversion_rate?: number | null;
 }
 
 export interface UpdateExpenseData {

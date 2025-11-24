@@ -15,7 +15,7 @@ import {
 import { UploadReceiptStep } from "./UploadReceiptStep";
 import { ExpenseDetailsStep } from "./ExpenseDetailsStep";
 import { useExpenseStore } from "@/store/expenseStore";
-import { useAuthStore } from "@/store/authStore";
+import { getOrgCurrency } from "@/lib/utils";
 
 // Form schema for step 2
 type ExpenseFormValues = {
@@ -49,7 +49,7 @@ export function CreateExpenseForm() {
   const location = useLocation();
   const { parsedData, setParsedData, setSelectedPreApproval } =
     useExpenseStore();
-  const { orgSettings } = useAuthStore();
+  const baseCurrency = getOrgCurrency();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -147,7 +147,7 @@ export function CreateExpenseForm() {
   };
 
   const actuallySubmit = async (data: ExpenseFormValues) => {
-    setLoading(true);
+    // setLoading(true);
     try {
       const formattedDate = format(data.dateOfExpense, "yyyy-MM-dd");
       const expenseData: CreateExpenseData = {
@@ -158,8 +158,8 @@ export function CreateExpenseForm() {
         foreign_amount:
           data.currency !== data.foreign_currency
             ? parseFloat(data.amount)
-            : +(data.base_currency_amount || 0),
-        currency: orgSettings.currency,
+            : null,
+        currency: baseCurrency,
         foreign_currency:
           data.currency !== data.foreign_currency ? data.currency : null,
         category_id: data.categoryId,
@@ -172,14 +172,13 @@ export function CreateExpenseForm() {
           data.invoiceNumber || parsedData?.ocr_result?.invoice_number || null,
         advance_id: data.advance_id || undefined,
         pre_approval_id: data.pre_approval_id || undefined,
-        api_conversion_rate: +(data.api_conversion_rate || 0),
-        user_conversion_rate: +(
+        api_conversion_rate: data.currency !== baseCurrency ? +(data.api_conversion_rate || 0) : null,
+        user_conversion_rate: data.currency !== baseCurrency ? +(
           (+(data.user_conversion_rate || 0) === 0
             ? data.api_conversion_rate
             : data.user_conversion_rate) || 0
-        ),
+        ) : null,
       };
-      console.log(data, expenseData);
       const result = await expenseService.createExpense(expenseData);
       if (result.success) {
         toast.success(result.message);

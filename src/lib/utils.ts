@@ -17,7 +17,7 @@ export function formatDate(date: number[] | string): string {
 
 export function getOrgCurrency(): string {
   const orgSettings = useAuthStore.getState().orgSettings;
-  return orgSettings?.currency || 'INR';
+  return orgSettings?.currency;
 }
 
 export function usesMetricSystem(): boolean {

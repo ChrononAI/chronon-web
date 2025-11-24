@@ -9,7 +9,7 @@ import PerdiemPage from "@/pages/PerdiemPage";
 import { AlertCircle, Trash2, Loader2 } from "lucide-react";
 import { expenseService, UpdateExpenseData } from "@/services/expenseService";
 import { Expense } from "@/types/expense";
-import { getStatusColor } from "@/lib/utils";
+import { getOrgCurrency, getStatusColor } from "@/lib/utils";
 import { toast } from "sonner";
 import { useExpenseStore } from "@/store/expenseStore";
 import {
@@ -44,7 +44,6 @@ const isPerDiemExpense = (expense: Expense): boolean => {
 
 // Transform Expense data to form format
 const transformExpenseToFormData = (expense: Expense) => {
-  console.log(expense);
   return {
     policyId: expense.expense_policy_id,
     categoryId: expense.category_id,
@@ -58,11 +57,12 @@ const transformExpenseToFormData = (expense: Expense) => {
     destination: "",
     advance_id: expense.advance_id || null,
     pre_approval_id: expense.pre_approval_id || null,
-    currency: "INR",
+    currency: expense.foreign_currency || expense.currency,
     foreign_currency: expense.foreign_currency || null,
     foreign_amount: expense.foreign_amount || null,
-    api_conversion_rate: expense.api_conversion_rate.toString(),
-    user_conversion_rate: expense.user_conversion_rate.toString()
+    api_conversion_rate: expense.api_conversion_rate ? expense.api_conversion_rate.toString() : "",
+    user_conversion_rate: expense.user_conversion_rate ? expense.user_conversion_rate.toString() : "",
+    base_currency_amount: expense.amount.toString()
   };
 };
 
@@ -83,6 +83,7 @@ export function ExpenseDetailPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   // const [conversionRate, setConversionRate] = useState();
 
+  const baseCurrency = getOrgCurrency();
   const searchParams = new URLSearchParams(location.search);
   const isFromReport = searchParams.get("from") === "report";
   const isFromApprovals = searchParams.get("from") === "approvals";
@@ -145,11 +146,11 @@ export function ExpenseDetailPage() {
       // Transform form data to UpdateExpenseData format
       const expenseData: UpdateExpenseData = {
         foreign_amount:
-          formData.currency !== formData.foreign_currency
+          formData.currency !== baseCurrency
             ? +(formData.base_currency_amount || 0)
-            : parseFloat(formData.amount),
+            : null,
         amount:
-          formData.currency !== formData.foreign_currency
+          formData.currency !== baseCurrency
             ? parseFloat(formData.amount)
             : +(formData.base_currency_amount || 0),
         category_id: formData.categoryId,
@@ -171,13 +172,12 @@ export function ExpenseDetailPage() {
         custom_attributes: {},
         currency: orgSettings.currency,
         foreign_currency:
-          formData.currency !== formData.foreign_currency
+          formData.currency !== baseCurrency
             ? formData.currency
             : null,
-        api_conversion_rate: +(formData.api_conversion_rate || 0),
-        user_conversion_rate: +(formData.user_conversion_rate || 0),
+        api_conversion_rate: formData.currency !== baseCurrency ? +(formData.api_conversion_rate || 0) : undefined,
+        user_conversion_rate: formData.currency !== baseCurrency ? +(formData.user_conversion_rate || 0) : undefined,
       };
-
       const response = await expenseService.updateExpense(id, expenseData);
       if (response.success) {
         toast.success("Expense updated successfully");
