@@ -77,6 +77,7 @@ import { AdvanceService, AdvanceType } from "@/services/advanceService";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Copy, ExternalLink } from "lucide-react";
 import { getYesterday } from "./CreateExpenseForm";
+import { useAuthStore } from "@/store/authStore";
 
 // Form schema
 const expenseSchema = z.object({
@@ -140,6 +141,7 @@ export function ExpenseDetailsStep({
   expense,
 }: ExpenseDetailsStepProps) {
   const navigate = useNavigate();
+  const { orgSettings } = useAuthStore();
   const orgId = getOrgIdFromToken();
   const {
     parsedData,
@@ -163,6 +165,7 @@ export function ExpenseDetailsStep({
   const [advances, setAdvances] = useState<AdvanceType[]>([]);
   // const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState(getOrgCurrency());
+  const [shouldGetConversion, setShouldGetConversion] = useState(!Boolean(expenseData));
   const [showConversion, setShowConversion] = useState(false);
   const conversionRates = selectedPreApproval?.currency_conversion_rates || [];
 
@@ -191,6 +194,9 @@ export function ExpenseDetailsStep({
           currency: getOrgCurrency(),
         },
   });
+
+  const userRate = form.watch("user_conversion_rate");
+  const apiRate = form.watch("api_conversion_rate");
 
   const baseAmount =
     selectedConversion && +form.getValues("amount") * +selectedConversion?.rate;
@@ -290,33 +296,53 @@ export function ExpenseDetailsStep({
         from,
       });
       const conversion = res.data.data.exchange_rate;
-        form.setValue('base_currency_amount', `${(+conversion * +form.getValues('amount')).toFixed(3)}`)
+      form.setValue(
+        "base_currency_amount",
+        `${(+conversion * +form.getValues("amount")).toFixed(3)}`
+      );
+      form.setValue('user_conversion_rate', conversion);
       form.setValue("api_conversion_rate", conversion);
+      // form.setValue("user_conversion_rate", conversion);
       setShowConversion(true);
     } catch (error) {
       console.log(error);
     }
   };
+
   useEffect(() => {
-    if (form.getValues("currency") !== getOrgCurrency()) {
+    if (form.watch('currency') !== getOrgCurrency()) {
+      setShowConversion(true);
+      setShouldGetConversion(true);
+    } else {
+      setShowConversion(false);
+    }
+  }, [form.watch('currency')]);
+  
+  useEffect(() => {
+    if ((form.getValues("currency") !== getOrgCurrency()) && shouldGetConversion) {
       const yesterday = getYesterday();
       getCurrencyConversion({
         date: yesterday,
         from: form.getValues("currency"),
         to: getOrgCurrency(),
       });
-      // setShowConversion(true);
+      setShowConversion(true);
     } else {
-      setShowConversion(false);
       form.setValue("api_conversion_rate", "0");
     }
-  }, [form.getValues("currency")]);
+  }, [form.watch("currency")]);
 
   useEffect(() => {
-    if (form.getValues('api_conversion_rate') && form.getValues('amount')) {
-      form.setValue('base_currency_amount', `${(+(form.getValues('api_conversion_rate') || 0) * +form.getValues('amount')).toFixed(3)}`)
+    if (form.getValues("user_conversion_rate") && form.getValues("amount")) {
+      form.setValue(
+        "base_currency_amount",
+        `${(
+          +(form.getValues("user_conversion_rate") || 0) *
+          +form.getValues("amount")
+        ).toFixed(3)}`
+      );
     }
-  }, [form.watch('api_conversion_rate'), form.watch('amount')]);
+  }, [form.watch("user_conversion_rate"), form.watch("amount")]);
 
   useEffect(() => {
     loadPoliciesWithCategories();
@@ -329,8 +355,10 @@ export function ExpenseDetailsStep({
       form.reset(expenseData);
       // Set selected policy and category based on form data
       if (expenseData.foreign_amount && expenseData.foreign_currency) {
-        form.setValue("amount", expenseData.foreign_amount);
+        setShowConversion(true);
+        form.setValue("amount", expenseData.amount);
         form.setValue("foreign_currency", expenseData.foreign_currency);
+        form.setValue('base_currency_amount', expenseData.foreign_amount)
       }
       if (expenseData.policyId && policies.length > 0) {
         const policy = policies.find((p) => p.id === expenseData.policyId);
@@ -955,74 +983,42 @@ export function ExpenseDetailsStep({
                     />
 
                     <div className="grid gap-3 sm:grid-cols-2">
-                      {selectedPreApproval ? (
-                        <FormField
-                          control={form.control}
-                          name="foreign_currency"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Currency *</FormLabel>
-                              <FormControl>
-                                <Select
-                                  value={field.value || getOrgCurrency()}
-                                  onValueChange={(value) => {
-                                    field.onChange(value);
-                                    setSelectedCurrency(value);
-                                  }}
-                                  disabled={readOnly}
-                                >
-                                  <SelectTrigger className={selectTriggerClass}>
-                                    <SelectValue placeholder="Select a currency" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="INR">INR (₹)</SelectItem>
-                                    <SelectItem value="USD">USD ($)</SelectItem>
-                                    <SelectItem value="EUR">EUR (€)</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      ) : (
-                        <FormField
-                          control={form.control}
-                          name="currency"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Currency *</FormLabel>
-                              <FormControl>
-                                <Select
-                                  value={field.value || "INR"}
-                                  onValueChange={(value) => {
-                                    field.onChange(value);
-                                    setSelectedCurrency(value);
-                                  }}
-                                  disabled={readOnly}
-                                >
-                                  <SelectTrigger className={selectTriggerClass}>
-                                    <SelectValue placeholder="Select a currency" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="INR">INR (₹)</SelectItem>
-                                    <SelectItem value="USD">USD ($)</SelectItem>
-                                    <SelectItem value="EUR">EUR (€)</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
+                      <FormField
+                        control={form.control}
+                        name="currency"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Currency *</FormLabel>
+                            <FormControl>
+                              <Select
+                                value={field.value || "INR"}
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  setSelectedCurrency(value);
+                                }}
+                                disabled={readOnly || !orgSettings.currency_conversion_settings.enabled}
+                              >
+                                <SelectTrigger className={selectTriggerClass}>
+                                  <SelectValue placeholder="Select a currency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="INR">INR (₹)</SelectItem>
+                                  <SelectItem value="USD">USD ($)</SelectItem>
+                                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
                       <FormField
                         control={form.control}
                         name="amount"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Expense amount *</FormLabel>
+                            <FormLabel>Amount *</FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
@@ -1060,8 +1056,14 @@ export function ExpenseDetailsStep({
                                     type="number"
                                     disabled={readOnly}
                                     className={inputFieldClass}
+                                    value={
+                                      userRate ??
+                                      expenseData?.user_conversion_rate ??
+                                      apiRate ??
+                                      ""
+                                    }
+                                    // 👇 Update ONLY user_conversion_rate (NOT api_conversion_rate)
                                     onChange={(e) => {
-                                      field.onChange(e);
                                       form.setValue(
                                         "user_conversion_rate",
                                         e.target.value
@@ -1078,22 +1080,19 @@ export function ExpenseDetailsStep({
                             name="base_currency_amount"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>{`Total Amount (in ${getOrgCurrency()})`}</FormLabel>
+                                <FormLabel>{`Amount (in ${getOrgCurrency()})`}</FormLabel>
                                 <FormControl>
                                   <Input
                                     {...field}
                                     placeholder="Conversion Rate"
                                     type="string"
-                                    // disabled={readOnly}
+                                    value={
+                                      form.watch("base_currency_amount") ??
+                                      expenseData?.base_currency_amount
+                                    }
                                     readOnly={true}
+                                    disabled={readOnly}
                                     className={inputFieldClass}
-                                    onChange={(e) => {
-                                      field.onChange(e);
-                                      form.setValue(
-                                        "user_conversion_rate",
-                                        e.target.value
-                                      );
-                                    }}
                                   />
                                 </FormControl>
                                 <FormMessage />

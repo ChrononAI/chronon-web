@@ -5,6 +5,7 @@ export interface Expense {
   category_id: string;
   expense_policy_id: string;
   created_at: string;
+  currency: string;
   org_id: string;
   created_by: {
     email: string;
