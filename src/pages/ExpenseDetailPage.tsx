@@ -371,7 +371,7 @@ export function ExpenseDetailPage() {
             mode={
               expense.status === "INCOMPLETE" ||
               expense.status === "COMPLETE" ||
-              "SENT_BACK"
+              expense.status === "SENT_BACK"
                 ? "edit"
                 : "view"
             }
