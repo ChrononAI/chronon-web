@@ -369,7 +369,7 @@ function ProcessAdvancePage() {
                   control={form.control}
                   name="rate"
                   render={({ field }) => (
-                    <FormItem className="flex items-center gap-8">
+                    <FormItem className="flex items-center gap-8 space-y-0">
                       <FormLabel>
                         {selectedAdvanceToApprove?.currency}
                       </FormLabel>

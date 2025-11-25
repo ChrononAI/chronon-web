@@ -1,8 +1,8 @@
 import axios from "axios";
 import { useAuthStore } from "@/store/authStore";
 
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://in.pulse.chronon.co.in';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://staging-api.chronon.com.chronon.co.in';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://in.pulse.chronon.co.in';
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://staging-api.chronon.com.chronon.co.in';
 const API_BASE_URL_V2 = import.meta.env.VITE_API_BASE_URL_V2 || 'https://stageapi.auth.chronon.co.in';
 
 export const api2 = axios.create({
