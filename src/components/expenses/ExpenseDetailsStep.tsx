@@ -101,7 +101,7 @@ const expenseSchema = z.object({
   currency: z.string().optional().default("INR"),
   foreign_amount: z.string().optional().nullable(),
   user_conversion_rate: z.string().optional(),
-  api_conversion_rate: z.string().min(1, "Conversion rate is required"),
+  api_conversion_rate: z.string().optional(),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -352,13 +352,17 @@ export function ExpenseDetailsStep({
   // Update form values when expenseData changes
   useEffect(() => {
     if (expenseData && !isReceiptReplaced) {
+      console.log(expenseData);
       form.reset(expenseData);
       // Set selected policy and category based on form data
       if (expenseData.foreign_amount && expenseData.foreign_currency) {
         setShowConversion(true);
-        form.setValue("amount", expenseData.amount);
+        form.setValue("amount", expenseData.foreign_amount);
         form.setValue("foreign_currency", expenseData.foreign_currency);
-        form.setValue('base_currency_amount', expenseData.foreign_amount)
+        form.setValue('base_currency_amount', expenseData.base_currency_amount)
+      }
+      if (getOrgCurrency() === expenseData.currency) {
+        form.setValue('base_currency_amount', undefined);
       }
       if (expenseData.policyId && policies.length > 0) {
         const policy = policies.find((p) => p.id === expenseData.policyId);
