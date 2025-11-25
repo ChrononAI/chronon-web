@@ -146,13 +146,13 @@ export function ExpenseDetailPage() {
       // Transform form data to UpdateExpenseData format
       const expenseData: UpdateExpenseData = {
         foreign_amount:
-          formData.currency !== baseCurrency
-            ? +(formData.base_currency_amount || 0)
+          (formData.currency !== baseCurrency && formData.base_currency_amount)
+            ? +(formData.base_currency_amount)
             : null,
         amount:
           formData.currency !== baseCurrency
             ? parseFloat(formData.amount)
-            : +(formData.base_currency_amount || 0),
+            : +(formData.base_currency_amount) ? +(formData.base_currency_amount) : parseFloat(formData.amount),
         category_id: formData.categoryId,
         description: formData.description,
         expense_date: formData.expense_date,
@@ -175,8 +175,8 @@ export function ExpenseDetailPage() {
           formData.currency !== baseCurrency
             ? formData.currency
             : null,
-        api_conversion_rate: formData.currency !== baseCurrency ? +(formData.api_conversion_rate || 0) : undefined,
-        user_conversion_rate: formData.currency !== baseCurrency ? +(formData.user_conversion_rate || 0) : undefined,
+        api_conversion_rate: (formData.currency !== baseCurrency && formData.api_conversion_rate) ? +(formData.api_conversion_rate) : undefined,
+        user_conversion_rate: (formData.currency !== baseCurrency && formData.api_conversion_rate) ? +(formData.user_conversion_rate) : undefined,
       };
       const response = await expenseService.updateExpense(id, expenseData);
       if (response.success) {
