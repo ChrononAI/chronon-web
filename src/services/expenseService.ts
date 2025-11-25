@@ -144,8 +144,6 @@ export const expenseService = {
       const response = await api.get(
         `/reports/reports?limit=${limit}&offset=${offset}`
       );
-      console.log(response);
-
       const reports = response.data.data || [];
       const pagination = {
         count: response.data.count,
