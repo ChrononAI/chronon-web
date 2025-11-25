@@ -60,9 +60,13 @@ const transformExpenseToFormData = (expense: Expense) => {
     currency: expense.foreign_currency || expense.currency,
     foreign_currency: expense.foreign_currency || null,
     foreign_amount: expense.foreign_amount || null,
-    api_conversion_rate: expense.api_conversion_rate ? expense.api_conversion_rate.toString() : "",
-    user_conversion_rate: expense.user_conversion_rate ? expense.user_conversion_rate.toString() : "",
-    base_currency_amount: expense.amount.toString()
+    api_conversion_rate: expense.api_conversion_rate
+      ? expense.api_conversion_rate.toString()
+      : "",
+    user_conversion_rate: expense.user_conversion_rate
+      ? expense.user_conversion_rate.toString()
+      : "",
+    base_currency_amount: expense.amount.toString(),
   };
 };
 
@@ -146,13 +150,15 @@ export function ExpenseDetailPage() {
       // Transform form data to UpdateExpenseData format
       const expenseData: UpdateExpenseData = {
         foreign_amount:
-          (formData.currency !== baseCurrency && formData.base_currency_amount)
-            ? +(formData.base_currency_amount)
+          formData.currency !== baseCurrency && formData.base_currency_amount
+            ? +formData.base_currency_amount
             : null,
         amount:
           formData.currency !== baseCurrency
             ? parseFloat(formData.amount)
-            : +(formData.base_currency_amount) ? +(formData.base_currency_amount) : parseFloat(formData.amount),
+            : +formData.base_currency_amount
+            ? +formData.base_currency_amount
+            : parseFloat(formData.amount),
         category_id: formData.categoryId,
         description: formData.description,
         expense_date: formData.expense_date,
@@ -172,12 +178,19 @@ export function ExpenseDetailPage() {
         custom_attributes: {},
         currency: orgSettings.currency,
         foreign_currency:
-          formData.currency !== baseCurrency
-            ? formData.currency
-            : null,
-        api_conversion_rate: (formData.currency !== baseCurrency && formData.api_conversion_rate) ? +(formData.api_conversion_rate) : undefined,
-        user_conversion_rate: (formData.currency !== baseCurrency && formData.api_conversion_rate) ? +(formData.user_conversion_rate) : undefined,
+          formData.currency !== baseCurrency ? formData.currency : null,
+        api_conversion_rate:
+          formData.currency !== baseCurrency && formData.api_conversion_rate
+            ? +formData.api_conversion_rate
+            : undefined,
+        user_conversion_rate:
+          formData.currency !== baseCurrency && formData.api_conversion_rate
+            ? +formData.user_conversion_rate
+            : undefined,
       };
+      if (expenseData.foreign_amount === 0) {
+        expenseData.foreign_amount = null;
+      }
       const response = await expenseService.updateExpense(id, expenseData);
       if (response.success) {
         toast.success("Expense updated successfully");
@@ -357,7 +370,9 @@ export function ExpenseDetailPage() {
         {isMileageExpense(expense) ? (
           <MileagePage
             mode={
-              expense.status === "INCOMPLETE" || expense.status === "COMPLETE"
+              expense.status === "INCOMPLETE" ||
+              expense.status === "COMPLETE" ||
+              "SENT_BACK"
                 ? "edit"
                 : "view"
             }
