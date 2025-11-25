@@ -1,5 +1,3 @@
-import AdminLayout from "@/components/layout/AdminLayout";
-import { Layout } from "@/components/layout/Layout";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -243,27 +241,27 @@ export default function EditCategoryLimitPage() {
   };
 
   function removeLimitValuesForPerDiem(rule: any, policies: Policy[]) {
-  // Find the Per Diem policy
-  const perDiemPolicy = policies.find(p => p.name === "Per Diem");
-  if (!perDiemPolicy) return rule; // no such policy
+    // Find the Per Diem policy
+    const perDiemPolicy = policies.find((p) => p.name === "Per Diem");
+    if (!perDiemPolicy) return rule; // no such policy
 
-  const policyId = perDiemPolicy.id;
+    const policyId = perDiemPolicy.id;
 
-  // If rule_limits or this policy id doesn't exist, just return the original rule
-  if (!rule.rule_limits || !rule.rule_limits[policyId]) return rule;
+    // If rule_limits or this policy id doesn't exist, just return the original rule
+    if (!rule.rule_limits || !rule.rule_limits[policyId]) return rule;
 
-  // Deep clone the rule to avoid mutation
-  const updatedRule = structuredClone(rule);
+    // Deep clone the rule to avoid mutation
+    const updatedRule = structuredClone(rule);
 
-  const limits = updatedRule.rule_limits[policyId];
-  for (const catId in limits) {
-    if (limits[catId]?.hasOwnProperty("limit_value")) {
-      delete limits[catId].limit_value;
+    const limits = updatedRule.rule_limits[policyId];
+    for (const catId in limits) {
+      if (limits[catId]?.hasOwnProperty("limit_value")) {
+        delete limits[catId].limit_value;
+      }
     }
-  }
 
-  return updatedRule;
-}
+    return updatedRule;
+  }
 
   const handleSave = async () => {
     try {
@@ -294,150 +292,141 @@ export default function EditCategoryLimitPage() {
 
   if (loading || !rules) {
     return (
-      <Layout>
-        <AdminLayout>
-          <div className="flex items-center justify-center py-20">
-            <div>Loading...</div>
-          </div>
-        </AdminLayout>
-      </Layout>
+      <div className="flex items-center justify-center py-20">
+        <div>Loading...</div>
+      </div>
     );
   }
 
   return (
-    <Layout noPadding>
-      <AdminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center mb-6">
+    <div className="space-y-6">
+      <div className="flex items-center mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(-1)}
+          className="mr-4"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-2xl font-bold flex-1">Edit Policy Rule</h1>
+        <Button onClick={handleSave}>Save</Button>
+      </div>
+
+      {/* === Rule name & description === */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Input
+          placeholder="Enter name"
+          value={rules.name}
+          onChange={(e) => setRules({ ...rules, name: e.target.value })}
+        />
+        <Input
+          placeholder="Enter description"
+          value={rules.description}
+          onChange={(e) => setRules({ ...rules, description: e.target.value })}
+        />
+      </div>
+
+      {/* === Conditions === */}
+      <h2 className="text-xl font-medium mt-6">Conditions</h2>
+      {rules.conditions.rules?.map((r: any, i: number) => (
+        <ConditionRow
+          key={i}
+          i={i}
+          r={r}
+          updateCondition={updateCondition}
+          entities={entities}
+        />
+      ))}
+      <Button type="button" variant="outline" onClick={addCondition}>
+        + Add Condition
+      </Button>
+
+      <div className="flex flex-wrap gap-2 mb-3">
+        {policies.map((p) => {
+          const isSelected = !!rules.rule_limits[p.id];
+          return (
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(-1)}
-              className="mr-4"
+              key={p.id}
+              color={isSelected ? "primary" : "inherit"}
+              className={`${
+                isSelected
+                  ? "bg-primary text-white"
+                  : "bg-white text-primary hover:bg-primary hover:text-white"
+              }`}
+              onClick={() => togglePolicy(p.id)}
             >
-              <ArrowLeft className="h-4 w-4" />
+              {p.name}
             </Button>
-            <h1 className="text-2xl font-bold flex-1">Edit Policy Rule</h1>
-            <Button onClick={handleSave}>Save</Button>
-          </div>
+          );
+        })}
+      </div>
 
-          {/* === Rule name & description === */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Input
-              placeholder="Enter name"
-              value={rules.name}
-              onChange={(e) => setRules({ ...rules, name: e.target.value })}
-            />
-            <Input
-              placeholder="Enter description"
-              value={rules.description}
-              onChange={(e) =>
-                setRules({ ...rules, description: e.target.value })
-              }
-            />
-          </div>
+      {/* === Category limits === */}
+      <h2 className="text-xl font-medium mt-6">Category Limits</h2>
+      {Object.keys(rules.rule_limits || {}).map((policyId) => {
+        const policy = policies.find((p: any) => p.id === policyId);
+        if (!policy) return null;
 
-          {/* === Conditions === */}
-          <h2 className="text-xl font-medium mt-6">Conditions</h2>
-          {rules.conditions.rules?.map((r: any, i: number) => (
-            <ConditionRow
-              key={i}
-              i={i}
-              r={r}
-              updateCondition={updateCondition}
-              entities={entities}
-            />
-          ))}
-          <Button type="button" variant="outline" onClick={addCondition}>
-            + Add Condition
-          </Button>
-
-          <div className="flex flex-wrap gap-2 mb-3">
-            {policies.map((p) => {
-              const isSelected = !!rules.rule_limits[p.id];
+        return (
+          <Card className="p-6 mb-3" key={policy.id}>
+            <span className="mb-2 block font-medium">{policy.name}</span>
+            {policy.categories.map((cat) => {
+              const current = rules.rule_limits[policyId]?.[cat.id] || {};
               return (
-                <Button
-                  key={p.id}
-                  color={isSelected ? "primary" : "inherit"}
-                  className={`${
-                    isSelected
-                      ? "bg-primary text-white"
-                      : "bg-white text-primary hover:bg-primary hover:text-white"
-                  }`}
-                  onClick={() => togglePolicy(p.id)}
+                <div
+                  key={cat.id}
+                  className="grid grid-cols-1 lg:grid-cols-3 gap-6 my-3"
                 >
-                  {p.name}
-                </Button>
+                  <Label className="flex items-center">{cat.name}</Label>
+                  <div>
+                    <Select
+                      value={current.limit_type || ""}
+                      onValueChange={(value) =>
+                        handleLimitChange(policyId, cat.id, "limit_type", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a limit">
+                          {current.limit_type ?? "Select a limit"}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {limitTypes.map((limit) => (
+                          <SelectItem key={limit.value} value={limit.value}>
+                            {limit.value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {current.limit_type !== "AS_PER_ACTUALS" && (
+                    <Input
+                      type="number"
+                      value={
+                        (policy.name === "Per Diem"
+                          ? current.per_diem_rate
+                          : current.limit_value) || ""
+                      }
+                      placeholder="Enter value"
+                      onChange={(e) =>
+                        handleLimitChange(
+                          policyId,
+                          cat.id,
+                          policy.name === "Per Diem"
+                            ? "per_diem_rate"
+                            : "limit_value",
+                          Number(e.target.value)
+                        )
+                      }
+                    />
+                  )}
+                </div>
               );
             })}
-          </div>
-
-          {/* === Category limits === */}
-          <h2 className="text-xl font-medium mt-6">Category Limits</h2>
-          {Object.keys(rules.rule_limits || {}).map((policyId) => {
-            const policy = policies.find((p: any) => p.id === policyId);
-            if (!policy) return null;
-
-            return (
-              <Card className="p-6 mb-3" key={policy.id}>
-                <span className="mb-2 block font-medium">{policy.name}</span>
-                {policy.categories.map((cat) => {
-                  const current = rules.rule_limits[policyId]?.[cat.id] || {};
-                  return (
-                    <div
-                      key={cat.id}
-                      className="grid grid-cols-1 lg:grid-cols-3 gap-6 my-3"
-                    >
-                      <Label className="flex items-center">{cat.name}</Label>
-                      <div>
-                        <Select
-                          value={current.limit_type || ""}
-                          onValueChange={(value) =>
-                            handleLimitChange(
-                              policyId,
-                              cat.id,
-                              "limit_type",
-                              value
-                            )
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a limit">
-                              {current.limit_type ?? "Select a limit"}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {limitTypes.map((limit) => (
-                              <SelectItem key={limit.value} value={limit.value}>
-                                {limit.value}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {current.limit_type !== "AS_PER_ACTUALS" && (
-                        <Input
-                          type="number"
-                          value={(policy.name === "Per Diem" ? current.per_diem_rate : current.limit_value) || ""}
-                          placeholder="Enter value"
-                          onChange={(e) =>
-                            handleLimitChange(
-                              policyId,
-                              cat.id,
-                              policy.name === "Per Diem" ? 'per_diem_rate' : "limit_value",
-                              Number(e.target.value)
-                            )
-                          }
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </Card>
-            );
-          })}
-        </div>
-      </AdminLayout>
-    </Layout>
+          </Card>
+        );
+      })}
+    </div>
   );
 }

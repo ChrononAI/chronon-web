@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Layout } from "@/components/layout/Layout";
-import AdminLayout from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { Download, Plus } from "lucide-react";
@@ -155,193 +153,191 @@ const UserPage = () => {
   const columns = buildColumns();
 
   return (
-    <Layout noPadding>
-      <AdminLayout>
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Users</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              View and manage the users in your organization.
+    <>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Users</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            View and manage the users in your organization.
+          </p>
+        </div>
+        {activeTab === "userAll" && (
+          <div className="flex items-center gap-2">
+            <Button asChild>
+              <Link to="/admin/users/create">
+                <Plus className="mr-2 h-4 w-4" />
+                CREATE
+              </Link>
+            </Button>
+            <Button
+              className="bg-transparent hover:bg-transparent text-gray-600"
+              onClick={handleBulkUserDownload}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download Users Data
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <ReportTabs
+        className="mb-6"
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
+        tabs={TABS}
+      />
+
+      {activeTab === "userAll" && (
+        <>
+          <div className="bg-gray-100 rounded-md p-4 mb-6">
+            <p className="text-sm text-gray-600">
+              Review user access and create new users to grant access to
+              Chronon.
             </p>
           </div>
-          {activeTab === "userAll" && (
-            <div className="flex items-center gap-2">
-              <Button asChild>
-                <Link to="/admin/users/create">
-                  <Plus className="mr-2 h-4 w-4" />
-                  CREATE
-                </Link>
-              </Button>
-              <Button
-                className="bg-transparent hover:bg-transparent text-gray-600"
-                onClick={handleBulkUserDownload}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download Users Data
-              </Button>
-            </div>
-          )}
-        </div>
-
-        <ReportTabs
-          className="mb-6"
-          activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
-          tabs={TABS}
-        />
-
-        {activeTab === "userAll" && (
-          <>
-            <div className="bg-gray-100 rounded-md p-4 mb-6">
-              <p className="text-sm text-gray-600">
-                Review user access and create new users to grant access to
-                Chronon.
-              </p>
-            </div>
-            <Box
+          <Box
+            sx={{
+              height: "calc(100vh - 232px)",
+              width: "100%",
+              marginTop: "-32px",
+            }}
+          >
+            <DataGrid
+              className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+              columns={columns}
+              rows={rows}
+              loading={loading}
               sx={{
-                height: "calc(100vh - 232px)",
-                width: "100%",
-                marginTop: "-32px",
-              }}
-            >
-              <DataGrid
-                className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-                columns={columns}
-                rows={rows}
-                loading={loading}
-                sx={{
-                  border: 0,
-                  "& .MuiDataGrid-columnHeaderTitle": {
-                    color: "#9AA0A6",
-                    fontWeight: "bold",
-                    fontSize: "12px",
-                  },
-                  "& .MuiDataGrid-main": {
-                    border: "0.2px solid #f3f4f6",
-                  },
-                  "& .MuiDataGrid-columnHeader": {
-                    backgroundColor: "#f3f4f6",
-                    border: "none",
-                  },
-                  "& .MuiDataGrid-columnHeaders": {
-                    border: "none",
-                    borderTop: "none",
-                    borderBottom: "none",
-                  },
-                  "& .MuiCheckbox-root": {
-                    color: "#9AA0A6",
-                  },
-                  "& .MuiDataGrid-row:hover": {
-                    cursor: "pointer",
-                    backgroundColor: "#f5f5f5",
-                  },
-                  "& .MuiDataGrid-cell": {
-                    color: "#2E2E2E",
-                    border: "0.2px solid #f3f4f6",
-                  },
-                  "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                    {
-                      outline: "none",
-                    },
-                  "& .MuiDataGrid-cell:focus-within": {
+                border: 0,
+                "& .MuiDataGrid-columnHeaderTitle": {
+                  color: "#9AA0A6",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                },
+                "& .MuiDataGrid-main": {
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-columnHeader": {
+                  backgroundColor: "#f3f4f6",
+                  border: "none",
+                },
+                "& .MuiDataGrid-columnHeaders": {
+                  border: "none",
+                  borderTop: "none",
+                  borderBottom: "none",
+                },
+                "& .MuiCheckbox-root": {
+                  color: "#9AA0A6",
+                },
+                "& .MuiDataGrid-row:hover": {
+                  cursor: "pointer",
+                  backgroundColor: "#f5f5f5",
+                },
+                "& .MuiDataGrid-cell": {
+                  color: "#2E2E2E",
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
+                  {
                     outline: "none",
                   },
-                  "& .MuiDataGrid-columnSeparator": {
-                    color: "#f3f4f6",
-                  },
-                }}
-                density="compact"
-                checkboxSelection
-                showToolbar
-                pagination
-                paginationMode="server"
-                paginationModel={paginationModel || { page: 0, pageSize: 0 }}
-                onPaginationModelChange={setPaginationModel}
-                rowCount={rowCount}
-                disableRowSelectionOnClick
-                showCellVerticalBorder
-              />
-            </Box>
-          </>
-        )}
-
-        {activeTab === "templateUser" && (
-          <div>
-            <div className="bg-gray-100 rounded-md p-4 mb-6">
-              <p className="text-sm text-gray-600">
-                Configure template users. This view mirrors the user listing UI
-                for preview purposes.
-              </p>
-            </div>
-            <Box
-              sx={{
-                height: "calc(100vh - 232px)",
-                width: "100%",
-                marginTop: "-32px",
+                "& .MuiDataGrid-cell:focus-within": {
+                  outline: "none",
+                },
+                "& .MuiDataGrid-columnSeparator": {
+                  color: "#f3f4f6",
+                },
               }}
-            >
-              <DataGrid
-                className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-                columns={columns}
-                rows={templateRows}
-                sx={{
-                  border: 0,
-                  "& .MuiDataGrid-columnHeaderTitle": {
-                    color: "#9AA0A6",
-                    fontWeight: "bold",
-                    fontSize: "12px",
-                  },
-                  "& .MuiDataGrid-main": {
-                    border: "0.2px solid #f3f4f6",
-                  },
-                  "& .MuiDataGrid-columnHeader": {
-                    backgroundColor: "#f3f4f6",
-                    border: "none",
-                  },
-                  "& .MuiDataGrid-columnHeaders": {
-                    border: "none",
-                    borderTop: "none",
-                    borderBottom: "none",
-                  },
-                  "& .MuiCheckbox-root": {
-                    color: "#9AA0A6",
-                  },
-                  "& .MuiDataGrid-row:hover": {
-                    cursor: "pointer",
-                    backgroundColor: "#f5f5f5",
-                  },
-                  "& .MuiDataGrid-cell": {
-                    color: "#2E2E2E",
-                    border: "0.2px solid #f3f4f6",
-                  },
-                  "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                    {
-                      outline: "none",
-                    },
-                  "& .MuiDataGrid-cell:focus-within": {
-                    outline: "none",
-                  },
-                  "& .MuiDataGrid-columnSeparator": {
-                    color: "#f3f4f6",
-                  },
-                }}
-                density="compact"
-                checkboxSelection
-                pagination
-                paginationMode="server"
-                paginationModel={paginationModel || { page: 0, pageSize: 0 }}
-                onPaginationModelChange={setPaginationModel}
-                rowCount={templateRowCount}
-                showToolbar
-                disableRowSelectionOnClick
-                showCellVerticalBorder
-              />
-            </Box>
+              density="compact"
+              checkboxSelection
+              showToolbar
+              pagination
+              paginationMode="server"
+              paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+              onPaginationModelChange={setPaginationModel}
+              rowCount={rowCount}
+              disableRowSelectionOnClick
+              showCellVerticalBorder
+            />
+          </Box>
+        </>
+      )}
+
+      {activeTab === "templateUser" && (
+        <div>
+          <div className="bg-gray-100 rounded-md p-4 mb-6">
+            <p className="text-sm text-gray-600">
+              Configure template users. This view mirrors the user listing UI
+              for preview purposes.
+            </p>
           </div>
-        )}
-      </AdminLayout>
-    </Layout>
+          <Box
+            sx={{
+              height: "calc(100vh - 232px)",
+              width: "100%",
+              marginTop: "-32px",
+            }}
+          >
+            <DataGrid
+              className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+              columns={columns}
+              rows={templateRows}
+              sx={{
+                border: 0,
+                "& .MuiDataGrid-columnHeaderTitle": {
+                  color: "#9AA0A6",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                },
+                "& .MuiDataGrid-main": {
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-columnHeader": {
+                  backgroundColor: "#f3f4f6",
+                  border: "none",
+                },
+                "& .MuiDataGrid-columnHeaders": {
+                  border: "none",
+                  borderTop: "none",
+                  borderBottom: "none",
+                },
+                "& .MuiCheckbox-root": {
+                  color: "#9AA0A6",
+                },
+                "& .MuiDataGrid-row:hover": {
+                  cursor: "pointer",
+                  backgroundColor: "#f5f5f5",
+                },
+                "& .MuiDataGrid-cell": {
+                  color: "#2E2E2E",
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
+                  {
+                    outline: "none",
+                  },
+                "& .MuiDataGrid-cell:focus-within": {
+                  outline: "none",
+                },
+                "& .MuiDataGrid-columnSeparator": {
+                  color: "#f3f4f6",
+                },
+              }}
+              density="compact"
+              checkboxSelection
+              pagination
+              paginationMode="server"
+              paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+              onPaginationModelChange={setPaginationModel}
+              rowCount={templateRowCount}
+              showToolbar
+              disableRowSelectionOnClick
+              showCellVerticalBorder
+            />
+          </Box>
+        </div>
+      )}
+    </>
   );
 };
 

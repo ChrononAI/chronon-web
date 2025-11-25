@@ -93,8 +93,8 @@ const navigation: NavigationItem[] = [
 
 const permissionMap: any = {
   "Pre Approval": "pre_approval_settings",
-  "Advances": "advance_settings",
-  "Admin": "admin_dashboard_settings",
+  Advances: "advance_settings",
+  Admin: "admin_dashboard_settings",
 };
 
 export function Sidebar() {
@@ -110,13 +110,20 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [newNavItems, setNewNavItems] = useState<NavigationItem[]>([]);
   const { user, orgSettings, logout } = useAuthStore();
+  const isAdminActive = location.pathname.startsWith("/admin");
 
   const mergePermissions = (items: any[], permissions: any): any[] => {
     return items.map((item) => {
-      if (item?.name === 'Admin') {
+      if (item?.name === "Admin") {
         const permission = {
-          enabled: (orgSettings?.admin_dashboard_settings?.enabled === true && user?.role === "ADMIN") || false,
-          allowed: (orgSettings?.admin_dashboard_settings?.allowed === true && user?.role === "ADMIN") || false,
+          enabled:
+            (orgSettings?.admin_dashboard_settings?.enabled === true &&
+              user?.role === "ADMIN") ||
+            false,
+          allowed:
+            (orgSettings?.admin_dashboard_settings?.allowed === true &&
+              user?.role === "ADMIN") ||
+            false,
         };
         const children = item.children
           ? mergePermissions(item.children, permissions)
@@ -128,9 +135,9 @@ export function Sidebar() {
         };
       } else if (item?.name === "Reports") {
         const permission = {
-          enabled: user?.role === 'ADMIN',
-          allowed: user?.role === 'ADMIN'
-        }
+          enabled: user?.role === "ADMIN",
+          allowed: user?.role === "ADMIN",
+        };
         const children = item.children
           ? mergePermissions(item.children, permissions)
           : undefined;
@@ -139,10 +146,10 @@ export function Sidebar() {
           permissions: permission,
           children,
         };
-      } else if (item.name === 'Accounts') {
+      } else if (item.name === "Accounts") {
         const permission = {
           enabled: orgSettings?.advance_settings?.enabled || false,
-          allowed: orgSettings?.advance_settings?.allowed || false
+          allowed: orgSettings?.advance_settings?.allowed || false,
         };
         const children = item.children
           ? mergePermissions(item.children, permissions)
@@ -154,7 +161,10 @@ export function Sidebar() {
         };
       } else if (item.name === "Pre Approval" || item.name === "Advances") {
         const key = permissionMap[item.name];
-        const permission = (key && permissions) ? permissions[key] : { enabled: false, allowed: false };
+        const permission =
+          key && permissions
+            ? permissions[key]
+            : { enabled: false, allowed: false };
 
         // Recursively apply to children
         const children = item.children
@@ -168,7 +178,7 @@ export function Sidebar() {
         };
       } else {
         const key = permissionMap[item.name];
-        const permission = (key && permissions) ? permissions[key] : undefined;
+        const permission = key && permissions ? permissions[key] : undefined;
 
         // Recursively apply to children
         const children = item.children
@@ -185,13 +195,8 @@ export function Sidebar() {
   };
 
   useEffect(() => {
-    // if (orgSettings) {
-      const newNav: NavigationItem[] = mergePermissions(
-        navigation,
-        orgSettings
-      );
-      setNewNavItems(newNav);
-    // }
+    const newNav: NavigationItem[] = mergePermissions(navigation, orgSettings);
+    setNewNavItems(newNav);
   }, [orgSettings]);
 
   const handleLogout = () => {
@@ -311,15 +316,17 @@ export function Sidebar() {
         <NavLink
           key={item.name}
           to={item.href}
-          className={({ isActive }) =>
-            cn(
+          className={({ isActive }) => {
+            const active = isActive || (item.name === "Admin" && isAdminActive);
+
+            return cn(
               "flex items-center py-2 text-sm rounded-md transition-colors",
               item.isBold && "font-bold",
-              isActive
+              active
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )
-          }
+            );
+          }}
           style={{ paddingLeft: `${paddingLeft}px` }}
         >
           {item.icon && <item.icon className="mr-3 h-4 w-4" />}
@@ -378,7 +385,7 @@ export function Sidebar() {
           collapsed && "px-1"
         )}
       >
-      {newNavItems.length > 0 &&
+        {newNavItems.length > 0 &&
           newNavItems.map((item) => (
             <div key={item.name}>
               {renderNavigationItem(

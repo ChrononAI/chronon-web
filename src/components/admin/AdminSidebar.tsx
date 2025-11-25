@@ -39,96 +39,96 @@ interface NavigationItem {
 }
 
 const navigation: NavigationItem[] = [
-    {
-        name: 'Organization',
+  {
+    name: "Organization",
+    icon: Building2,
+    children: [
+      {
+        name: "Entities",
+        href: "/admin/entities",
+        icon: FolderTree,
+      },
+      {
+        name: "Org",
+        href: "/admin/org",
         icon: Building2,
-        children: [
-            {
-                name: 'Entities',
-                href: '/admin/entities',
-                icon: FolderTree
-            },
-            {
-                name: 'Org',
-                href: '/admin/org',
-                icon: Building2,
-                disabled: true,
-            },
-            {
-                name: 'Users',
-                href: '/admin/users',
-                icon: Users
-            }
-        ]
-    },
-    {
-        name: 'Masters',
-        icon: Settings,
-        children: [
-            {
-                name: 'Expense Masters',
-                href: '/admin/expense-masters',
-                icon: Receipt
-            },
-            {
-                name: 'Expense Reports Masters',
-                href: '/admin/masters/expense-reports-masters',
-                icon: FileBarChart
-            },
-            {
-                name: 'Advance Masters',
-                href: '/admin/masters/advance-masters',
-                icon: DollarSign
-            },
-            {
-                name: 'Expense Request Masters',
-                href: '/admin/masters/expense-request-masters',
-                icon: FileCheck
-            },
-            {
-                name: 'User Masters',
-                href: '/admin/masters/users-masters',
-                icon: UserCog
-            }
-        ]
-    },
-    {
-        name: 'Product Config',
-        icon: Shield,
-        children: [
-            {
-                name: 'Roles & Access',
-                href: '/admin/product-config/roles-and-access',
-                icon: Lock,
-                disabled: true,
-            },
-            {
-                name: 'Expense Categories',
-                href: '/admin/product-config/expense-categories',
-                icon: FolderKanban
-            },
-            {
-                name: 'Expense Policies',
-                href: '/admin/product-config/expense-policies',
-                icon: FileText
-            },
-            {
-                name: 'Category Limits',
-                href: '/admin/product-config/category-limits',
-                icon: CreditCard
-            },
-            {
-                name: "Workflow",
-                href: '/admin/product-config/workflow',
-                icon: Workflow
-            },
-            {
-                name: 'Auto Reports',
-                href: '/admin/product-config/auto-reports',
-                icon: FileBarChart
-            }
-        ]
-    },
+        disabled: true,
+      },
+      {
+        name: "Users",
+        href: "/admin/users",
+        icon: Users,
+      },
+    ],
+  },
+  {
+    name: "Masters",
+    icon: Settings,
+    children: [
+      {
+        name: "Expense Masters",
+        href: "/admin/expense-masters",
+        icon: Receipt,
+      },
+      {
+        name: "Expense Reports Masters",
+        href: "/admin/masters/expense-reports-masters",
+        icon: FileBarChart,
+      },
+      {
+        name: "Advance Masters",
+        href: "/admin/masters/advance-masters",
+        icon: DollarSign,
+      },
+      {
+        name: "Expense Request Masters",
+        href: "/admin/masters/expense-request-masters",
+        icon: FileCheck,
+      },
+      {
+        name: "User Masters",
+        href: "/admin/masters/users-masters",
+        icon: UserCog,
+      },
+    ],
+  },
+  {
+    name: "Product Config",
+    icon: Shield,
+    children: [
+      {
+        name: "Roles & Access",
+        href: "/admin/product-config/roles-and-access",
+        icon: Lock,
+        disabled: true,
+      },
+      {
+        name: "Expense Categories",
+        href: "/admin/product-config/expense-categories",
+        icon: FolderKanban,
+      },
+      {
+        name: "Expense Policies",
+        href: "/admin/product-config/expense-policies",
+        icon: FileText,
+      },
+      {
+        name: "Category Limits",
+        href: "/admin/product-config/category-limits",
+        icon: CreditCard,
+      },
+      {
+        name: "Workflow",
+        href: "/admin/product-config/workflow",
+        icon: Workflow,
+      },
+      {
+        name: "Auto Reports",
+        href: "/admin/product-config/auto-reports",
+        icon: FileBarChart,
+      },
+    ],
+  },
 ];
 
 export default function AdminSidebar() {

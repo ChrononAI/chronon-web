@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Layout } from "@/components/layout/Layout"
-import AdminLayout from "@/components/layout/AdminLayout"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -823,8 +821,7 @@ export const CreateUserPage = () => {
   )
 
   return (
-    <Layout noPadding>
-      <AdminLayout>
+      <>
         <div className="space-y-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -916,8 +913,7 @@ export const CreateUserPage = () => {
             </form>
           </DialogContent>
         </Dialog>
-      </AdminLayout>
-    </Layout>
+      </>
   )
 }
 

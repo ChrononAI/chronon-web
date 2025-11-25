@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Layout } from '@/components/layout/Layout';
 import { ApprovalWorkflow } from '@/types/expense';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -107,7 +106,7 @@ function AdvanceDetailsPage() {
         };
     }, [id]);
     return (
-        <Layout>
+        <>
             {(report?.status === "COMPLETE" || report?.status === "INCOMPLETE") ? <CreateAdvanceForm mode="view" /> :
                 <div className="space-y-6">
                     <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
@@ -203,7 +202,7 @@ function AdvanceDetailsPage() {
                         )}
                     </div>
                 </div>}
-        </Layout>
+        </>
     )
 }
 

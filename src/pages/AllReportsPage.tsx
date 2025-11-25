@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { FileText, Loader2, CalendarIcon } from 'lucide-react';
-import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -204,7 +203,7 @@ export function AllReportsPage() {
   }, [generatedReports, searchTerm, statusFilter, selectedDate]);
 
   return (
-    <Layout>
+    <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Report</h1>
       </div>
@@ -379,6 +378,6 @@ export function AllReportsPage() {
         </div>
       )}
       </div>
-    </Layout>
+    </>
   );
 }

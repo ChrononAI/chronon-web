@@ -1,13 +1,9 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useEffect } from "react";
 import { authService } from "@/services/authService";
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-}
-
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute() {
   const { user, orgSettings, setOrgSettings } = useAuthStore();
   const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -52,5 +48,5 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/permission-denied" replace />;
   }
 
-  return <>{children}</>;
+  return <Outlet />;
 }

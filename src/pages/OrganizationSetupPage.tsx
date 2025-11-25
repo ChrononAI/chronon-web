@@ -1,10 +1,5 @@
-import { OrganizationWorkflow } from '@/components/organization/OrganizationWorkflow';
-import { Layout } from '@/components/layout/Layout';
+import { OrganizationWorkflow } from "@/components/organization/OrganizationWorkflow";
 
 export function OrganizationSetupPage() {
-  return (
-    <Layout>
-      <OrganizationWorkflow />
-    </Layout>
-  );
+  return <OrganizationWorkflow />;
 }

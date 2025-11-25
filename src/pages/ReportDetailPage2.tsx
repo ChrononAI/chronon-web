@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import { Layout } from "@/components/layout/Layout";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -310,32 +309,28 @@ export function ReportDetailPage2() {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground">Loading report details...</p>
-          </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading report details...</p>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (!report) {
     return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
-            <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto" />
-            <div>
-              <h3 className="text-lg font-semibold">Report Not Found</h3>
-              <p className="text-muted-foreground">
-                The report you're looking for doesn't exist.
-              </p>
-            </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto" />
+          <div>
+            <h3 className="text-lg font-semibold">Report Not Found</h3>
+            <p className="text-muted-foreground">
+              The report you're looking for doesn't exist.
+            </p>
           </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
@@ -362,7 +357,7 @@ export function ReportDetailPage2() {
   };
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6">
         <Breadcrumb items={breadcrumbItems} />
         <div className="flex items-center justify-between">
@@ -662,6 +657,6 @@ export function ReportDetailPage2() {
         onOpenChange={setShowViewExpense}
         data={expenseToView}
       />
-    </Layout>
+    </>
   );
 }

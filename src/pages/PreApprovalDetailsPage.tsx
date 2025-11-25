@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Layout } from "@/components/layout/Layout";
 import CreatePreApprovalForm from "@/components/pre-approval/CreatePreApprovalForm";
 import { preApprovalService } from "@/services/preApprovalService";
 import { ApprovalWorkflow } from "@/types/expense";
@@ -100,7 +99,7 @@ function PreApprovalDetailsPage() {
     }
   }, [id]);
   return (
-    <Layout>
+    <>
       {report?.status === "COMPLETE" || report?.status === "INCOMPLETE" ? (
         <CreatePreApprovalForm mode="view" />
       ) : (
@@ -221,7 +220,7 @@ function PreApprovalDetailsPage() {
           </div>
         </div>
       )}
-    </Layout>
+    </>
   );
 }
 
