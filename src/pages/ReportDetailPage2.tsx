@@ -4,13 +4,10 @@ import { Layout } from "@/components/layout/Layout";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
-  Building,
   CheckCircle,
   AlertCircle,
   XCircle,
-  Target,
   Undo,
   AlertTriangle,
   ArrowLeft,
@@ -414,35 +411,29 @@ export function ReportDetailPage2() {
             <label className="text-sm font-medium">Description</label>
             <Input value={report.description} disabled />
           </div>
-
-          {report.custom_attributes &&
-            Object.keys(report.custom_attributes).length > 0 && (
-              <>
-                <Separator />
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Building className="h-5 w-5" />
-                    Custom Attributes
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(report.custom_attributes).map(
-                      ([key, value]) => (
-                        <div key={key} className="space-y-2">
-                          <label className="text-sm font-medium text-muted-foreground capitalize">
-                            {key.replace(/_/g, " ")}
-                          </label>
-                          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                            <Target className="h-4 w-4 text-muted-foreground" />
-                            <Input value={value} disabled />
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
         </div>
+        {report.custom_attributes &&
+          Object.keys(report.custom_attributes).length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                Custom Fields
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                {Object.entries(report.custom_attributes).map(
+                  ([key, value]) => (
+                    <div key={key} className="space-y-2">
+                      <label className="text-sm font-medium capitalize">
+                        {key.replace(/_/g, " ")}
+                      </label>
+                      {/* <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md"> */}
+                      <Input value={value} disabled />
+                      {/* </div> */}
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          )}
         <div>
           <div>
             <ReportTabs
