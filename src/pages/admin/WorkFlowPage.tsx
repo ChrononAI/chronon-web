@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { Layout } from '@/components/layout/Layout'
-import AdminLayout from '@/components/layout/AdminLayout'
 import { ReportTabs } from '@/components/reports/ReportTabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -580,8 +578,7 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
   }, [workflows, workflowsLoading])
 
   return (
-   <Layout noPadding>
-      <AdminLayout>
+      <>
         <div className="flex flex-col gap-3 max-w-5xl">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">
@@ -616,27 +613,6 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
                       className="h-10"
                       {...register('name')}
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                  {/* <Label htmlFor="workflowEvent" className="text-sm font-medium">
-                      WORKFLOW EVENT
-                    </Label> */}
-                    {/* <Select
-                    value={watch('workflowEvent') || ''}
-                    onValueChange={(value) => setValue('workflowEvent', value as WorkflowEvent)}
-                    >
-                      <SelectTrigger id="workflowEvent" className="w-full h-10">
-                        <SelectValue placeholder="Select workflow event" />
-                      </SelectTrigger>
-                      <SelectContent>
-                      {WORKFLOW_EVENT_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                      </SelectContent>
-                    </Select> */}
                   </div>
                 </div>
 
@@ -943,8 +919,7 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
             </div>
           )}
         </div>
-      </AdminLayout>
-   </Layout>
+      </>
   )
 }
 

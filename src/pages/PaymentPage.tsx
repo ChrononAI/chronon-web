@@ -14,7 +14,6 @@ import {
   XCircle
 } from 'lucide-react';
 
-import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -169,7 +168,7 @@ export function PaymentPage() {
   const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-lg p-6">
@@ -378,6 +377,6 @@ export function PaymentPage() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </>
   );
 }

@@ -1,12 +1,7 @@
-import { Layout } from "@/components/layout/Layout"
-import CreatePreApprovalForm from "@/components/pre-approval/CreatePreApprovalForm"
+import CreatePreApprovalForm from "@/components/pre-approval/CreatePreApprovalForm";
 
 function CreatePreApprovalPage() {
-  return (
-    <Layout>
-        <CreatePreApprovalForm />
-    </Layout>
-  )
+  return <CreatePreApprovalForm />;
 }
 
-export default CreatePreApprovalPage
+export default CreatePreApprovalPage;

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Layout } from "@/components/layout/Layout";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import { expenseService } from "@/services/expenseService";
 import { Button } from "@/components/ui/button";
@@ -220,7 +219,7 @@ export function MyReportsPage() {
   };
 
   return (
-    <Layout>
+    <>
       {/* Header Section */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Expense Reports</h1>
@@ -329,6 +328,6 @@ export function MyReportsPage() {
           showCellVerticalBorder
         />
       </Box>
-    </Layout>
+    </>
   );
 }

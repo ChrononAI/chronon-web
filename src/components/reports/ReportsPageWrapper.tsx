@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { Layout } from '@/components/layout/Layout';
 import { ReportTabs } from '@/components/reports/ReportTabs';
 import { FilterControls } from '@/components/reports/FilterControls';
 import { Button } from '@/components/ui/button';
@@ -72,7 +71,7 @@ export function ReportsPageWrapper({
   children
 }: ReportsPageWrapperProps) {
   return (
-    <Layout>
+    <>
       {/* Header Section */}
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -111,6 +110,6 @@ export function ReportsPageWrapper({
 
       {/* Content */}
       {children}
-    </Layout>
+    </>
   );
 }

@@ -1,14 +1,6 @@
-import AdminLayout from "@/components/layout/AdminLayout"
-import { Layout } from "@/components/layout/Layout"
 
 function AdminPage() {
-    return (
-        <Layout noPadding>
-            <AdminLayout>
-                <div>abc</div>
-            </AdminLayout>
-        </Layout>
-    )
+  return <div>abc</div>;
 }
 
-export default AdminPage
+export default AdminPage;

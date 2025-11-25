@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import AdminLayout from "@/components/layout/AdminLayout";
-import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CardContent } from "@mui/material";
@@ -89,89 +87,81 @@ function CreateExpensePolicyPage() {
     getAllCategories();
   }, []);
   return (
-    <Layout noPadding>
-      <AdminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center mb-6">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(-1)}
-              className="mr-4"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="text-2xl font-bold">Create Expense Policy</h1>
-          </div>
-          <Card className="max-w-4xl">
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4 p-3 w-full">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <Label>Name</Label>
-                    <Input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => handleChange("name", e.target.value)}
-                      placeholder="Enter name"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label>Description</Label>
-                    <Input
-                      type="text"
-                      value={formData.description}
-                      onChange={(e) =>
-                        handleChange("description", e.target.value)
-                      }
-                      placeholder="Enter description"
-                    />
-                  </div>
+    <div className="space-y-6">
+      <div className="flex items-center mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(-1)}
+          className="mr-4"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-2xl font-bold">Create Expense Policy</h1>
+      </div>
+      <Card className="max-w-4xl">
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4 p-3 w-full">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label>Name</Label>
+                <Input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                  placeholder="Enter name"
+                />
+              </div>
+              <div className="space-y-3">
+                <Label>Description</Label>
+                <Input
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
+                  placeholder="Enter description"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2">
+              <div className="flex flex-col gap-3 my-2">
+                <Label>Pre Approval Required</Label>
+                <div>
+                  <Switch
+                    checked={formData.is_pre_approval_required}
+                    onCheckedChange={(checked) => {
+                      handleChange("is_pre_approval_required", checked);
+                    }}
+                  />
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2">
-                  <div className="flex flex-col gap-3 my-2">
-                    <Label>Pre Approval Required</Label>
-                    <div>
-                      <Switch
-                        checked={formData.is_pre_approval_required}
-                        onCheckedChange={(checked) => {
-                          handleChange("is_pre_approval_required", checked);
-                        }}
-                      />
-                    </div>
-                  </div>
+              </div>
+            </div>
+            {
+              <div className="space-y-3">
+                <div>
+                  <Label>Select Categories</Label>
                 </div>
-                {
-                  <div className="space-y-3">
-                    <div>
-                      <Label>Select Categories</Label>
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-                      {categories.map((cat) => {
-                        return (
-                          <div key={cat.id} className="flex items-center gap-3">
-                            <Checkbox
-                              checked={selectedCategories.includes(cat.id)}
-                              onCheckedChange={() =>
-                                handleCheckboxChange(cat.id)
-                              }
-                            />
-                            <span className="text-[14px]">{cat.name}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                }
-                <div className="flex justify-end">
-                  <Button type="submit">Submit</Button>
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+                  {categories.map((cat) => {
+                    return (
+                      <div key={cat.id} className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedCategories.includes(cat.id)}
+                          onCheckedChange={() => handleCheckboxChange(cat.id)}
+                        />
+                        <span className="text-[14px]">{cat.name}</span>
+                      </div>
+                    );
+                  })}
                 </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </AdminLayout>
-    </Layout>
+              </div>
+            }
+            <div className="flex justify-end">
+              <Button type="submit">Submit</Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

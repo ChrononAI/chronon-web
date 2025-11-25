@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { User, Mail, Phone, Building, Shield, ShieldUser } from "lucide-react";
-import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -31,201 +30,201 @@ export function ProfilePage() {
 
   if (!user) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center h-64">
           <p className="text-muted-foreground">Loading profile...</p>
         </div>
-      </Layout>
+      </>
     );
   }
 
   return (
-    <Layout>
-      <div className="space-y-6 h-full">
-        <div>
-          <h1 className="text-2xl font-bold">Profile</h1>
-        </div>
+    <div className="space-y-6 h-full">
+      <div>
+        <h1 className="text-2xl font-bold">Profile</h1>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[90%]">
-          {/* Profile Overview Card */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <div className="flex justify-center mb-4">
-                <Avatar className="h-24 w-24 text-2xl">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-semibold">
-                    {getInitials(user.firstName, user.lastName)}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <h3 className="text-lg font-semibold">Personal Information</h3>
-              <div className="grid grid-cols-1 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Name
-                  </label>
-                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      {userProfile?.first_name} {userProfile?.last_name}
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Username
-                  </label>
-                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{userProfile?.username}</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Email Address
-                  </label>
-                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{userProfile?.email}</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Role
-                  </label>
-                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                    <Shield className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{userProfile?.current_org?.role}</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Phone Number
-                  </label>
-                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      {userProfile?.phone_number || "Not provided"}
-                    </span>
-                  </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[90%]">
+        {/* Profile Overview Card */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <div className="flex justify-center mb-4">
+              <Avatar className="h-24 w-24 text-2xl">
+                <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-semibold">
+                  {getInitials(user.firstName, user.lastName)}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <h3 className="text-lg font-semibold">Personal Information</h3>
+            <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Name
+                </label>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    {userProfile?.first_name} {userProfile?.last_name}
+                  </span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Username
+                </label>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{userProfile?.username}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Email Address
+                </label>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{userProfile?.email}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Role
+                </label>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+                  <Shield className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    {userProfile?.current_org?.role}
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Phone Number
+                </label>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    {userProfile?.phone_number || "Not provided"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Profile Details Card */}
-          <Card className="lg:col-span-2 overflow-auto">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Personal Information
-                </CardTitle>
+        {/* Profile Details Card */}
+        <Card className="lg:col-span-2 overflow-auto">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Personal Information
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Name
+                </label>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    {userProfile?.first_name} {userProfile?.last_name}
+                  </span>
+                </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Username
+                </label>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{userProfile?.username}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Email Address
+                </label>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{userProfile?.email}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Phone Number
+                </label>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    {userProfile?.phone_number || "Not provided"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Organization Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">
-                    Name
+                    Organization
                   </label>
                   <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                    <User className="h-4 w-4 text-muted-foreground" />
+                    <Building className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">
-                      {userProfile?.first_name} {userProfile?.last_name}
+                      {userProfile?.current_org.org_name}
                     </span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">
-                    Username
+                    Reporting Manager
                   </label>
                   <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{userProfile?.username}</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Email Address
-                  </label>
-                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{userProfile?.email}</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Phone Number
-                  </label>
-                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <ShieldUser className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">
-                      {userProfile?.phone_number || "Not provided"}
+                      {userProfile?.reporting_manager_name || "Not Assigned"}
                     </span>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <Separator />
+            <Separator />
 
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Organization Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Organization
-                    </label>
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        {userProfile?.current_org.org_name}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Reporting Manager
-                    </label>
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                      <ShieldUser className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        {userProfile?.reporting_manager_name || "Not Assigned"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {userProfile?.entity_assignments &&
+              Object.keys(userProfile.entity_assignments).length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Entities</h3>
 
-              <Separator />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {Object.entries(userProfile.entity_assignments).map(
+                      ([key, value]) => (
+                        <div key={key} className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">
+                            {key}
+                          </label>
 
-              {userProfile?.entity_assignments &&
-                Object.keys(userProfile.entity_assignments).length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Entities</h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {Object.entries(userProfile.entity_assignments).map(
-                        ([key, value]) => (
-                          <div key={key} className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">
-                              {key}
-                            </label>
-
-                            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
-                              <span className="text-sm">{value}</span>
-                            </div>
+                          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md">
+                            <span className="text-sm">{value}</span>
                           </div>
-                        )
-                      )}
-                    </div>
+                        </div>
+                      )
+                    )}
                   </div>
-                )}
-            </CardContent>
-          </Card>
-        </div>
+                </div>
+              )}
+          </CardContent>
+        </Card>
       </div>
-    </Layout>
+    </div>
   );
 }

@@ -1,6 +1,5 @@
 import { CreateAdvanceForm } from "@/components/advances/CreateAdvanceForm";
 import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
-import { Layout } from "@/components/layout/Layout";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -219,269 +218,263 @@ function ProcessAdvancePage() {
   };
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-700">
-                {report?.title}
-              </h1>
-              <div className="flex items-center gap-3 mt-2">
-                {getStatusIcon(getUserSpecificStatus())}
-                <Badge
-                  className={`${getStatusColor(
-                    getUserSpecificStatus()
-                  )} text-sm px-3 py-1`}
-                >
-                  {getUserSpecificStatus().replace("_", " ")}
-                </Badge>
-              </div>
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-700">
+              {report?.title}
+            </h1>
+            <div className="flex items-center gap-3 mt-2">
+              {getStatusIcon(getUserSpecificStatus())}
+              <Badge
+                className={`${getStatusColor(
+                  getUserSpecificStatus()
+                )} text-sm px-3 py-1`}
+              >
+                {getUserSpecificStatus().replace("_", " ")}
+              </Badge>
             </div>
-            {canApprove() && (
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => handleAction("approve")}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Approve
-                </Button>
-                <Button
-                  onClick={() => handleAction("reject")}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Reject
-                </Button>
-              </div>
-            )}
           </div>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Advance Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <FileText className="h-4 w-4" />
-                      Submitted By
-                    </div>
-                    <p className="text-lg font-semibold">
-                      {report?.created_by.email}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <Activity className="h-4 w-4" />
-                      Status
-                    </div>
-                    <Badge className={getStatusColor(getUserSpecificStatus())}>
-                      {getUserSpecificStatus().replace("_", " ")}
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      Created Date
-                    </div>
-                    <p className="text-lg font-semibold">
-                      {report?.created_at && formatDate(report.created_at)}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      Submitted Date
-                    </div>
-                    <p className="text-lg font-semibold">
-                      {report?.created_at
-                        ? formatDate(report.created_at)
-                        : "Not submitted"}
-                    </p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <FileText className="h-4 w-4" />
-                    Description
-                  </div>
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-sm leading-relaxed">
-                      {report?.description}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          {approvalWorkflow && approvalWorkflow.approval_steps && (
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5" />
-                    Approval Workflow Timeline
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
-                </CardContent>
-              </Card>
+          {canApprove() && (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleAction("approve")}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Approve
+              </Button>
+              <Button
+                onClick={() => handleAction("reject")}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Reject
+              </Button>
             </div>
           )}
         </div>
-        <CreateAdvanceForm mode="view" showHeader={false} />
-        <AlertDialog
-          open={showCurrencyAlert}
-          onOpenChange={setShowCurrencyAlert}
-        >
-          <AlertDialogContent className="max-w-md">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-bold text-gray-900">
-                Currency Conversion
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-gray-600 mt-3 leading-relaxed">
-                Please enter conversion rates for below currencies into{" "}
-                {baseCurrency}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(handleCurrencyConversionSubmit)}
-                className="space-y-3"
-              >
-                <FormField
-                  control={form.control}
-                  name="rate"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-8">
-                      <FormLabel>
-                        {selectedAdvanceToApprove?.currency}
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          placeholder="Enter conversion rate"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex items-center justify-end gap-8 pt-2">
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Advance Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    Submitted By
+                  </div>
+                  <p className="text-lg font-semibold">
+                    {report?.created_by.email}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Activity className="h-4 w-4" />
+                    Status
+                  </div>
+                  <Badge className={getStatusColor(getUserSpecificStatus())}>
+                    {getUserSpecificStatus().replace("_", " ")}
+                  </Badge>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    Created Date
+                  </div>
+                  <p className="text-lg font-semibold">
+                    {report?.created_at && formatDate(report.created_at)}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    Submitted Date
+                  </div>
+                  <p className="text-lg font-semibold">
+                    {report?.created_at
+                      ? formatDate(report.created_at)
+                      : "Not submitted"}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                  Description
+                </div>
+                <div className="bg-muted/30 rounded-lg p-4">
+                  <p className="text-sm leading-relaxed">
+                    {report?.description}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        {approvalWorkflow && approvalWorkflow.approval_steps && (
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Approval Workflow Timeline
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+      <CreateAdvanceForm mode="view" showHeader={false} />
+      <AlertDialog open={showCurrencyAlert} onOpenChange={setShowCurrencyAlert}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold text-gray-900">
+              Currency Conversion
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 mt-3 leading-relaxed">
+              Please enter conversion rates for below currencies into{" "}
+              {baseCurrency}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleCurrencyConversionSubmit)}
+              className="space-y-3"
+            >
+              <FormField
+                control={form.control}
+                name="rate"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-8">
+                    <FormLabel>{selectedAdvanceToApprove?.currency}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="number"
+                        placeholder="Enter conversion rate"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex items-center justify-end gap-8 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCurrencyAlert(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-primary hover:bg-primary/90"
+                  type="submit"
+                >
+                  Approve
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </AlertDialogContent>
+      </AlertDialog>
+      <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-red-600" />
+              Reject Advance
+            </DialogTitle>
+          </DialogHeader>
+
+          {report && (
+            <div className="space-y-4">
+              <div className="bg-muted/30 rounded-lg p-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Report:
+                    </span>
+                    <span className="text-sm font-medium">{report.title}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Amount:
+                    </span>
+                    <span className="text-sm font-medium">
+                      {formatCurrency(
+                        +selectedAdvanceToApprove?.amount,
+                        selectedAdvanceToApprove?.currency
+                      )}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="comments">
+                      Comments <span className="text-red-500">*</span>
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      {comments.length}/500 characters
+                    </span>
+                  </div>
+                  <Textarea
+                    id="comments"
+                    placeholder="Please provide reason for rejection..."
+                    value={comments}
+                    onChange={(e) => setComments(e.target.value)}
+                    rows={3}
+                    maxLength={500}
+                    className="resize-none"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 w-full text-center">
+                <div className="flex flex-row gap-3 justify-center w-full">
                   <Button
-                    type="button"
                     variant="outline"
-                    onClick={() => setShowCurrencyAlert(false)}
+                    onClick={() => setShowActionDialog(false)}
+                    className="w-full sm:w-auto px-6 py-2.5 border-gray-300 hover:bg-gray-50 transition-colors"
                   >
                     Cancel
                   </Button>
                   <Button
-                    className="bg-primary hover:bg-primary/90"
-                    type="submit"
+                    onClick={() =>
+                      processAdvance("reject", {
+                        action: "reject",
+                        approval_notes: comments,
+                      })
+                    }
+                    disabled={!comments.trim()}
+                    className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-20 bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    Approve
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Reject Advance
                   </Button>
                 </div>
-              </form>
-            </Form>
-          </AlertDialogContent>
-        </AlertDialog>
-        <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-red-600" />
-                Reject Advance
-              </DialogTitle>
-            </DialogHeader>
-
-            {report && (
-              <div className="space-y-4">
-                <div className="bg-muted/30 rounded-lg p-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Report:
-                      </span>
-                      <span className="text-sm font-medium">
-                        {report.title}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Amount:
-                      </span>
-                      <span className="text-sm font-medium">
-                        {formatCurrency(+selectedAdvanceToApprove?.amount, selectedAdvanceToApprove?.currency)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="comments">
-                        Comments <span className="text-red-500">*</span>
-                      </Label>
-                      <span className="text-xs text-muted-foreground">
-                        {comments.length}/500 characters
-                      </span>
-                    </div>
-                    <Textarea
-                      id="comments"
-                      placeholder="Please provide reason for rejection..."
-                      value={comments}
-                      onChange={(e) => setComments(e.target.value)}
-                      rows={3}
-                      maxLength={500}
-                      className="resize-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 w-full text-center">
-                  <div className="flex flex-row gap-3 justify-center w-full">
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowActionDialog(false)}
-                      className="w-full sm:w-auto px-6 py-2.5 border-gray-300 hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() =>
-                        processAdvance("reject", {
-                          action: "reject",
-                          approval_notes: comments,
-                        })
-                      }
-                      disabled={!comments.trim()}
-                      className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-20 bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Reject Advance
-                    </Button>
-                  </div>
-                </div>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
-    </Layout>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 

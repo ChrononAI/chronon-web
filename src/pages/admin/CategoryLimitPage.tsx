@@ -1,5 +1,3 @@
-import AdminLayout from "@/components/layout/AdminLayout";
-import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { policyRulesService } from "@/services/admin/policyRulesService";
 import { useCategoryLimitStore } from "@/store/admin/categoryLimitStore";
@@ -36,10 +34,11 @@ function CategoryLimitPage() {
   const navigate = useNavigate();
   const { setSelectedLimit } = useCategoryLimitStore();
 
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>({
-    page: 0,
-    pageSize: 10,
-  });
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel | null>({
+      page: 0,
+      pageSize: 10,
+    });
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -75,83 +74,78 @@ function CategoryLimitPage() {
   }, []);
 
   return (
-    <Layout noPadding>
-      <AdminLayout>
-        <div>
-          {/* HEADER */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Categories</h1>
-            <Button
-              onClick={() =>
-                navigate("/admin/product-config/category-limits/create")
-              }
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Category Limits
-            </Button>
-          </div>
-          <Box
-            sx={{
-              height: "calc(100vh - 100px)",
-              width: "100%",
-            }}
-          >
-            <DataGrid
-              className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-              columns={columns}
-              rows={policyRules}
-              sx={{
-                border: 0,
-                "& .MuiDataGrid-columnHeaderTitle": {
-                  color: "#9AA0A6",
-                  fontWeight: "bold",
-                  fontSize: "12px",
-                },
-                "& .MuiDataGrid-main": {
-                  border: "0.2px solid #f3f4f6",
-                },
-                "& .MuiDataGrid-columnHeader": {
-                  backgroundColor: "#f3f4f6",
-                  border: "none",
-                },
-                "& .MuiDataGrid-columnHeaders": {
-                  border: "none",
-                  borderTop: "none",
-                  borderBottom: "none",
-                },
-                "& .MuiDataGrid-row:hover": {
-                  cursor: "pointer",
-                  backgroundColor: "#f5f5f5",
-                },
-                "& .MuiDataGrid-cell": {
-                  color: "#2E2E2E",
-                  border: "0.2px solid #f3f4f6",
-                },
-                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                  {
-                    outline: "none",
-                  },
-                "& .MuiDataGrid-cell:focus-within": {
-                  outline: "none",
-                },
-                "& .MuiDataGrid-columnSeparator": {
-                  color: "#f3f4f6",
-                },
-              }}
-              showToolbar
-              density="compact"
-              checkboxSelection
-              disableRowSelectionOnClick
-              showCellVerticalBorder
-              onRowClick={handleRowClick}
-              pagination
-              paginationModel={paginationModel || { page: 0, pageSize: 0 }}
-              onPaginationModelChange={setPaginationModel}
-            />
-          </Box>
-        </div>
-      </AdminLayout>
-    </Layout>
+    <div>
+      {/* HEADER */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Categories</h1>
+        <Button
+          onClick={() =>
+            navigate("/admin/product-config/category-limits/create")
+          }
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Category Limits
+        </Button>
+      </div>
+      <Box
+        sx={{
+          height: "calc(100vh - 100px)",
+          width: "100%",
+        }}
+      >
+        <DataGrid
+          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+          columns={columns}
+          rows={policyRules}
+          sx={{
+            border: 0,
+            "& .MuiDataGrid-columnHeaderTitle": {
+              color: "#9AA0A6",
+              fontWeight: "bold",
+              fontSize: "12px",
+            },
+            "& .MuiDataGrid-main": {
+              border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-columnHeader": {
+              backgroundColor: "#f3f4f6",
+              border: "none",
+            },
+            "& .MuiDataGrid-columnHeaders": {
+              border: "none",
+              borderTop: "none",
+              borderBottom: "none",
+            },
+            "& .MuiDataGrid-row:hover": {
+              cursor: "pointer",
+              backgroundColor: "#f5f5f5",
+            },
+            "& .MuiDataGrid-cell": {
+              color: "#2E2E2E",
+              border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
+              outline: "none",
+            },
+            "& .MuiDataGrid-cell:focus-within": {
+              outline: "none",
+            },
+            "& .MuiDataGrid-columnSeparator": {
+              color: "#f3f4f6",
+            },
+          }}
+          showToolbar
+          density="compact"
+          checkboxSelection
+          disableRowSelectionOnClick
+          showCellVerticalBorder
+          onRowClick={handleRowClick}
+          pagination
+          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          onPaginationModelChange={setPaginationModel}
+        />
+      </Box>
+    </div>
   );
 }
 

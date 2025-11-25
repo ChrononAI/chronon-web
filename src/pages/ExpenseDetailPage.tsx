@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { Layout } from "@/components/layout/Layout";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { ExpenseDetailsStep } from "@/components/expenses/ExpenseDetailsStep";
@@ -217,20 +216,20 @@ export function ExpenseDetailPage() {
 
   if (loading) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             <p className="text-muted-foreground">Loading expense details...</p>
           </div>
         </div>
-      </Layout>
+      </>
     );
   }
 
   if (!expense) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center space-y-4">
             <AlertCircle className="h-16 w-16 text-muted-foreground mx-auto" />
@@ -242,7 +241,7 @@ export function ExpenseDetailPage() {
             </div>
           </div>
         </div>
-      </Layout>
+      </>
     );
   }
 
@@ -279,7 +278,7 @@ export function ExpenseDetailPage() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6">
         <Breadcrumb items={breadcrumbItems} />
         <div className="flex items-center justify-between">
@@ -411,6 +410,6 @@ export function ExpenseDetailPage() {
           />
         )}
       </div>
-    </Layout>
+    </>
   );
 }
