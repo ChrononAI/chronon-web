@@ -3,7 +3,6 @@ import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { PreApprovalType } from "@/services/preApprovalService";
 import { useNavigate } from "react-router-dom";
 import { PaginationInfo } from "@/store/expenseStore";
 import { useAdvanceStore } from "@/store/advanceStore";
@@ -121,7 +120,7 @@ function ApprovalsAdvancesPage() {
     },
   ];
 
-  const onRowClick = ({ row }: { row: PreApprovalType }) => {
+  const onRowClick = ({ row }: { row: any }) => {
     setSelectedAdvanceToApprove(row);
     navigate(`/approvals/advances/${row.id}`);
   };

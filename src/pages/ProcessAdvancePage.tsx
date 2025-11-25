@@ -12,6 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -20,8 +26,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { formatDate, getStatusColor } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  formatCurrency,
+  formatDate,
+  getOrgCurrency,
+  getStatusColor,
+} from "@/lib/utils";
 import { AdvanceService } from "@/services/advanceService";
 import { useAdvanceStore } from "@/store/advanceStore";
 import { useAuthStore } from "@/store/authStore";
@@ -42,8 +55,9 @@ import { toast } from "sonner";
 import * as z from "zod";
 
 const currencyConversionSchema = z.object({
-  usd: z.string({ required_error: "This field is required" }),
-  eur: z.string({ required_error: "This field is required" }),
+  rate: z.coerce
+    .number({ required_error: "Rate is required" })
+    .positive("Rate must be greater than 0"),
 });
 type CurrencyConversionFormValues = z.infer<typeof currencyConversionSchema>;
 
@@ -51,14 +65,16 @@ function ProcessAdvancePage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
+  const baseCurrency = getOrgCurrency();
   const { selectedAdvanceToApprove } = useAdvanceStore();
   const [showCurrencyAlert, setShowCurrencyAlert] = useState(false);
+  const [comments, setComments] = useState("");
+  const [showActionDialog, setShowActionDialog] = useState(false);
 
   const form = useForm<CurrencyConversionFormValues>({
     resolver: zodResolver(currencyConversionSchema),
     defaultValues: {
-      usd: undefined,
-      eur: undefined,
+      rate: undefined,
     },
   });
 
@@ -152,12 +168,13 @@ function ProcessAdvancePage() {
     if (id) getAdvance(id);
   }, [id]);
 
-  const processAdvance = async (action: string) => {
+  const processAdvance = async (action: string, payload?: any) => {
     if (!selectedAdvanceToApprove?.id) return;
     try {
       await AdvanceService.processAdvance({
         id: selectedAdvanceToApprove.id,
         action,
+        payload,
       });
       setTimeout(() => {
         navigate("/approvals/advances");
@@ -177,25 +194,27 @@ function ProcessAdvancePage() {
     formData: CurrencyConversionFormValues
   ) => {
     const payload = {
-      currency_conversion_rates: Object.entries(formData).map(
-        ([key, value]) => ({
-          currency: key.toUpperCase(),
-          rate: Number(value),
-        })
-      ),
+      currency_conversion_rates: [
+        {
+          currency: selectedAdvanceToApprove?.currency,
+          rate: Number(formData.rate),
+        },
+      ],
     };
-    console.log(payload);
-    processAdvance("approve");
+    processAdvance("approve", payload);
   };
 
   const handleAction = async (action: string) => {
-    if (
+    if (action === "reject") {
+      setShowActionDialog(true);
+    } else if (
       approvalWorkflow?.current_step === approvalWorkflow?.total_steps &&
       action === "approve"
     ) {
       setShowCurrencyAlert(true);
     } else {
       processAdvance(action);
+      // Show confirmation modal
     }
   };
 
@@ -336,7 +355,8 @@ function ProcessAdvancePage() {
                 Currency Conversion
               </AlertDialogTitle>
               <AlertDialogDescription className="text-gray-600 mt-3 leading-relaxed">
-                Please enter conversion rates for below currencies into INR
+                Please enter conversion rates for below currencies into{" "}
+                {baseCurrency}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <Form {...form}>
@@ -346,32 +366,17 @@ function ProcessAdvancePage() {
               >
                 <FormField
                   control={form.control}
-                  name="usd"
+                  name="rate"
                   render={({ field }) => (
                     <FormItem className="flex items-center gap-8">
-                      <FormLabel>USD</FormLabel>
+                      <FormLabel>
+                        {selectedAdvanceToApprove?.currency}
+                      </FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type="number"
-                          placeholder="Enter USD Conversion"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="eur"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-8">
-                      <FormLabel>EUR</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          placeholder="Enter EUR Conversion"
+                          placeholder="Enter conversion rate"
                         />
                       </FormControl>
                       <FormMessage />
@@ -397,6 +402,84 @@ function ProcessAdvancePage() {
             </Form>
           </AlertDialogContent>
         </AlertDialog>
+        <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <XCircle className="h-5 w-5 text-red-600" />
+                Reject Advance
+              </DialogTitle>
+            </DialogHeader>
+
+            {report && (
+              <div className="space-y-4">
+                <div className="bg-muted/30 rounded-lg p-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Report:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {report.title}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Amount:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {formatCurrency(+selectedAdvanceToApprove?.amount, selectedAdvanceToApprove?.currency)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="comments">
+                        Comments <span className="text-red-500">*</span>
+                      </Label>
+                      <span className="text-xs text-muted-foreground">
+                        {comments.length}/500 characters
+                      </span>
+                    </div>
+                    <Textarea
+                      id="comments"
+                      placeholder="Please provide reason for rejection..."
+                      value={comments}
+                      onChange={(e) => setComments(e.target.value)}
+                      rows={3}
+                      maxLength={500}
+                      className="resize-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 w-full text-center">
+                  <div className="flex flex-row gap-3 justify-center w-full">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowActionDialog(false)}
+                      className="w-full sm:w-auto px-6 py-2.5 border-gray-300 hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        processAdvance("reject", {
+                          action: "reject",
+                          approval_notes: comments,
+                        })
+                      }
+                      disabled={!comments.trim()}
+                      className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-20 bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Reject Advance
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
