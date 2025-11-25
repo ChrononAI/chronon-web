@@ -208,7 +208,8 @@ function ProcessAdvancePage() {
       setShowActionDialog(true);
     } else if (
       approvalWorkflow?.current_step === approvalWorkflow?.total_steps &&
-      action === "approve"
+      action === "approve" &&
+      baseCurrency !== selectedAdvanceToApprove?.currency
     ) {
       setShowCurrencyAlert(true);
     } else {
