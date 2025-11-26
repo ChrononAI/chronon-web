@@ -472,9 +472,6 @@ const MileagePage = ({
       toast.error("Organization ID not found");
       return;
     }
-
-    console.log(values);
-
     if (isCalculating) {
       toast.info(
         "Please wait for distance and amount calculation to complete..."
