@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
-import { ExpenseDetailsStep } from "@/components/expenses/ExpenseDetailsStep";
 import MileagePage from "@/pages/MileagePage";
 import PerdiemPage from "@/pages/PerdiemPage";
 import { AlertCircle, Trash2, Loader2 } from "lucide-react";
@@ -23,7 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/store/authStore";
+import { ExpenseDetailsStep2 } from "@/components/expenses/ExpenseDetailsStep2";
 
 const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE", "SENT_BACK"];
 
@@ -41,37 +40,8 @@ const isPerDiemExpense = (expense: Expense): boolean => {
   );
 };
 
-// Transform Expense data to form format
-const transformExpenseToFormData = (expense: Expense) => {
-  return {
-    policyId: expense.expense_policy_id,
-    categoryId: expense.category_id,
-    invoiceNumber: expense.invoice_number || "",
-    merchant: expense.vendor,
-    amount: expense.amount.toString(),
-    dateOfExpense: new Date(expense.expense_date),
-    comments: expense.description || "",
-    city: "",
-    source: "",
-    destination: "",
-    advance_id: expense.advance_id || null,
-    pre_approval_id: expense.pre_approval_id || null,
-    currency: expense.foreign_currency || expense.currency,
-    foreign_currency: expense.foreign_currency || null,
-    foreign_amount: expense.foreign_amount || null,
-    api_conversion_rate: expense.api_conversion_rate
-      ? expense.api_conversion_rate.toString()
-      : "",
-    user_conversion_rate: expense.user_conversion_rate
-      ? expense.user_conversion_rate.toString()
-      : "",
-    base_currency_amount: expense.amount.toString(),
-  };
-};
-
 export function ExpenseDetailPage() {
   const { parsedData, setParsedData } = useExpenseStore();
-  const { orgSettings } = useAuthStore();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -146,57 +116,41 @@ export function ExpenseDetailPage() {
     if (!expense || !id) return;
     setSaving(true);
     try {
-      // Transform form data to UpdateExpenseData format
-      const expenseData: UpdateExpenseData = {
-        foreign_amount:
-          formData.currency !== baseCurrency && formData.base_currency_amount
-            ? +formData.base_currency_amount
-            : null,
-        amount:
-          formData.currency !== baseCurrency
-            ? parseFloat(formData.amount)
-            : +formData.base_currency_amount
-            ? +formData.base_currency_amount
-            : parseFloat(formData.amount),
-        category_id: formData.categoryId,
-        description: formData.description,
-        expense_date: formData.expense_date,
-        expense_policy_id: formData.policyId,
-        vendor: formData.merchant,
-        receipt_id: isReceiptReplaced
-          ? parsedData?.id ?? null
-          : expense?.receipt_id ?? null,
-        invoice_number: formData.invoiceNumber || null,
-        distance: formData.distance || null,
-        distance_unit: formData.distance_unit || null,
-        end_location: formData.end_location || null,
-        start_location: formData.start_location || null,
-        mileage_rate_id: formData.mileage_rate_id,
-        mileage_meta: formData.mileage_meta || null,
-        is_round_trip: formData.is_round_trip === "true" ? true : false,
-        custom_attributes: {},
-        currency: orgSettings.currency,
-        foreign_currency:
-          formData.currency !== baseCurrency ? formData.currency : null,
-        api_conversion_rate:
-          formData.currency !== baseCurrency && formData.api_conversion_rate
-            ? +formData.api_conversion_rate
-            : undefined,
-        user_conversion_rate:
-          formData.currency !== baseCurrency && formData.api_conversion_rate
-            ? +formData.user_conversion_rate
-            : undefined,
-      };
-      if (expenseData.foreign_amount === 0) {
-        expenseData.foreign_amount = null;
+      if (formData.invoice_number) {
+        formData.expense_date = formData.expense_date
+          .toISOString()
+          .split("T")[0];
+        formData.currency = baseCurrency || "INR";
+        if (!formData.foreign_amount) {
+          formData.foreign_currency = null;
+        }
+        await expenseService.updateExpense(id, formData);
+      } else if (formData.start_location) {
+        const expenseData: UpdateExpenseData = {
+          amount: parseFloat(formData.amount),
+          category_id: formData.categoryId,
+          description: formData.description,
+          expense_date: formData.expense_date,
+          expense_policy_id: formData.policyId,
+          vendor: formData.merchant,
+          receipt_id: isReceiptReplaced
+            ? parsedData?.id ?? null
+            : expense?.receipt_id ?? null,
+          invoice_number: formData.invoiceNumber || null,
+          distance: formData.distance || null,
+          distance_unit: formData.distance_unit || null,
+          end_location: formData.end_location || null,
+          start_location: formData.start_location || null,
+          mileage_rate_id: formData.mileage_rate_id,
+          mileage_meta: formData.mileage_meta || null,
+          is_round_trip: formData.is_round_trip === "true" ? true : false,
+          custom_attributes: {},
+          currency: baseCurrency,
+        };
+        await expenseService.updateExpense(id, expenseData);
       }
-      const response = await expenseService.updateExpense(id, expenseData);
-      if (response.success) {
-        toast.success("Expense updated successfully");
-        navigate("/expenses");
-      } else {
-        toast.error(response.message || "Failed to update expense");
-      }
+      toast.success("Expense updated successfully");
+      navigate("/expenses");
     } catch (error) {
       console.error("Failed to update expense:", error);
       toast.error("Failed to update expense");
@@ -395,7 +349,7 @@ export function ExpenseDetailPage() {
             expenseData={expense}
           />
         ) : (
-          <ExpenseDetailsStep
+          <ExpenseDetailsStep2
             onBack={() => {
               if (returnTo === "create") {
                 window.location.href = "/expenses/create";
@@ -403,6 +357,7 @@ export function ExpenseDetailPage() {
                 window.history.back();
               }
             }}
+            onSubmit={handleExpenseSubmit}
             mode={
               expense.status === "COMPLETE" ||
               expense.status === "INCOMPLETE" ||
@@ -410,17 +365,11 @@ export function ExpenseDetailPage() {
                 ? "edit"
                 : "view"
             }
-            onSubmit={handleExpenseSubmit}
-            loading={saving}
+            loading={loading}
             isReceiptReplaced={isReceiptReplaced}
             setIsReceiptReplaced={setIsReceiptReplaced}
             uploadedFile={null}
             previewUrl={receiptSignedUrl}
-            fetchReceipt={fetchReceipt}
-            readOnly={!isEditing}
-            expenseData={transformExpenseToFormData(expense)}
-            receiptUrls={receiptSignedUrl ? [receiptSignedUrl] : []}
-            isEditMode={isEditing}
             expense={expense}
           />
         )}

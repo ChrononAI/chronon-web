@@ -51,7 +51,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { cn, formatCurrency, getOrgCurrency } from "@/lib/utils";
+import { cn, getOrgCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
@@ -69,39 +69,30 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
-import {
-  preApprovalService,
-  PreApprovalType,
-} from "@/services/preApprovalService";
-import { AdvanceService, AdvanceType } from "@/services/advanceService";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Copy, ExternalLink } from "lucide-react";
 import { getYesterday } from "./CreateExpenseForm";
 import { useAuthStore } from "@/store/authStore";
+import { toast } from "sonner";
 
 // Form schema
 const expenseSchema = z.object({
-  policyId: z.string().min(1, "Please select a policy"),
-  categoryId: z.string().min(1, "Please select a category"),
-  invoiceNumber: z.string().min(1, "Invoice number is required"),
-  merchant: z.string().min(1, "Merchant is required"),
+  expense_policy_id: z.string().min(1, "Please select a policy"),
+  category_id: z.string().min(1, "Please select a category"),
+  invoice_number: z.string().min(1, "Invoice number is required"),
+  vendor: z.string().min(1, "Vendor is required"),
   amount: z.string().min(1, "Amount is required"),
-  base_currency_amount: z.string().optional(),
-  dateOfExpense: z.date({
-    required_error: "Date is required",
-  }),
-  comments: z.string().min(1, "Description is required"),
-  // Conveyance specific fields
-  city: z.string().optional(),
-  source: z.string().optional(),
-  destination: z.string().optional(),
-  pre_approval_id: z.string().nullable().optional(),
-  advance_id: z.string().nullable().optional(),
-  foreign_currency: z.string().optional().default("INR").nullable(),
+  receipt_id: z.string().min(1, "Receipt is required"),
+  expense_date: z.preprocess(
+    (v) => (v ? new Date(v as string) : v),
+    z.date({ required_error: "Date is required" })
+  ),
+  description: z.string().min(1, "Description is required"),
+  foreign_currency: z.string().optional().nullable(),
   currency: z.string().optional().default("INR"),
   foreign_amount: z.string().optional().nullable(),
-  user_conversion_rate: z.string().optional(),
-  api_conversion_rate: z.string().optional(),
+  user_conversion_rate: z.string().optional().nullable(),
+  api_conversion_rate: z.string().optional().nullable(),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -115,76 +106,55 @@ interface ExpenseDetailsStepProps {
   setIsReceiptReplaced?: any;
   uploadedFile: File | null;
   previewUrl: string | null;
-  fetchReceipt?: any;
-  readOnly?: boolean;
-  expenseData?: ExpenseFormValues;
-  receiptUrls?: string[];
-  isEditMode?: boolean;
   foreign_currency?: string | null;
   currency?: string | null;
-  expense?: any; // Full expense object with original_expense_id
+  expense?: any;
 }
 
-export function ExpenseDetailsStep({
+export function ExpenseDetailsStep2({
   onBack,
   onSubmit,
+  mode,
   loading,
   isReceiptReplaced,
   setIsReceiptReplaced,
   uploadedFile,
   previewUrl,
-  fetchReceipt,
-  readOnly = false,
-  expenseData,
-  receiptUrls = [],
-  isEditMode = false,
   expense,
 }: ExpenseDetailsStepProps) {
   const navigate = useNavigate();
-  console.log(receiptUrls);
   const { orgSettings } = useAuthStore();
+  const baseCurrency = getOrgCurrency();
   const orgId = getOrgIdFromToken();
-  const {
-    parsedData,
-    setParsedData,
-    selectedPreApproval,
-    setSelectedPreApproval,
-  } = useExpenseStore();
+  const { parsedData, setParsedData } = useExpenseStore();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(
     null
   );
+  const readOnly = mode === "view";
   const [duplicateReceiptLoading, setDuplicateReceiptLoading] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
-  const showPreApproval = selectedPolicy?.is_pre_approval_required;
-  const [preApprovals, setPreApprovals] = useState<PreApprovalType[]>([]);
   const [selectedCategory, setSelectedCategory] =
     useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [replaceRecLoading, setReplaceRecLoading] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  const [advances, setAdvances] = useState<AdvanceType[]>([]);
-  // const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType | null>(null);
-  const [selectedCurrency, setSelectedCurrency] = useState(getOrgCurrency());
-  const [shouldGetConversion, setShouldGetConversion] = useState(!Boolean(expenseData));
-  const [showConversion, setShowConversion] = useState(false);
-  const conversionRates = selectedPreApproval?.currency_conversion_rates || [];
-
-  const selectedConversion = conversionRates?.find(
-    (con) => con.currency === selectedCurrency
+  const [shouldGetConversion, setShouldGetConversion] = useState(
+    !Boolean(expense)
   );
-
+  const [receiptSignedUrl, setReceiptSignedUrl] = useState<string[]>([]);
+  const [showConversion, setShowConversion] = useState(false);
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
-    defaultValues: expenseData
-      ? expenseData
+    defaultValues: expense
+      ? expense
       : {
-          policyId: "",
-          categoryId: "",
+          expense_policy_id: "",
+          category_id: "",
           invoiceNumber: "",
           merchant: "",
           amount: "",
-          dateOfExpense: new Date(),
+          expense_date: new Date(),
           comments: "",
           city: "",
           source: "",
@@ -199,8 +169,18 @@ export function ExpenseDetailsStep({
   const userRate = form.watch("user_conversion_rate");
   const apiRate = form.watch("api_conversion_rate");
 
-  const baseAmount =
-    selectedConversion && +form.getValues("amount") * +selectedConversion?.rate;
+  const fetchReceipt = async (receiptId: string, orgId: string) => {
+    try {
+      const response: any = await expenseService.fetchReceiptPreview(
+        receiptId,
+        orgId
+      );
+      setReceiptSignedUrl([response.data.data.signed_url]);
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to fetch receipt image");
+    }
+  };
 
   // Fetch signed URL for duplicate receipts
   const fetchDuplicateReceiptUrl = async (receiptId: string) => {
@@ -221,25 +201,6 @@ export function ExpenseDetailsStep({
     }
   };
 
-  const getApprovedPreApprovals = async () => {
-    try {
-      const response: any = await preApprovalService.getPreApprovalsByStatus({
-        status: "APPROVED",
-        page: 1,
-        perPage: 25,
-      });
-      setPreApprovals(response?.data.data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedPolicy && selectedPolicy.is_pre_approval_required) {
-      getApprovedPreApprovals();
-    }
-  }, [selectedPolicy]);
-
   // Receipt viewer states
   const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
   const [activeReceiptTab, setActiveReceiptTab] = useState<
@@ -253,7 +214,7 @@ export function ExpenseDetailsStep({
     if (
       parsedData?.id &&
       !readOnly &&
-      !receiptUrls.length &&
+      !receiptSignedUrl.length &&
       !duplicateReceiptUrl &&
       !duplicateReceiptLoading
     ) {
@@ -262,24 +223,11 @@ export function ExpenseDetailsStep({
   }, [
     parsedData?.id,
     readOnly,
-    receiptUrls.length,
+    receiptSignedUrl.length,
     duplicateReceiptUrl,
     duplicateReceiptLoading,
     fetchDuplicateReceiptUrl,
   ]);
-
-  const getApprovedAdvances = async () => {
-    try {
-      const res: any = await AdvanceService.getAdvancesByStatus({
-        status: "APPROVED",
-        page: 1,
-        perPage: 25,
-      });
-      setAdvances(res.data.data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
 
   const getCurrencyConversion = async ({
     date,
@@ -298,12 +246,11 @@ export function ExpenseDetailsStep({
       });
       const conversion = res.data.data.exchange_rate;
       form.setValue(
-        "base_currency_amount",
+        "amount",
         `${(+conversion * +form.getValues("amount")).toFixed(3)}`
       );
-      form.setValue('user_conversion_rate', conversion);
+      form.setValue("user_conversion_rate", conversion);
       form.setValue("api_conversion_rate", conversion);
-      // form.setValue("user_conversion_rate", conversion);
       setShowConversion(true);
     } catch (error) {
       console.log(error);
@@ -311,16 +258,19 @@ export function ExpenseDetailsStep({
   };
 
   useEffect(() => {
-    if (form.watch('currency') !== getOrgCurrency()) {
+    if (form.watch("currency") !== baseCurrency) {
       setShowConversion(true);
       setShouldGetConversion(true);
     } else {
       setShowConversion(false);
     }
-  }, [form.watch('currency')]);
-  
+  }, [form.watch("currency")]);
+
   useEffect(() => {
-    if ((form.getValues("currency") !== getOrgCurrency()) && shouldGetConversion) {
+    if (
+      form.getValues("currency") !== baseCurrency &&
+      shouldGetConversion
+    ) {
       const yesterday = getYesterday();
       getCurrencyConversion({
         date: yesterday,
@@ -330,79 +280,57 @@ export function ExpenseDetailsStep({
       setShowConversion(true);
     } else {
       form.setValue("api_conversion_rate", "0");
+      setShowConversion(false);
     }
   }, [form.watch("currency")]);
 
   useEffect(() => {
     if (form.getValues("user_conversion_rate") && form.getValues("amount")) {
       form.setValue(
-        "base_currency_amount",
+        "amount",
         `${(
           +(form.getValues("user_conversion_rate") || 0) *
-          +form.getValues("amount")
+          +(form.getValues("foreign_amount") || 0)
         ).toFixed(3)}`
       );
     }
-  }, [form.watch("user_conversion_rate"), form.watch("amount")]);
+  }, [form.watch("user_conversion_rate"), form.watch("foreign_amount")]);
 
   useEffect(() => {
     loadPoliciesWithCategories();
-    getApprovedAdvances();
   }, []);
 
-  // Update form values when expenseData changes
+  // Update form values when expense changes
   useEffect(() => {
-    if (expenseData && !isReceiptReplaced) {
-      console.log(expenseData);
-      form.reset(expenseData);
+    if (expense && !isReceiptReplaced) {
+      form.reset(expense);
       // Set selected policy and category based on form data
-      if (expenseData.foreign_amount && expenseData.foreign_currency) {
+      if (expense.foreign_amount && expense.foreign_currency) {
         setShowConversion(true);
-        form.setValue("amount", expenseData.foreign_amount);
-        form.setValue("foreign_currency", expenseData.foreign_currency);
-        form.setValue('base_currency_amount', expenseData.base_currency_amount)
+        form.setValue('currency', expense.foreign_currency);
       }
-      if (getOrgCurrency() === expenseData.currency) {
-        form.setValue('base_currency_amount', undefined);
+      if (!expense.currency) {
+        form.setValue('currency', baseCurrency || "INR");
       }
-      if (expenseData.policyId && policies.length > 0) {
-        const policy = policies.find((p) => p.id === expenseData.policyId);
+      if (expense.expense_policy_id && policies.length > 0) {
+        const policy = policies.find((p) => p.id === expense.expense_policy_id);
         if (policy) {
           setSelectedPolicy(policy);
-          form.setValue("policyId", expenseData.policyId);
+          form.setValue("expense_policy_id", expense.expense_policy_id);
 
-          if (expenseData.categoryId) {
+          if (expense.category_id) {
             const category = policy.categories.find(
-              (c) => c.id === expenseData.categoryId
+              (c) => c.id === expense.category_id
             );
             if (category) {
               setSelectedCategory(category);
-              form.setValue("categoryId", expenseData.categoryId);
+              form.setValue("category_id", expense.category_id);
             }
           }
         }
       }
-      if (expenseData.foreign_currency) {
-        setSelectedCurrency(expenseData.foreign_currency);
-      }
-      // if (expenseData.advance_id && advances.length > 0) {
-      //   const adv = advances.find((a) => a.id === expenseData.advance_id);
-      //   if (adv) {
-      //     setSelectedAdvance(adv)
-      //     form.setValue('advance_id', expenseData.advance_id);
-      //   };
-      // }
-      if (expenseData.pre_approval_id && preApprovals.length > 0) {
-        const preApp = preApprovals.find(
-          (a) => a.id === expenseData.pre_approval_id
-        );
-        if (preApp) {
-          setSelectedPreApproval(preApp);
-          form.setValue("pre_approval_id", expenseData.pre_approval_id);
-        }
-      }
     }
-  }, [form, policies, preApprovals, advances]);
+  }, [form, policies]);
 
   // Auto-fill fields from parsed data
   useEffect(() => {
@@ -417,19 +345,21 @@ export function ExpenseDetailsStep({
         form.setValue("amount", cleanAmount);
       }
 
+      form.setValue('receipt_id', parsedData.id);
+
       if (ocrData.vendor) {
-        form.setValue("merchant", ocrData.vendor);
+        form.setValue("vendor", ocrData.vendor);
       }
 
       if (ocrData.invoice_number) {
-        form.setValue("invoiceNumber", ocrData.invoice_number);
+        form.setValue("invoice_number", ocrData.invoice_number);
       }
 
       if (ocrData.date) {
         // Parse the date string and convert to Date object
         const parsedDate = new Date(parsedData.extracted_date || "");
         if (!isNaN(parsedDate.getTime())) {
-          form.setValue("dateOfExpense", parsedDate);
+          form.setValue("expense_date", parsedDate);
         }
       }
     }
@@ -482,7 +412,9 @@ export function ExpenseDetailsStep({
     const sourceUrl =
       previewUrl ||
       duplicateReceiptUrl ||
-      (readOnly && receiptUrls.length > 0 ? receiptUrls[0] : null);
+      (readOnly && receiptSignedUrl && receiptSignedUrl.length > 0
+        ? receiptSignedUrl[0]
+        : null);
 
     if (sourceUrl) {
       window.open(sourceUrl, "_blank", "noopener,noreferrer");
@@ -502,7 +434,7 @@ export function ExpenseDetailsStep({
         setShowDuplicateDialog(true);
       } else {
         setParsedData(parsedData);
-        fetchReceipt(parsedData.id, orgId);
+        fetchReceipt(parsedData.id, orgId || "");
         setIsReceiptReplaced(true);
       }
     } catch (error) {
@@ -540,8 +472,8 @@ export function ExpenseDetailsStep({
       if (selectedPolicy && selectedCategory) {
         setSelectedCategory(selectedCategory);
         setSelectedPolicy(selectedPolicy);
-        form.setValue("policyId", selectedPolicy.id);
-        form.setValue("categoryId", selectedCategory.id);
+        form.setValue("expense_policy_id", selectedPolicy.id);
+        form.setValue("category_id", selectedCategory.id);
       }
     }
   }, [parsedData, policies]);
@@ -568,12 +500,14 @@ export function ExpenseDetailsStep({
   const activeReceiptUrl =
     previewUrl ||
     duplicateReceiptUrl ||
-    (readOnly && receiptUrls.length > 0 ? receiptUrls[0] : null);
+    (readOnly && receiptSignedUrl && receiptSignedUrl.length > 0
+      ? receiptSignedUrl[0]
+      : null);
 
   const receiptDisplayName =
     uploadedFile?.name ||
-    (readOnly && receiptUrls.length > 0
-      ? `Receipt ${receiptUrls.length > 1 ? "1" : ""}`
+    (readOnly && receiptSignedUrl.length > 0
+      ? `Receipt ${receiptSignedUrl && receiptSignedUrl.length > 1 ? "1" : ""}`
       : activeReceiptUrl
       ? "Receipt preview"
       : "No receipt uploaded");
@@ -819,7 +753,7 @@ export function ExpenseDetailsStep({
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="policyId"
+                      name="expense_policy_id"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Policy *</FormLabel>
@@ -832,7 +766,7 @@ export function ExpenseDetailsStep({
                               );
                               setSelectedPolicy(policy || null);
                               setSelectedCategory(null);
-                              form.setValue("categoryId", "");
+                              form.setValue("category_id", "");
                             }}
                             disabled={readOnly}
                           >
@@ -869,7 +803,7 @@ export function ExpenseDetailsStep({
 
                     <FormField
                       control={form.control}
-                      name="categoryId"
+                      name="category_id"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Category *</FormLabel>
@@ -942,7 +876,7 @@ export function ExpenseDetailsStep({
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="dateOfExpense"
+                      name="expense_date"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Date *</FormLabel>
@@ -958,7 +892,7 @@ export function ExpenseDetailsStep({
                                   disabled={readOnly}
                                 >
                                   {field.value ? (
-                                    format(field.value, "PPP")
+                                    format(new Date(field.value), "PPP")
                                   ) : (
                                     <span>Pick a date</span>
                                   )}
@@ -972,8 +906,8 @@ export function ExpenseDetailsStep({
                             >
                               <CalendarComponent
                                 mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
+                                selected={new Date(field.value)}
+                                onSelect={(date) => field.onChange(date)}
                                 disabled={(date) =>
                                   date > new Date() ||
                                   date < new Date("1900-01-01")
@@ -996,12 +930,18 @@ export function ExpenseDetailsStep({
                             <FormLabel>Currency *</FormLabel>
                             <FormControl>
                               <Select
-                                value={field.value || "INR"}
+                                value={expense?.forerign_currency ? expense?.foreign_currency : field.value ? field.value : "INR"}
                                 onValueChange={(value) => {
                                   field.onChange(value);
-                                  setSelectedCurrency(value);
+                                  if (value !== baseCurrency) {
+                                    form.setValue('foreign_currency', value)
+                                  }
                                 }}
-                                disabled={readOnly || !orgSettings.currency_conversion_settings.enabled}
+                                disabled={
+                                  readOnly ||
+                                  !orgSettings.currency_conversion_settings
+                                    .enabled
+                                }
                               >
                                 <SelectTrigger className={selectTriggerClass}>
                                   <SelectValue placeholder="Select a currency" />
@@ -1017,40 +957,61 @@ export function ExpenseDetailsStep({
                           </FormItem>
                         )}
                       />
-
-                      <FormField
-                        control={form.control}
-                        name="amount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Amount *</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                placeholder={
-                                  isConveyanceCategory
-                                    ? "Auto calculated for conveyance"
-                                    : "Enter amount"
-                                }
-                                type="number"
-                                disabled={readOnly}
-                                className={inputFieldClass}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                            {baseAmount && (
-                              <p className="text-xs text-muted-foreground">
-                                {formatCurrency(baseAmount)}
-                              </p>
-                            )}
-                          </FormItem>
-                        )}
-                      />
+                      {!showConversion ? (
+                        <FormField
+                          control={form.control}
+                          name="amount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Amount</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="Base Amount"
+                                  type="string"
+                                  value={
+                                    form.watch("amount") ?? expense?.amount
+                                  }
+                                  readOnly={showConversion}
+                                  disabled={readOnly}
+                                  className={inputFieldClass}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ) : (
+                        <FormField
+                          control={form.control}
+                          name="foreign_amount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Amount *</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  value={field.value ?? ""} 
+                                  placeholder={
+                                    isConveyanceCategory
+                                      ? "Auto calculated for conveyance"
+                                      : "Enter amount"
+                                  }
+                                  type="number"
+                                  disabled={readOnly}
+                                  className={inputFieldClass}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                       {showConversion && (
                         <>
                           <FormField
                             control={form.control}
-                            name="api_conversion_rate"
+                            name="user_conversion_rate"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Conversion Rate</FormLabel>
@@ -1063,7 +1024,7 @@ export function ExpenseDetailsStep({
                                     className={inputFieldClass}
                                     value={
                                       userRate ??
-                                      expenseData?.user_conversion_rate ??
+                                      expense?.user_conversion_rate ??
                                       apiRate ??
                                       ""
                                     }
@@ -1082,21 +1043,21 @@ export function ExpenseDetailsStep({
                           />
                           <FormField
                             control={form.control}
-                            name="base_currency_amount"
+                            name="amount"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>{`Amount (in ${getOrgCurrency()})`}</FormLabel>
+                                <FormLabel>{`Amount (in ${baseCurrency}) *`}</FormLabel>
                                 <FormControl>
                                   <Input
                                     {...field}
-                                    placeholder="Conversion Rate"
-                                    type="string"
-                                    value={
-                                      form.watch("base_currency_amount") ??
-                                      expenseData?.base_currency_amount
+                                    placeholder={
+                                      isConveyanceCategory
+                                        ? "Auto calculated for conveyance"
+                                        : "Enter amount"
                                     }
-                                    readOnly={true}
+                                    type="number"
                                     disabled={readOnly}
+                                    readOnly={showConversion}
                                     className={inputFieldClass}
                                   />
                                 </FormControl>
@@ -1111,7 +1072,7 @@ export function ExpenseDetailsStep({
                     {!isConveyanceCategory && (
                       <FormField
                         control={form.control}
-                        name="invoiceNumber"
+                        name="invoice_number"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Receipt number *</FormLabel>
@@ -1142,7 +1103,7 @@ export function ExpenseDetailsStep({
                     <div className="space-y-4">
                       <FormField
                         control={form.control}
-                        name="merchant"
+                        name="vendor"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Vendor *</FormLabel>
@@ -1170,63 +1131,9 @@ export function ExpenseDetailsStep({
                   </div>
 
                   <div className="space-y-4">
-                    {showPreApproval && (
-                      <FormField
-                        control={form.control}
-                        name="pre_approval_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Pre approval</FormLabel>
-                            <Select
-                              value={field.value || ""}
-                              onValueChange={(value) => {
-                                const preApp = preApprovals.find(
-                                  (p) => p.id === value
-                                );
-                                if (preApp) setSelectedPreApproval(preApp);
-                                form.setValue("pre_approval_id", value);
-                              }}
-                              disabled={readOnly}
-                            >
-                              <FormControl>
-                                <SelectTrigger className={selectTriggerClass}>
-                                  <SelectValue placeholder="Select pre approval">
-                                    {field.value && selectedPreApproval
-                                      ? selectedPreApproval.title
-                                      : "Select pre approval"}
-                                  </SelectValue>
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {preApprovals.length > 0 ? (
-                                  preApprovals.map((preApproval) => (
-                                    <SelectItem
-                                      key={preApproval.id}
-                                      value={preApproval.id}
-                                    >
-                                      <div>
-                                        <div className="font-medium">
-                                          {preApproval.title}
-                                        </div>
-                                      </div>
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <SelectItem value="no pre approvals" disabled>
-                                    No pre approvals
-                                  </SelectItem>
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
                     <FormField
                       control={form.control}
-                      name="comments"
+                      name="description"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Description *</FormLabel>
@@ -1252,14 +1159,14 @@ export function ExpenseDetailsStep({
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                {!readOnly && (
+                {mode !== "view" && (
                   <Button type="submit" disabled={loading}>
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {isEditMode ? "Updating..." : "Creating..."}
+                        {mode === "edit" ? "Updating..." : "Creating..."}
                       </>
-                    ) : isEditMode ? (
+                    ) : mode === "edit" ? (
                       "Update expense"
                     ) : (
                       "Create expense"
@@ -1288,9 +1195,9 @@ export function ExpenseDetailsStep({
                       {loading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {isEditMode ? "Updating..." : "Creating..."}
+                          {mode === "edit" ? "Updating..." : "Creating..."}
                         </>
-                      ) : isEditMode ? (
+                      ) : mode === "edit" ? (
                         "Update expense"
                       ) : (
                         "Create expense"
@@ -1538,7 +1445,7 @@ export function ExpenseDetailsStep({
                 // setCurrentStep(2);
                 setParsedData(semiParsedData);
                 console.log(semiParsedData);
-                fetchReceipt(semiParsedData?.id, orgId);
+                fetchReceipt(semiParsedData?.id || "", orgId || "");
                 setIsReceiptReplaced(true);
               }}
               className="w-full h-12 bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 font-medium"

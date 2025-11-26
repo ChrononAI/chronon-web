@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { expenseService, CreateExpenseData } from "@/services/expenseService";
+import { expenseService } from "@/services/expenseService";
 import { ParsedInvoiceData } from "@/services/fileParseService";
 import {
   AlertDialog,
@@ -13,29 +12,26 @@ import {
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
 import { UploadReceiptStep } from "./UploadReceiptStep";
-import { ExpenseDetailsStep } from "./ExpenseDetailsStep";
 import { useExpenseStore } from "@/store/expenseStore";
 import { getOrgCurrency } from "@/lib/utils";
+import { ExpenseDetailsStep2 } from "./ExpenseDetailsStep2";
 
 // Form schema for step 2
 type ExpenseFormValues = {
-  policyId: string;
-  categoryId: string;
-  invoiceNumber: string;
-  merchant: string;
+  expense_policy_id: string;
+  category_id: string;
+  invoice_number: string;
+  vendor: string;
   amount: string;
-  dateOfExpense: Date;
-  comments?: string;
+  expense_date: Date;
+  descriotion?: string;
   city?: string;
   source?: string;
   destination?: string;
-  pre_approval_id?: string | null;
-  advance_id?: string | null;
   foreign_currency?: string | null;
   currency?: string;
-  base_currency_amount?: string;
-  api_conversion_rate?: string;
-  user_conversion_rate?: string;
+  api_conversion_rate?: string | null;
+  user_conversion_rate?: string | null;
 };
 
 export function getYesterday() {
@@ -59,23 +55,6 @@ export function CreateExpenseForm() {
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [uploadStepKey, setUploadStepKey] = useState(0);
   const [isReceiptReplaced, setIsReceiptReplaced] = useState(false);
-  // const
-
-  // const stepTitles = ['Upload Receipt', 'Expense Details'];
-
-  const fetchReceipt = async (receiptId: string, orgId: string) => {
-    console.log(receiptId, orgId);
-    try {
-      const response: any = await expenseService.fetchReceiptPreview(
-        receiptId,
-        orgId
-      );
-      setPreviewUrl(response.data.data.signed_url);
-    } catch (error) {
-      console.log(error);
-      toast.error("Failed to fetch receipt image");
-    }
-  };
 
   useEffect(() => {
     const shouldShowDialog = localStorage.getItem("showDuplicateDialog");
@@ -89,8 +68,6 @@ export function CreateExpenseForm() {
 
         setParsedData(parsedDataFromStorage);
         setPreviewUrl(previewUrlFromStorage);
-        // Note: uploadedFile is not restored from localStorage as it's a File object
-        // but previewUrl should be sufficient for display
         setShowDuplicateDialog(true);
 
         localStorage.removeItem("showDuplicateDialog");
@@ -146,49 +123,54 @@ export function CreateExpenseForm() {
     setCurrentStep(1);
   };
 
-  const actuallySubmit = async (data: ExpenseFormValues) => {
+  const actuallySubmit = async (formData: any) => {
     // setLoading(true);
+    console.log(formData);
     try {
-      const formattedDate = format(data.dateOfExpense, "yyyy-MM-dd");
-      const expenseData: CreateExpenseData = {
-        amount:
-          data.currency !== data.foreign_currency
-            ? +(data.base_currency_amount || 0)
-            : parseFloat(data.amount),
-        foreign_amount:
-          data.currency !== data.foreign_currency
-            ? parseFloat(data.amount)
-            : null,
-        currency: baseCurrency,
-        foreign_currency:
-          data.currency !== data.foreign_currency ? data.currency : null,
-        category_id: data.categoryId,
-        description: data.comments || data.merchant || "Expense description",
-        expense_date: formattedDate,
-        expense_policy_id: data.policyId,
-        vendor: data.merchant,
-        receipt_id: parsedData?.id || undefined,
-        invoice_number:
-          data.invoiceNumber || parsedData?.ocr_result?.invoice_number || null,
-        advance_id: data.advance_id || undefined,
-        pre_approval_id: data.pre_approval_id || undefined,
-        api_conversion_rate: data.currency !== baseCurrency ? +(data.api_conversion_rate || 0) : null,
-        user_conversion_rate: data.currency !== baseCurrency ? +(
-          (+(data.user_conversion_rate || 0) === 0
-            ? data.api_conversion_rate
-            : data.user_conversion_rate) || 0
-        ) : null,
-      };
-      const result = await expenseService.createExpense(expenseData);
-      if (result.success) {
+      let result;
+      if (formData.invoice_number) {
+        formData.expense_date = formData.expense_date
+          .toISOString()
+          .split("T")[0];
+        formData.currency = baseCurrency || "INR";
+        if (!formData.foreign_amount) {
+          formData.foreign_currency = null;
+        }
+        result = await expenseService.createExpense(formData);
+      } else if (formData.start_location) {
+        const expenseData: any = {
+          amount: parseFloat(formData.amount),
+          category_id: formData.categoryId,
+          description: formData.description,
+          expense_date: formData.expense_date,
+          expense_policy_id: formData.policyId,
+          vendor: formData.merchant,
+          receipt_id: formData.receipt_id,
+          invoice_number: formData.invoiceNumber || null,
+          distance: formData.distance || null,
+          distance_unit: formData.distance_unit || null,
+          end_location: formData.end_location || null,
+          start_location: formData.start_location || null,
+          mileage_rate_id: formData.mileage_rate_id,
+          mileage_meta: formData.mileage_meta || null,
+          is_round_trip: formData.is_round_trip === "true" ? true : false,
+          custom_attributes: {},
+          currency: baseCurrency,
+        };
+        console.log(expenseData);
+        result = await expenseService.createExpense(expenseData);
+      }
+      if (result?.success) {
         toast.success(result.message);
-        navigate('/expenses');
+        navigate("/expenses");
         setParsedData(null);
       } else {
-        if (result.validation_details) {
-          toast.error(`Daily limit exceeded. Current: ${result.validation_details.current_daily_total}, New: ${result.validation_details.new_amount}, Limit: ${result.validation_details.daily_limit}`);
+        if (result?.validation_details) {
+          toast.error(
+            `Daily limit exceeded. Current: ${result.validation_details.current_daily_total}, New: ${result.validation_details.new_amount}, Limit: ${result.validation_details.daily_limit}`
+          );
         } else {
-          toast.error(result.message);
+          toast.error(result?.message);
         }
       }
     } catch {
@@ -219,17 +201,29 @@ export function CreateExpenseForm() {
           type="upload"
         />
       ) : (
-        <ExpenseDetailsStep
-          onBack={handleStep2Back}
-          mode="create"
-          onSubmit={handleStep2Submit}
-          loading={loading}
-          uploadedFile={uploadedFile}
-          previewUrl={previewUrl}
-          fetchReceipt={fetchReceipt}
-          isReceiptReplaced={isReceiptReplaced}
-          setIsReceiptReplaced={setIsReceiptReplaced}
-        />
+        <>
+          {/* <ExpenseDetailsStep
+            onBack={handleStep2Back}
+            mode="create"
+            onSubmit={handleStep2Submit}
+            loading={loading}
+            uploadedFile={uploadedFile}
+            previewUrl={previewUrl}
+            fetchReceipt={fetchReceipt}
+            isReceiptReplaced={isReceiptReplaced}
+            setIsReceiptReplaced={setIsReceiptReplaced}
+          /> */}
+          <ExpenseDetailsStep2
+            onBack={handleStep2Back}
+            onSubmit={handleStep2Submit}
+            mode="create"
+            loading={loading}
+            isReceiptReplaced={isReceiptReplaced}
+            setIsReceiptReplaced={setIsReceiptReplaced}
+            uploadedFile={null}
+            previewUrl={previewUrl}
+          />
+        </>
       )}
 
       <AlertDialog
