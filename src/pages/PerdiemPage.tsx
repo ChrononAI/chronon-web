@@ -34,6 +34,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { trackEvent } from "@/mixpanel";
 
 interface PerdiemPageProps {
   mode?: "create" | "view" | "edit";
@@ -107,7 +108,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const [editMode, setEditMode] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
-  const [activePerdiemTab, setActivePerdiemTab] = useState<"info" | "comments">("info");
+  const [activePerdiemTab, setActivePerdiemTab] = useState<"info" | "comments">(
+    "info"
+  );
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
@@ -247,8 +250,14 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
     try {
       if (mode === "create") {
+        trackEvent("Create Per Diem Button Clicked", {
+          button_name: "Create Per Diem",
+        });
         await placesService.createPerDiemExpense(submitData, orgId);
       } else if (mode === "edit" && id) {
+        trackEvent("Edit Per Diem Button Clicked", {
+          button_name: "Edit Per Diem",
+        });
         await expenseService.updateExpense(id, submitData);
       }
       if (mode === "create") {
@@ -352,7 +361,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                     <button
                       key={tab.key}
                       type="button"
-                      onClick={() => setActivePerdiemTab(tab.key as "info" | "comments")}
+                      onClick={() =>
+                        setActivePerdiemTab(tab.key as "info" | "comments")
+                      }
                       className={cn(
                         "rounded-full px-4 py-2 text-sm font-medium transition-all",
                         activePerdiemTab === tab.key

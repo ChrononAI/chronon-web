@@ -34,6 +34,7 @@ import {
   getOrgCurrency,
   getStatusColor,
 } from "@/lib/utils";
+import { trackEvent } from "@/mixpanel";
 import { AdvanceService } from "@/services/advanceService";
 import { useAdvanceStore } from "@/store/advanceStore";
 import { useAuthStore } from "@/store/authStore";
@@ -204,6 +205,11 @@ function ProcessAdvancePage() {
   };
 
   const handleAction = async (action: string) => {
+    const text =
+      action === "approve" ? "Approve Advance" : "Reject Advance";
+    trackEvent(text + " Button Clicked", {
+      button_name: text,
+    });
     if (action === "reject") {
       setShowActionDialog(true);
     } else if (

@@ -53,6 +53,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useAuthStore } from "@/store/authStore";
+import { trackEvent } from "@/mixpanel";
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -204,11 +205,10 @@ const MileagePage = ({
 
   const extractAmount = (amountStr: string) => {
     // Remove currency symbols, commas, and parse number
-    const cleaned = amountStr.replace(/[\$€₹,\s]/g, '');
+    const cleaned = amountStr.replace(/[\$€₹,\s]/g, "");
     const match = cleaned.match(/(\d+\.?\d*)/);
     return match ? parseFloat(match[1]) : 0;
   };
-
 
   const calculateMileageCost = async (
     originId: string,
@@ -259,7 +259,10 @@ const MileagePage = ({
           calculatedDistance,
           costData.distance_unit
         );
-        const formattedAmount = formatCurrency(costData.cost, orgSettings.currency);
+        const formattedAmount = formatCurrency(
+          costData.cost,
+          orgSettings.currency
+        );
         const formattedChargeableDistance = costData.chargeable_distance
           ? formatDistance(costData.chargeable_distance, costData.distance_unit)
           : "";
@@ -389,7 +392,11 @@ const MileagePage = ({
           field === "vehiclesType"
             ? (value as string)
             : updatedData.vehiclesType;
-        const triggerCalculation = (oid: string, did: string, vehicleId: string) => {
+        const triggerCalculation = (
+          oid: string,
+          did: string,
+          vehicleId: string
+        ) => {
           calculateMileageCost(
             oid,
             did,
@@ -427,7 +434,11 @@ const MileagePage = ({
                   startLocationId: startPlace.place_id,
                   endLocationId: endPlace.place_id,
                 }));
-                triggerCalculation(startPlace.place_id, endPlace.place_id, selectedVehicleId);
+                triggerCalculation(
+                  startPlace.place_id,
+                  endPlace.place_id,
+                  selectedVehicleId
+                );
               } else {
                 toast.error(
                   "Unable to find location place IDs. Please reselect locations."
@@ -512,10 +523,16 @@ const MileagePage = ({
 
     try {
       if (mode === "create") {
+        trackEvent("Create Mileage Button Clicked", {
+          button_name: "Create Mileage",
+        });
         await placesService.createMileageExpense(submitData, orgId);
         toast.success("Successfully created mileage expense");
         navigate("/expenses");
       } else if (mode === "edit" && onUpdate) {
+        trackEvent("Update Mileage Button Clicked", {
+          button_name: "Update Mileage",
+        });
         await onUpdate(submitData);
       }
     } catch (error) {
@@ -671,9 +688,18 @@ const MileagePage = ({
         startLocationId: "",
         endLocation: expenseData.end_location || "",
         endLocationId: "",
-        distance: expenseData.distance ? formatDistance(typeof expenseData.distance === 'string' ? parseFloat(expenseData.distance) || 0 : expenseData.distance, expenseData.distance_unit || getDistanceUnit().toUpperCase()) : "",
+        distance: expenseData.distance
+          ? formatDistance(
+              typeof expenseData.distance === "string"
+                ? parseFloat(expenseData.distance) || 0
+                : expenseData.distance,
+              expenseData.distance_unit || getDistanceUnit().toUpperCase()
+            )
+          : "",
         chargeableDistance: (expenseData as any).chargeable_distance || "",
-        amount: formatCurrency(expenseData.amount, orgSettings.currency) || formatCurrency(0, orgSettings.currency),
+        amount:
+          formatCurrency(expenseData.amount, orgSettings.currency) ||
+          formatCurrency(0, orgSettings.currency),
         description: expenseData.description || "",
         vehiclesType: expenseData.mileage_rate_id,
         expenseDate:
@@ -1314,14 +1340,16 @@ const MileagePage = ({
                         Total Amount
                       </Label>
                       <div className="text-2xl font-bold text-blue-600 mt-1">
-                        {formData.amount || formatCurrency(0, orgSettings.currency)}
+                        {formData.amount ||
+                          formatCurrency(0, orgSettings.currency)}
                       </div>
                       {chargeableDistanceValue &&
                       mileagePrice &&
                       !usesMetricSystem() ? (
                         <p className="text-sm font-semibold text-gray-600 mt-1">
                           {chargeableDistanceValue.toFixed(2)}{" "}
-                          {getDistanceUnit()} × {formatCurrency(mileagePrice, orgSettings.currency)}{" "}
+                          {getDistanceUnit()} ×{" "}
+                          {formatCurrency(mileagePrice, orgSettings.currency)}{" "}
                           per {getDistanceUnit()}
                         </p>
                       ) : (
@@ -1361,14 +1389,16 @@ const MileagePage = ({
                         Total Amount
                       </span>
                       <span className="text-2xl font-bold text-blue-600 mt-1">
-                        {formData.amount || formatCurrency(0, orgSettings.currency)}
+                        {formData.amount ||
+                          formatCurrency(0, orgSettings.currency)}
                       </span>
                       {chargeableDistanceValue &&
                       mileagePrice &&
                       !usesMetricSystem() ? (
                         <span className="text-sm font-semibold text-gray-600 mt-1 block">
                           {chargeableDistanceValue.toFixed(2)}{" "}
-                          {getDistanceUnit()} × {formatCurrency(mileagePrice, orgSettings.currency)}{" "}
+                          {getDistanceUnit()} ×{" "}
+                          {formatCurrency(mileagePrice, orgSettings.currency)}{" "}
                           per {getDistanceUnit()}
                         </span>
                       ) : (

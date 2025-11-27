@@ -15,6 +15,7 @@ import { UploadReceiptStep } from "./UploadReceiptStep";
 import { useExpenseStore } from "@/store/expenseStore";
 import { getOrgCurrency } from "@/lib/utils";
 import { ExpenseDetailsStep2 } from "./ExpenseDetailsStep2";
+import { trackEvent } from "@/mixpanel";
 
 // Form schema for step 2
 type ExpenseFormValues = {
@@ -156,7 +157,6 @@ export function CreateExpenseForm() {
           custom_attributes: {},
           currency: baseCurrency,
         };
-        console.log(expenseData);
         result = await expenseService.createExpense(expenseData);
       }
       if (result?.success) {
@@ -181,6 +181,9 @@ export function CreateExpenseForm() {
   };
 
   const handleStep2Submit = async (data: ExpenseFormValues) => {
+    trackEvent("Create Expense Button Clicked", {
+      button_name: "Create Expense",
+    });
     await actuallySubmit(data);
   };
 

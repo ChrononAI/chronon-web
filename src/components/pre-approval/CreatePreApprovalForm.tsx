@@ -31,6 +31,7 @@ import {
 } from "@/services/preApprovalService";
 import { toast } from "sonner";
 import { Currency } from "../advances/CreateAdvanceForm";
+import { trackEvent } from "@/mixpanel";
 
 // Form schema
 const preApprovalSchema = z.object({
@@ -108,7 +109,9 @@ function CreatePreApprovalForm({
   );
 
   const onSubmit = async (formData: PreApprovalFormValues) => {
-    console.log(formData);
+    trackEvent("Create Pre Approval Button Clicked", {
+      button_name: "Create Pre Approval",
+    });
     const newFd = JSON.parse(JSON.stringify(formData));
     if (!newFd.amount || !newFd.currency) {
       delete newFd.amount;
@@ -120,7 +123,6 @@ function CreatePreApprovalForm({
     const { hotelRequired, flightRequired, ...rest } = newFd;
     try {
       const response: any = await preApprovalService.createPreApproval(rest);
-      console.log(response);
       await preApprovalService.submitPreApproval(response.data.data.id);
       toast.success("Pre approval created successfully");
       setTimeout(() => {

@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { formatDate, getStatusColor } from "@/lib/utils";
+import { trackEvent } from "@/mixpanel";
 import { preApprovalService } from "@/services/preApprovalService";
 import { useAuthStore } from "@/store/authStore";
 import { usePreApprovalStore } from "@/store/preApprovalStore";
@@ -198,6 +199,10 @@ function ProcessPreApprovalPage() {
     }
   };
   const handleAction = async (action: string) => {
+    const text = action === 'approve' ? "Approve Pre Approval" : "Reject Pre Approval";
+    trackEvent(text + " Button Clicked", {
+      button_name: text,
+    });
     if (
       approvalWorkflow?.current_step === approvalWorkflow?.total_steps &&
       action === "approve"

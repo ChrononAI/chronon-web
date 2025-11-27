@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { authService } from "@/services/authService";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { identifyUser, setUserProfile, trackEvent } from "@/mixpanel";
 
 export function LoginForm() {
   const login = useAuthStore((state) => state.login);
@@ -18,12 +19,17 @@ export function LoginForm() {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
+    trackEvent("Login Button Clicked", {
+      button_name: "Login",
+    });
     setIsLoading(true);
     setError("");
 
     try {
       const { user, token } = await authService.login({ email, password });
       login(user, token);
+      identifyUser(user.id.toString());
+      setUserProfile(user);
       
       // Fetch organization data after login
       try {
