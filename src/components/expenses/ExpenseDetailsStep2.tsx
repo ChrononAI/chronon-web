@@ -195,8 +195,7 @@ export function ExpenseDetailsStep2({
         (policy) => policy.id === data.recommended_policy_id
       );
       const selectedCategory = selectedPolicy?.categories.find(
-        (category) =>
-          category.id === data.recommended_category.category_id
+        (category) => category.id === data.recommended_category.category_id
       );
       if (selectedPolicy && selectedCategory) {
         setSelectedCategory(selectedCategory);
@@ -601,7 +600,7 @@ export function ExpenseDetailsStep2({
     "rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-6">
       {expense?.original_expense_id && (
         <Alert className="bg-yellow-50 border-yellow-200">
           <Copy className="h-4 w-4 text-yellow-600" />
@@ -806,10 +805,14 @@ export function ExpenseDetailsStep2({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="md:h-[calc(100vh-7rem)] md:overflow-y-auto"
+            className={`rounded-2xl border border-gray-200 bg-white shadow-sm p-2 ${
+              expense?.original_expense_id
+                ? "md:h-[calc(100vh-21rem)]"
+                : "md:h-[calc(100vh-16rem)]"
+            } md:overflow-y-auto`}
           >
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm md:min-h-full">
-              <div className="divide-y divide-gray-100 pb-32">
+            <div className="md:min-h-full">
+              <div className="divide-y divide-gray-100">
                 <section className="space-y-4 p-6">
                   <div>
                     <h2 className="text-sm font-semibold tracking-wide text-gray-500">

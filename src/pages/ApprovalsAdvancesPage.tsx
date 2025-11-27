@@ -8,20 +8,6 @@ import { PaginationInfo } from "@/store/expenseStore";
 import { useAdvanceStore } from "@/store/advanceStore";
 import { AdvanceService } from "@/services/advanceService";
 import { Box } from "@mui/material";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
-
-const theme = createTheme({
-  components: {
-    MuiSelect: {
-      styleOverrides: {
-        select: {
-          fontFamily: "Inter, sans-serif",
-          fontSize: "12px !important",
-        },
-      },
-    },
-  },
-});
 
 function ApprovalsAdvancesPage() {
   const navigate = useNavigate();
@@ -30,7 +16,7 @@ function ApprovalsAdvancesPage() {
   const columns: GridColDef[] = [
     {
       field: "sequence_number",
-      headerName: "PRE APPROVAL ID",
+      headerName: "ADVANCE ID",
       width: 160,
     },
     {
@@ -224,67 +210,65 @@ function ApprovalsAdvancesPage() {
         throw new Error("Function not implemented.");
       }}
     >
-      <ThemeProvider theme={theme}>
-        <Box
+      <Box
+        sx={{
+          height: "calc(100vh - 160px)",
+          width: "100%",
+          marginTop: "-32px",
+        }}
+      >
+        <DataGrid
+          className="rounded border h-full"
+          columns={columns}
+          rows={rows}
           sx={{
-            height: "calc(100vh - 160px)",
-            width: "100%",
-            marginTop: "-32px",
+            border: 0,
+            "& .MuiDataGrid-columnHeaderTitle": {
+              color: "#9AA0A6",
+              fontWeight: "bold",
+              fontSize: "12px",
+            },
+            "& .MuiDataGrid-main": {
+              border: "1px solid #F1F3F4",
+            },
+            "& .MuiDataGrid-columnHeader": {
+              backgroundColor: "#f3f4f6",
+            },
+            "& .MuiCheckbox-root": {
+              color: "#9AA0A6",
+            },
+            "& .MuiDataGrid-row:hover": {
+              cursor: "pointer",
+              backgroundColor: "#f5f5f5",
+            },
+            "& .MuiDataGrid-cell": {
+              color: "#2E2E2E",
+            },
+            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
+              outline: "none",
+            },
+            "& .MuiDataGrid-cell:focus-within": {
+              outline: "none",
+            },
           }}
-        >
-          <DataGrid
-            className="rounded border h-full"
-            columns={columns}
-            rows={rows}
-            sx={{
-              border: 0,
-              "& .MuiDataGrid-columnHeaderTitle": {
-                color: "#9AA0A6",
-                fontWeight: "bold",
-                fontSize: "12px",
-              },
-              "& .MuiDataGrid-main": {
-                border: "1px solid #F1F3F4",
-              },
-              "& .MuiDataGrid-columnHeader": {
-                backgroundColor: "#f3f4f6",
-              },
-              "& .MuiCheckbox-root": {
-                color: "#9AA0A6",
-              },
-              "& .MuiDataGrid-row:hover": {
-                cursor: "pointer",
-                backgroundColor: "#f5f5f5",
-              },
-              "& .MuiDataGrid-cell": {
-                color: "#2E2E2E",
-              },
-              "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-                outline: "none",
-              },
-              "& .MuiDataGrid-cell:focus-within": {
-                outline: "none",
-              },
-            }}
-            showToolbar
-            density="compact"
-            checkboxSelection
-            disableRowSelectionOnClick
-            onRowClick={onRowClick}
-            pagination
-            paginationMode="server"
-            paginationModel={paginationModel || { page: 0, pageSize: 0 }}
-            onPaginationModelChange={setPaginationModel}
-            rowCount={
-              (activeTab === "all"
-                ? allPagination?.total
-                : activeTab === "pending"
-                ? pendingPagination?.total
-                : processedPagination?.total) || 0
-            }
-          />
-        </Box>
-      </ThemeProvider>
+          showToolbar
+          density="compact"
+          checkboxSelection
+          disableRowSelectionOnClick
+          onRowClick={onRowClick}
+          pagination
+          paginationMode="server"
+          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          onPaginationModelChange={setPaginationModel}
+          rowCount={
+            (activeTab === "all"
+              ? allPagination?.total
+              : activeTab === "pending"
+              ? pendingPagination?.total
+              : processedPagination?.total) || 0
+          }
+        />
+      </Box>
     </ReportsPageWrapper>
   );
 }
