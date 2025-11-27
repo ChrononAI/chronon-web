@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { GridOverlay } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
-import { CustomLoader } from "./MyReportsPage";
 import { GridPaginationModel } from "@mui/x-data-grid";
 
 function CustomNoRows() {
@@ -240,7 +239,6 @@ export function ApprovalsReportsPage() {
           columns={columns}
           loading={loading}
           slots={{
-            loadingOverlay: CustomLoader,
             noRowsOverlay: CustomNoRows,
           }}
           sx={{

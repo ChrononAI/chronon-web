@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
-import { Download, Plus } from "lucide-react";
+import { DataGrid, GridColDef, GridOverlay, GridPaginationModel } from "@mui/x-data-grid";
+import { CheckCircle, Download, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "@/lib/api";
 import { toast } from "sonner";
@@ -31,6 +31,22 @@ type UserRow = {
   status?: string;
   [entityKey: string]: string | undefined;
 };
+
+function CustomNoRows() {
+  return (
+    <GridOverlay>
+      <Box className="w-full">
+        <div className="text-center">
+          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No entries found</h3>
+          <p className="text-muted-foreground">
+            There are currently no entries.
+          </p>
+        </div>
+      </Box>
+    </GridOverlay>
+  );
+}
 
 const TABS = [
   { key: "userAll", label: "User All", count: 0 },
@@ -206,6 +222,7 @@ const UserPage = () => {
               className="rounded border-[0.2px] border-[#f3f4f6] h-full"
               columns={columns}
               rows={rows}
+              slots={{ noRowsOverlay: CustomNoRows }}
               loading={loading}
               sx={{
                 border: 0,
@@ -282,6 +299,7 @@ const UserPage = () => {
               className="rounded border-[0.2px] border-[#f3f4f6] h-full"
               columns={columns}
               rows={templateRows}
+              slots={{ noRowsOverlay: CustomNoRows }}
               sx={{
                 border: 0,
                 "& .MuiDataGrid-columnHeaderTitle": {

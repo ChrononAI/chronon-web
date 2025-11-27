@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
-import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridOverlay, GridPaginationModel } from "@mui/x-data-grid";
 import { formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +8,23 @@ import { PaginationInfo } from "@/store/expenseStore";
 import { useAdvanceStore } from "@/store/advanceStore";
 import { AdvanceService } from "@/services/advanceService";
 import { Box } from "@mui/material";
+import { CheckCircle } from "lucide-react";
+
+function CustomNoRows() {
+  return (
+    <GridOverlay>
+      <Box className="w-full">
+        <div className="text-center">
+          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No advances found</h3>
+          <p className="text-muted-foreground">
+            There are currently no advances.
+          </p>
+        </div>
+      </Box>
+    </GridOverlay>
+  );
+}
 
 function ApprovalsAdvancesPage() {
   const navigate = useNavigate();
@@ -221,6 +238,9 @@ function ApprovalsAdvancesPage() {
           className="rounded border h-full"
           columns={columns}
           rows={rows}
+          slots={{
+            noRowsOverlay: CustomNoRows
+          }}
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {

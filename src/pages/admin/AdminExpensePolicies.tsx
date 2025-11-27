@@ -3,11 +3,28 @@ import { policyService } from "@/services/admin/policyService";
 import { PaginationInfo } from "@/store/expenseStore";
 import { PolicyCategory } from "@/types/expense";
 import { Box } from "@mui/material";
+import { GridOverlay } from "@mui/x-data-grid";
 import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
-import { Plus } from "lucide-react";
+import { CheckCircle, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+
+function CustomNoRows() {
+  return (
+    <GridOverlay>
+      <Box className="w-full">
+        <div className="text-center">
+          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No policies found</h3>
+          <p className="text-muted-foreground">
+            There are currently no policies.
+          </p>
+        </div>
+      </Box>
+    </GridOverlay>
+  );
+}
 
 const columns: GridColDef[] = [
   {
@@ -98,6 +115,7 @@ function AdminExpensePolicies() {
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           columns={columns}
           rows={rows}
+          slots={{ noRowsOverlay: CustomNoRows }}
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {
