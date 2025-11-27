@@ -9,7 +9,7 @@ export function Layout() {
       <div className="h-screen flex flex-1 overflow-auto">
         <Sidebar />
         <main className="flex-1 bg-white flex overflow-hidden">
-          <div className={`flex-1 ${noPadding ? "p-0" : "p-6"} overflow-auto`}>
+          <div className={`flex-1 ${noPadding ? "p-0" : "p-6"}`}>
             <Outlet />
           </div>
         </main>

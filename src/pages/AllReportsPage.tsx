@@ -354,7 +354,7 @@ export function AllReportsPage() {
           />
 
           <Card>
-          <CardContent className="p-0">
+          <CardContent className="p-0 h-[calc(100vh-18rem)] overflow-auto">
             {generatedReportsLoading && generatedReports.length === 0 ? (
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
