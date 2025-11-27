@@ -10,7 +10,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "../ui/input";
-import { Card, CardContent } from "../ui/card";
 import { Switch } from "../ui/switch";
 import { Button } from "../ui/button";
 import { DateField } from "../ui/date-field";
@@ -64,7 +63,7 @@ interface CreatePreApprovalFormProps {
 function CreatePreApprovalForm({
   mode = "create",
   showHeader = true,
-  maxWidth = 'max-w-4xl',
+  maxWidth = "max-w-4xl",
 }: CreatePreApprovalFormProps) {
   const navigate = useNavigate();
 
@@ -155,7 +154,7 @@ function CreatePreApprovalForm({
     loadPoliciesWithCategories();
   }, []);
   return (
-    <div className={maxWidth ? `space-y-6 ${maxWidth}` : 'space-y-6 max-w-4xl'}>
+    <div className={maxWidth ? `space-y-6 ${maxWidth}` : "space-y-6 max-w-4xl"}>
       {showHeader && (
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -170,274 +169,264 @@ function CreatePreApprovalForm({
           </h1>
         </div>
       )}
-      <Card>
-        <CardContent className="p-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div>
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Title</FormLabel>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div>
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="Title"
+                      // readOnly={readOnly}
+                      disabled={mode === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="start_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>From</FormLabel>
+                  <FormControl>
+                    <DateField
+                      id="from"
+                      value={field.value}
+                      onChange={(value) => {
+                        field.onChange(value);
+                      }}
+                      disabled={mode === "view"}
+                      minDate={today}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="end_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>To</FormLabel>
+                  <FormControl>
+                    <DateField
+                      id="to"
+                      value={field.value}
+                      onChange={(value) => {
+                        // handleInputChange("expenseDate", value);
+                        field.onChange(value);
+                      }}
+                      disabled={mode === "view"}
+                      minDate={today}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div>
+            <FormField
+              control={form.control}
+              name="policy_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Policy</FormLabel>
+                  <FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        const policy = policies.find((p) => p.id === value);
+                        setSelectedPolicy(policy || null);
+                      }}
+                      disabled={mode === "view"}
+                    >
                       <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Title"
-                          // readOnly={readOnly}
-                          disabled={mode === "view"}
-                        />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a policy">
+                            {field.value && selectedPolicy
+                              ? selectedPolicy.name
+                              : "Select a policy"}
+                          </SelectValue>
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="start_date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>From</FormLabel>
-                      <FormControl>
-                        <DateField
-                          id="from"
-                          value={field.value}
-                          onChange={(value) => {
-                            field.onChange(value);
-                          }}
-                          disabled={mode === "view"}
-                          minDate={today}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="end_date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>To</FormLabel>
-                      <FormControl>
-                        <DateField
-                          id="to"
-                          value={field.value}
-                          onChange={(value) => {
-                            // handleInputChange("expenseDate", value);
-                            field.onChange(value);
-                          }}
-                          disabled={mode === "view"}
-                          minDate={today}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div>
-                <FormField
-                  control={form.control}
-                  name="policy_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Policy</FormLabel>
-                      <FormControl>
-                        <Select
-                          value={field.value}
-                          onValueChange={(value) => {
-                            field.onChange(value);
-                            const policy = policies.find((p) => p.id === value);
-                            setSelectedPolicy(policy || null);
-                          }}
-                          disabled={mode === "view"}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a policy">
-                                {field.value && selectedPolicy
-                                  ? selectedPolicy.name
-                                  : "Select a policy"}
-                              </SelectValue>
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {policies.map((policy) => (
-                              <SelectItem key={policy.id} value={policy.id}>
-                                <div>
-                                  <div className="font-medium">
-                                    {policy.name}
-                                  </div>
-                                  {policy.description && (
-                                    <div className="text-sm text-muted-foreground">
-                                      {policy.description}
-                                    </div>
-                                  )}
+                      <SelectContent>
+                        {policies.map((policy) => (
+                          <SelectItem key={policy.id} value={policy.id}>
+                            <div>
+                              <div className="font-medium">{policy.name}</div>
+                              {policy.description && (
+                                <div className="text-sm text-muted-foreground">
+                                  {policy.description}
                                 </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Currency Field */}
-                <FormField
-                  control={form.control}
-                  name="currency"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Currency</FormLabel>
-                      <Select
-                        onValueChange={(val) => {
-                          field.onChange(val);
-                          const curr = currencies.find(
-                            (curr) => curr.code === val
-                          );
-                          if (curr) setSelectedCurrency(curr);
-                        }}
-                        value={field.value}
-                        disabled={mode === "view"}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <div className="flex items-center">
-                              {selectedCurrency ? (
-                                <span className="text-lg mr-2 min-w-[24px]">
-                                  {selectedCurrency.symbol}
-                                </span>
-                              ) : (
-                                "Please select currency"
-                              )}
-                              {selectedCurrency && (
-                                <span className="flex-1 text-left">
-                                  {selectedCurrency.code} -{" "}
-                                  {selectedCurrency.name}
-                                </span>
                               )}
                             </div>
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {currencies.map((currency) => (
-                            <SelectItem
-                              key={currency.code}
-                              value={currency.code}
-                            >
-                              <div className="flex items-center">
-                                <span className="text-lg mr-2 min-w-[24px]">
-                                  {currency.symbol}
-                                </span>
-                                <span>
-                                  {currency.code} - {currency.name}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Currency Field */}
+            <FormField
+              control={form.control}
+              name="currency"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Currency</FormLabel>
+                  <Select
+                    onValueChange={(val) => {
+                      field.onChange(val);
+                      const curr = currencies.find((curr) => curr.code === val);
+                      if (curr) setSelectedCurrency(curr);
+                    }}
+                    value={field.value}
+                    disabled={mode === "view"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <div className="flex items-center">
+                          {selectedCurrency ? (
+                            <span className="text-lg mr-2 min-w-[24px]">
+                              {selectedCurrency.symbol}
+                            </span>
+                          ) : (
+                            "Please select currency"
+                          )}
+                          {selectedCurrency && (
+                            <span className="flex-1 text-left">
+                              {selectedCurrency.code} - {selectedCurrency.name}
+                            </span>
+                          )}
+                        </div>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {currencies.map((currency) => (
+                        <SelectItem key={currency.code} value={currency.code}>
+                          <div className="flex items-center">
+                            <span className="text-lg mr-2 min-w-[24px]">
+                              {currency.symbol}
+                            </span>
+                            <span>
+                              {currency.code} - {currency.name}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                {/* Amount Field */}
-                <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Amount</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg">
-                            {selectedCurrency?.symbol}
-                          </span>
-                          <Input
-                            placeholder="0.00"
-                            className="pl-12"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            {...field}
-                            disabled={mode === "view"}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div>
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Purpose</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Purpose"
-                          disabled={mode === "view"}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="flightRequired"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Flight Required</FormLabel>
-                      <FormControl>
-                        <div>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled={mode === "view"}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="hotelRequired"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hotel Required</FormLabel>
-                      <FormControl>
-                        <div>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled={mode === "view"}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              {/* TO BE INTEGRATED LATER */}
-              {/* <div>
+            {/* Amount Field */}
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg">
+                        {selectedCurrency?.symbol}
+                      </span>
+                      <Input
+                        placeholder="0.00"
+                        className="pl-12"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        {...field}
+                        disabled={mode === "view"}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div>
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Purpose</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="Purpose"
+                      disabled={mode === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="flightRequired"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Flight Required</FormLabel>
+                  <FormControl>
+                    <div>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={mode === "view"}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="hotelRequired"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Hotel Required</FormLabel>
+                  <FormControl>
+                    <div>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={mode === "view"}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          {/* TO BE INTEGRATED LATER */}
+          {/* <div>
                 <FormField
                   control={form.control}
                   name="amount"
@@ -459,30 +448,28 @@ function CreatePreApprovalForm({
                   )}
                 />
               </div> */}
-              <div className="flex justify-end gap-2 pt-4">
-                {mode === "edit" && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    // onClick={onCancel}
-                    className="px-6 py-2"
-                  >
-                    Cancel
-                  </Button>
-                )}
-                {mode !== "view" && (
-                  <Button
-                    type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
-                  >
-                    {mode === "create" ? "Create" : "Update"}
-                  </Button>
-                )}
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+          <div className="flex justify-end gap-2 pt-4">
+            {mode === "edit" && (
+              <Button
+                type="button"
+                variant="outline"
+                // onClick={onCancel}
+                className="px-6 py-2"
+              >
+                Cancel
+              </Button>
+            )}
+            {mode !== "view" && (
+              <Button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+              >
+                {mode === "create" ? "Create" : "Update"}
+              </Button>
+            )}
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }
