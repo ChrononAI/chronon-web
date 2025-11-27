@@ -49,6 +49,7 @@ import { GridPaginationModel } from "@mui/x-data-grid";
 import { Box, Toolbar } from "@mui/material";
 import { categoryService } from "@/services/admin/categoryService";
 import { SearchableSelect } from "./SearchableSelect";
+import { trackEvent } from "@/mixpanel";
 
 // Dynamic form schema creation function
 const createReportSchema = (customAttributes: CustomAttribute[]) => {
@@ -566,6 +567,9 @@ export function CreateReportForm2({
 
       // 1. Create report
       if (editMode && reportData) {
+        trackEvent("Update Report Button Clicked", {
+          button_name: "Update Report",
+        });
         await reportService.updateReport(reportData.id, {
           title: data.reportName,
           description: data.description,
@@ -581,6 +585,9 @@ export function CreateReportForm2({
           toast.error("Failed to submit report");
         }
       } else {
+        trackEvent("Create Report Button Clicked", {
+          button_name: "Create Report",
+        });
         const createResponse = await reportService.createReport(reportData2);
         if (createResponse.success && createResponse.reportId) {
           // 2. Submit report immediately
@@ -691,7 +698,6 @@ export function CreateReportForm2({
           loading={loadingExpenses}
           slots={{
             loadingOverlay: CustomLoader,
-            // noRowsOverlay: CustomNoRows,
             toolbar: () => (
               <CustomToolbar
                 categories={categories}

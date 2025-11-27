@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/authStore";
+import { trackEvent } from "@/mixpanel";
 
 const navigation: NavigationItem[] = [
   { name: "Pre Approval", href: "/pre-approvals", icon: ClipboardCheck },
@@ -200,6 +201,9 @@ export function Sidebar() {
   }, [orgSettings]);
 
   const handleLogout = () => {
+    trackEvent("Logout Button Clicked", {
+      button_name: "Logout"
+    })
     logout();
   };
 

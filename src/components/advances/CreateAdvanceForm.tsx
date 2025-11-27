@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { expenseService } from "@/services/expenseService";
 import { Policy } from "@/types/expense";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
+import { trackEvent } from "@/mixpanel";
 
 export interface Currency {
   code: string;
@@ -123,6 +124,9 @@ export function CreateAdvanceForm({
   const onSubmit = async (values: AdvanceFormValues) => {
     if (selectedAdvance && selectedAdvance?.status === "COMPLETE") {
       try {
+        trackEvent("Submit Advance Button Clicked", {
+          button_name: "Submit Advance",
+        });
         await AdvanceService.submitAdvance(selectedAdvance.id);
         toast.success("Advance resubmitted successfully");
         navigate("/advances");
@@ -135,6 +139,9 @@ export function CreateAdvanceForm({
       }
     } else {
       try {
+        trackEvent("Create Advance Button Clicked", {
+          button_name: "Create Advance",
+        });
         const response: any = await AdvanceService.createAdvance(values);
         await AdvanceService.submitAdvance(response.data.data.id);
         toast.success("Advance created successfully");

@@ -37,6 +37,7 @@ import {
 import { getExpenseType } from "./MyExpensesPage";
 import { Input } from "@/components/ui/input";
 import { ReportTabs } from "@/components/reports/ReportTabs";
+import { trackEvent } from "@/mixpanel";
 
 const columns: GridColDef[] = [
   {
@@ -249,6 +250,10 @@ export function ReportDetailPage2() {
   }, [report, isFromApprovals, navigate]);
 
   const handleAction = (type: "approve" | "reject" | "send_back") => {
+    const text = type === 'approve' ? "Approve Report" : type === "reject" ? "Reject Report" : "Send Back Report"
+    trackEvent(text + " Button Clicked", {
+      button_name: text,
+    });
     setActionType(type);
     setComments("");
     setShowActionDialog(true);
