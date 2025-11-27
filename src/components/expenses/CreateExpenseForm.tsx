@@ -125,7 +125,6 @@ export function CreateExpenseForm() {
 
   const actuallySubmit = async (formData: any) => {
     // setLoading(true);
-    console.log(formData);
     try {
       let result;
       if (formData.invoice_number) {
