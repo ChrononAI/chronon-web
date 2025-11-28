@@ -44,7 +44,6 @@ import {
   GridRowId,
 } from "@mui/x-data-grid";
 import { Badge } from "../ui/badge";
-import { CustomLoader } from "@/pages/MyReportsPage";
 import { GridPaginationModel } from "@mui/x-data-grid";
 import { Box, Toolbar } from "@mui/material";
 import { categoryService } from "@/services/admin/categoryService";
@@ -697,7 +696,6 @@ export function CreateReportForm2({
           columns={columns}
           loading={loadingExpenses}
           slots={{
-            loadingOverlay: CustomLoader,
             toolbar: () => (
               <CustomToolbar
                 categories={categories}

@@ -149,6 +149,7 @@ function AdvanceAccounts() {
     useState<GridPaginationModel | null>(null);
 
   const [accounts, setAccounts] = useState<AccountType[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [ledger, setLedger] = useState<LedgerType[]>([]);
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -166,6 +167,7 @@ function AdvanceAccounts() {
 
   const getAccountsLedger = async (id: string) => {
     try {
+      setLoading(true);
       const res = await AdvanceService.getAccountLedger(id);
       const newRes = JSON.parse(JSON.stringify(res.data.data));
       const newRows = newRes.map((row: LedgerType, idx: number) => {
@@ -177,6 +179,8 @@ function AdvanceAccounts() {
       setLedger(newRows);
     } catch (error) {
       console.log(error);
+    } finally {
+      setLoading(false)
     }
   };
 
@@ -253,8 +257,9 @@ function AdvanceAccounts() {
         >
           <DataGrid
             className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-            rows={ledger}
+            rows={loading ? [] : ledger}
             columns={columns}
+            loading={loading}
             slots={{
               noRowsOverlay: CustomNoRows
             }}

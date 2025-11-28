@@ -81,7 +81,7 @@ function ApprovalsAdvancesPage() {
       minWidth: 150,
     },
   ];
-
+  const [loading, setLoading] = useState(true);
   const [allRows, setAllRows] = useState([]);
   const [allPagination, setAllPagination] = useState<PaginationInfo | null>(
     null
@@ -190,6 +190,7 @@ function ApprovalsAdvancesPage() {
   useEffect(() => {
     const fetchData = async (page: number, perPage: number) => {
       try {
+        setLoading(true);
         await Promise.all([
           getAllAdvancesToApprove({
             page,
@@ -206,6 +207,8 @@ function ApprovalsAdvancesPage() {
         ]);
       } catch (error) {
         console.error("Error fetching advances:", error);
+      } finally {
+        setLoading(false);
       }
     };
     if (paginationModel) {
@@ -238,6 +241,7 @@ function ApprovalsAdvancesPage() {
           className="rounded border h-full"
           columns={columns}
           rows={rows}
+          loading={loading}
           slots={{
             noRowsOverlay: CustomNoRows
           }}

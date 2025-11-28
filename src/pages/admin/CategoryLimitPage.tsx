@@ -55,6 +55,7 @@ function CategoryLimitPage() {
       page: 0,
       pageSize: 10,
     });
+    const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -67,6 +68,7 @@ function CategoryLimitPage() {
 
   const getPolicyRules = async () => {
     try {
+      setLoading(true);
       const res = await policyRulesService.getPolicyRules();
       setPolicyRules(res.data.data);
     } catch (error: any) {
@@ -76,6 +78,8 @@ function CategoryLimitPage() {
           error.message ||
           "Failed to get policy rules"
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -113,6 +117,7 @@ function CategoryLimitPage() {
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           columns={columns}
           rows={policyRules}
+          loading={loading}
           slots={{ noRowsOverlay: CustomNoRows }}
           sx={{
             border: 0,

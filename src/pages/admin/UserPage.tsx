@@ -222,8 +222,8 @@ const UserPage = () => {
               className="rounded border-[0.2px] border-[#f3f4f6] h-full"
               columns={columns}
               rows={rows}
-              slots={{ noRowsOverlay: CustomNoRows }}
               loading={loading}
+              slots={{ noRowsOverlay: CustomNoRows }}
               sx={{
                 border: 0,
                 "& .MuiDataGrid-columnHeaderTitle": {
