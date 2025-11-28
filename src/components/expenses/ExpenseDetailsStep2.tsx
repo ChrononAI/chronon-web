@@ -74,6 +74,8 @@ import { Copy, ExternalLink } from "lucide-react";
 import { getYesterday } from "./CreateExpenseForm";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
+import { getTemplates, type Template } from "@/services/admin/templates";
+import { getEntities, type Entity } from "@/services/admin/entities";
 
 // Form schema
 const expenseSchema = z.object({
@@ -95,7 +97,17 @@ const expenseSchema = z.object({
   api_conversion_rate: z.string().optional().nullable(),
 });
 
-type ExpenseFormValues = z.infer<typeof expenseSchema>;
+type ExpenseFormValues = z.infer<typeof expenseSchema> & Record<string, any>;
+
+type TemplateEntity = NonNullable<Template["entities"]>[0];
+
+const getEntityId = (entity: TemplateEntity): string => {
+  return entity?.entity_id || entity?.id || "";
+};
+
+const getFieldName = (entity: TemplateEntity): string => {
+  return entity?.display_name || entity?.field_name || getEntityId(entity);
+};
 
 interface ExpenseDetailsStepProps {
   onBack: () => void;
@@ -137,6 +149,7 @@ export function ExpenseDetailsStep2({
   const [selectedCategory, setSelectedCategory] =
     useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [entityDropdownOpen, setEntityDropdownOpen] = useState<Record<string, boolean>>({});
   const [replaceRecLoading, setReplaceRecLoading] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [shouldGetConversion, setShouldGetConversion] = useState(
@@ -144,6 +157,8 @@ export function ExpenseDetailsStep2({
   );
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string[]>([]);
   const [showConversion, setShowConversion] = useState(false);
+  const [templateEntities, setTemplateEntities] = useState<TemplateEntity[]>([]);
+  const [entityOptions, setEntityOptions] = useState<Record<string, Array<{ id: string; label: string }>>>({});
   const [isReceiptReuploaded, setIsReceiptReuploaded] = useState(false);
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -357,6 +372,61 @@ export function ExpenseDetailsStep2({
     loadPoliciesWithCategories();
   }, []);
 
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const [templatesRes, entitiesRes] = await Promise.all([
+          getTemplates(),
+          getEntities(),
+        ]);
+        
+        const expenseTemplate = Array.isArray(templatesRes)
+          ? templatesRes.find((t) => t.module_type === "expense")
+          : null;
+
+        if (expenseTemplate?.entities) {
+          setTemplateEntities(expenseTemplate.entities);
+          
+          // Set default values for template entities only if they don't already have values
+          expenseTemplate.entities.forEach((entity) => {
+            const entityId = getEntityId(entity);
+            if (entityId) {
+              const currentValue = form.getValues(entityId as any);
+              // Only set empty string if no value exists (don't overwrite expense data)
+              if (currentValue === undefined || currentValue === null) {
+                form.setValue(entityId as any, "");
+              }
+            }
+          });
+        }
+
+        const entityMap: Record<string, Array<{ id: string; label: string }>> = {};
+        entitiesRes.forEach((ent: Entity) => {
+          if (ent.id && Array.isArray(ent.attributes)) {
+            entityMap[ent.id] = ent.attributes.map((attr) => ({
+              id: attr.id,
+              label: attr.display_value ?? attr.value ?? "—",
+            }));
+          }
+        });
+
+        const mappedOptions: Record<string, Array<{ id: string; label: string }>> = {};
+        expenseTemplate?.entities?.forEach((entity) => {
+          const entityId = getEntityId(entity);
+          if (entityId) {
+            mappedOptions[entityId] = entityMap[entityId] || [];
+          }
+        });
+
+        setEntityOptions(mappedOptions);
+      } catch (error) {
+        console.error("Failed to load templates:", error);
+      }
+    };
+
+    loadTemplates();
+  }, []);
+
   // Update form values when expense changes
   useEffect(() => {
     if (expense && !isReceiptReplaced) {
@@ -386,8 +456,34 @@ export function ExpenseDetailsStep2({
           }
         }
       }
+
+      // Prefill custom attributes from expense.custom_attributes
+      if (expense.custom_attributes && typeof expense.custom_attributes === 'object') {
+        Object.entries(expense.custom_attributes).forEach(([entityId, value]) => {
+          if (entityId && value !== null && value !== undefined && value !== "") {
+            form.setValue(entityId as any, String(value));
+          }
+        });
+      }
     }
-  }, [form, policies]);
+  }, [form, policies, expense, isReceiptReplaced]);
+
+  // Prefill custom attributes when both expense and template entities are available
+  useEffect(() => {
+    if (expense && templateEntities.length > 0 && expense.custom_attributes && typeof expense.custom_attributes === 'object') {
+      Object.entries(expense.custom_attributes).forEach(([entityId, value]) => {
+        if (entityId && value !== null && value !== undefined && value !== "") {
+          // Verify this entityId exists in template entities
+          const entityExists = templateEntities.some(
+            (entity) => (entity?.entity_id || entity?.id) === entityId
+          );
+          if (entityExists) {
+            form.setValue(entityId as any, String(value));
+          }
+        }
+      });
+    }
+  }, [expense, templateEntities, form]);
 
   // Auto-fill fields from parsed data
   useEffect(() => {
@@ -804,7 +900,13 @@ export function ExpenseDetailsStep2({
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={form.handleSubmit((data) => {
+              // Get all form values including custom attributes that might not be in schema
+              const allFormValues = form.getValues();
+              // Merge validated data with all form values to include custom attributes
+              const mergedData = { ...allFormValues, ...data };
+              onSubmit(mergedData);
+            })}
             className={`rounded-2xl border border-gray-200 bg-white shadow-sm p-2 ${
               expense?.original_expense_id
                 ? "md:h-[calc(100vh-21rem)]"
@@ -1226,6 +1328,99 @@ export function ExpenseDetailsStep2({
                         </FormItem>
                       )}
                     />
+
+                    {templateEntities?.map((entity) => {
+                      const entityId = getEntityId(entity);
+                      const fieldName = getFieldName(entity);
+                      if (!entityId) return null;
+
+                      return (
+                        <FormField
+                          key={entityId}
+                          control={form.control}
+                          name={entityId as any}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                {fieldName}
+                                {entity.is_mandatory && (
+                                  <span className="text-destructive"> *</span>
+                                )}
+                              </FormLabel>
+                              {entity.field_type === "SELECT" ? (
+                                <Popover
+                                  open={entityDropdownOpen[entityId] || false}
+                                  onOpenChange={(open) =>
+                                    setEntityDropdownOpen((prev) => ({
+                                      ...prev,
+                                      [entityId]: open,
+                                    }))
+                                  }
+                                >
+                                  <PopoverTrigger asChild>
+                                    <FormControl>
+                                      <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={entityDropdownOpen[entityId]}
+                                        className="h-11 w-full justify-between"
+                                        disabled={readOnly}
+                                      >
+                                        <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
+                                          {field.value
+                                            ? entityOptions[entityId]?.find(
+                                                (opt) => opt.id === field.value
+                                              )?.label || `Select ${fieldName}`
+                                            : `Select ${fieldName}`}
+                                        </span>
+                                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                      </Button>
+                                    </FormControl>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                      <CommandInput placeholder={`Search ${fieldName}...`} />
+                                      <CommandList className="max-h-[180px] overflow-y-auto">
+                                        <CommandEmpty>
+                                          No {fieldName.toLowerCase()} found.
+                                        </CommandEmpty>
+                                        <CommandGroup>
+                                          {entityOptions[entityId]?.map((opt) => (
+                                            <CommandItem
+                                              key={opt.id}
+                                              value={opt.label}
+                                              onSelect={() => {
+                                                field.onChange(opt.id);
+                                                setEntityDropdownOpen((prev) => ({
+                                                  ...prev,
+                                                  [entityId]: false,
+                                                }));
+                                              }}
+                                            >
+                                              {opt.label}
+                                            </CommandItem>
+                                          ))}
+                                        </CommandGroup>
+                                      </CommandList>
+                                    </Command>
+                                  </PopoverContent>
+                                </Popover>
+                              ) : (
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder={`Enter ${fieldName}`}
+                                    disabled={readOnly}
+                                    className={inputFieldClass}
+                                  />
+                                </FormControl>
+                              )}
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      );
+                    })}
                   </div>
                 </section>
               </div>

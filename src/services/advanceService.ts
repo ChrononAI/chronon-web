@@ -5,11 +5,14 @@ export interface AdvanceType {
   id: string;
   title: string;
   description: string;
-  status: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | string;
+  status: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "COMPLETE" | string;
   sequence_number: string;
   org_id: string;
   user_id: string;
   amount: string;
+  currency?: string;
+  policy_id?: string;
+  custom_attributes?: Record<string, string>;
   created_at: string;
   updated_at: string;
   created_by: {
@@ -30,6 +33,7 @@ interface CreateAdvancePayloadType {
   currency: string;
   amount: string;
   policy_id?: string;
+  custom_attributes?: Record<string, string>;
 }
 
 export interface AccountType {

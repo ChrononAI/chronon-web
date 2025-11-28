@@ -15,6 +15,7 @@ import { UploadReceiptStep } from "./UploadReceiptStep";
 import { useExpenseStore } from "@/store/expenseStore";
 import { getOrgCurrency } from "@/lib/utils";
 import { ExpenseDetailsStep2 } from "./ExpenseDetailsStep2";
+import { getTemplates, type Template } from "@/services/admin/templates";
 import { trackEvent } from "@/mixpanel";
 
 // Form schema for step 2
@@ -56,6 +57,25 @@ export function CreateExpenseForm() {
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [uploadStepKey, setUploadStepKey] = useState(0);
   const [isReceiptReplaced, setIsReceiptReplaced] = useState(false);
+  const [templateEntities, setTemplateEntities] = useState<Template["entities"]>([]);
+  useEffect(() => {
+    if (currentStep === 2) {
+      const loadTemplateEntities = async () => {
+        try {
+          const templates = await getTemplates();
+          const expenseTemplate = Array.isArray(templates)
+            ? templates.find((t) => t.module_type === "expense")
+            : null;
+          if (expenseTemplate?.entities) {
+            setTemplateEntities(expenseTemplate.entities);
+          }
+        } catch (error) {
+          console.error("Failed to load template entities:", error);
+        }
+      };
+      loadTemplateEntities();
+    }
+  }, [currentStep]);
 
   useEffect(() => {
     const shouldShowDialog = localStorage.getItem("showDuplicateDialog");
@@ -125,38 +145,101 @@ export function CreateExpenseForm() {
   };
 
   const actuallySubmit = async (formData: any) => {
-    // setLoading(true);
     try {
+      let entitiesToUse = templateEntities;
+      if (!entitiesToUse || entitiesToUse.length === 0) {
+        try {
+          const templates = await getTemplates();
+          const expenseTemplate = Array.isArray(templates)
+            ? templates.find((t) => t.module_type === "expense")
+            : null;
+          if (expenseTemplate?.entities) {
+            entitiesToUse = expenseTemplate.entities;
+          }
+        } catch (error) {
+          console.error("Failed to load template entities:", error);
+        }
+      }
+
+      const customAttributes: Record<string, string> = {};
+      if (entitiesToUse && entitiesToUse.length > 0) {
+        const entityIdSet = new Set(
+          entitiesToUse
+            .map((entity) => entity?.entity_id || entity?.id)
+            .filter(Boolean)
+        );
+
+        Object.keys(formData).forEach((key) => {
+          if (entityIdSet.has(key) && formData[key]) {
+            const value = String(formData[key]).trim();
+            if (value) {
+              customAttributes[key] = value;
+            }
+          }
+        });
+      }
+
       let result;
       if (formData.invoice_number) {
-        formData.expense_date = formData.expense_date
-          .toISOString()
-          .split("T")[0];
-        formData.currency = baseCurrency || "INR";
-        if (!formData.foreign_amount) {
-          formData.foreign_currency = null;
-        }
-        result = await expenseService.createExpense(formData);
-      } else if (formData.start_location) {
-        const expenseData: any = {
+        // Regular expense with invoice number
+        const expensePayload: any = {
+          expense_policy_id: formData.expense_policy_id,
+          category_id: formData.category_id,
           amount: parseFloat(formData.amount),
-          category_id: formData.categoryId,
+          expense_date: formData.expense_date instanceof Date 
+            ? formData.expense_date.toISOString().split("T")[0]
+            : formData.expense_date,
+          vendor: formData.vendor,
+          invoice_number: formData.invoice_number,
           description: formData.description,
-          expense_date: formData.expense_date,
-          expense_policy_id: formData.policyId,
-          vendor: formData.merchant,
           receipt_id: formData.receipt_id,
-          invoice_number: formData.invoiceNumber || null,
-          distance: formData.distance || null,
+          currency: formData.currency || baseCurrency || "INR",
+        };
+
+        if (formData.advance_id) expensePayload.advance_id = formData.advance_id;
+        if (formData.pre_approval_id) expensePayload.pre_approval_id = formData.pre_approval_id;
+        if (formData.foreign_amount) expensePayload.foreign_amount = parseFloat(formData.foreign_amount);
+        if (formData.foreign_currency) expensePayload.foreign_currency = formData.foreign_currency;
+        if (formData.api_conversion_rate) expensePayload.api_conversion_rate = parseFloat(formData.api_conversion_rate);
+        if (formData.user_conversion_rate) expensePayload.user_conversion_rate = parseFloat(formData.user_conversion_rate);
+
+        if (Object.keys(customAttributes).length > 0) {
+          expensePayload.custom_attributes = customAttributes;
+        }
+
+        result = await expenseService.createExpense(expensePayload);
+      } else if (formData.start_location) {
+        // Mileage expense
+        const expenseData: any = {
+          expense_policy_id: formData.expense_policy_id || formData.policyId,
+          category_id: formData.category_id || formData.categoryId,
+          amount: parseFloat(formData.amount),
+          expense_date: formData.expense_date instanceof Date
+            ? formData.expense_date.toISOString().split("T")[0]
+            : formData.expense_date,
+          description: formData.description,
+          vendor: formData.vendor || formData.merchant,
+          receipt_id: formData.receipt_id,
+          distance: formData.distance ? parseFloat(formData.distance) : null,
           distance_unit: formData.distance_unit || null,
           end_location: formData.end_location || null,
-          start_location: formData.start_location || null,
+          start_location: formData.start_location,
           mileage_rate_id: formData.mileage_rate_id,
           mileage_meta: formData.mileage_meta || null,
           is_round_trip: formData.is_round_trip === "true" ? true : false,
-          custom_attributes: {},
           currency: baseCurrency,
         };
+
+        if (formData.invoice_number || formData.invoiceNumber) {
+          expenseData.invoice_number = formData.invoice_number || formData.invoiceNumber;
+        }
+        if (formData.advance_id) expenseData.advance_id = formData.advance_id;
+        if (formData.pre_approval_id) expenseData.pre_approval_id = formData.pre_approval_id;
+
+        if (Object.keys(customAttributes).length > 0) {
+          expenseData.custom_attributes = customAttributes;
+        }
+
         result = await expenseService.createExpense(expenseData);
       }
       if (result?.success) {

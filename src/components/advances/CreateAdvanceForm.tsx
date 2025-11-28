@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { ArrowLeft, Loader2, ChevronDown } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,12 +21,27 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
-import { expenseService } from "@/services/expenseService";
-import { Policy } from "@/types/expense";
-import { AdvanceService, AdvanceType } from "@/services/advanceService";
-import { trackEvent } from "@/mixpanel";
+} from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { toast } from 'sonner';
+import { expenseService } from '@/services/expenseService';
+import { Policy } from '@/types/expense';
+import { AdvanceService, AdvanceType } from '@/services/advanceService';
+import { getTemplates, type Template } from '@/services/admin/templates';
+import { getEntities, type Entity } from '@/services/admin/entities';
+import { trackEvent } from '@/mixpanel';
 
 export interface Currency {
   code: string;
@@ -58,7 +73,17 @@ const advanceSchema = z.object({
   policy_id: z.string().optional(),
 });
 
-type AdvanceFormValues = z.infer<typeof advanceSchema>;
+type AdvanceFormValues = z.infer<typeof advanceSchema> & Record<string, any>;
+
+type TemplateEntity = NonNullable<Template["entities"]>[0];
+
+const getEntityId = (entity: TemplateEntity): string => {
+  return entity?.entity_id || entity?.id || "";
+};
+
+const getFieldName = (entity: TemplateEntity): string => {
+  return entity?.display_name || entity?.field_name || getEntityId(entity);
+};
 
 export function CreateAdvanceForm({
   mode = "create",
@@ -85,6 +110,9 @@ export function CreateAdvanceForm({
   const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType>();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
+  const [templateEntities, setTemplateEntities] = useState<TemplateEntity[]>([]);
+  const [entityOptions, setEntityOptions] = useState<Record<string, Array<{ id: string; label: string }>>>({});
+  const [entityDropdownOpen, setEntityDropdownOpen] = useState<Record<string, boolean>>({});
 
   const loadPoliciesWithCategories = async () => {
     try {
@@ -142,7 +170,33 @@ export function CreateAdvanceForm({
         trackEvent("Create Advance Button Clicked", {
           button_name: "Create Advance",
         });
-        const response: any = await AdvanceService.createAdvance(values);
+        const allFormValues = form.getValues();
+         const customAttributes: Record<string, string> = {};
+         
+         templateEntities.forEach((entity) => {
+           const entityId = getEntityId(entity);
+           if (entityId && allFormValues[entityId]) {
+             const value = String(allFormValues[entityId]).trim();
+             if (value) {
+               customAttributes[entityId] = value;
+             }
+           }
+         });
+
+         const { title, description, amount, currency, policy_id } = values;
+         const payload: any = {
+           title,
+           description,
+           amount,
+           currency,
+           policy_id: policy_id || null,
+         };
+
+         if (Object.keys(customAttributes).length > 0) {
+           payload.custom_attributes = customAttributes;
+         }
+
+         const response: any = await AdvanceService.createAdvance(payload);
         await AdvanceService.submitAdvance(response.data.data.id);
         toast.success("Advance created successfully");
         setTimeout(() => {
@@ -157,10 +211,11 @@ export function CreateAdvanceForm({
   const getAdvancebyId = async (id: string) => {
     try {
       const res: any = await AdvanceService.getAdvanceById(id);
-      form.reset(res.data.data[0]);
-      setSelectedAdvance(res.data.data[0]);
+      const advanceData = res.data.data[0];
+      form.reset(advanceData);
+      setSelectedAdvance(advanceData);
       const selectedPol = policies.find(
-        (pol) => pol.id === res?.data?.data[0]?.policy_id
+        (pol) => pol.id === advanceData?.policy_id
       );
       if (selectedPol) setSelectedPolicy(selectedPol);
     } catch (error) {
@@ -175,7 +230,65 @@ export function CreateAdvanceForm({
   }, [id, policies]);
 
   useEffect(() => {
+    if (selectedAdvance?.custom_attributes && templateEntities.length > 0) {
+      Object.entries(selectedAdvance.custom_attributes).forEach(([entityId, attributeId]) => {
+        form.setValue(entityId as any, String(attributeId));
+      });
+    }
+  }, [selectedAdvance, templateEntities]);
+
+  useEffect(() => {
     loadPoliciesWithCategories();
+  }, []);
+
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const [templatesRes, entitiesRes] = await Promise.all([
+          getTemplates(),
+          getEntities(),
+        ]);
+        
+        const advanceTemplate = Array.isArray(templatesRes)
+          ? templatesRes.find((t) => t.module_type === "advance")
+          : null;
+
+        if (advanceTemplate?.entities) {
+          setTemplateEntities(advanceTemplate.entities);
+          
+          advanceTemplate.entities.forEach((entity) => {
+            const entityId = getEntityId(entity);
+            if (entityId) {
+              form.setValue(entityId as any, "");
+            }
+          });
+        }
+
+        const entityMap: Record<string, Array<{ id: string; label: string }>> = {};
+        entitiesRes.forEach((ent: Entity) => {
+          if (ent.id && Array.isArray(ent.attributes)) {
+            entityMap[ent.id] = ent.attributes.map((attr) => ({
+              id: attr.id,
+              label: attr.display_value ?? attr.value ?? "—",
+            }));
+          }
+        });
+
+        const mappedOptions: Record<string, Array<{ id: string; label: string }>> = {};
+        advanceTemplate?.entities?.forEach((entity) => {
+          const entityId = getEntityId(entity);
+          if (entityId) {
+            mappedOptions[entityId] = entityMap[entityId] || [];
+          }
+        });
+
+        setEntityOptions(mappedOptions);
+      } catch (error) {
+        console.error("Failed to load templates:", error);
+      }
+    };
+
+    loadTemplates();
   }, []);
 
   return (
@@ -354,6 +467,98 @@ export function CreateAdvanceForm({
               )}
             />
           </div>
+
+          {templateEntities?.map((entity) => {
+                const entityId = getEntityId(entity);
+                const fieldName = getFieldName(entity);
+                if (!entityId) return null;
+
+                return (
+                  <FormField
+                    key={entityId}
+                    control={form.control}
+                    name={entityId as any}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {fieldName}
+                          {entity.is_mandatory && (
+                            <span className="text-destructive"> *</span>
+                          )}
+                        </FormLabel>
+                        {entity.field_type === "SELECT" ? (
+                          <Popover
+                            open={entityDropdownOpen[entityId] || false}
+                            onOpenChange={(open) =>
+                              setEntityDropdownOpen((prev) => ({
+                                ...prev,
+                                [entityId]: open,
+                              }))
+                            }
+                          >
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={entityDropdownOpen[entityId]}
+                                  className="h-11 w-full justify-between"
+                                  disabled={mode === "view"}
+                                >
+                                  <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
+                                    {field.value
+                                      ? entityOptions[entityId]?.find(
+                                          (opt) => opt.id === field.value
+                                        )?.label || `Select ${fieldName}`
+                                      : `Select ${fieldName}`}
+                                  </span>
+                                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                              <Command>
+                                <CommandInput placeholder={`Search ${fieldName}...`} />
+                                <CommandList className="max-h-[180px] overflow-y-auto">
+                                  <CommandEmpty>
+                                    No {fieldName.toLowerCase()} found.
+                                  </CommandEmpty>
+                                  <CommandGroup>
+                                    {entityOptions[entityId]?.map((opt) => (
+                                      <CommandItem
+                                        key={opt.id}
+                                        value={opt.label}
+                                        onSelect={() => {
+                                          field.onChange(opt.id);
+                                          setEntityDropdownOpen((prev) => ({
+                                            ...prev,
+                                            [entityId]: false,
+                                          }));
+                                        }}
+                                      >
+                                        {opt.label}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder={`Enter ${fieldName}`}
+                              disabled={mode === "view"}
+                            />
+                          </FormControl>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                );
+              })}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-2 pt-4">

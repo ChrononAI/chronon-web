@@ -12,7 +12,7 @@ export function ProtectedRoute() {
   if (location.pathname.includes("pre-approvals") ) {
     enabled = orgSettings?.pre_approval_settings?.enabled || false;
   } else if (location.pathname.includes("advances") || location.pathname.includes('/advance_accounts')) {
-    enabled = orgSettings?.pre_approval_settings?.enabled || false;
+    enabled = orgSettings?.advance_settings?.enabled || false;
   } else if (location.pathname.includes("admin")) {
     enabled = (orgSettings.admin_dashboard_settings?.enabled && user?.role === "ADMIN");
   } else if (location.pathname.includes('all-reports')) {
