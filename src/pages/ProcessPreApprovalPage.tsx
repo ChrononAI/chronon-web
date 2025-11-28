@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { formatDate, getStatusColor } from "@/lib/utils";
+import { trackEvent } from "@/mixpanel";
 import { preApprovalService } from "@/services/preApprovalService";
 import { useAuthStore } from "@/store/authStore";
 import { usePreApprovalStore } from "@/store/preApprovalStore";
@@ -198,6 +199,10 @@ function ProcessPreApprovalPage() {
     }
   };
   const handleAction = async (action: string) => {
+    const text = action === 'approve' ? "Approve Pre Approval" : "Reject Pre Approval";
+    trackEvent(text + " Button Clicked", {
+      button_name: text,
+    });
     if (
       approvalWorkflow?.current_step === approvalWorkflow?.total_steps &&
       action === "approve"
@@ -248,74 +253,85 @@ function ProcessPreApprovalPage() {
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Pre Approval Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="col-span-1 lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Pre Approval Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <FileText className="h-4 w-4" />
+                        Submitted By
+                      </div>
+                      <p className="text-lg font-semibold">
+                        {report?.created_by.email}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <Activity className="h-4 w-4" />
+                        Status
+                      </div>
+                      <Badge
+                        className={getStatusColor(getUserSpecificStatus())}
+                      >
+                        {getUserSpecificStatus().replace("_", " ")}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        Created Date
+                      </div>
+                      <p className="text-lg font-semibold">
+                        {report?.created_at && formatDate(report.created_at)}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        Submitted Date
+                      </div>
+                      <p className="text-lg font-semibold">
+                        {report?.created_at
+                          ? formatDate(report.created_at)
+                          : "Not submitted"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <FileText className="h-4 w-4" />
-                      Submitted By
+                      Description
                     </div>
-                    <p className="text-lg font-semibold">
-                      {report?.created_by.email}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <Activity className="h-4 w-4" />
-                      Status
+                    <div className="bg-muted/30 rounded-lg p-4">
+                      <p className="text-sm leading-relaxed">
+                        {report?.description}
+                      </p>
                     </div>
-                    <Badge className={getStatusColor(getUserSpecificStatus())}>
-                      {getUserSpecificStatus().replace("_", " ")}
-                    </Badge>
                   </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      Created Date
-                    </div>
-                    <p className="text-lg font-semibold">
-                      {report?.created_at && formatDate(report.created_at)}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      Submitted Date
-                    </div>
-                    <p className="text-lg font-semibold">
-                      {report?.created_at
-                        ? formatDate(report.created_at)
-                        : "Not submitted"}
-                    </p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <FileText className="h-4 w-4" />
-                    Description
-                  </div>
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <p className="text-sm leading-relaxed">
-                      {report?.description}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="lg:col-span-2">
+              <CreatePreApprovalForm
+                mode="view"
+                showHeader={false}
+                maxWidth="w-full"
+              />
+            </div>
           </div>
           {approvalWorkflow && approvalWorkflow.approval_steps && (
             <div>
@@ -333,7 +349,6 @@ function ProcessPreApprovalPage() {
             </div>
           )}
         </div>
-        <CreatePreApprovalForm mode="view" showHeader={false} />
       </div>
       <AlertDialog open={showCurrencyAlert} onOpenChange={setShowCurrencyAlert}>
         <AlertDialogContent className="max-w-md">

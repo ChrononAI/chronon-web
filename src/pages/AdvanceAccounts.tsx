@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Badge, Box } from "@mui/material";
-import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridOverlay, GridPaginationModel } from "@mui/x-data-grid";
 import {
   AccountType,
   AdvanceService,
@@ -20,6 +20,7 @@ import {
   preApprovalService,
   PreApprovalType,
 } from "@/services/preApprovalService";
+import { CheckCircle } from "lucide-react";
 
 const columns: GridColDef[] = [
   {
@@ -72,6 +73,22 @@ const columns: GridColDef[] = [
     valueFormatter: (value) => formatCurrency(value),
   },
 ];
+
+function CustomNoRows() {
+  return (
+    <GridOverlay>
+      <Box className="w-full">
+        <div className="text-center">
+          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No entries found</h3>
+          <p className="text-muted-foreground">
+            There are currently no entries.
+          </p>
+        </div>
+      </Box>
+    </GridOverlay>
+  );
+}
 
 function AccountCard({
   card,
@@ -132,6 +149,7 @@ function AdvanceAccounts() {
     useState<GridPaginationModel | null>(null);
 
   const [accounts, setAccounts] = useState<AccountType[]>([]);
+  const [loading, setLoading] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [ledger, setLedger] = useState<LedgerType[]>([]);
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -140,6 +158,7 @@ function AdvanceAccounts() {
   const getAccounts = async () => {
     try {
       const res = await AdvanceService.getAccounts();
+      console.log(res);
       setSelectedAccount(res.data.data[0].id);
       setAccounts(res.data.data);
     } catch (error) {
@@ -150,6 +169,7 @@ function AdvanceAccounts() {
   const getAccountsLedger = async (id: string) => {
     try {
       const res = await AdvanceService.getAccountLedger(id);
+      console.log(res)
       const newRes = JSON.parse(JSON.stringify(res.data.data));
       const newRows = newRes.map((row: LedgerType, idx: number) => {
         return {
@@ -160,13 +180,14 @@ function AdvanceAccounts() {
       setLedger(newRows);
     } catch (error) {
       console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const getPolicies = async () => {
     try {
       const res = await expenseService.getAllPolicies();
-      console.log(res);
       setPolicies(res);
     } catch (error) {
       console.log(error);
@@ -236,8 +257,12 @@ function AdvanceAccounts() {
         >
           <DataGrid
             className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-            rows={ledger}
+            rows={loading ? [] : ledger}
             columns={columns}
+            loading={loading}
+            slots={{
+              noRowsOverlay: CustomNoRows
+            }}
             sx={{
               border: 0,
               "& .MuiDataGrid-columnHeaderTitle": {

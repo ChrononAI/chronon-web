@@ -84,7 +84,7 @@ const expenseSchema = z.object({
   invoice_number: z.string().min(1, "Invoice number is required"),
   vendor: z.string().min(1, "Vendor is required"),
   amount: z.string().min(1, "Amount is required"),
-  receipt_id: z.string().min(1, "Receipt is required"),
+  receipt_id: z.string().optional(),
   expense_date: z.preprocess(
     (v) => (v ? new Date(v as string) : v),
     z.date({ required_error: "Date is required" })
@@ -159,6 +159,7 @@ export function ExpenseDetailsStep2({
   const [showConversion, setShowConversion] = useState(false);
   const [templateEntities, setTemplateEntities] = useState<TemplateEntity[]>([]);
   const [entityOptions, setEntityOptions] = useState<Record<string, Array<{ id: string; label: string }>>>({});
+  const [isReceiptReuploaded, setIsReceiptReuploaded] = useState(false);
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: expense
@@ -191,10 +192,69 @@ export function ExpenseDetailsStep2({
         orgId
       );
       setReceiptSignedUrl([response.data.data.signed_url]);
+      console.log("fetch receipt", response);
+      console.log(form.getValues("receipt_id"));
     } catch (error) {
       console.log(error);
       toast.error("Failed to fetch receipt image");
     }
+  };
+
+  const setPolicyCategory = async (data: any) => {
+    if (!data) return;
+    if (data.ocr_result.invoice_number) {
+      form.setValue("invoice_number", data.ocr_result.invoice_number);
+    }
+    if (data.recommended_policy_id && data.recommended_category) {
+      const selectedPolicy = policies.find(
+        (policy) => policy.id === data.recommended_policy_id
+      );
+      const selectedCategory = selectedPolicy?.categories.find(
+        (category) => category.id === data.recommended_category.category_id
+      );
+      if (selectedPolicy && selectedCategory) {
+        setSelectedCategory(selectedCategory);
+        setSelectedPolicy(selectedPolicy);
+        form.setValue("expense_policy_id", selectedPolicy.id);
+        form.setValue("category_id", selectedCategory.id);
+      }
+    }
+  };
+
+  const reuploadReceipt = async (file: File) => {
+    const orgId = getOrgIdFromToken();
+    try {
+      setReplaceRecLoading(true);
+      const parsedData = await fileParseService.parseInvoiceFile(file);
+      if (parsedData.is_duplicate_receipt) {
+        setSemiParsedData(parsedData);
+        console.log(parsedData);
+        setShowDuplicateDialog(true);
+      } else {
+        fetchReceipt(parsedData.id, orgId || "");
+        form.setValue("receipt_id", parsedData.id);
+        setPolicyCategory(parsedData);
+        setIsReceiptReplaced(true);
+      }
+      setIsReceiptReuploaded(true);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setReplaceRecLoading(false);
+    }
+  };
+
+  const uploadReceipt = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,image/*";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        reuploadReceipt(file);
+      }
+    };
+    input.click();
   };
 
   // Fetch signed URL for duplicate receipts
@@ -282,10 +342,7 @@ export function ExpenseDetailsStep2({
   }, [form.watch("currency")]);
 
   useEffect(() => {
-    if (
-      form.getValues("currency") !== baseCurrency &&
-      shouldGetConversion
-    ) {
+    if (form.getValues("currency") !== baseCurrency && shouldGetConversion) {
       const yesterday = getYesterday();
       getCurrencyConversion({
         date: yesterday,
@@ -377,10 +434,10 @@ export function ExpenseDetailsStep2({
       // Set selected policy and category based on form data
       if (expense.foreign_amount && expense.foreign_currency) {
         setShowConversion(true);
-        form.setValue('currency', expense.foreign_currency);
+        form.setValue("currency", expense.foreign_currency);
       }
       if (!expense.currency) {
-        form.setValue('currency', baseCurrency || "INR");
+        form.setValue("currency", baseCurrency || "INR");
       }
       if (expense.expense_policy_id && policies.length > 0) {
         const policy = policies.find((p) => p.id === expense.expense_policy_id);
@@ -441,7 +498,7 @@ export function ExpenseDetailsStep2({
         form.setValue("amount", cleanAmount);
       }
 
-      form.setValue('receipt_id', parsedData.id);
+      form.setValue("receipt_id", parsedData.id);
 
       if (ocrData.vendor) {
         form.setValue("vendor", ocrData.vendor);
@@ -596,9 +653,16 @@ export function ExpenseDetailsStep2({
   const activeReceiptUrl =
     previewUrl ||
     duplicateReceiptUrl ||
-    (readOnly && receiptSignedUrl && receiptSignedUrl.length > 0
+    (receiptSignedUrl && receiptSignedUrl.length > 0
       ? receiptSignedUrl[0]
       : null);
+  console.log(
+    previewUrl,
+    duplicateReceiptUrl,
+    readOnly,
+    receiptSignedUrl,
+    activeReceiptUrl
+  );
 
   const receiptDisplayName =
     uploadedFile?.name ||
@@ -632,7 +696,7 @@ export function ExpenseDetailsStep2({
     "rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-6">
       {expense?.original_expense_id && (
         <Alert className="bg-yellow-50 border-yellow-200">
           <Copy className="h-4 w-4 text-yellow-600" />
@@ -738,14 +802,16 @@ export function ExpenseDetailsStep2({
                   ) : (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
                       <FileText className="h-14 w-14 text-gray-300" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">
-                          No receipt uploaded
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Upload the receipt in the previous step to see a
-                          preview here.
-                        </p>
+                      <div className="space-y-6">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            No receipt uploaded
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Upload the receipt to see a preview here.
+                          </p>
+                        </div>
+                        <Button onClick={uploadReceipt}>Upload Receipt</Button>
                       </div>
                     </div>
                   )}
@@ -841,10 +907,14 @@ export function ExpenseDetailsStep2({
               const mergedData = { ...allFormValues, ...data };
               onSubmit(mergedData);
             })}
-            className="md:h-[calc(100vh-7rem)] md:overflow-y-auto"
+            className={`rounded-2xl border border-gray-200 bg-white shadow-sm p-2 ${
+              expense?.original_expense_id
+                ? "md:h-[calc(100vh-21rem)]"
+                : "md:h-[calc(100vh-16rem)]"
+            } md:overflow-y-auto`}
           >
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm md:min-h-full">
-              <div className="divide-y divide-gray-100 pb-32">
+            <div className="md:min-h-full">
+              <div className="divide-y divide-gray-100">
                 <section className="space-y-4 p-6">
                   <div>
                     <h2 className="text-sm font-semibold tracking-wide text-gray-500">
@@ -1032,11 +1102,17 @@ export function ExpenseDetailsStep2({
                             <FormLabel>Currency *</FormLabel>
                             <FormControl>
                               <Select
-                                value={expense?.forerign_currency ? expense?.foreign_currency : field.value ? field.value : "INR"}
+                                value={
+                                  expense?.forerign_currency
+                                    ? expense?.foreign_currency
+                                    : field.value
+                                    ? field.value
+                                    : "INR"
+                                }
                                 onValueChange={(value) => {
                                   field.onChange(value);
                                   if (value !== baseCurrency) {
-                                    form.setValue('foreign_currency', value)
+                                    form.setValue("foreign_currency", value);
                                   }
                                 }}
                                 disabled={
@@ -1093,7 +1169,7 @@ export function ExpenseDetailsStep2({
                               <FormControl>
                                 <Input
                                   {...field}
-                                  value={field.value ?? ""} 
+                                  value={field.value ?? ""}
                                   placeholder={
                                     isConveyanceCategory
                                       ? "Auto calculated for conveyance"
@@ -1638,9 +1714,11 @@ export function ExpenseDetailsStep2({
               onClick={() => {
                 setShowDuplicateDialog(false);
                 // setCurrentStep(2);
-                setParsedData(semiParsedData);
+                if (!isReceiptReuploaded) setParsedData(semiParsedData);
                 console.log(semiParsedData);
                 fetchReceipt(semiParsedData?.id || "", orgId || "");
+                setPolicyCategory(semiParsedData);
+                form.setValue("receipt_id", semiParsedData?.id || "");
                 setIsReceiptReplaced(true);
               }}
               className="w-full h-12 bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 font-medium"

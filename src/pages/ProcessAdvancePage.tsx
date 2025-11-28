@@ -34,6 +34,7 @@ import {
   getOrgCurrency,
   getStatusColor,
 } from "@/lib/utils";
+import { trackEvent } from "@/mixpanel";
 import { AdvanceService } from "@/services/advanceService";
 import { useAdvanceStore } from "@/store/advanceStore";
 import { useAuthStore } from "@/store/authStore";
@@ -204,6 +205,11 @@ function ProcessAdvancePage() {
   };
 
   const handleAction = async (action: string) => {
+    const text =
+      action === "approve" ? "Approve Advance" : "Reject Advance";
+    trackEvent(text + " Button Clicked", {
+      button_name: text,
+    });
     if (action === "reject") {
       setShowActionDialog(true);
     } else if (
@@ -326,6 +332,13 @@ function ProcessAdvancePage() {
               </div>
             </CardContent>
           </Card>
+          <div className="lg:col-span-2">
+            <CreateAdvanceForm
+              mode="view"
+              showHeader={false}
+              maxWidth="w-full"
+            />
+          </div>
         </div>
         {approvalWorkflow && approvalWorkflow.approval_steps && (
           <div>
@@ -343,7 +356,6 @@ function ProcessAdvancePage() {
           </div>
         )}
       </div>
-      <CreateAdvanceForm mode="view" showHeader={false} />
       <AlertDialog open={showCurrencyAlert} onOpenChange={setShowCurrencyAlert}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>

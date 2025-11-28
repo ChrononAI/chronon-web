@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { initMixpanel } from "./mixpanel";
 
 // 🔹 Create MUI theme that matches Tailwind's font
 const theme = createTheme({
@@ -30,6 +31,8 @@ theme.components = {
     },
   },
 };
+
+initMixpanel();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

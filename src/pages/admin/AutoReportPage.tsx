@@ -1,6 +1,6 @@
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridOverlay } from "@mui/x-data-grid";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { CheckCircle, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dialog,
@@ -22,6 +22,7 @@ import {
   type AutoReportSubmission,
 } from "@/services/admin/autoReportSubmissions";
 import { toast } from "sonner";
+import { Box } from "@mui/material";
 
 const getOrdinalSuffix = (day: number) => {
   if (day % 100 >= 11 && day % 100 <= 13) {
@@ -38,6 +39,22 @@ const getOrdinalSuffix = (day: number) => {
       return "th";
   }
 };
+
+function CustomNoRows() {
+  return (
+    <GridOverlay>
+      <Box className="w-full">
+        <div className="text-center">
+          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No advances found</h3>
+          <p className="text-muted-foreground">
+            There are currently no advances.
+          </p>
+        </div>
+      </Box>
+    </GridOverlay>
+  );
+}
 
 const WEEKLY_DAY_OPTIONS = [
   { value: "mon", label: "Monday" },
@@ -261,6 +278,7 @@ export const AutoReportPage = () => {
         className="rounded border-[0.2px] border-[#f3f4f6] h-full"
         columns={columns}
         rows={scheduleRows}
+        slots={{ noRowsOverlay: CustomNoRows }}
         loading={isLoading}
         sx={{
           border: 0,

@@ -17,7 +17,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { usePreApprovalStore } from "@/store/preApprovalStore";
 import { PaginationInfo } from "@/store/expenseStore";
-import { CustomLoader } from "./MyReportsPage";
 import { CheckCircle } from "lucide-react";
 
 function CustomNoRows() {
@@ -279,7 +278,6 @@ function PreApprovalPage() {
           rows={rows}
           loading={loading}
           slots={{
-            loadingOverlay: CustomLoader,
             noRowsOverlay: CustomNoRows,
           }}
           sx={{

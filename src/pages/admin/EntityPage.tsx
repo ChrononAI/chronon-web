@@ -1,9 +1,10 @@
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridOverlay } from "@mui/x-data-grid";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { CheckCircle, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getEntities } from "@/services/admin/entities";
+import { Box } from "@mui/material";
 
 type APIEntity = {
   id: string;
@@ -32,8 +33,25 @@ type EntityRow = {
   value?: string;
 };
 
+function CustomNoRows() {
+  return (
+    <GridOverlay>
+      <Box className="w-full">
+        <div className="text-center">
+          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No advances found</h3>
+          <p className="text-muted-foreground">
+            There are currently no advances.
+          </p>
+        </div>
+      </Box>
+    </GridOverlay>
+  );
+}
+
 export const EntityPage = () => {
   const [rows, setRows] = useState<EntityRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const columns: GridColDef<EntityRow>[] = [
     { field: "entity_name", headerName: "ENTITY NAME", width: 300 },
     { field: "description", headerName: "DESC", width: 300 },
@@ -44,6 +62,7 @@ export const EntityPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
+        setLoading(true);
         const data = await getEntities();
         const mapped: EntityRow[] = data.map((e: APIEntity, idx: number) => ({
           id: e.id || String(idx),
@@ -57,6 +76,8 @@ export const EntityPage = () => {
         setRows(mapped);
       } catch (err) {
         setRows([]);
+      } finally {
+        setLoading(false);
       }
     };
     load();
@@ -85,6 +106,8 @@ export const EntityPage = () => {
         className="rounded border-[0.2px] border-[#f3f4f6] h-full"
         columns={columns}
         rows={rows}
+        loading={loading}
+        slots={{ noRowsOverlay: CustomNoRows }}
         sx={{
           border: 0,
           "& .MuiDataGrid-columnHeaderTitle": {

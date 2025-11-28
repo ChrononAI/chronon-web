@@ -11,6 +11,24 @@ import { useNavigate } from "react-router-dom";
 import { usePreApprovalStore } from "@/store/preApprovalStore";
 import { PaginationInfo } from "@/store/expenseStore";
 import { Box } from "@mui/material";
+import { GridOverlay } from "@mui/x-data-grid";
+import { CheckCircle } from "lucide-react";
+
+function CustomNoRows() {
+  return (
+    <GridOverlay>
+      <Box className="w-full">
+        <div className="text-center">
+          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No pre approvals found</h3>
+          <p className="text-muted-foreground">
+            There are currently no pre approvals.
+          </p>
+        </div>
+      </Box>
+    </GridOverlay>
+  );
+}
 
 function ApprovalsPreApprovalsPage() {
   const navigate = useNavigate();
@@ -83,7 +101,7 @@ function ApprovalsPreApprovalsPage() {
       minWidth: 150,
     },
   ];
-
+  const [loading, setLoading] = useState(true);
   const [allRows, setAllRows] = useState([]);
   const [allPagination, setAllPagination] = useState<PaginationInfo | null>(
     null
@@ -164,9 +182,23 @@ function ApprovalsPreApprovalsPage() {
   };
 
   useEffect(() => {
-    getAllPreApprovalsToApprove();
-    getPendingPreApprovalsToApprove();
-    getProcessedApprovals();
+  const fetchAll = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        getAllPreApprovalsToApprove(),
+        getPendingPreApprovalsToApprove(),
+        getProcessedApprovals(),
+      ]);
+    } catch (error) {
+      console.error("Failed to fetch approvals:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchAll();
+
   }, []);
   return (
     <ReportsPageWrapper
@@ -194,6 +226,10 @@ function ApprovalsPreApprovalsPage() {
           className="rounded border h-full"
           columns={columns}
           rows={rows}
+          loading={loading}
+          slots={{
+            noRowsOverlay: CustomNoRows
+          }}
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {

@@ -8,34 +8,13 @@ import {
   GridPaginationModel,
   GridRowModel,
 } from "@mui/x-data-grid";
-import { Box, CircularProgress } from "@mui/material";
+import { Box } from "@mui/material";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { AdvanceService } from "@/services/advanceService";
 import { useAdvanceStore } from "@/store/advanceStore";
 import { PaginationInfo } from "@/store/expenseStore";
 import { CheckCircle } from "lucide-react";
-
-function CustomLoader() {
-  return (
-    <GridOverlay>
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "rgba(255,255,255,0.6)",
-        }}
-      >
-        <CircularProgress size={28} thickness={4} />
-      </Box>
-    </GridOverlay>
-  );
-}
 
 const columns: GridColDef[] = [
   {
@@ -308,7 +287,6 @@ export function MyAdvancesPage() {
           rows={rows}
           loading={loading}
           slots={{
-            loadingOverlay: CustomLoader,
             noRowsOverlay: CustomNoRows,
           }}
           sx={{
