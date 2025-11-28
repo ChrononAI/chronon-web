@@ -149,7 +149,7 @@ function AdvanceAccounts() {
     useState<GridPaginationModel | null>(null);
 
   const [accounts, setAccounts] = useState<AccountType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [ledger, setLedger] = useState<LedgerType[]>([]);
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -158,6 +158,7 @@ function AdvanceAccounts() {
   const getAccounts = async () => {
     try {
       const res = await AdvanceService.getAccounts();
+      console.log(res);
       setSelectedAccount(res.data.data[0].id);
       setAccounts(res.data.data);
     } catch (error) {
@@ -167,8 +168,8 @@ function AdvanceAccounts() {
 
   const getAccountsLedger = async (id: string) => {
     try {
-      setLoading(true);
       const res = await AdvanceService.getAccountLedger(id);
+      console.log(res)
       const newRes = JSON.parse(JSON.stringify(res.data.data));
       const newRows = newRes.map((row: LedgerType, idx: number) => {
         return {
@@ -180,14 +181,13 @@ function AdvanceAccounts() {
     } catch (error) {
       console.log(error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
 
   const getPolicies = async () => {
     try {
       const res = await expenseService.getAllPolicies();
-      console.log(res);
       setPolicies(res);
     } catch (error) {
       console.log(error);
