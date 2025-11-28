@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { expenseService } from "@/services/expenseService";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { useExpenseStore } from "@/store/expenseStore";
-import { Box, CircularProgress } from "@mui/material";
+import { Box } from "@mui/material";
 import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 import {
@@ -22,27 +22,6 @@ export function getExpenseType(type: string) {
   if (type === "MILEAGE_BASED") return "Mileage";
   if (type === "PER_DIEM") return "Per Diem";
   return type;
-}
-
-function CustomLoader() {
-  return (
-    <GridOverlay>
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "rgba(255,255,255,0.6)",
-        }}
-      >
-        <CircularProgress size={28} thickness={4} />
-      </Box>
-    </GridOverlay>
-  );
 }
 
 function CustomNoRows() {
@@ -321,7 +300,6 @@ export function MyExpensesPage() {
           columns={columns}
           loading={loading}
           slots={{
-            loadingOverlay: CustomLoader,
             noRowsOverlay: CustomNoRows,
           }}
           sx={{

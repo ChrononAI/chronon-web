@@ -57,6 +57,7 @@ function AdminExpensePolicies() {
       page: 0,
       pageSize: 10,
     });
+    const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -77,6 +78,7 @@ function AdminExpensePolicies() {
     perPage: number;
   }) => {
     try {
+      setLoading(true);
       const res = await policyService.getPolicies({ page, perPage });
       setRows(res.data.data);
       setPaginationInfo(res.data.pagination);
@@ -87,6 +89,8 @@ function AdminExpensePolicies() {
           error.message ||
           "Failed to get policies"
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -115,6 +119,7 @@ function AdminExpensePolicies() {
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           columns={columns}
           rows={rows}
+          loading={loading}
           slots={{ noRowsOverlay: CustomNoRows }}
           sx={{
             border: 0,

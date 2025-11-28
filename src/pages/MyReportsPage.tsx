@@ -271,7 +271,6 @@ export function MyReportsPage() {
             }
           }}
           slots={{
-            loadingOverlay: CustomLoader,
             noRowsOverlay: CustomNoRows,
           }}
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"

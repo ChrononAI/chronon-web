@@ -101,7 +101,7 @@ function ApprovalsPreApprovalsPage() {
       minWidth: 150,
     },
   ];
-
+  const [loading, setLoading] = useState(true);
   const [allRows, setAllRows] = useState([]);
   const [allPagination, setAllPagination] = useState<PaginationInfo | null>(
     null
@@ -182,9 +182,23 @@ function ApprovalsPreApprovalsPage() {
   };
 
   useEffect(() => {
-    getAllPreApprovalsToApprove();
-    getPendingPreApprovalsToApprove();
-    getProcessedApprovals();
+  const fetchAll = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        getAllPreApprovalsToApprove(),
+        getPendingPreApprovalsToApprove(),
+        getProcessedApprovals(),
+      ]);
+    } catch (error) {
+      console.error("Failed to fetch approvals:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchAll();
+
   }, []);
   return (
     <ReportsPageWrapper
@@ -212,6 +226,7 @@ function ApprovalsPreApprovalsPage() {
           className="rounded border h-full"
           columns={columns}
           rows={rows}
+          loading={loading}
           slots={{
             noRowsOverlay: CustomNoRows
           }}
