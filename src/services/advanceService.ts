@@ -30,6 +30,7 @@ interface CreateAdvancePayloadType {
   currency: string;
   amount: string;
   policy_id?: string;
+  custom_attributes?: Record<string, string>;
 }
 
 export interface AccountType {

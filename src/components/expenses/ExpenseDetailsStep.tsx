@@ -78,6 +78,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Copy, ExternalLink } from "lucide-react";
 import { getYesterday } from "./CreateExpenseForm";
 import { useAuthStore } from "@/store/authStore";
+import { getTemplates, type Template } from "@/services/admin/templates";
+import { getEntities, type Entity } from "@/services/admin/entities";
 
 // Form schema
 const expenseSchema = z.object({
@@ -104,7 +106,17 @@ const expenseSchema = z.object({
   api_conversion_rate: z.string().optional(),
 });
 
-type ExpenseFormValues = z.infer<typeof expenseSchema>;
+type ExpenseFormValues = z.infer<typeof expenseSchema> & Record<string, any>;
+
+type TemplateEntity = NonNullable<Template["entities"]>[0];
+
+const getEntityId = (entity: TemplateEntity): string => {
+  return entity?.entity_id || entity?.id || "";
+};
+
+const getFieldName = (entity: TemplateEntity): string => {
+  return entity?.display_name || entity?.field_name || getEntityId(entity);
+};
 
 interface ExpenseDetailsStepProps {
   onBack: () => void;
@@ -169,6 +181,8 @@ export function ExpenseDetailsStep({
   const [shouldGetConversion, setShouldGetConversion] = useState(!Boolean(expenseData));
   const [showConversion, setShowConversion] = useState(false);
   const conversionRates = selectedPreApproval?.currency_conversion_rates || [];
+  const [templateEntities, setTemplateEntities] = useState<TemplateEntity[]>([]);
+  const [entityOptions, setEntityOptions] = useState<Record<string, Array<{ id: string; label: string }>>>({});
 
   const selectedConversion = conversionRates?.find(
     (con) => con.currency === selectedCurrency
@@ -348,6 +362,66 @@ export function ExpenseDetailsStep({
   useEffect(() => {
     loadPoliciesWithCategories();
     getApprovedAdvances();
+  }, []);
+
+  useEffect(() => {
+    console.log("ExpenseDetailsStep: Component mounted, loading templates...");
+    const loadTemplates = async () => {
+      try {
+        console.log("Making API calls: getTemplates() and getEntities()");
+        const [templatesRes, entitiesRes] = await Promise.all([
+          getTemplates(),
+          getEntities(),
+        ]);
+        
+        console.log("Templates API response:", templatesRes);
+        console.log("Entities API response:", entitiesRes);
+        
+        const expenseTemplate = Array.isArray(templatesRes)
+          ? templatesRes.find((t) => t.module_type === "expense")
+          : null;
+
+        console.log("Expense template found:", expenseTemplate);
+
+        if (expenseTemplate?.entities) {
+          console.log("Setting template entities:", expenseTemplate.entities);
+          setTemplateEntities(expenseTemplate.entities);
+          
+          // Set default values for template entities
+          expenseTemplate.entities.forEach((entity) => {
+            const entityId = getEntityId(entity);
+            if (entityId && !expenseData?.[entityId]) {
+              form.setValue(entityId as any, "");
+            }
+          });
+        }
+
+        const entityMap: Record<string, Array<{ id: string; label: string }>> = {};
+        entitiesRes.forEach((ent: Entity) => {
+          if (ent.id && Array.isArray(ent.attributes)) {
+            entityMap[ent.id] = ent.attributes.map((attr) => ({
+              id: attr.id,
+              label: attr.display_value ?? attr.value ?? "—",
+            }));
+          }
+        });
+
+        const mappedOptions: Record<string, Array<{ id: string; label: string }>> = {};
+        expenseTemplate?.entities?.forEach((entity) => {
+          const entityId = getEntityId(entity);
+          if (entityId) {
+            mappedOptions[entityId] = entityMap[entityId] || [];
+          }
+        });
+
+        console.log("Entity options mapped:", mappedOptions);
+        setEntityOptions(mappedOptions);
+      } catch (error) {
+        console.error("Failed to load templates:", error);
+      }
+    };
+
+    loadTemplates();
   }, []);
 
   // Update form values when expenseData changes
@@ -1243,6 +1317,60 @@ export function ExpenseDetailsStep({
                         </FormItem>
                       )}
                     />
+
+                    {templateEntities?.map((entity) => {
+                      const entityId = getEntityId(entity);
+                      const fieldName = getFieldName(entity);
+                      if (!entityId) return null;
+
+                      return (
+                        <FormField
+                          key={entityId}
+                          control={form.control}
+                          name={entityId as any}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                {fieldName}
+                                {entity.is_mandatory && (
+                                  <span className="text-destructive"> *</span>
+                                )}
+                              </FormLabel>
+                              {entity.field_type === "SELECT" ? (
+                                <Select
+                                  value={field.value || ""}
+                                  onValueChange={field.onChange}
+                                  disabled={readOnly}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger className={selectTriggerClass}>
+                                      <SelectValue placeholder={`Select ${fieldName}`} />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {entityOptions[entityId]?.map((opt) => (
+                                      <SelectItem key={opt.id} value={opt.id}>
+                                        {opt.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder={`Enter ${fieldName}`}
+                                    disabled={readOnly}
+                                    className={inputFieldClass}
+                                  />
+                                </FormControl>
+                              )}
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      );
+                    })}
                   </div>
                 </section>
               </div>

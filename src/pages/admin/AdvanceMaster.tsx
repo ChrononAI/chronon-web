@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import {
   Select,
@@ -98,25 +98,36 @@ const ExpenseMasterPage = () => {
     );
   };
 
+  const advanceTemplate = useMemo(() => {
+    return templates.find((t) => t.module_type === "advance");
+  }, [templates]);
+
   const handleSubmitCustom = async () => {
     if (customFields.length === 0) {
       toast.error("Add at least one custom field before submitting");
       return;
     }
+
+    const invalidFields = customFields.filter((field) => !field.entityId);
+    if (invalidFields.length > 0) {
+      toast.error("Please select an entity for all custom fields");
+      return;
+    }
+
+    if (!advanceTemplate?.id) {
+      toast.error(
+        "Advance template not found. Please ensure templates are loaded."
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       await Promise.all(
         customFields.map(async (row) => {
           if (!row.entityId) return;
-          const tmpl = templates.find((t: any) =>
-            (t.entities || []).some(
-              (e: any) => (e.entity_id || e.id || e.field_name) === row.entityId
-            )
-          );
-          const module_template_id = tmpl?.id;
-          if (!module_template_id) return;
           await assignEntity({
-            module_template_id,
+            module_template_id: advanceTemplate.id, // Use advanceTemplate.id instead of searching
             entity_id: row.entityId,
             is_mandatory: row.mandatory === "MANDATORY",
           });
