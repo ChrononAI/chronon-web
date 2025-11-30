@@ -43,13 +43,10 @@ export interface UpdateExpenseData {
   distance_unit?: string | null;
   end_location?: string | null;
   start_location?: string | null;
-  vehicle_type?: string | null;
   mileage_rate_id?: string;
   mileage_meta?: any;
   custom_attributes?: any;
   is_round_trip?: boolean;
-  advance_id?: string;
-  pre_approval_id?: string;
   foreign_amount?: number | null;
   foreign_currency?: string | null;
   currency?: string | null;

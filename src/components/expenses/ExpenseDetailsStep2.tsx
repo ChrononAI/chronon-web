@@ -656,13 +656,6 @@ export function ExpenseDetailsStep2({
     (receiptSignedUrl && receiptSignedUrl.length > 0
       ? receiptSignedUrl[0]
       : null);
-  console.log(
-    previewUrl,
-    duplicateReceiptUrl,
-    readOnly,
-    receiptSignedUrl,
-    activeReceiptUrl
-  );
 
   const receiptDisplayName =
     uploadedFile?.name ||

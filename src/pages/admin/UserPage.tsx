@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DataGrid, GridColDef, GridOverlay, GridPaginationModel } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridOverlay,
+  GridPaginationModel,
+} from "@mui/x-data-grid";
 import { CheckCircle, Download, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "@/lib/api";
@@ -77,18 +82,17 @@ const UserPage = () => {
     []
   );
 
-  const buildColumns = () => {
-    return [...baseColumns, ...entityCols];
-  };
-
   const getTemps = async () => {
     try {
       const res = await getTemplates();
       const selectedEntities = res.find(
         (p) => p.module_type === "user"
       )?.entities;
-      if (selectedEntities) {
-        const cols = selectedEntities.map((ent) => {
+      const uniqueEntities = Array.from(
+        new Map(selectedEntities?.map((e) => [e.entity_id, e])).values()
+      );
+      if (uniqueEntities) {
+        const cols = uniqueEntities.map((ent) => {
           return {
             field: ent.field_name,
             headerName: ent.display_name,
@@ -101,6 +105,11 @@ const UserPage = () => {
       console.log(error);
     }
   };
+
+  const columns = useMemo(
+    () => [...baseColumns, ...entityCols],
+    [baseColumns, entityCols]
+  );
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 360;
@@ -165,8 +174,6 @@ const UserPage = () => {
       loadUsers(paginationModel);
     }
   }, [paginationModel?.page, paginationModel?.pageSize]);
-
-  const columns = buildColumns();
 
   return (
     <>
