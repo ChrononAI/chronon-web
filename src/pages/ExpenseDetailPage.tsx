@@ -26,6 +26,42 @@ import { ExpenseDetailsStep2 } from "@/components/expenses/ExpenseDetailsStep2";
 
 const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE", "SENT_BACK"];
 
+const filterFormData = (data: Record<string, any>): UpdateExpenseData => {
+  const allowedKeys: (keyof UpdateExpenseData)[] = [
+    "amount",
+    "category_id",
+    "description",
+    "expense_date",
+    "expense_policy_id",
+    "vendor",
+    "receipt_id",
+    "invoice_number",
+    "distance",
+    "distance_unit",
+    "end_location",
+    "start_location",
+    "mileage_rate_id",
+    "mileage_meta",
+    "custom_attributes",
+    "is_round_trip",
+    "foreign_amount",
+    "foreign_currency",
+    "currency",
+    "api_conversion_rate",
+    "user_conversion_rate",
+  ];
+
+  const sanitized: any = {};
+
+  for (const key of allowedKeys) {
+    if (data[key] !== undefined) {
+      sanitized[key] = data[key];
+    }
+  }
+
+  return sanitized as UpdateExpenseData;
+};
+
 // Check if expense is a mileage expense
 const isMileageExpense = (expense: Expense): boolean => {
   return !!(expense.distance && parseFloat(expense.distance.toString()) > 0);
@@ -115,16 +151,17 @@ export function ExpenseDetailPage() {
   const handleExpenseSubmit = async (formData: any) => {
     if (!expense || !id) return;
     setSaving(true);
+    const filteredData = filterFormData(formData);
     try {
-      if (formData.invoice_number) {
-        formData.expense_date = formData.expense_date
-          .toISOString()
-          .split("T")[0];
-        formData.currency = baseCurrency || "INR";
-        if (!formData.foreign_amount) {
-          formData.foreign_currency = null;
+      if (filteredData.invoice_number) {
+        filteredData.expense_date = new Date(filteredData.expense_date).toISOString().split(
+          "T"
+        )[0];
+        filteredData.currency = baseCurrency || "INR";
+        if (!filteredData.foreign_amount) {
+          filteredData.foreign_currency = null;
         }
-        await expenseService.updateExpense(id, formData);
+        await expenseService.updateExpense(id, filteredData);
       } else if (formData.start_location) {
         const expenseData: UpdateExpenseData = {
           amount: parseFloat(formData.amount),
