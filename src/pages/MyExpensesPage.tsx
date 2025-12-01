@@ -44,7 +44,8 @@ const columns: GridColDef[] = [
   {
     field: "sequence_number",
     headerName: "EXPENSE ID",
-    width: 150,
+    minWidth: 150,
+    flex: 1,
     renderCell: (params) => {
       const expense = params.row;
       return (
@@ -82,24 +83,28 @@ const columns: GridColDef[] = [
   {
     field: "expense_type",
     headerName: "TYPE",
-    width: 120,
+    minWidth: 120,
+    flex: 1,
     renderCell: (params) => getExpenseType(params.row.expense_type),
   },
   {
     field: "policy",
     headerName: "POLICY",
-    width: 140,
+    minWidth: 140,
+    flex: 1,
     valueGetter: (params: any) => params?.name || "No Policy",
   },
   {
     field: "category",
     headerName: "CATEGORY",
-    width: 140,
+    minWidth: 140,
+    flex: 1,
   },
   {
     field: "vendor",
     headerName: "VENDOR",
-    width: 200,
+    minWidth: 200,
+    flex: 1,
     renderCell: (params) => {
       const { vendor, expense_type } = params.row;
       if (vendor) return vendor;
@@ -112,13 +117,15 @@ const columns: GridColDef[] = [
   {
     field: "expense_date",
     headerName: "DATE",
-    width: 120,
+    minWidth: 120,
+    flex: 1,
     valueFormatter: (params: any) => formatDate(params),
   },
   {
     field: "amount",
     headerName: "AMOUNT",
-    width: 120,
+    minWidth: 120,
+    flex: 1,
     type: "number",
     align: "right",
     headerAlign: "right",
@@ -127,7 +134,8 @@ const columns: GridColDef[] = [
   {
     field: "currency",
     headerName: "CURRENCY",
-    width: 80,
+    minWidth: 80,
+    flex: 1,
     renderCell: () => getOrgCurrency(),
   },
   {

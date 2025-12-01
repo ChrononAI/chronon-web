@@ -28,12 +28,14 @@ const columns: GridColDef[] = [
   {
     field: "name",
     headerName: "NAME",
-    width: 160,
+    minWidth: 160,
+    flex: 1,
   },
   {
     field: "description",
     headerName: "DESCRIPTION",
-    width: 200,
+    minWidth: 200,
+    flex: 1,
   },
   {
     field: "created_by",

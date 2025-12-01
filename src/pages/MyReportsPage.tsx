@@ -54,7 +54,8 @@ const columns: GridColDef[] = [
   {
     field: "title",
     headerName: "TITLE",
-    flex: 1.5,
+    minWidth: 200,
+    flex: 1,
     renderCell: (params) => (
       <span className="font-medium hover:underline whitespace-nowrap">
         {params.value}
@@ -64,7 +65,8 @@ const columns: GridColDef[] = [
   {
     field: "description",
     headerName: "DESCRIPTION",
-    flex: 2,
+    minWidth: 180,
+    flex: 1,
     renderCell: (params) => (
       <span className="whitespace-nowrap">{params.value}</span>
     ),
@@ -81,6 +83,7 @@ const columns: GridColDef[] = [
   {
     field: "total_amount",
     headerName: "TOTAL AMOUNT",
+    minWidth: 120,
     flex: 1,
     align: "right",
     headerAlign: "right",
@@ -89,7 +92,8 @@ const columns: GridColDef[] = [
   {
     field: "created_by",
     headerName: "CREATED BY",
-    flex: 1.5,
+    minWidth: 140,
+    flex: 1,
     renderCell: (params) => (
       <span className="whitespace-nowrap">{params.row.created_by?.email}</span>
     ),
@@ -97,7 +101,8 @@ const columns: GridColDef[] = [
   {
     field: "created_at",
     headerName: "CREATED DATE",
-    flex: 1.2,
+    minWidth: 120,
+    flex: 1,
     valueFormatter: (params) => formatDate(params),
   },
 ];

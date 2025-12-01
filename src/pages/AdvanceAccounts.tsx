@@ -26,11 +26,13 @@ const columns: GridColDef[] = [
   {
     field: "account_id",
     headerName: "ACCOUNT ID",
-    width: 100,
+    minWidth: 100,
+    flex: 1,
   },
   {
     field: "transaction_type",
     headerName: "TN TYPE",
+    minWidth: 80,
     flex: 1,
     renderCell: ({ row }) => {
       let type;
@@ -45,6 +47,7 @@ const columns: GridColDef[] = [
   {
     field: "created_at",
     headerName: "TN DATE",
+    minWidth: 120,
     flex: 1,
     valueFormatter: (val) => formatDate(val),
   },
@@ -53,7 +56,8 @@ const columns: GridColDef[] = [
     headerName: "AMOUNT",
     align: "right",
     headerAlign: "right",
-    flex: 0.8,
+    minWidth: 120,
+    flex: 1,
     renderCell: ({ row }) => {
       let amount;
       if (+row.credit_amount) {
@@ -69,7 +73,8 @@ const columns: GridColDef[] = [
     headerName: "BALANCE",
     align: "right",
     headerAlign: "right",
-    flex: 0.8,
+    minWidth: 120,
+    flex: 1,
     valueFormatter: (value) => formatCurrency(value),
   },
 ];

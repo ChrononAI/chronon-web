@@ -53,10 +53,10 @@ export const EntityPage = () => {
   const [rows, setRows] = useState<EntityRow[]>([]);
   const [loading, setLoading] = useState(true);
   const columns: GridColDef<EntityRow>[] = [
-    { field: "entity_name", headerName: "ENTITY NAME", width: 300 },
-    { field: "description", headerName: "DESC", width: 300 },
-    { field: "type", headerName: "TYPE", width: 300 },
-    { field: "value", headerName: "VALUE", width: 300 },
+    { field: "entity_name", headerName: "ENTITY NAME", minWidth: 300, flex: 1 },
+    { field: "description", headerName: "DESC", minWidth: 300, flex: 1 },
+    { field: "type", headerName: "TYPE", minWidth: 300, flex: 1 },
+    { field: "value", headerName: "VALUE", minWidth: 300, flex: 1 },
   ];
 
   useEffect(() => {

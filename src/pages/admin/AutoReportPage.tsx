@@ -1,4 +1,4 @@
-import { DataGrid, GridColDef, GridOverlay } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridOverlay, GridPaginationModel } from "@mui/x-data-grid";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -46,9 +46,9 @@ function CustomNoRows() {
       <Box className="w-full">
         <div className="text-center">
           <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No advances found</h3>
+          <h3 className="text-lg font-semibold mb-2">No entries found</h3>
           <p className="text-muted-foreground">
-            There are currently no advances.
+            There are currently no entries.
           </p>
         </div>
       </Box>
@@ -94,30 +94,34 @@ export const AutoReportPage = () => {
   >();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 20,
+  });
   const columns: GridColDef<SubmissionScheduleRow>[] = [
     {
       field: "submitOn",
       headerName: "Submit expense report date",
-      width: 280,
+      minWidth: 280,
       flex: 1,
     },
     {
       field: "createdBy",
       headerName: "Created by",
-      width: 220,
+      minWidth: 220,
       flex: 1,
     },
     {
       field: "description",
       headerName: "Description",
-      width: 260,
+      minWidth: 260,
       flex: 1,
     },
     {
       field: "status",
       headerName: "Status",
-      width: 160,
-      flex: 0.6,
+      minWidth: 160,
+      flex: 1,
     },
   ];
 
@@ -273,60 +277,69 @@ export const AutoReportPage = () => {
           specified intervals.
         </p>
       </div>
-
-      <DataGrid
-        className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-        columns={columns}
-        rows={scheduleRows}
-        slots={{ noRowsOverlay: CustomNoRows }}
-        loading={isLoading}
+      <Box
         sx={{
-          border: 0,
-          "& .MuiDataGrid-columnHeaderTitle": {
-            color: "#9AA0A6",
-            fontWeight: "bold",
-            fontSize: "12px",
-          },
-          "& .MuiDataGrid-main": {
-            border: "0.2px solid #f3f4f6",
-          },
-          "& .MuiDataGrid-columnHeader": {
-            backgroundColor: "#f3f4f6",
-            border: "none",
-          },
-          "& .MuiDataGrid-columnHeaders": {
-            border: "none",
-            borderTop: "none",
-            borderBottom: "none",
-          },
-          "& .MuiCheckbox-root": {
-            color: "#9AA0A6",
-          },
-          "& .MuiDataGrid-row:hover": {
-            cursor: "pointer",
-            backgroundColor: "#f5f5f5",
-          },
-          "& .MuiDataGrid-cell": {
-            color: "#2E2E2E",
-            border: "0.2px solid #f3f4f6",
-          },
-          "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-            outline: "none",
-          },
-          "& .MuiDataGrid-cell:focus-within": {
-            outline: "none",
-          },
-          "& .MuiDataGrid-columnSeparator": {
-            color: "#f3f4f6",
-          },
+          height: "calc(100vh - 160px)",
+          width: "100%",
+          marginTop: "-32px",
         }}
-        showToolbar
-        density="compact"
-        checkboxSelection
-        disableRowSelectionOnClick
-        showCellVerticalBorder
-      />
-
+      >
+        <DataGrid
+          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+          columns={columns}
+          rows={scheduleRows}
+          slots={{ noRowsOverlay: CustomNoRows }}
+          loading={isLoading}
+          sx={{
+            border: 0,
+            "& .MuiDataGrid-columnHeaderTitle": {
+              color: "#9AA0A6",
+              fontWeight: "bold",
+              fontSize: "12px",
+            },
+            "& .MuiDataGrid-main": {
+              border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-columnHeader": {
+              backgroundColor: "#f3f4f6",
+              border: "none",
+            },
+            "& .MuiDataGrid-columnHeaders": {
+              border: "none",
+              borderTop: "none",
+              borderBottom: "none",
+            },
+            "& .MuiCheckbox-root": {
+              color: "#9AA0A6",
+            },
+            "& .MuiDataGrid-row:hover": {
+              cursor: "pointer",
+              backgroundColor: "#f5f5f5",
+            },
+            "& .MuiDataGrid-cell": {
+              color: "#2E2E2E",
+              border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
+              outline: "none",
+            },
+            "& .MuiDataGrid-cell:focus-within": {
+              outline: "none",
+            },
+            "& .MuiDataGrid-columnSeparator": {
+              color: "#f3f4f6",
+            },
+          }}
+          showToolbar
+          density="compact"
+          checkboxSelection
+          disableRowSelectionOnClick
+          showCellVerticalBorder
+          pagination
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+        />
+      </Box>
       <Dialog open={showScheduleModal} onOpenChange={setShowScheduleModal}>
         <DialogContent className="sm:max-w-[540px]">
           <DialogHeader>

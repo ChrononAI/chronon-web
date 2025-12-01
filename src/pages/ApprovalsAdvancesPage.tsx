@@ -34,22 +34,26 @@ function ApprovalsAdvancesPage() {
     {
       field: "sequence_number",
       headerName: "ADVANCE ID",
-      width: 160,
+      minWidth: 160,
+      flex: 1,
     },
     {
       field: "title",
       headerName: "TITLE",
-      width: 200,
+      minWidth: 200,
+      flex: 1,
     },
     {
       field: "policy_name",
       headerName: "POLICY",
-      width: 150,
+      minWidth: 150,
+      flex: 1,
     },
     {
       field: "status",
       headerName: "STATUS",
-      width: 170,
+      minWidth: 180,
+      flex: 1,
       renderCell: ({ value }) => {
         return (
           <Badge className={getStatusColor(value)}>
@@ -61,7 +65,8 @@ function ApprovalsAdvancesPage() {
     {
       field: "created_by",
       headerName: "CREATED BY",
-      width: 150,
+      minWidth: 150,
+      flex: 1,
       renderCell: ({ value }) => {
         return value.email;
       },
@@ -69,7 +74,8 @@ function ApprovalsAdvancesPage() {
     {
       field: "created_at",
       headerName: "CREATED AT",
-      width: 150,
+      minWidth: 150,
+      flex: 1,
       renderCell: ({ value }) => {
         return formatDate(value);
       },

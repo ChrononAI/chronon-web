@@ -73,11 +73,11 @@ const UserPage = () => {
 
   const baseColumns = useMemo<GridColDef<UserRow>[]>(
     () => [
-      { field: "name", headerName: "NAME", width: 240 },
-      { field: "email", headerName: "EMAIL", width: 260 },
-      { field: "role", headerName: "ROLE", width: 160 },
-      { field: "phone", headerName: "PHONE", width: 200 },
-      { field: "status", headerName: "STATUS", width: 160 },
+      { field: "name", headerName: "NAME", minWidth: 240, flex: 1, },
+      { field: "email", headerName: "EMAIL", minWidth: 260, flex: 1, },
+      { field: "role", headerName: "ROLE", minWidth: 160, flex: 1, },
+      { field: "phone", headerName: "PHONE", minWidth: 200, flex: 1, },
+      { field: "status", headerName: "STATUS", minWidth: 120, flex: 1, },
     ],
     []
   );
@@ -96,7 +96,8 @@ const UserPage = () => {
           return {
             field: ent.field_name,
             headerName: ent.display_name,
-            width: 160,
+            minWidth: 120,
+            flex: 1,
           };
         });
         setEntityCols(cols);
