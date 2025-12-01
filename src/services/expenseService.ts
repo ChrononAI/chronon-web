@@ -238,7 +238,7 @@ export const expenseService = {
       return response.data.data;
     } catch (error) {
       console.error("Error fetching policies:", error);
-      return [];
+      throw error;
     }
   },
 

@@ -145,6 +145,7 @@ export function CreateExpenseForm() {
   };
 
   const actuallySubmit = async (formData: any) => {
+    setLoading(true);
     try {
       let entitiesToUse = templateEntities;
       if (!entitiesToUse || entitiesToUse.length === 0) {

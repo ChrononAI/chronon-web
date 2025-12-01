@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DateField } from "@/components/ui/date-field";
-import { Calendar, Copy, ExternalLink } from "lucide-react";
+import { Calendar, Copy, ExternalLink, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { placesService } from "@/services/placesService";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
@@ -112,6 +112,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     "info"
   );
   const today = new Date().toISOString().split("T")[0];
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const { startDate, endDate } = formData;
@@ -234,6 +235,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
       toast.error("Amount must be greater than 0");
       return;
     }
+    setLoading(true);
 
     const submitData = {
       expense_policy_id: formData.policyId,
@@ -275,6 +277,8 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         error.message ||
         "Failed to create per diem expense";
       toast.error(`Error: ${errorMessage}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -645,8 +649,21 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                     </span>
                   </div>
 
-                  <Button type="submit" className="min-w-[200px]">
-                    {mode === "create" ? "Create" : "Update"} Expense
+                  <Button
+                    type="submit"
+                    className="min-w-[200px]"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {mode === "edit" ? "Updating..." : "Creating..."}
+                      </>
+                    ) : mode === "create" ? (
+                      "Create expense"
+                    ) : (
+                      "Update expense"
+                    )}{" "}
                   </Button>
                 </div>
               </div>
