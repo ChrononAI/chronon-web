@@ -95,7 +95,7 @@ export function CreateAdvanceForm({
   maxWidth?: string;
 }) {
   const navigate = useNavigate();
-  const loading = false;
+  const [loading, setLoading] = useState(false);
 
   const { id } = useParams<{ id: string }>();
 
@@ -124,8 +124,7 @@ export function CreateAdvanceForm({
       });
       setPolicies(expensePolicies);
     } catch (error) {
-      console.error("Error loading policies:", error);
-    }
+toast.error    }
   };
 
   const selectedCurrency =
@@ -150,6 +149,7 @@ export function CreateAdvanceForm({
   };
 
   const onSubmit = async (values: AdvanceFormValues) => {
+    setLoading(true)
     if (selectedAdvance && selectedAdvance?.status === "COMPLETE") {
       try {
         trackEvent("Submit Advance Button Clicked", {
@@ -160,10 +160,12 @@ export function CreateAdvanceForm({
         navigate("/advances");
       } catch (error: any) {
         toast.error(
-          error.response.data.message ||
+          error.response?.data?.message ||
             error.message ||
             "Failed to resubmit advance"
         );
+      } finally {
+        setLoading(false);
       }
     } else {
       try {
@@ -202,8 +204,10 @@ export function CreateAdvanceForm({
         setTimeout(() => {
           navigate("/advances");
         }, 200);
-      } catch (error) {
-        console.log(error);
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || error.message);
+      } finally {
+        setLoading(false)
       }
     }
   };
@@ -576,7 +580,7 @@ export function CreateAdvanceForm({
             {(selectedAdvance?.status === "COMPLETE" || mode !== "view") && (
               <Button
                 type="submit"
-                disabled={!form.formState.isValid}
+                disabled={!form.formState.isValid || loading}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
               >
                 {loading ? (

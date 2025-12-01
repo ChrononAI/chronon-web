@@ -13,7 +13,7 @@ import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
 import { Button } from "../ui/button";
 import { DateField } from "../ui/date-field";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Select,
@@ -72,6 +72,7 @@ function CreatePreApprovalForm({
 
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -112,6 +113,7 @@ function CreatePreApprovalForm({
     trackEvent("Create Pre Approval Button Clicked", {
       button_name: "Create Pre Approval",
     });
+    setLoading(true);
     const newFd = JSON.parse(JSON.stringify(formData));
     if (!newFd.amount || !newFd.currency) {
       delete newFd.amount;
@@ -130,6 +132,8 @@ function CreatePreApprovalForm({
       }, 200);
     } catch (error) {
       console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -464,9 +468,19 @@ function CreatePreApprovalForm({
             {mode !== "view" && (
               <Button
                 type="submit"
+                disabled={loading}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
               >
-                {mode === "create" ? "Create" : "Update"}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {mode === "edit" ? "Updating..." : "Creating..."}
+                  </>
+                ) : mode === "edit" ? (
+                  "Resubmit"
+                ) : (
+                  "Create"
+                )}
               </Button>
             )}
           </div>

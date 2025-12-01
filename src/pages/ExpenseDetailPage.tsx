@@ -402,7 +402,7 @@ export function ExpenseDetailPage() {
                 ? "edit"
                 : "view"
             }
-            loading={loading}
+            loading={saving}
             isReceiptReplaced={isReceiptReplaced}
             setIsReceiptReplaced={setIsReceiptReplaced}
             uploadedFile={null}

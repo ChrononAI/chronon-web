@@ -1,6 +1,4 @@
 import api from "@/lib/api";
-import { toast } from "sonner";
-
 export interface AdvanceType {
   id: string;
   title: string;
@@ -103,8 +101,6 @@ export const AdvanceService = {
     try {
       return await api.post("/api/v1/advances", payload);
     } catch (error) {
-      console.log(error);
-      toast.error("Error creating advance");
       throw error;
     }
   },
