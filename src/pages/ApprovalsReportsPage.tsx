@@ -31,17 +31,20 @@ const columns: GridColDef[] = [
   {
     field: "title",
     headerName: "REPORT NAME",
-    flex: 1.5,
+    minWidth: 200,
+    flex: 1,
   },
   {
     field: "created_by",
     headerName: "SUBMITTER",
-    flex: 1.2,
+    minWidth: 160,
+    flex: 1,
     renderCell: (params) => <p>{params.row.created_by?.email || "-"}</p>,
   },
   {
     field: "total_amount",
     headerName: "AMOUNT",
+    minWidth: 120,
     flex: 1,
     align: "right",
     headerAlign: "right",
@@ -50,7 +53,8 @@ const columns: GridColDef[] = [
   {
     field: "submitted_at",
     headerName: "SUBMITTED ON",
-    flex: 1.2,
+    minWidth: 120,
+    flex: 1,
     renderCell: (params) => (
       <p className="text-gray-900 whitespace-nowrap">
         {params.value ? formatDate(params.value) : "Not submitted"}
@@ -60,13 +64,15 @@ const columns: GridColDef[] = [
   {
     field: "expense_count",
     headerName: "EXPENSES",
-    flex: 0.8,
+    minWidth: 60,
+    flex: 1,
     align: "center",
     renderCell: (params) => <p className="text-gray-900">{params.value}</p>,
   },
   {
     field: "status",
     headerName: "STATUS",
+    minWidth: 180,
     flex: 1,
     renderCell: (params) => (
       <Badge className={getStatusColor(params.value)}>{params.value}</Badge>

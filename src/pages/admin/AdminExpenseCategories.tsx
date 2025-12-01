@@ -2,7 +2,12 @@ import { Button } from "@/components/ui/button";
 import { categoryService } from "@/services/admin/categoryService";
 import { PaginationInfo } from "@/store/expenseStore";
 import { Box } from "@mui/material";
-import { DataGrid, GridColDef, GridOverlay, GridPaginationModel } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridOverlay,
+  GridPaginationModel,
+} from "@mui/x-data-grid";
 import { CheckCircle, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -28,18 +33,20 @@ const columns: GridColDef[] = [
   {
     field: "name",
     headerName: "NAME",
-    width: 240,
+    minWidth: 200,
+    flex: 1,
   },
   {
     field: "category_type",
     headerName: "TYPE",
-    minWidth: 240,
+    minWidth: 200,
+    flex: 1,
   },
   {
     field: "description",
     headerName: "DESCRIPTION",
     flex: 1,
-    minWidth: 240,
+    minWidth: 200,
   },
 ];
 

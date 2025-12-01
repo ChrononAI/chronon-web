@@ -30,18 +30,20 @@ const columns: GridColDef[] = [
   {
     field: "name",
     headerName: "NAME",
-    width: 240,
+    minWidth: 200,
+    flex: 1,
   },
   {
     field: "is_pre_approval_required",
     headerName: "PRE APPROVAL",
-    minWidth: 240,
+    minWidth: 200,
+    flex: 1,
   },
   {
     field: "categories",
     headerName: "CATEGORIES",
+    minWidth: 200,
     flex: 1,
-    minWidth: 240,
     renderCell: ({ value }) => {
       return (
         <span>{value.map((cat: PolicyCategory) => cat.name).join(", ")}</span>

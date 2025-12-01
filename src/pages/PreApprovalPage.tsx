@@ -39,17 +39,20 @@ function CustomNoRows() {
     {
       field: "sequence_number",
       headerName: "PRE APPROVAL ID",
-      width: 160,
+      minWidth: 160,
+      flex: 1,
     },
     {
       field: "title",
       headerName: "TITLE",
-      width: 200,
+      minWidth: 200,
+      flex: 1,
     },
     {
       field: "start_date",
       headerName: "START",
-      width: 120,
+      minWidth: 120,
+      flex: 1,
       renderCell: ({ value }) => {
         return formatDate(value);
       },
@@ -57,7 +60,8 @@ function CustomNoRows() {
     {
       field: "end_date",
       headerName: "END",
-      width: 120,
+      minWidth: 120,
+      flex: 1,
       renderCell: ({ value }) => {
         return formatDate(value);
       },
@@ -65,12 +69,14 @@ function CustomNoRows() {
     {
       field: "policy_name",
       headerName: "POLICY",
-      width: 150,
+      minWidth: 150,
+      flex: 1,
     },
     {
       field: "status",
       headerName: "STATUS",
-      width: 170,
+      minWidth: 170,
+      flex: 1,
       renderCell: ({ value }) => {
         return (
           <Badge className={getStatusColor(value)}>
@@ -82,7 +88,8 @@ function CustomNoRows() {
     {
       field: "created_at",
       headerName: "CREATED AT",
-      width: 150,
+      minWidth: 150,
+      flex: 1,
       renderCell: ({ value }) => {
         return formatDate(value);
       },

@@ -94,6 +94,7 @@ const columns: GridColDef[] = [
   {
     field: "vendor",
     headerName: "VENDOR",
+    minWidth: 200,
     flex: 1,
     renderCell: (params) => {
       const expense = params.row;
@@ -109,17 +110,20 @@ const columns: GridColDef[] = [
   {
     field: "category",
     headerName: "CATEGORY",
+    minWidth: 140,
     flex: 1,
   },
   {
     field: "description",
     headerName: "DESCRIPTION",
+    minWidth: 140,
     flex: 1,
   },
   {
     field: "amount",
     headerName: "AMOUNT",
-    flex: 0.8,
+    minWidth: 120,
+    flex: 1,
     align: "right",
     headerAlign: "right",
     valueFormatter: (val) => formatCurrency(val),
@@ -127,12 +131,14 @@ const columns: GridColDef[] = [
   {
     field: "expense_date",
     headerName: "DATE",
+    minWidth: 120,
     flex: 1,
     valueFormatter: (val) => formatDate(val),
   },
   {
     field: "status",
     headerName: "STATUS",
+    minWidth: 180,
     flex: 1,
     renderCell: (params) => (
       <Badge className={`${getStatusColor(params.value)} whitespace-nowrap`}>
