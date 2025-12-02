@@ -137,7 +137,7 @@ export function MyAdvancesPage() {
 
   const handleRowClick = ({ row }: GridRowModel) => {
     setSelectedAdvance(row);
-    navigate(`/advances/${row.id}`);
+    navigate(`/requests/advances/${row.id}`);
   };
 
   // const [rows, setRows] = useState<any[]>([]);
@@ -278,7 +278,7 @@ export function MyAdvancesPage() {
       showDateFilter={false}
       showCreateButton={true}
       createButtonText="Create Advance"
-      createButtonLink="/advances/create"
+      createButtonLink="/requests/advances/create"
     >
       <Box
         sx={{

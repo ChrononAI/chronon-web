@@ -13,7 +13,9 @@ import {
   FolderKanban,
   Building2,
   FileSpreadsheet,
+  FilePlus,
   SlidersHorizontal,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -46,10 +48,33 @@ import { useAuthStore } from "@/store/authStore";
 import { trackEvent } from "@/mixpanel";
 
 const navigation: NavigationItem[] = [
-  { name: "Pre Approval", href: "/pre-approvals", icon: ClipboardCheck },
-  { name: "Advances", href: "/advances", icon: Wallet },
+    {
+    name: "Requests",
+    href: "/requests/pre-approvals",
+    icon: FilePlus,
+    children: [
+      {
+        name: "Pre Approval",
+        href: "/requests/pre-approvals",
+        icon: CheckSquare,
+      },
+      {
+        name: "Advances",
+        href: "/requests/advances",
+        icon: ClipboardCheck,
+      },
+      {
+        name: "Stores",
+        href: "/requests/stores",
+        icon: Store,
+      },
+    ],
+  },
+  // { name: "Pre Approval", href: "/pre-approvals", icon: ClipboardCheck },
+  // { name: "Advances", href: "/advances", icon: Wallet },
   { name: "Expenses", href: "/expenses", icon: Banknote },
   { name: "Expense Reports", href: "/reports", icon: FileSpreadsheet },
+  // { name: "Stores", href: "/stores", icon: Store },
   {
     name: "Approvals",
     href: "/approvals/reports",
@@ -69,6 +94,11 @@ const navigation: NavigationItem[] = [
         name: "Advances",
         href: "/approvals/advances",
         icon: Wallet,
+      },
+      {
+        name: "Stores",
+        href: "/approvals/stores",
+        icon: Store,
       },
     ],
   },

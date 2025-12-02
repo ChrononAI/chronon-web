@@ -29,7 +29,7 @@ interface ReportsPageWrapperProps {
   onTabChange?: (tab: string) => void;
   
   // Filter configuration
-  searchTerm: string;
+  searchTerm?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   statusFilter?: string | null;

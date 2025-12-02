@@ -141,10 +141,10 @@ toast.error    }
         "Are you sure you want to discard your changes?"
       );
       if (confirmDiscard) {
-        navigate("/advances");
+        navigate("/requests/advances");
       }
     } else {
-      navigate("/advances");
+      navigate("/requests/advances");
     }
   };
 
@@ -157,7 +157,7 @@ toast.error    }
         });
         await AdvanceService.submitAdvance(selectedAdvance.id);
         toast.success("Advance resubmitted successfully");
-        navigate("/advances");
+        navigate("/requests/advances");
       } catch (error: any) {
         toast.error(
           error.response?.data?.message ||
@@ -202,7 +202,7 @@ toast.error    }
         await AdvanceService.submitAdvance(response.data.data.id);
         toast.success("Advance created successfully");
         setTimeout(() => {
-          navigate("/advances");
+          navigate("/requests/advances");
         }, 200);
       } catch (error: any) {
         toast.error(error.response?.data?.message || error.message);

@@ -139,7 +139,6 @@ export function ExpenseDetailsStep2({
   const baseCurrency = getOrgCurrency();
   const orgId = getOrgIdFromToken();
   const { parsedData, setParsedData } = useExpenseStore();
-  console.log(loading);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(
     null
