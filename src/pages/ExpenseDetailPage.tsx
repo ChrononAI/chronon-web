@@ -151,6 +151,7 @@ export function ExpenseDetailPage() {
   const handleExpenseSubmit = async (formData: any) => {
     if (!expense || !id) return;
     setSaving(true);
+    console.log(formData);
     const filteredData = filterFormData(formData);
     try {
       if (filteredData.invoice_number) {
@@ -161,6 +162,10 @@ export function ExpenseDetailPage() {
         if (!filteredData.foreign_amount) {
           filteredData.foreign_currency = null;
         }
+        if (formData.advance_account_id) {
+          filteredData.custom_attributes["advance_account_id"] = formData.advance_account_id;
+        }
+        console.log(filteredData);
         await expenseService.updateExpense(id, filteredData);
       } else if (formData.start_location) {
         const expenseData: UpdateExpenseData = {
