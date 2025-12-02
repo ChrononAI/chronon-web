@@ -70,11 +70,8 @@ const navigation: NavigationItem[] = [
       },
     ],
   },
-  // { name: "Pre Approval", href: "/pre-approvals", icon: ClipboardCheck },
-  // { name: "Advances", href: "/advances", icon: Wallet },
   { name: "Expenses", href: "/expenses", icon: Banknote },
   { name: "Expense Reports", href: "/reports", icon: FileSpreadsheet },
-  // { name: "Stores", href: "/stores", icon: Store },
   {
     name: "Approvals",
     href: "/approvals/reports",
@@ -126,6 +123,7 @@ const permissionMap: any = {
   "Pre Approval": "pre_approval_settings",
   Advances: "advance_settings",
   Admin: "admin_dashboard_settings",
+  Stores: 'store_settings'
 };
 
 export function Sidebar() {
@@ -149,11 +147,11 @@ export function Sidebar() {
         const permission = {
           enabled:
             (orgSettings?.admin_dashboard_settings?.enabled === true &&
-              user?.role === "ADMIN") ||
+              user?.role === "SUPER_ADMIN") ||
             false,
           allowed:
             (orgSettings?.admin_dashboard_settings?.allowed === true &&
-              user?.role === "ADMIN") ||
+              user?.role === "SUPER_ADMIN") ||
             false,
         };
         const children = item.children
@@ -202,6 +200,19 @@ export function Sidebar() {
           ? mergePermissions(item.children, permissions)
           : undefined;
 
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
+      } else if (item.name === "Stores") {
+        const permission = {
+          enabled: orgSettings?.store_settings?.enabled || false,
+          allowed: orgSettings?.store_settings?.allowed || false,
+        };
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
         return {
           ...item,
           permissions: permission,
