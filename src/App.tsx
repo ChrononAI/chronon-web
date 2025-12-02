@@ -58,6 +58,11 @@ import { AutoReportPage } from "./pages/admin/AutoReportPage";
 import { ReportDetailPage2 } from "./pages/ReportDetailPage2";
 import { Layout } from "./components/layout/Layout";
 import AdminLayout from "./components/layout/AdminLayout";
+import Stores from "./pages/Stores";
+import { CreateStorePage } from "./pages/CreateStorePage";
+import StoreDetailsPage from "./pages/StoreDetailsPage";
+import ApprovalsStoresPage from "./pages/ApprovalsStoresPage";
+import ProcessStorePage from "./pages/ProcessStorePage";
 
 function App() {
   return (
@@ -89,23 +94,30 @@ function App() {
               <Route path="/reports/:id" element={<ReportDetailPage2 />} />
 
               {/* PRE APPROVALS */}
-              <Route path="/pre-approvals" element={<PreApprovalPage />} />
-              <Route path="/pre-approvals/create" element={<CreatePreApprovalPage />} />
-              <Route path="/pre-approvals/:id" element={<PreApprovalDetailsPage />} />
+              <Route path="/requests/pre-approvals" element={<PreApprovalPage />} />
+              <Route path="/requests/pre-approvals/create" element={<CreatePreApprovalPage />} />
+              <Route path="/requests/pre-approvals/:id" element={<PreApprovalDetailsPage />} />
 
               {/* ADVANCES */}
-              <Route path="/advances" element={<MyAdvancesPage />} />
-              <Route path="/advances/create" element={<CreateAdvancePage />} />
-              <Route path="/advances/:id" element={<AdvanceDetailsPage />} />
+              <Route path="/requests/advances" element={<MyAdvancesPage />} />
+              <Route path="/requests/advances/create" element={<CreateAdvancePage />} />
+              <Route path="/requests/advances/:id" element={<AdvanceDetailsPage />} />
               <Route path="/advance_accounts" element={<AdvanceAccounts />} />
 
               {/* APPROVALS */}
               <Route path="/approvals/reports" element={<ApprovalsReportsPage />} />
               <Route path="/approvals/reports/:id" element={<ReportDetailPage2 />} />
               <Route path="/approvals/advances" element={<ApprovalsAdvancesPage />} />
+              <Route path="/approvals/stores" element={<ApprovalsStoresPage />} />
               <Route path="/approvals/advances/:id" element={<ProcessAdvancePage />} />
               <Route path="/approvals/pre-approvals" element={<ApprovalsPreApprovalsPage />} />
               <Route path="/approvals/pre-approvals/:id" element={<ProcessPreApprovalPage />} />
+              <Route path="/approvals/stores/:id" element={<ProcessStorePage />} />
+
+              {/* STOER */}
+              <Route path="/requests/stores" element={<Stores />} />
+              <Route path="/requests/stores/create" element={<CreateStorePage />} />
+              <Route path="/requests/stores/:id" element={<StoreDetailsPage />} />
 
               {/* ADMIN (No Padding Layout) */}
               <Route element={<AdminLayout />}>

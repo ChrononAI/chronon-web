@@ -15,8 +15,8 @@ interface StatusOption {
 
 interface FilterControlsProps {
   // Search
-  searchTerm: string;
-  onSearchChange: (value: string) => void;
+  searchTerm?: string;
+  onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
 
   // Status Filter
@@ -60,7 +60,7 @@ export function FilterControls({
           placeholder={searchPlaceholder}
           className="pl-9 bg-white h-10"
           value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
         />
       </div>
 
