@@ -1373,7 +1373,7 @@ export function ExpenseDetailsStep2({
                       )}
                     />
 
-                    <FormField
+                    {orgSettings?.advance_settings?.enabled && <FormField
                       control={form.control}
                       name="advance_account_id"
                       render={({ field }) => (
@@ -1410,7 +1410,7 @@ export function ExpenseDetailsStep2({
                           <FormMessage />
                         </FormItem>
                       )}
-                    />
+                    />}
 
                     {templateEntities?.map((entity) => {
                       const entityId = getEntityId(entity);
