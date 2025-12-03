@@ -53,10 +53,7 @@ export const approvalService = {
       };
     } catch (error) {
       console.error('Error approving report:', error);
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to approve report'
-      };
+      throw error;
     }
   },
 
@@ -74,10 +71,7 @@ export const approvalService = {
       };
     } catch (error) {
       console.error('Error rejecting report:', error);
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to reject report'
-      };
+      throw error;
     }
   },
 
@@ -95,10 +89,11 @@ export const approvalService = {
       };
     } catch (error) {
       console.error('Error sending report back to draft:', error);
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to send report back to draft'
-      };
+      // return {
+      //   success: false,
+      //   message: error instanceof Error ? error.message : 'Failed to send report back to draft'
+      // };
+      throw error;
     }
   },
 

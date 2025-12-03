@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { ArrowLeft, Loader2, ChevronDown } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { ArrowLeft, Loader2, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,12 +21,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -34,14 +34,14 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
-import { toast } from 'sonner';
-import { expenseService } from '@/services/expenseService';
-import { Policy } from '@/types/expense';
-import { AdvanceService, AdvanceType } from '@/services/advanceService';
-import { getTemplates, type Template } from '@/services/admin/templates';
-import { getEntities, type Entity } from '@/services/admin/entities';
-import { trackEvent } from '@/mixpanel';
+} from "@/components/ui/command";
+import { toast } from "sonner";
+import { expenseService } from "@/services/expenseService";
+import { Policy } from "@/types/expense";
+import { AdvanceService, AdvanceType } from "@/services/advanceService";
+import { getTemplates, type Template } from "@/services/admin/templates";
+import { getEntities, type Entity } from "@/services/admin/entities";
+import { trackEvent } from "@/mixpanel";
 
 export interface Currency {
   code: string;
@@ -110,9 +110,15 @@ export function CreateAdvanceForm({
   const [selectedAdvance, setSelectedAdvance] = useState<AdvanceType>();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
-  const [templateEntities, setTemplateEntities] = useState<TemplateEntity[]>([]);
-  const [entityOptions, setEntityOptions] = useState<Record<string, Array<{ id: string; label: string }>>>({});
-  const [entityDropdownOpen, setEntityDropdownOpen] = useState<Record<string, boolean>>({});
+  const [templateEntities, setTemplateEntities] = useState<TemplateEntity[]>(
+    []
+  );
+  const [entityOptions, setEntityOptions] = useState<
+    Record<string, Array<{ id: string; label: string }>>
+  >({});
+  const [entityDropdownOpen, setEntityDropdownOpen] = useState<
+    Record<string, boolean>
+  >({});
 
   const loadPoliciesWithCategories = async () => {
     try {
@@ -124,7 +130,8 @@ export function CreateAdvanceForm({
       });
       setPolicies(expensePolicies);
     } catch (error) {
-toast.error    }
+      toast.error('Failed to fetch policies');
+    }
   };
 
   const selectedCurrency =
@@ -149,7 +156,7 @@ toast.error    }
   };
 
   const onSubmit = async (values: AdvanceFormValues) => {
-    setLoading(true)
+    setLoading(true);
     if (selectedAdvance && selectedAdvance?.status === "COMPLETE") {
       try {
         trackEvent("Submit Advance Button Clicked", {
@@ -173,32 +180,32 @@ toast.error    }
           button_name: "Create Advance",
         });
         const allFormValues = form.getValues();
-         const customAttributes: Record<string, string> = {};
-         
-         templateEntities.forEach((entity) => {
-           const entityId = getEntityId(entity);
-           if (entityId && allFormValues[entityId]) {
-             const value = String(allFormValues[entityId]).trim();
-             if (value) {
-               customAttributes[entityId] = value;
-             }
-           }
-         });
+        const customAttributes: Record<string, string> = {};
 
-         const { title, description, amount, currency, policy_id } = values;
-         const payload: any = {
-           title,
-           description,
-           amount,
-           currency,
-           policy_id: policy_id || null,
-         };
+        templateEntities.forEach((entity) => {
+          const entityId = getEntityId(entity);
+          if (entityId && allFormValues[entityId]) {
+            const value = String(allFormValues[entityId]).trim();
+            if (value) {
+              customAttributes[entityId] = value;
+            }
+          }
+        });
 
-         if (Object.keys(customAttributes).length > 0) {
-           payload.custom_attributes = customAttributes;
-         }
+        const { title, description, amount, currency, policy_id } = values;
+        const payload: any = {
+          title,
+          description,
+          amount,
+          currency,
+          policy_id: policy_id || null,
+        };
 
-         const response: any = await AdvanceService.createAdvance(payload);
+        if (Object.keys(customAttributes).length > 0) {
+          payload.custom_attributes = customAttributes;
+        }
+
+        const response: any = await AdvanceService.createAdvance(payload);
         await AdvanceService.submitAdvance(response.data.data.id);
         toast.success("Advance created successfully");
         setTimeout(() => {
@@ -207,7 +214,7 @@ toast.error    }
       } catch (error: any) {
         toast.error(error.response?.data?.message || error.message);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
   };
@@ -235,9 +242,11 @@ toast.error    }
 
   useEffect(() => {
     if (selectedAdvance?.custom_attributes && templateEntities.length > 0) {
-      Object.entries(selectedAdvance.custom_attributes).forEach(([entityId, attributeId]) => {
-        form.setValue(entityId as any, String(attributeId));
-      });
+      Object.entries(selectedAdvance.custom_attributes).forEach(
+        ([entityId, attributeId]) => {
+          form.setValue(entityId as any, String(attributeId));
+        }
+      );
     }
   }, [selectedAdvance, templateEntities]);
 
@@ -252,14 +261,14 @@ toast.error    }
           getTemplates(),
           getEntities(),
         ]);
-        
+
         const advanceTemplate = Array.isArray(templatesRes)
           ? templatesRes.find((t) => t.module_type === "advance")
           : null;
 
         if (advanceTemplate?.entities) {
           setTemplateEntities(advanceTemplate.entities);
-          
+
           advanceTemplate.entities.forEach((entity) => {
             const entityId = getEntityId(entity);
             if (entityId) {
@@ -268,7 +277,10 @@ toast.error    }
           });
         }
 
-        const entityMap: Record<string, Array<{ id: string; label: string }>> = {};
+        const entityMap: Record<
+          string,
+          Array<{ id: string; label: string }>
+        > = {};
         entitiesRes.forEach((ent: Entity) => {
           if (ent.id && Array.isArray(ent.attributes)) {
             entityMap[ent.id] = ent.attributes.map((attr) => ({
@@ -278,7 +290,10 @@ toast.error    }
           }
         });
 
-        const mappedOptions: Record<string, Array<{ id: string; label: string }>> = {};
+        const mappedOptions: Record<
+          string,
+          Array<{ id: string; label: string }>
+        > = {};
         advanceTemplate?.entities?.forEach((entity) => {
           const entityId = getEntityId(entity);
           if (entityId) {
@@ -473,96 +488,98 @@ toast.error    }
           </div>
 
           {templateEntities?.map((entity) => {
-                const entityId = getEntityId(entity);
-                const fieldName = getFieldName(entity);
-                if (!entityId) return null;
+            const entityId = getEntityId(entity);
+            const fieldName = getFieldName(entity);
+            if (!entityId) return null;
 
-                return (
-                  <FormField
-                    key={entityId}
-                    control={form.control}
-                    name={entityId as any}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {fieldName}
-                          {entity.is_mandatory && (
-                            <span className="text-destructive"> *</span>
-                          )}
-                        </FormLabel>
-                        {entity.field_type === "SELECT" ? (
-                          <Popover
-                            open={entityDropdownOpen[entityId] || false}
-                            onOpenChange={(open) =>
-                              setEntityDropdownOpen((prev) => ({
-                                ...prev,
-                                [entityId]: open,
-                              }))
-                            }
-                          >
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  aria-expanded={entityDropdownOpen[entityId]}
-                                  className="h-11 w-full justify-between"
-                                  disabled={mode === "view"}
-                                >
-                                  <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
-                                    {field.value
-                                      ? entityOptions[entityId]?.find(
-                                          (opt) => opt.id === field.value
-                                        )?.label || `Select ${fieldName}`
-                                      : `Select ${fieldName}`}
-                                  </span>
-                                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                              <Command>
-                                <CommandInput placeholder={`Search ${fieldName}...`} />
-                                <CommandList className="max-h-[180px] overflow-y-auto">
-                                  <CommandEmpty>
-                                    No {fieldName.toLowerCase()} found.
-                                  </CommandEmpty>
-                                  <CommandGroup>
-                                    {entityOptions[entityId]?.map((opt) => (
-                                      <CommandItem
-                                        key={opt.id}
-                                        value={opt.label}
-                                        onSelect={() => {
-                                          field.onChange(opt.id);
-                                          setEntityDropdownOpen((prev) => ({
-                                            ...prev,
-                                            [entityId]: false,
-                                          }));
-                                        }}
-                                      >
-                                        {opt.label}
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                        ) : (
+            return (
+              <FormField
+                key={entityId}
+                control={form.control}
+                name={entityId as any}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {fieldName}
+                      {entity.is_mandatory && (
+                        <span className="text-destructive"> *</span>
+                      )}
+                    </FormLabel>
+                    {entity.field_type === "SELECT" ? (
+                      <Popover
+                        open={entityDropdownOpen[entityId] || false}
+                        onOpenChange={(open) =>
+                          setEntityDropdownOpen((prev) => ({
+                            ...prev,
+                            [entityId]: open,
+                          }))
+                        }
+                      >
+                        <PopoverTrigger asChild>
                           <FormControl>
-                            <Input
-                              {...field}
-                              placeholder={`Enter ${fieldName}`}
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={entityDropdownOpen[entityId]}
+                              className="h-11 w-full justify-between"
                               disabled={mode === "view"}
-                            />
+                            >
+                              <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
+                                {field.value
+                                  ? entityOptions[entityId]?.find(
+                                      (opt) => opt.id === field.value
+                                    )?.label || `Select ${fieldName}`
+                                  : `Select ${fieldName}`}
+                              </span>
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
                           </FormControl>
-                        )}
-                        <FormMessage />
-                      </FormItem>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                          <Command>
+                            <CommandInput
+                              placeholder={`Search ${fieldName}...`}
+                            />
+                            <CommandList className="max-h-[180px] overflow-y-auto">
+                              <CommandEmpty>
+                                No {fieldName.toLowerCase()} found.
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {entityOptions[entityId]?.map((opt) => (
+                                  <CommandItem
+                                    key={opt.id}
+                                    value={opt.label}
+                                    onSelect={() => {
+                                      field.onChange(opt.id);
+                                      setEntityDropdownOpen((prev) => ({
+                                        ...prev,
+                                        [entityId]: false,
+                                      }));
+                                    }}
+                                  >
+                                    {opt.label}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder={`Enter ${fieldName}`}
+                          disabled={mode === "view"}
+                        />
+                      </FormControl>
                     )}
-                  />
-                );
-              })}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            );
+          })}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-2 pt-4">
