@@ -34,15 +34,18 @@ export const fileParseService = {
 
     const formData = new FormData();
     formData.append("file", file);
+    try {
+      const response = await api.post(
+        `/em/expenses/receipt/parse?org_id=${orgId}`,
+        formData,
+        {
+          timeout: 120000,
+        }
+      );
 
-    const response = await api.post(
-      `/em/expenses/receipt/parse?org_id=${orgId}`,
-      formData,
-      {
-        timeout: 120000,
-      }
-    );
-
-    return response.data.data;
+      return response.data.data;
+    } catch (error) {
+      throw error;
+    }
   },
 };

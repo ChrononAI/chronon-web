@@ -90,7 +90,7 @@ const expenseSchema = z.object({
     (v) => (v ? new Date(v as string) : v),
     z.date({ required_error: "Date is required" })
   ),
-  advance_account_id: z.string().optional(),
+  advance_account_id: z.string().optional().nullable(),
   description: z.string().min(1, "Description is required"),
   foreign_currency: z.string().optional().nullable(),
   currency: z.string().optional().default("INR"),
@@ -1380,7 +1380,7 @@ export function ExpenseDetailsStep2({
                         <FormItem>
                           <FormLabel>Advance Account</FormLabel>
                           <Select
-                            value={field.value}
+                            value={field.value || ""}
                             onValueChange={(value) => {
                               field.onChange(value);
                               const acc = advanceAccounts.find(
