@@ -87,8 +87,8 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
               <div className="flex items-center justify-between text-sm">
                 {getText({
                   status: step.status,
-                  firstName: step.approvers[0].first_name || "",
-                  lastName: step.approvers[0].last_name || "",
+                  firstName: step.approvers[0]?.first_name || "",
+                  lastName: step.approvers[0]?.last_name || "",
                 })}
               </div>
               <div className="flex items-center justify-between">

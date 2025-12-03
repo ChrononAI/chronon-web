@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { createEntity, createAttributes } from "@/services/admin/entities";
+import {
+  createEntity,
+  createAttributes,
+  Entity,
+} from "@/services/admin/entities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +29,7 @@ import {
 } from "@/components/ui/form";
 
 const entitySchema = z.object({
-  entityName: z.string().min(1, "Entity Name is required"),
+  entity_name: z.string().min(1, "Entity Name is required"),
   description: z.string().optional(),
   type: z.string().min(1, "Type is required"),
 });
@@ -35,6 +39,8 @@ type ValueRow = Record<string, string>;
 
 export const CreateEntityPage = () => {
   const navigate = useNavigate();
+  const { state }: { state: Entity } = useLocation();
+  const mode = state ? "edit" : "create";
   const [valueRows, setValueRows] = useState<ValueRow[]>([
     { value: "", accountCode: "" },
     { value: "", accountCode: "" },
@@ -46,7 +52,13 @@ export const CreateEntityPage = () => {
 
   const form = useForm<EntityFormValues>({
     resolver: zodResolver(entitySchema),
-    defaultValues: { entityName: "", description: "", type: "" },
+    defaultValues: state
+      ? {
+          entity_name: state.display_name,
+          description: state.description,
+          type: state.type,
+        }
+      : { entity_name: "", description: "", type: "" },
   });
 
   const selectedType = form.watch("type");
@@ -78,75 +90,92 @@ export const CreateEntityPage = () => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
+
+    if (state?.attributes?.length) {
+      const vals: ValueRow[] = [];
+      state.attributes.forEach((attr) => {
+        const val = {
+          id: attr.id,
+          value: attr.value,
+          accountCode: "",
+        };
+        vals.push(val);
+      });
+      console.log(vals);
+      setValueRows(vals);
+    }
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const onSubmit = async (data: EntityFormValues) => {
     const payload = {
-      name: data.entityName,
+      name: data.entity_name,
       description: data.description || "",
-      display_name: data.entityName,
+      display_name: data.entity_name,
       status: data.type,
       is_active: true,
     };
+    const attrs = valueRows
+      .filter((v) => v.value.trim().length > 0)
+      .map((v) => {
+        const { value, accountCode = "", ...extra } = v;
+        const trimmedValue = value.trim();
+        const trimmedAccountCode = accountCode.trim();
+
+        const metadata = Object.entries(extra).reduce<Record<string, string>>(
+          (acc, [key, val]) => {
+            if (tags.includes(key)) {
+              const trimmed = val.trim();
+              if (trimmed.length > 0) {
+                acc[key] = trimmed;
+              }
+            }
+            return acc;
+          },
+          {}
+        );
+
+        return {
+          value: trimmedValue,
+          is_active: true,
+          display_value: trimmedValue,
+          ...(trimmedAccountCode ? { account_code: trimmedAccountCode } : {}),
+          ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+        };
+      });
     try {
-      const res = await createEntity(payload);
-      if (res?.status === "success") {
-        const entityId = res.data?.id;
-        if (entityId && data.type === "SELECT" && valueRows.length > 0) {
-          const attrs = valueRows
-            .filter((v) => v.value.trim().length > 0)
-            .map((v) => {
-              const { value, accountCode = "", ...extra } = v;
-              const trimmedValue = value.trim();
-              const trimmedAccountCode = accountCode.trim();
+      if (mode === "edit") {
+        toast.message("editing entity");
+      } else {
+        const res = await createEntity(payload);
+        if (res?.status === "success") {
+          const entityId = res.data?.id;
+          if (entityId && data.type === "SELECT" && valueRows.length > 0) {
+            if (attrs.length > 0) {
+              try {
+                const attrRes = await createAttributes({
+                  entity_id: entityId,
+                  attributes: attrs,
+                });
 
-              const metadata = Object.entries(extra).reduce<
-                Record<string, string>
-              >((acc, [key, val]) => {
-                if (tags.includes(key)) {
-                  const trimmed = val.trim();
-                  if (trimmed.length > 0) {
-                    acc[key] = trimmed;
-                  }
+                if (attrRes?.status !== "success") {
+                  toast.error(
+                    attrRes?.message || "Failed to create entity attributes"
+                  );
+                  return;
                 }
-                return acc;
-              }, {});
-
-              return {
-                value: trimmedValue,
-                is_active: true,
-                display_value: trimmedValue,
-                ...(trimmedAccountCode
-                  ? { account_code: trimmedAccountCode }
-                  : {}),
-                ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
-              };
-            });
-
-          if (attrs.length > 0) {
-            try {
-              const attrRes = await createAttributes({
-                entity_id: entityId,
-                attributes: attrs,
-              });
-
-              if (attrRes?.status !== "success") {
-                toast.error(
-                  attrRes?.message || "Failed to create entity attributes"
-                );
+              } catch (error) {
+                toast.error("Failed to create entity attributes");
                 return;
               }
-            } catch (error) {
-              toast.error("Failed to create entity attributes");
-              return;
             }
           }
+          toast.success("Entity created");
+          navigate("/admin/entities");
+        } else {
+          toast.error(res?.message || "Failed to create entity");
         }
-        toast.success("Entity created");
-        navigate("/admin/entities");
-      } else {
-        toast.error(res?.message || "Failed to create entity");
       }
     } catch (e) {
       toast.error("Failed to create entity");
@@ -162,7 +191,7 @@ export const CreateEntityPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
               <FormField
                 control={form.control}
-                name="entityName"
+                name="entity_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Entity Name *</FormLabel>
@@ -321,9 +350,11 @@ export const CreateEntityPage = () => {
                 type="button"
                 onClick={() => navigate("/admin/entities")}
               >
-                CANCEL
+                Cancel
               </Button>
-              <Button type="submit">SUBMIT</Button>
+              <Button type="submit">
+                {mode === "create" ? "Submit" : "Update"}
+              </Button>
             </div>
           </div>
         </form>

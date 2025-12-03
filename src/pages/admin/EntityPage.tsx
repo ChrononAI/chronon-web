@@ -1,9 +1,14 @@
-import { DataGrid, GridColDef, GridOverlay } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridOverlay,
+  GridRowParams,
+} from "@mui/x-data-grid";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Plus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getEntities } from "@/services/admin/entities";
+import { Entity, getEntities } from "@/services/admin/entities";
 import { Box } from "@mui/material";
 
 type APIEntity = {
@@ -50,6 +55,8 @@ function CustomNoRows() {
 }
 
 export const EntityPage = () => {
+  const navigate = useNavigate();
+  const [rawRows, setRawRows] = useState<Entity[]>([]);
   const [rows, setRows] = useState<EntityRow[]>([]);
   const [loading, setLoading] = useState(true);
   const columns: GridColDef<EntityRow>[] = [
@@ -59,11 +66,17 @@ export const EntityPage = () => {
     { field: "value", headerName: "VALUE", minWidth: 300, flex: 1 },
   ];
 
+  const handleRowClick = ({ id }: GridRowParams) => {
+    const row = rawRows.find((row: Entity) => row.id === id);
+    navigate("/admin/entities/create", { state: row });
+  };
+
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
         const data = await getEntities();
+        setRawRows(data);
         const mapped: EntityRow[] = data.map((e: APIEntity, idx: number) => ({
           id: e.id || String(idx),
           entity_name: e.name,
@@ -148,6 +161,7 @@ export const EntityPage = () => {
             color: "#f3f4f6",
           },
         }}
+        onRowClick={handleRowClick}
         showToolbar
         density="compact"
         checkboxSelection

@@ -5,6 +5,7 @@ import {
   GridColDef,
   GridOverlay,
   GridPaginationModel,
+  GridRowParams,
 } from "@mui/x-data-grid";
 import { CheckCircle, Download, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -62,7 +63,7 @@ const UserPage = () => {
   const [activeTab, setActiveTab] = useState<"userAll" | "templateUser">(
     "userAll"
   );
-  const [rows, setRows] = useState<UserRow[]>([]);
+  const [rows, setRows] = useState<APIUser[]>([]);
   const [templateRows] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [paginationModel, setPaginationModel] =
@@ -71,13 +72,18 @@ const UserPage = () => {
   const [rowCount, setRowCount] = useState<number>();
   const [templateRowCount] = useState(0);
 
-  const baseColumns = useMemo<GridColDef<UserRow>[]>(
+  const baseColumns = useMemo<GridColDef<APIUser>[]>(
     () => [
-      { field: "name", headerName: "NAME", minWidth: 240, flex: 1, },
-      { field: "email", headerName: "EMAIL", minWidth: 260, flex: 1, },
-      { field: "role", headerName: "ROLE", minWidth: 160, flex: 1, },
-      { field: "phone", headerName: "PHONE", minWidth: 200, flex: 1, },
-      { field: "status", headerName: "STATUS", minWidth: 120, flex: 1, },
+      {
+        field: "name",
+        headerName: "NAME",
+        minWidth: 240,
+        flex: 1,
+      },
+      { field: "email", headerName: "EMAIL", minWidth: 260, flex: 1 },
+      { field: "role", headerName: "ROLE", minWidth: 160, flex: 1 },
+      { field: "phone", headerName: "PHONE", minWidth: 200, flex: 1 },
+      { field: "status", headerName: "STATUS", minWidth: 120, flex: 1 },
     ],
     []
   );
@@ -129,6 +135,10 @@ const UserPage = () => {
     }
   };
 
+  const handleRowClick = (row: GridRowParams) => {
+    console.log(row);
+  };
+
   const loadUsers = async (paginationModel: GridPaginationModel) => {
     setLoading(true);
     try {
@@ -145,23 +155,24 @@ const UserPage = () => {
       );
       setRowCount(response.data.count);
       const users: APIUser[] = response.data?.data || [];
-      const mappedRows: UserRow[] = users.map((user, index) => {
-        const id = user.id ?? index;
-        const firstName = user.first_name?.trim() || "";
-        const lastName = user.last_name?.trim() || "";
-        const fullName = `${firstName} ${lastName}`.trim();
+      console.log(users);
+      // const mappedRows: UserRow[] = users.map((user, index) => {
+      //   const id = user.id ?? index;
+      //   const firstName = user.first_name?.trim() || "";
+      //   const lastName = user.last_name?.trim() || "";
+      //   const fullName = `${firstName} ${lastName}`.trim();
 
-        return {
-          id: String(id),
-          name: fullName || user.email || `User ${index + 1}`,
-          email: user.email || "-",
-          role: (user.role || "-").toUpperCase(),
-          phone: user.phone_number || "-",
-          status: user.status || "-",
-          ...user.entity_assignments,
-        };
-      });
-      setRows(mappedRows);
+      //   return {
+      //     id: String(id),
+      //     name: fullName || user.email || `User ${index + 1}`,
+      //     email: user.email || "-",
+      //     role: (user.role || "-").toUpperCase(),
+      //     phone: user.phone_number || "-",
+      //     status: user.status || "-",
+      //     ...user.entity_assignments,
+      //   };
+      // });
+      setRows(users);
     } catch (error) {
       console.error("Failed to load users:", error);
       toast.error("Failed to load users");
@@ -273,6 +284,7 @@ const UserPage = () => {
                   color: "#f3f4f6",
                 },
               }}
+              onRowClick={handleRowClick}
               density="compact"
               checkboxSelection
               showToolbar
