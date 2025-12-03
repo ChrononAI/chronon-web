@@ -20,12 +20,12 @@ export function Header() {
   };
 
   return (
-    <header className="border-b bg-background px-6 py-4">
+    <header className="border-b px-6 py-4" style={{ backgroundColor: '#003323' }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link to="/" className="flex items-center space-x-2">
-            <span className="text-3xl font-bold text-primary">∞</span>
-            <h1 className="text-3xl font-bold text-primary">Chronon</h1>
+            <span className="text-3xl font-bold text-white" style={{ fontFamily: 'Poppins, sans-serif' }}>∞</span>
+            <h1 className="text-3xl font-bold text-white" style={{ fontFamily: 'Poppins, sans-serif' }}>Pine Labs</h1>
           </Link>
         </div>
 
@@ -48,10 +48,10 @@ export function Header() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar className="h-10 w-10">
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-white/10">
+                <Avatar className="h-10 w-10 border-2 border-white/20">
                   <AvatarImage src="" alt={user?.firstName} />
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-white/20 text-white">
                     {user?.firstName?.[0]}{user?.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>

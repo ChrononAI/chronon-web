@@ -149,7 +149,7 @@ function ProcessAdvancePage() {
       case "REJECTED":
         return <XCircle className="h-5 w-5 text-red-600" />;
       default:
-        return <Activity className="h-5 w-5 text-blue-600" />;
+        return <Activity className="h-5 w-5 text-green-600" />;
     }
   };
 

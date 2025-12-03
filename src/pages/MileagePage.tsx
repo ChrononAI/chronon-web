@@ -1017,7 +1017,7 @@ const MileagePage = ({
                         variant="outline"
                         onClick={() => handleAddStop(0)}
                         disabled={mode === "view" && !editMode}
-                        className="text-blue-600 border-blue-300 hover:bg-blue-50 px-2 py-0.5 text-xs h-7"
+                        className="text-green-600 border-green-300 hover:bg-green-50 px-2 py-0.5 text-xs h-7"
                       >
                         + ADD
                       </Button>
@@ -1055,7 +1055,7 @@ const MileagePage = ({
                             size="sm"
                             onClick={() => handleAddStop(index + 1)}
                             disabled={mode === "view" && !editMode}
-                            className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 px-2 py-0.5 h-7"
+                            className="text-xs text-green-600 border-green-300 hover:bg-green-50 px-2 py-0.5 h-7"
                           >
                             + ADD
                           </Button>
@@ -1339,7 +1339,7 @@ const MileagePage = ({
                       <Label className="text-sm font-medium text-gray-600">
                         Total Amount
                       </Label>
-                      <div className="text-2xl font-bold text-blue-600 mt-1">
+                      <div className="text-2xl font-bold text-green-600 mt-1">
                         {formData.amount ||
                           formatCurrency(0, orgSettings.currency)}
                       </div>
@@ -1375,7 +1375,7 @@ const MileagePage = ({
                     <Button
                       type="submit"
                       disabled={saving || isCalculating}
-                      className="h-11 bg-blue-600 hover:bg-blue-700 text-white"
+                      className="h-11 bg-green-600 hover:bg-green-700 text-white"
                     >
                       {renderPrimaryButtonContent()}
                     </Button>
@@ -1388,7 +1388,7 @@ const MileagePage = ({
                       <span className="text-sm font-medium text-gray-600">
                         Total Amount
                       </span>
-                      <span className="text-2xl font-bold text-blue-600 mt-1">
+                      <span className="text-2xl font-bold text-green-600 mt-1">
                         {formData.amount ||
                           formatCurrency(0, orgSettings.currency)}
                       </span>

@@ -880,7 +880,7 @@ const { register, handleSubmit, reset } = useForm<FormValues>({
                 <div className="border rounded-lg bg-white">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-gray-100">
+                      <TableRow style={{ backgroundColor: '#EAF0EE' }}>
                         <TableHead>NAME</TableHead>
                         <TableHead>ENTITY TYPE</TableHead>
                         <TableHead>STATUS</TableHead>

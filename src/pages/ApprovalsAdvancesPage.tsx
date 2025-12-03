@@ -253,16 +253,22 @@ function ApprovalsAdvancesPage() {
           }}
           sx={{
             border: 0,
+            fontFamily: 'Poppins, sans-serif',
             "& .MuiDataGrid-columnHeaderTitle": {
               color: "#9AA0A6",
               fontWeight: "bold",
               fontSize: "12px",
+              fontFamily: 'Poppins, sans-serif',
+            },
+            "& .MuiDataGrid-cell": {
+              fontFamily: 'Poppins, sans-serif',
+              color: "#2E2E2E",
             },
             "& .MuiDataGrid-main": {
               border: "1px solid #F1F3F4",
             },
             "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
+              backgroundColor: "#EAF0EE",
             },
             "& .MuiCheckbox-root": {
               color: "#9AA0A6",
@@ -270,9 +276,6 @@ function ApprovalsAdvancesPage() {
             "& .MuiDataGrid-row:hover": {
               cursor: "pointer",
               backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
             },
             "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
               outline: "none",

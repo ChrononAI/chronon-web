@@ -127,7 +127,7 @@ export function PaymentPage() {
       case 'COMPLETED':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'PROCESSING':
-        return <Clock className="h-4 w-4 text-blue-600" />;
+        return <Clock className="h-4 w-4 text-green-600" />;
       case 'PENDING':
         return <Clock className="h-4 w-4 text-yellow-600" />;
       case 'FAILED':
@@ -142,7 +142,7 @@ export function PaymentPage() {
       case 'COMPLETED':
         return 'bg-green-100 text-green-800  ';
       case 'PROCESSING':
-        return 'bg-blue-100 text-blue-800  ';
+        return 'bg-green-100 text-green-800  ';
       case 'PENDING':
         return 'bg-yellow-100 text-yellow-800  ';
       case 'FAILED':
@@ -185,15 +185,15 @@ export function PaymentPage() {
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100   border-blue-200 ">
+          <Card className="bg-gradient-to-br from-green-50 to-green-100   border-green-200 ">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-700 ">Total Payments</p>
-                  <p className="text-3xl font-bold text-blue-900 ">{totalPayments}</p>
+                  <p className="text-sm font-medium text-green-700 ">Total Payments</p>
+                  <p className="text-3xl font-bold text-green-900 ">{totalPayments}</p>
                 </div>
-                <div className="p-3 bg-blue-100  rounded-full">
-                  <CreditCard className="h-6 w-6 text-blue-600 " />
+                <div className="p-3 bg-green-100  rounded-full">
+                  <CreditCard className="h-6 w-6 text-green-600 " />
                 </div>
               </div>
             </CardContent>
@@ -298,7 +298,7 @@ export function PaymentPage() {
               <div className="rounded-lg border overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/50">
+                    <TableRow style={{ backgroundColor: '#EAF0EE' }}>
                       <TableHead className="font-semibold">Payment ID</TableHead>
                       <TableHead className="font-semibold">Vendor</TableHead>
                       <TableHead className="font-semibold">Amount</TableHead>

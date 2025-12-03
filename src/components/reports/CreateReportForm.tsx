@@ -581,7 +581,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
                           const toAdd = filteredExpenses.filter(exp => !markedExpenses.some(marked => marked.id === exp.id));
                           setMarkedExpenses([...markedExpenses, ...toAdd]);
                         }}
-                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                        className="text-sm text-green-600 hover:text-green-800 hover:underline"
                       >
                         Select All
                       </button>}
@@ -590,7 +590,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
                           const filteredIds = new Set(filteredExpenses.map(exp => exp.id));
                           setMarkedExpenses(markedExpenses.filter(exp => !filteredIds.has(exp.id)));
                         }}
-                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                        className="text-sm text-green-600 hover:text-green-800 hover:underline"
                       >
                         Deselect All
                       </button>}
@@ -736,7 +736,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
             onClick={onSave}
             disabled={saving}
             variant="outline"
-            className="px-10 py-3 border-blue-500 text-blue-500 hover:bg-blue-50"
+            className="px-10 py-3 border-green-500 text-green-500 hover:bg-green-50"
           >
             {saving ? (
               <>

@@ -10,7 +10,7 @@ import { initMixpanel } from "./mixpanel";
 const theme = createTheme({
   typography: {
     fontFamily: [
-      'Inter',
+      'Poppins',
       'system-ui',
       '-apple-system',
       'BlinkMacSystemFont',

@@ -1640,7 +1640,7 @@ export function ExpenseDetailsStep2({
 
               {semiParsedData?.original_expense_id && (
                 <div
-                  className="flex items-center text-blue-600 text-sm cursor-pointer hover:text-blue-700"
+                  className="flex items-center text-green-600 text-sm cursor-pointer hover:text-green-700"
                   onClick={async () => {
                     try {
                       const base64Url = uploadedFile
@@ -1699,7 +1699,7 @@ export function ExpenseDetailsStep2({
               onClick={() => {
                 setShowDuplicateDialog(false);
               }}
-              className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium"
+              className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-medium"
             >
               Upload New Receipt
             </Button>
@@ -1715,7 +1715,7 @@ export function ExpenseDetailsStep2({
                 form.setValue("receipt_id", semiParsedData?.id || "");
                 setIsReceiptReplaced(true);
               }}
-              className="w-full h-12 bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 font-medium"
+              className="w-full h-12 bg-green-50 hover:bg-green-100 text-green-600 border-green-200 font-medium"
             >
               Create as Duplicate
             </Button>

@@ -398,27 +398,27 @@ export function ApprovalRulesPage() {
                 {/* Actions */}
                 <div className="space-y-4">
                   {rule.actions.map((action) => (
-                    <div key={action.id} className="flex items-center gap-4 p-4 bg-blue-50/50  rounded-lg border border-blue-200/50 ">
+                    <div key={action.id} className="flex items-center gap-4 p-4 bg-green-50/50  rounded-lg border border-green-200/50 ">
                       {action.type === 'REQUIRE_APPROVAL' ? (
                         <>
-                          <div className="flex items-center gap-2 text-sm font-medium text-blue-700  min-w-[80px]">
-                            <div className="w-6 h-6 bg-blue-100  rounded-full flex items-center justify-center">
+                          <div className="flex items-center gap-2 text-sm font-medium text-green-700  min-w-[80px]">
+                            <div className="w-6 h-6 bg-green-100  rounded-full flex items-center justify-center">
                               <span className="text-xs">○</span>
                             </div>
                             Requires
                           </div>
                           
-                          <span className="text-sm text-blue-700 ">
+                          <span className="text-sm text-green-700 ">
                             Level {action.level} Approval from
                           </span>
                           
-                          <span className="text-sm font-medium text-blue-700 ">=</span>
+                          <span className="text-sm font-medium text-green-700 ">=</span>
                           
                           <Select
                             value={action.approver}
                             onValueChange={(value) => updateAction(rule.id, action.id, 'approver', value)}
                           >
-                            <SelectTrigger className="w-[200px] border-blue-200 ">
+                            <SelectTrigger className="w-[200px] border-green-200 ">
                               <SelectValue placeholder="Select approver" />
                             </SelectTrigger>
                             <SelectContent>
@@ -446,7 +446,7 @@ export function ApprovalRulesPage() {
                           <div className="w-6 h-6 bg-green-100  rounded-full flex items-center justify-center">
                             <span className="text-xs">○</span>
                           </div>
-                          <span className="text-blue-600  font-medium cursor-pointer hover:underline">
+                          <span className="text-green-600  font-medium cursor-pointer hover:underline">
                             Auto Approve
                           </span>
                         </div>

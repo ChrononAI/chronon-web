@@ -187,7 +187,7 @@ const UserPage = () => {
         </div>
         {activeTab === "userAll" && (
           <div className="flex items-center gap-2">
-            <Button asChild>
+            <Button asChild style={{ backgroundColor: '#D7FF52', color: '#000000' }} className="hover:opacity-90 rounded-full">
               <Link to="/admin/users/create">
                 <Plus className="mr-2 h-4 w-4" />
                 CREATE
@@ -216,7 +216,7 @@ const UserPage = () => {
           <div className="bg-gray-100 rounded-md p-4 mb-6">
             <p className="text-sm text-gray-600">
               Review user access and create new users to grant access to
-              Chronon.
+              Pine Labs.
             </p>
           </div>
           <Box
@@ -243,7 +243,7 @@ const UserPage = () => {
                   border: "0.2px solid #f3f4f6",
                 },
                 "& .MuiDataGrid-columnHeader": {
-                  backgroundColor: "#f3f4f6",
+                  backgroundColor: "#EAF0EE",
                   border: "none",
                 },
                 "& .MuiDataGrid-columnHeaders": {
@@ -319,7 +319,7 @@ const UserPage = () => {
                   border: "0.2px solid #f3f4f6",
                 },
                 "& .MuiDataGrid-columnHeader": {
-                  backgroundColor: "#f3f4f6",
+                  backgroundColor: "#EAF0EE",
                   border: "none",
                 },
                 "& .MuiDataGrid-columnHeaders": {

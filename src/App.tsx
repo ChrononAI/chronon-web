@@ -58,6 +58,8 @@ import { AutoReportPage } from "./pages/admin/AutoReportPage";
 import { ReportDetailPage2 } from "./pages/ReportDetailPage2";
 import { Layout } from "./components/layout/Layout";
 import AdminLayout from "./components/layout/AdminLayout";
+import HotelPage from "./pages/HotelPage";
+import FlightPage from "./pages/FlightPage";
 
 function App() {
   return (
@@ -128,6 +130,10 @@ function App() {
                 <Route path="/admin/product-config/category-limits/:id" element={<EditCategoryLimitPage />} />
                 <Route path="/admin/product-config/auto-reports" element={<AutoReportPage />} />
               </Route>
+
+              {/* TRAVEL */}
+              <Route path="/travel/hotel" element={<HotelPage />} />
+              <Route path="/travel/flight" element={<FlightPage />} />
 
               {/* OTHER PAGES */}
               <Route path="/all-reports" element={<AllReportsPage />} />

@@ -842,7 +842,7 @@ export function CreateReportForm2({
             onClick={onSave}
             disabled={saving}
             variant="outline"
-            className="px-10 py-3 border-blue-500 text-blue-500 hover:bg-blue-50"
+            className="px-10 py-3 border-green-500 text-green-500 hover:bg-green-50"
           >
             {saving ? (
               <>

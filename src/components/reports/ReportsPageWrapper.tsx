@@ -78,7 +78,7 @@ export function ReportsPageWrapper({
           <h1 className="text-2xl font-bold">{title}</h1>
         </div>
         {showCreateButton && (
-          <Button asChild>
+          <Button asChild style={{ backgroundColor: '#D7FF52', color: '#000000' }} className="hover:opacity-90 rounded-full">
             <Link to={createButtonLink}>
               <Plus className="mr-2 h-4 w-4" />
               {createButtonText}

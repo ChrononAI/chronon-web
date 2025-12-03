@@ -832,7 +832,7 @@ export const CreateUserPage = () => {
             </div>
             <Button
               type="button"
-              className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-base"
+              className="self-start sm:self-auto bg-green-600 text-white hover:bg-green-700 px-6 py-2 text-base"
               onClick={() => handleBulkDialogChange(true)}
             >
               Bulk Upload

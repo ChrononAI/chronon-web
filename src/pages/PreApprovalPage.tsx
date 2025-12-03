@@ -298,7 +298,7 @@ function PreApprovalPage() {
               border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
+              backgroundColor: "#EAF0EE",
               border: "none",
             },
             "& .MuiDataGrid-columnHeaders": {

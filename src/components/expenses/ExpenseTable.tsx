@@ -30,8 +30,8 @@ export function ExpenseTable({ expenses }: ExpenseTableProps) {
   return (
     <div className="border rounded-lg bg-white">
         <Table>
-          <TableHeader className='text-[#64748B]'>
-            <TableRow className="bg-gray-100">
+          <TableHeader>
+            <TableRow style={{ backgroundColor: '#EAF0EE' }}>
               <TableHead>EXPENSE ID</TableHead>
               <TableHead>TYPE</TableHead>
               <TableHead>POLICY</TableHead>

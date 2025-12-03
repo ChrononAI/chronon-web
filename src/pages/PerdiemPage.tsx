@@ -618,7 +618,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                   <Label className="text-sm font-medium text-gray-600">
                     Total Per Diem
                   </Label>
-                  <div className="text-2xl font-bold text-blue-600 mt-1">
+                  <div className="text-2xl font-bold text-green-600 mt-1">
                     ₹{(Number(formData.totalAmount) || 0).toFixed(2)}
                   </div>
                   <p className="text-sm text-gray-500">
@@ -627,7 +627,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                 </div>
                 <Button
                   type="submit"
-                  className="h-11 bg-blue-600 text-white hover:bg-blue-700"
+                  className="h-11 bg-green-600 text-white hover:bg-green-700"
                 >
                   {mode === "create" ? "Create" : "Update"} Expense
                 </Button>
@@ -644,7 +644,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         ({days} {days === 1 ? "day" : "days"})
                       </span>
                     </div>
-                    <span className="text-2xl font-bold text-blue-600">
+                    <span className="text-2xl font-bold text-green-600">
                       ₹{(Number(formData.totalAmount) || 0).toFixed(2)}
                     </span>
                   </div>

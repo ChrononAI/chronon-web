@@ -104,6 +104,8 @@ function CategoryLimitPage() {
           onClick={() =>
             navigate("/admin/product-config/category-limits/create")
           }
+          style={{ backgroundColor: '#D7FF52', color: '#000000' }}
+          className="hover:opacity-90 rounded-full"
         >
           <Plus className="mr-2 h-4 w-4" />
           Category Limits
@@ -123,16 +125,23 @@ function CategoryLimitPage() {
           slots={{ noRowsOverlay: CustomNoRows }}
           sx={{
             border: 0,
+            fontFamily: 'Poppins, sans-serif',
             "& .MuiDataGrid-columnHeaderTitle": {
               color: "#9AA0A6",
               fontWeight: "bold",
               fontSize: "12px",
+              fontFamily: 'Poppins, sans-serif',
+            },
+            "& .MuiDataGrid-cell": {
+              fontFamily: 'Poppins, sans-serif',
+              color: "#2E2E2E",
+              border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
+              backgroundColor: "#EAF0EE",
               border: "none",
             },
             "& .MuiDataGrid-columnHeaders": {
@@ -143,10 +152,6 @@ function CategoryLimitPage() {
             "& .MuiDataGrid-row:hover": {
               cursor: "pointer",
               backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
               outline: "none",

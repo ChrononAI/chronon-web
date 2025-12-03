@@ -228,7 +228,11 @@ export function MyReportsPage() {
       {/* Header Section */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Expense Reports</h1>
-        <Button asChild>
+        <Button 
+          asChild
+          style={{ backgroundColor: '#D7FF52', color: '#000000' }}
+          className="hover:opacity-90 rounded-full"
+        >
           <Link to="/reports/create">
             <Plus className="mr-2 h-4 w-4" />
             Create New Report
@@ -290,7 +294,7 @@ export function MyReportsPage() {
               border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
+              backgroundColor: "#EAF0EE",
               border: "none",
             },
             "& .MuiDataGrid-columnHeaders": {

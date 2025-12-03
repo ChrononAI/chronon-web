@@ -469,7 +469,7 @@ function CreatePreApprovalForm({
               <Button
                 type="submit"
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2"
               >
                 {loading ? (
                   <>

@@ -59,7 +59,7 @@ export function LoginForm() {
     <div className="w-full max-w-md">
       <div className="text-center mb-8">
         <h2 className="text-xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-        <p className="text-gray-600 text-base">Sign in to access Chronon Flow</p>
+        <p className="text-gray-600 text-base">Sign in to access Pine Labs</p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
@@ -74,7 +74,7 @@ export function LoginForm() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-gray-900 text-sm"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 text-sm"
             style={{ backgroundColor: "#f8fafc" }}
             required
           />
@@ -92,7 +92,7 @@ export function LoginForm() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-gray-900 text-sm"
+              className="w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 text-sm"
               style={{ backgroundColor: "#f8fafc" }}
               required
             />
@@ -111,7 +111,7 @@ export function LoginForm() {
           <div className="flex justify-end mt-2">
             <button
               type="button"
-              className="underline text-blue-600 hover:text-blue-700 text-[12px]"
+              className="underline text-green-600 hover:text-green-700 text-[12px]"
               onClick={() => navigate("/accounts/forgot_password")}
             >
               Forgot Password?
@@ -126,7 +126,7 @@ export function LoginForm() {
         )}
         <Button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium transition-colors text-sm"
+          className="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 px-4 rounded-none font-medium transition-colors text-sm"
           disabled={isLoading}
         >
           {isLoading ? (
@@ -142,7 +142,7 @@ export function LoginForm() {
       <div className="mt-4 text-center">
         <p className="text-sm text-gray-500">
           Need help?{" "}
-          <a href="#" className="text-blue-600 hover:blue-purple-700 font-medium">
+          <a href="#" className="text-green-600 hover:text-green-700 font-medium">
             Contact your administrator
           </a>
         </p>

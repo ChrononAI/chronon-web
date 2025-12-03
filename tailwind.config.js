@@ -9,7 +9,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Poppins', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -56,6 +56,18 @@ export default {
           3: 'hsl(var(--chart-3))',
           4: 'hsl(var(--chart-4))',
           5: 'hsl(var(--chart-5))',
+        },
+        green: {
+          50: '#e6f5f0',
+          100: '#b3e0d0',
+          200: '#80ccb0',
+          300: '#4db890',
+          400: '#1aa470',
+          500: '#006644',
+          600: '#003323',
+          700: '#002a1c',
+          800: '#002015',
+          900: '#00170e',
         },
       },
       keyframes: {

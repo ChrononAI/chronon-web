@@ -76,14 +76,14 @@ function ForgotPasswordPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 text-sm"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 text-sm"
               style={{ backgroundColor: "#f8fafc" }}
               required
             />
             <div className="flex justify-end mt-2">
               <button
                 type="button"
-                className="underline text-blue-600 hover:text-blue-700 text-[12px]"
+                className="underline text-green-600 hover:text-green-700 text-[12px]"
                 onClick={() => navigate("/login")}
               >
                 Sign In
@@ -98,7 +98,7 @@ function ForgotPasswordPage() {
           )}
           <Button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium transition-colors text-sm"
+            className="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 px-4 rounded-lg font-medium transition-colors text-sm"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -116,7 +116,7 @@ function ForgotPasswordPage() {
             Need help?{" "}
             <a
               href="#"
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-green-600 hover:text-green-700 font-medium"
             >
               Contact your administrator
             </a>
@@ -148,7 +148,7 @@ function ForgotPasswordPage() {
               </DialogDescription>
             </div>
             <Button
-              className="mt-2 w-40 mx-auto text-white bg-blue-600 hover:bg-blue-600 font-medium"
+              className="mt-2 w-40 mx-auto text-white bg-green-600 hover:bg-green-700 font-medium"
               onClick={() => {
                 setShowDialog(false);
                 navigate("/login");

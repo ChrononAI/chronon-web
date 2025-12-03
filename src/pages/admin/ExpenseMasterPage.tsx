@@ -114,7 +114,7 @@ const AssignedEntitiesList = ({
                   {assignedEntity.is_mandatory ? "Mandatory" : "Not Mandatory"}
                 </span>
                 {assignedEntity.field_type && (
-                  <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">
+                  <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">
                     {assignedEntity.field_type}
                   </span>
                 )}
@@ -545,7 +545,7 @@ const ExpenseMasterPage = () => {
                 <Button
                   variant="link"
                   onClick={addCustomField}
-                  className="text-sm text-blue-600"
+                  className="text-sm text-green-600"
                 >
                   Add Custom Field
                 </Button>

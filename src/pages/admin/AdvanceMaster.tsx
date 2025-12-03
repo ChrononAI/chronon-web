@@ -307,7 +307,7 @@ const ExpenseMasterPage = () => {
 
             <div className="mt-4">
               <a
-                className="text-sm text-blue-600 underline cursor-pointer"
+                className="text-sm text-green-600 underline cursor-pointer"
                 onClick={addCustomField}
               >
                 Add

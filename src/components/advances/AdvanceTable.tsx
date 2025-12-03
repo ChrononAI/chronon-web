@@ -22,7 +22,11 @@ export function AdvanceTable({ advances, onCreateNew }: AdvanceTableProps) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Advances</h2>
-        <Button onClick={onCreateNew}>
+        <Button 
+          onClick={onCreateNew}
+          style={{ backgroundColor: '#D7FF52', color: '#000000' }}
+          className="hover:opacity-90 rounded-full"
+        >
           <Plus className="mr-2 h-4 w-4" />
           Create New Advance
         </Button>
@@ -31,7 +35,7 @@ export function AdvanceTable({ advances, onCreateNew }: AdvanceTableProps) {
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow style={{ backgroundColor: '#EAF0EE' }}>
               <TableHead>Description</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Status</TableHead>

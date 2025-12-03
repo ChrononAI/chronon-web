@@ -43,18 +43,18 @@ export function AllReportsTable({ reports, handleDownloadGeneratedReport }: AllR
     return (
         <div className="border rounded-lg bg-white">
             <Table>
-                <TableHeader className="text-[#64748B]">
-                    <TableRow className="bg-gray-100">
-                        <TableHead className="font-medium whitespace-nowrap">TITLE</TableHead>
-                        <TableHead className="font-medium">DATE RANGE</TableHead>
-                        <TableHead className="font-medium">RECORDS</TableHead>
-                        <TableHead className="font-medium">SIZE</TableHead>
-                        <TableHead className="font-medium">STATUS</TableHead>
-                        <TableHead className="font-medium">CREATED ON</TableHead>
-                        <TableHead className="font-medium">ACTION</TableHead>
+                <TableHeader>
+                    <TableRow style={{ backgroundColor: '#EAF0EE', fontFamily: 'Poppins, sans-serif' }}>
+                        <TableHead className="font-medium whitespace-nowrap" style={{ fontFamily: 'Poppins, sans-serif' }}>TITLE</TableHead>
+                        <TableHead className="font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>DATE RANGE</TableHead>
+                        <TableHead className="font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>RECORDS</TableHead>
+                        <TableHead className="font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>SIZE</TableHead>
+                        <TableHead className="font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>STATUS</TableHead>
+                        <TableHead className="font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>CREATED ON</TableHead>
+                        <TableHead className="font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>ACTION</TableHead>
                     </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody style={{ fontFamily: 'Poppins, sans-serif' }}>
                     {reports.map((report) => {
                         const criteria = parseCriteria(report.criteria);
                         return (

@@ -249,16 +249,23 @@ export function ApprovalsReportsPage() {
           }}
           sx={{
             border: 0,
+            fontFamily: 'Poppins, sans-serif',
             "& .MuiDataGrid-columnHeaderTitle": {
               color: "#9AA0A6",
               fontWeight: "bold",
               fontSize: "12px",
+              fontFamily: 'Poppins, sans-serif',
+            },
+            "& .MuiDataGrid-cell": {
+              fontFamily: 'Poppins, sans-serif',
+              color: "#2E2E2E",
+              border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
+              backgroundColor: "#EAF0EE",
               border: "none",
             },
             "& .MuiDataGrid-columnHeaders": {
@@ -267,10 +274,6 @@ export function ApprovalsReportsPage() {
             "& .MuiDataGrid-row:hover": {
               cursor: "pointer",
               backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
               outline: "none",

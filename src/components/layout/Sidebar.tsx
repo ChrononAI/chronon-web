@@ -14,6 +14,9 @@ import {
   Building2,
   FileSpreadsheet,
   SlidersHorizontal,
+  Plane,
+  Bed,
+  PlaneTakeoff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -70,6 +73,14 @@ const navigation: NavigationItem[] = [
         href: "/approvals/advances",
         icon: Wallet,
       },
+    ],
+  },
+  {
+    name: "Travel",
+    icon: Plane,
+    children: [
+      { name: "Hotel", href: "/travel/hotel", icon: Bed },
+      { name: "Flight", href: "/travel/flight", icon: PlaneTakeoff },
     ],
   },
   {
@@ -271,21 +282,28 @@ export function Sidebar() {
               variant="ghost"
               onClick={() => setCollapsed(false)}
               className={cn(
-                "w-full justify-between h-auto font-normal transition-all duration-200",
+                "w-full justify-between h-auto font-normal transition-all duration-200 text-white hover:bg-white/10",
                 isDisabled &&
                   "opacity-50 cursor-not-allowed hover:bg-transparent"
               )}
-              style={{ paddingLeft: `${paddingLeft}px` }}
+              style={{ 
+                paddingLeft: `${paddingLeft}px`,
+                fontFamily: 'Poppins, sans-serif'
+              }}
               disabled={isDisabled}
             >
-              <div className="flex items-center text-muted-foreground">
-                {item.icon && <item.icon className="mr-3 h-4 w-4" />}
+              <div className="flex items-center">
+                {item.icon && (
+                  <div className="mr-3 w-4 h-4 flex items-center justify-center">
+                    <item.icon className="h-4 w-4" />
+                  </div>
+                )}
                 {item.name}
               </div>
               {isOpen ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
+                <ChevronDown className="h-4 w-4 text-white transition-transform duration-200" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
+                <ChevronRight className="h-4 w-4 text-white transition-transform duration-200" />
               )}
             </Button>
           </CollapsibleTrigger>
@@ -306,11 +324,18 @@ export function Sidebar() {
             className={cn(
               "flex items-center py-2 text-sm rounded-md transition-colors",
               item.isBold && "font-bold",
-              "opacity-50 cursor-not-allowed text-muted-foreground"
+              "opacity-50 cursor-not-allowed text-white/50"
             )}
-            style={{ paddingLeft: `${paddingLeft}px` }}
+            style={{ 
+              paddingLeft: `${paddingLeft}px`,
+              fontFamily: 'Poppins, sans-serif'
+            }}
           >
-            {item.icon && <item.icon className="mr-3 h-4 w-4" />}
+            {item.icon && (
+              <div className="mr-3 w-4 h-4 flex items-center justify-center">
+                <item.icon className="h-4 w-4" />
+              </div>
+            )}
             {item.name}
           </div>
         );
@@ -324,16 +349,23 @@ export function Sidebar() {
             const active = isActive || (item.name === "Admin" && isAdminActive);
 
             return cn(
-              "flex items-center py-2 text-sm rounded-md transition-colors",
+              "flex items-center py-2 text-sm transition-colors",
               item.isBold && "font-bold",
               active
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                ? "bg-[#20D39C] text-white rounded-none"
+                : "text-white hover:bg-white/10 rounded-md"
             );
           }}
-          style={{ paddingLeft: `${paddingLeft}px` }}
+          style={{ 
+            paddingLeft: `${paddingLeft}px`,
+            fontFamily: 'Poppins, sans-serif'
+          }}
         >
-          {item.icon && <item.icon className="mr-3 h-4 w-4" />}
+          {item.icon && (
+            <div className="mr-3 w-4 h-4 flex items-center justify-center">
+              <item.icon className="h-4 w-4" />
+            </div>
+          )}
           {item.name}
         </NavLink>
       );
@@ -343,10 +375,17 @@ export function Sidebar() {
     return (
       <div
         key={item.name}
-        className="flex items-center py-2 text-sm text-muted-foreground font-medium"
-        style={{ paddingLeft: `${paddingLeft}px` }}
+        className="flex items-center py-2 text-sm text-white/70 font-medium uppercase"
+        style={{ 
+          paddingLeft: `${paddingLeft}px`,
+          fontFamily: 'Poppins, sans-serif'
+        }}
       >
-        {item.icon && <item.icon className="mr-3 h-4 w-4" />}
+        {item.icon && (
+          <div className="mr-3 w-4 h-4 flex items-center justify-center">
+            <item.icon className="h-4 w-4" />
+          </div>
+        )}
         {item.name}
       </div>
     );
@@ -355,24 +394,31 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        "bg-card border-r h-full overflow-y-auto flex flex-col transition-all duration-300 ease-in-out",
+        "h-full overflow-y-auto flex flex-col transition-all duration-300 ease-in-out",
         collapsed ? "w-12" : "w-64"
       )}
+      style={{ backgroundColor: '#003323' }}
     >
       {/* Header Section */}
       <div className="flex items-center justify-between p-4">
         {!collapsed && (
-          <Link to="/" className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-primary truncate">
-              CHRONON
+          <Link to="/" className="flex flex-col">
+            <h1 className="text-2xl font-bold text-white truncate" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              pine labs
             </h1>
+            <span className="text-sm text-green-400" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              EMS
+            </span>
+            <span className="text-xs text-white/70" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              Powered by CHRONON
+            </span>
           </Link>
         )}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setCollapsed((prev) => !prev)}
-          className="ml-auto"
+          className="ml-auto hover:bg-white/10 text-white"
         >
           {collapsed ? (
             <ChevronRight className="h-5 w-5" />
@@ -390,7 +436,8 @@ export function Sidebar() {
         )}
       >
         {newNavItems.length > 0 &&
-          newNavItems.map((item) => (
+          newNavItems.map((item) => {
+            return (
             <div key={item.name}>
               {renderNavigationItem(
                 {
@@ -400,11 +447,12 @@ export function Sidebar() {
                 0
               )}
             </div>
-          ))}
+            );
+          })}
       </nav>
 
       {/* Footer (User Menu) */}
-      <div className="p-4 mt-auto">
+      <div className="p-4 mt-auto border-t border-white/10">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="flex items-center justify-between cursor-pointer">
@@ -414,9 +462,9 @@ export function Sidebar() {
                   collapsed && "justify-center w-full"
                 )}
               >
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-10 w-10 border-2 border-white/20">
                   <AvatarImage src="" alt={user?.firstName} />
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-white/20 text-white">
                     {user?.firstName?.[0]}
                     {user?.lastName?.[0]}
                   </AvatarFallback>
@@ -424,10 +472,10 @@ export function Sidebar() {
 
                 {!collapsed && (
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
+                    <p className="text-sm font-medium leading-none text-white" style={{ fontFamily: 'Poppins, sans-serif' }}>
                       {user?.firstName} {user?.lastName}
                     </p>
-                    <p className="text-xs leading-none text-muted-foreground">
+                    <p className="text-xs leading-none text-white/70" style={{ fontFamily: 'Poppins, sans-serif' }}>
                       {user?.email}
                     </p>
                   </div>

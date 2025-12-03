@@ -119,7 +119,7 @@ function AccountCard({
       key={card.id}
       className={
         selectedAccount === card.id
-          ? "p-4 cursor-pointer border-2 border-blue-500"
+          ? "p-4 cursor-pointer border-2 border-green-500"
           : "p-4 cursor-pointer"
       }
       onClick={() => setSelectedAccount(card.id)}
@@ -282,7 +282,7 @@ function AdvanceAccounts() {
                 border: "0.2px solid #f3f4f6",
               },
               "& .MuiDataGrid-columnHeader": {
-                backgroundColor: "#f3f4f6",
+                backgroundColor: "#EAF0EE",
                 border: "none",
               },
               "& .MuiDataGrid-columnHeaders": {

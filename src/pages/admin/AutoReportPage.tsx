@@ -265,7 +265,11 @@ export const AutoReportPage = () => {
         <h1 className="text-2xl font-bold">
           Automated expense reports submissions
         </h1>
-        <Button onClick={() => setShowScheduleModal(true)}>
+        <Button 
+          onClick={() => setShowScheduleModal(true)}
+          style={{ backgroundColor: '#D7FF52', color: '#000000' }}
+          className="hover:opacity-90 rounded-full"
+        >
           <Plus className="mr-2 h-4 w-4" />
           Create Submission Schedule
         </Button>
@@ -301,7 +305,7 @@ export const AutoReportPage = () => {
               border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
+              backgroundColor: "#EAF0EE",
               border: "none",
             },
             "& .MuiDataGrid-columnHeaders": {

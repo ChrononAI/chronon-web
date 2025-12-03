@@ -1,63 +1,78 @@
-import logoIcon from "@/assets/icon-ios-1024x1024.png";
-
 function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="min-h-screen flex justify-center"
+      className="min-h-screen flex"
       style={{ backgroundColor: "#FFFFFF" }}
     >
-      <div className="w-full max-w-6xl flex flex-col lg:flex-row items-center justify-center p-8">
+      <div className="w-full flex flex-col lg:flex-row items-stretch p-0">
         <div
-          className="w-full lg:w-1/2 flex flex-col justify-center px-12"
-          style={{ backgroundColor: "#FFFFFF" }}
+          className="w-full lg:w-1/2 flex flex-col justify-center px-12 py-16 min-h-screen relative overflow-hidden"
+          style={{ backgroundColor: "#003323" }}
         >
-          <div className="max-w-lg">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-md overflow-hidden">
-              <img
-                src={logoIcon}
-                alt="Chronon logo"
-                className="object-cover w-full h-full"
-              />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 leading-tight mb-0">
-              Chronon
-            </h1>
-            <h2 className="text-3xl font-bold text-blue-600 mb-2 leading-tight">
-              Expense
-            </h2>
-            <p className="text-base text-gray-600 mb-6 leading-relaxed max-w-md">
-              Streamline your business expenses with intelligent automation and
-              real-time insights
-            </p>
-            <div className="grid grid-cols-2 gap-y-4 gap-x-8">
-              <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>
-                <span className="text-gray-700 text-sm">
-                  Smart Receipt Processing
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>
-                <span className="text-gray-700 text-sm">
-                  Real-time Approvals
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>
-                <span className="text-gray-700 text-sm">
-                  Compliance Tracking
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>
-                <span className="text-gray-700 text-sm">
-                  Financial Insights
-                </span>
-              </div>
+          {/* Middle left content - Value Proposition */}
+          <div className="absolute top-1/2 left-12 transform -translate-y-1/2 z-10">
+            <div className="text-left max-w-2xl">
+              <h1 
+                className="text-8xl font-bold leading-[1.1] mb-1 tracking-tight" 
+                style={{ 
+                  fontFamily: 'Poppins, sans-serif', 
+                  color: '#FFFFFF',
+                  letterSpacing: '-0.03em',
+                  lineHeight: '1.1'
+                }}
+              >
+                Simplifying
+              </h1>
+              <h1 
+                className="text-8xl font-bold leading-[1.1] mb-4 tracking-tight" 
+                style={{ 
+                  fontFamily: 'Poppins, sans-serif', 
+                  color: '#FFFFFF',
+                  letterSpacing: '-0.03em',
+                  lineHeight: '1.1'
+                }}
+              >
+                Payments
+              </h1>
+              <p 
+                className="text-3xl font-normal text-white/90 tracking-wide" 
+                style={{ 
+                  fontFamily: 'Poppins, sans-serif',
+                  letterSpacing: '0.01em'
+                }}
+              >
+                for <span className="font-bold" style={{ color: '#00D084' }}>Enterprise</span>.
+              </p>
             </div>
           </div>
         </div>
-        <div className="w-full lg:w-1/2 flex items-center p-8 lg:pl-16 lg:border-l lg:border-gray-200">
+        <div className="w-full lg:w-1/2 flex items-center justify-center pt-0 pr-0 pb-8 pl-8 lg:pl-16 min-h-screen bg-white relative overflow-hidden">
+          {/* Top far right - Pine Labs text */}
+          <div className="absolute top-4 right-4 z-10">
+            <p 
+              className="text-2xl font-semibold"
+              style={{ 
+                fontFamily: 'Poppins, sans-serif',
+                color: '#003323'
+              }}
+            >
+              pine labs
+            </p>
+          </div>
+          
+          {/* Bottom right - powered by CHRONON */}
+          <div className="absolute bottom-4 right-4 z-10 text-right">
+            <p 
+              className="text-sm" 
+              style={{ 
+                fontFamily: 'Poppins, sans-serif',
+                color: '#6b7280'
+              }}
+            >
+              powered by <span className="font-bold" style={{ color: '#2563eb' }}>CHRONON</span>
+            </p>
+          </div>
+          
           <div className="w-full max-w-md">{children}</div>
         </div>
       </div>

@@ -43,7 +43,7 @@ export function ReportTable({ reports }: ReportTableProps) {
     <div className="border rounded-lg bg-white">
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-100">
+          <TableRow style={{ backgroundColor: '#EAF0EE' }}>
             <TableHead>TITLE</TableHead>
             <TableHead>DESCRIPTION</TableHead>
             <TableHead>STATUS</TableHead>
