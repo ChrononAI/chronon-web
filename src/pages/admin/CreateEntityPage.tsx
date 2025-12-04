@@ -101,7 +101,6 @@ export const CreateEntityPage = () => {
         };
         vals.push(val);
       });
-      console.log(vals);
       setValueRows(vals);
     }
 

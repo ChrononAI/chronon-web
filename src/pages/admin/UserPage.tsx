@@ -8,7 +8,7 @@ import {
   GridRowParams,
 } from "@mui/x-data-grid";
 import { CheckCircle, Download, Plus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
@@ -60,6 +60,7 @@ const TABS = [
 ];
 
 const UserPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"userAll" | "templateUser">(
     "userAll"
   );
@@ -79,10 +80,13 @@ const UserPage = () => {
         headerName: "NAME",
         minWidth: 240,
         flex: 1,
+        renderCell: ({ row }) => {
+          return <span>{`${row.first_name} ${row.last_name}`}</span>;
+        },
       },
       { field: "email", headerName: "EMAIL", minWidth: 260, flex: 1 },
       { field: "role", headerName: "ROLE", minWidth: 160, flex: 1 },
-      { field: "phone", headerName: "PHONE", minWidth: 200, flex: 1 },
+      { field: "phone_number", headerName: "PHONE", minWidth: 200, flex: 1 },
       { field: "status", headerName: "STATUS", minWidth: 120, flex: 1 },
     ],
     []
@@ -135,8 +139,8 @@ const UserPage = () => {
     }
   };
 
-  const handleRowClick = (row: GridRowParams) => {
-    console.log(row);
+  const handleRowClick = ({ row }: GridRowParams) => {
+    navigate("/admin/users/create", { state: row });
   };
 
   const loadUsers = async (paginationModel: GridPaginationModel) => {
@@ -155,26 +159,14 @@ const UserPage = () => {
       );
       setRowCount(response.data.count);
       const users: APIUser[] = response.data?.data || [];
-      console.log(users);
-      // const mappedRows: UserRow[] = users.map((user, index) => {
-      //   const id = user.id ?? index;
-      //   const firstName = user.first_name?.trim() || "";
-      //   const lastName = user.last_name?.trim() || "";
-      //   const fullName = `${firstName} ${lastName}`.trim();
-
-      //   return {
-      //     id: String(id),
-      //     name: fullName || user.email || `User ${index + 1}`,
-      //     email: user.email || "-",
-      //     role: (user.role || "-").toUpperCase(),
-      //     phone: user.phone_number || "-",
-      //     status: user.status || "-",
-      //     ...user.entity_assignments,
-      //   };
-      // });
-      setRows(users);
+      const newUsers = users.map((user) => {
+        return {
+          ...user,
+          ...user.entity_assignments,
+        };
+      });
+      setRows(newUsers);
     } catch (error) {
-      console.error("Failed to load users:", error);
       toast.error("Failed to load users");
       setRows([]);
     } finally {

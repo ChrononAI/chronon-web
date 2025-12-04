@@ -53,7 +53,7 @@ import { Loader2, ChevronDown, Check } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { bulkUploadService } from "@/services/admin/bulkUploadService";
 import { storesService } from "@/services/storeService";
@@ -63,6 +63,7 @@ const FIELD_TYPE_SELECT = "SELECT";
 const ROLE_OPTIONS = [
   { value: "ADMIN", label: "Admin" },
   { value: "USER", label: "User" },
+  { value: "SUPER_ADMIN", label: "Super Admin" },
 ] as const;
 
 interface EntityOption {
@@ -113,6 +114,17 @@ type UserFormValues = {
   role: string;
   employeeCode?: string;
   reportingManager?: string;
+  [key: string]: string | undefined;
+};
+
+type UserFormValues2 = {
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  role: string;
+  username?: string;
+  reporting_manager?: string;
   [key: string]: string | undefined;
 };
 
@@ -185,6 +197,30 @@ const createDefaultValues = (
   return defaults;
 };
 
+const createDefaultValues2 = (
+  templateEntities: TemplateEntity[],
+  state: any
+): UserFormValues2 => {
+  const defaults: UserFormValues2 = {
+    email: state ? state.email : "",
+    first_name: state ? state.first_name : "",
+    last_name: state ? state.last_name : "",
+    phone_number: state ? state.phone_number : "",
+    role: state ? state.role : "",
+    username: state ? state.username : "",
+    reporting_manager: state ? state.reporting_manager : "",
+  };
+
+  templateEntities.forEach((entity) => {
+    const entityId = getEntityId(entity);
+    if (entityId) {
+      defaults[entityId] = "";
+    }
+  });
+
+  return defaults;
+};
+
 interface CreateUserFormProps {
   templates: TemplateEntity[];
   entityOptions: Record<string, EntityOption[]>;
@@ -197,12 +233,15 @@ const CreateUserForm = ({
   loadingEntityFields,
 }: CreateUserFormProps) => {
   const navigate = useNavigate();
+  const { state } = useLocation();
   const [reportingManagers, setReportingManagers] = useState<UserOption[]>([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
   const [managersLoaded, setManagersLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [reportingManagerOpen, setReportingManagerOpen] = useState(false);
+  const [selectedManager, setSelectedManager] = useState<any>(null);
   const [storeOpen, setStoreOpen] = useState(false);
+  const [preSelectedValues, setPreSelectedValues] = useState<any>(null);
   const [stores, setStores] = useState([]);
   const isMounted = useRef(true);
 
@@ -217,19 +256,54 @@ const CreateUserForm = ({
     () => zodResolver(createUserSchema(templates)),
     [templates]
   );
-  const defaultValues = useMemo(
-    () => createDefaultValues(templates),
-    [templates]
+
+  // const defaultValues = useMemo(
+  //   () => createDefaultValues(templates),
+  //   [templates]
+  // );
+  const defaultValues2 = useMemo(
+    () => createDefaultValues2(templates, state),
+    [templates, state]
   );
+
   const knownEntityIds = useMemo(
     () =>
       new Set(templates.map((entity) => getEntityId(entity)).filter(Boolean)),
     [templates]
   );
 
+  useEffect(() => {
+    if (state && state.reporting_manager && reportingManagers.length > 0) {
+      console.log(state, templates);
+      const repManager = reportingManagers.find(
+        (manager) => manager.id === state.reporting_manager
+      );
+      setSelectedManager(repManager);
+    }
+  }, [state, reportingManagers]);
+
+  useEffect(() => {
+    if (templates && entityOptions && state) {
+      const entities = state.entity_assignments;
+      const final: any = {};
+      Object.entries(entities).forEach(([key, value]) => {
+        const entityId = templates.find(
+          (temp) => temp.field_name === key
+        )?.entity_id;
+        if (entityId) {
+          const entValue = entityOptions[entityId].find(
+            (ent) => ent.label === value
+          )?.id;
+          final[entityId] = entValue;
+        }
+      });
+      setPreSelectedValues(final);
+    }
+  }, [templates, entityOptions, state.entity_assignments]);
+
   const form = useForm<UserFormValues>({
     resolver,
-    defaultValues,
+    defaultValues: defaultValues2,
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
@@ -273,9 +347,6 @@ const CreateUserForm = ({
   const handleReportingManagerOpen = useCallback(
     (open: boolean) => {
       setReportingManagerOpen(open);
-      if (open) {
-        loadReportingManagers();
-      }
     },
     [loadReportingManagers]
   );
@@ -401,6 +472,7 @@ const CreateUserForm = ({
       }
     };
     getApprovedStores();
+    loadReportingManagers();
   }, []);
 
   return (
@@ -442,7 +514,7 @@ const CreateUserForm = ({
 
                 <FormField
                   control={form.control}
-                  name="firstName"
+                  name="first_name"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel aria-required={true}>
@@ -458,7 +530,7 @@ const CreateUserForm = ({
 
                 <FormField
                   control={form.control}
-                  name="lastName"
+                  name="last_name"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel aria-required={true}>
@@ -474,7 +546,7 @@ const CreateUserForm = ({
 
                 <FormField
                   control={form.control}
-                  name="phoneNumber"
+                  name="phone_number"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel aria-required={true}>
@@ -527,7 +599,7 @@ const CreateUserForm = ({
 
                 <FormField
                   control={form.control}
-                  name="employeeCode"
+                  name="username"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Employee Code</FormLabel>
@@ -541,11 +613,8 @@ const CreateUserForm = ({
 
                 <FormField
                   control={form.control}
-                  name="reportingManager"
+                  name="reporting_manager"
                   render={({ field }) => {
-                    const selectedManager = reportingManagers.find(
-                      (m) => m.id === field.value
-                    );
                     return (
                       <FormItem>
                         <FormLabel>Reporting Manager</FormLabel>
@@ -589,6 +658,7 @@ const CreateUserForm = ({
                                       onSelect={() => {
                                         field.onChange(manager.id);
                                         setReportingManagerOpen(false);
+                                        setSelectedManager(manager);
                                       }}
                                     >
                                       <Check
@@ -702,8 +772,16 @@ const CreateUserForm = ({
                   <Separator className="my-6" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {templates.map((entity) => {
+                      let preSelectedValue: string = "";
                       const entityId = getEntityId(entity);
                       const fieldName = getFieldName(entity);
+                      if (
+                        entity.field_type?.toUpperCase() ===
+                          FIELD_TYPE_SELECT &&
+                        preSelectedValues[entityId]
+                      ) {
+                        preSelectedValue = preSelectedValues[entityId];
+                      }
                       return (
                         <FormField
                           key={entityId}
@@ -726,7 +804,11 @@ const CreateUserForm = ({
                                   onValueChange={(val) =>
                                     field.onChange(val || undefined)
                                   }
-                                  value={field.value || ""}
+                                  value={
+                                    field.value || preSelectedValue
+                                      ? preSelectedValue
+                                      : ""
+                                  }
                                 >
                                   <FormControl>
                                     <SelectTrigger
