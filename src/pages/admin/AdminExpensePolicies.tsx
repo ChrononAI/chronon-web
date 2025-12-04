@@ -109,7 +109,7 @@ function AdminExpensePolicies() {
         <h1 className="text-2xl font-bold">Policies</h1>
         <Button
           onClick={() =>
-            navigate("/admin/product-config/expense-policies/create")
+            navigate("/admin-settings/product-config/expense-policies/create")
           }
         >
           <Plus className="mr-2 h-4 w-4" />

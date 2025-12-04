@@ -320,7 +320,7 @@ function CreateCategoryLimitPage() {
       };
       await policyRulesService.createPolicyRule(newRules);
       toast.success("Policy rule created successfully");
-      navigate("/admin/product-config/category-limits");
+      navigate("/admin-settings/product-config/category-limits");
     } catch (error: any) {
       console.log(error);
       toast.error(error?.response?.data?.message || error.message);

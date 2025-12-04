@@ -88,7 +88,7 @@ function CategoryLimitPage() {
   const handleRowClick = ({ row }: any) => {
     console.log(row);
     setSelectedLimit(row);
-    navigate(`/admin/product-config/category-limits/${row.id}`);
+    navigate(`/admin-settings/product-config/category-limits/${row.id}`);
   };
 
   useEffect(() => {
@@ -102,7 +102,7 @@ function CategoryLimitPage() {
         <h1 className="text-2xl font-bold">Categories</h1>
         <Button
           onClick={() =>
-            navigate("/admin/product-config/category-limits/create")
+            navigate("/admin-settings/product-config/category-limits/create")
           }
         >
           <Plus className="mr-2 h-4 w-4" />

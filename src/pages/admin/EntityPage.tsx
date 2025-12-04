@@ -87,7 +87,7 @@ export const EntityPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Entities</h1>
         <Button asChild>
-          <Link to="/admin/entities/create">
+          <Link to="/admin-settings/entities/create">
             <Plus className="mr-2 h-4 w-4" />
             CREATE
           </Link>

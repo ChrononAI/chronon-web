@@ -13,10 +13,10 @@ export function ProtectedRoute() {
     enabled = orgSettings?.pre_approval_settings?.enabled || false;
   } else if (location.pathname.includes("advances") || location.pathname.includes('/advance_accounts')) {
     enabled = orgSettings?.advance_settings?.enabled || false;
-  } else if (location.pathname.includes("admin")) {
+  } else if (location.pathname.includes("admin-settings")) {
     enabled = (orgSettings.admin_dashboard_settings?.enabled && user?.role === "SUPER_ADMIN");
   } else if (location.pathname.includes('all-reports')) {
-    enabled = user?.role === "ADMIN"
+    enabled = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   } else if (location.pathname.includes("stores")) {
     enabled = orgSettings.store_settings?.enabled || false;
   } else {
