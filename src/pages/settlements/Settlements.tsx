@@ -286,6 +286,7 @@ function Settlements() {
         limit,
         offset,
         state: "PAYMENT_PENDING",
+        status: "APPROVED"
       });
       setUnpaidRows(res.data.data);
       setUnpaidExpenseCount(res.data.count);
