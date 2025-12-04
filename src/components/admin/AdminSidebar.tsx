@@ -45,18 +45,18 @@ const navigation: NavigationItem[] = [
     children: [
       {
         name: "Entities",
-        href: "/admin/entities",
+        href: "/admin-settings/entities",
         icon: FolderTree,
       },
       {
         name: "Org",
-        href: "/admin/org",
+        href: "/admin-settings/org",
         icon: Building2,
         disabled: true,
       },
       {
         name: "Users",
-        href: "/admin/users",
+        href: "/admin-settings/users",
         icon: Users,
       },
     ],
@@ -67,27 +67,27 @@ const navigation: NavigationItem[] = [
     children: [
       {
         name: "Expense Masters",
-        href: "/admin/expense-masters",
+        href: "/admin-settings/expense-masters",
         icon: Receipt,
       },
       {
         name: "Expense Reports Masters",
-        href: "/admin/masters/expense-reports-masters",
+        href: "/admin-settings/masters/expense-reports-masters",
         icon: FileBarChart,
       },
       {
         name: "Advance Masters",
-        href: "/admin/masters/advance-masters",
+        href: "/admin-settings/masters/advance-masters",
         icon: DollarSign,
       },
       {
         name: "Expense Request Masters",
-        href: "/admin/masters/expense-request-masters",
+        href: "/admin-settings/masters/expense-request-masters",
         icon: FileCheck,
       },
       {
         name: "User Masters",
-        href: "/admin/masters/users-masters",
+        href: "/admin-settings/masters/users-masters",
         icon: UserCog,
       },
     ],
@@ -98,33 +98,33 @@ const navigation: NavigationItem[] = [
     children: [
       {
         name: "Roles & Access",
-        href: "/admin/product-config/roles-and-access",
+        href: "/admin-settings/product-config/roles-and-access",
         icon: Lock,
         disabled: true,
       },
       {
         name: "Expense Categories",
-        href: "/admin/product-config/expense-categories",
+        href: "/admin-settings/product-config/expense-categories",
         icon: FolderKanban,
       },
       {
         name: "Expense Policies",
-        href: "/admin/product-config/expense-policies",
+        href: "/admin-settings/product-config/expense-policies",
         icon: FileText,
       },
       {
         name: "Category Limits",
-        href: "/admin/product-config/category-limits",
+        href: "/admin-settings/product-config/category-limits",
         icon: CreditCard,
       },
       {
         name: "Workflow",
-        href: "/admin/product-config/workflow",
+        href: "/admin-settings/product-config/workflow",
         icon: Workflow,
       },
       {
         name: "Auto Reports",
-        href: "/admin/product-config/auto-reports",
+        href: "/admin-settings/product-config/auto-reports",
         icon: FileBarChart,
       },
     ],

@@ -316,7 +316,7 @@ const CreateUserForm = ({
         if (isMounted.current) {
           form.reset(createDefaultValues(templates));
         }
-        navigate("/admin/users");
+        navigate("/admin-settings/users");
       } catch (error: any) {
         console.error("Failed to create user:", error);
 

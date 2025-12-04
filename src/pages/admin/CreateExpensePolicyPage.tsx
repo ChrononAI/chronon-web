@@ -52,7 +52,7 @@ function CreateExpensePolicyPage() {
       await policyService.createPolicy(payload);
       toast.success("Policy created successfully");
       setTimeout(() => {
-        navigate("/admin/product-config/expense-policies");
+        navigate("/admin-settings/product-config/expense-policies");
       }, 100);
     } catch (error: any) {
       console.log(error);

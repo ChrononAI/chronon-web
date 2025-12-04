@@ -188,7 +188,7 @@ const UserPage = () => {
         {activeTab === "userAll" && (
           <div className="flex items-center gap-2">
             <Button asChild>
-              <Link to="/admin/users/create">
+              <Link to="/admin-settings/users/create">
                 <Plus className="mr-2 h-4 w-4" />
                 CREATE
               </Link>

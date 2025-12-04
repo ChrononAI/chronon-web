@@ -144,7 +144,7 @@ export const CreateEntityPage = () => {
           }
         }
         toast.success("Entity created");
-        navigate("/admin/entities");
+        navigate("/admin-settings/entities");
       } else {
         toast.error(res?.message || "Failed to create entity");
       }

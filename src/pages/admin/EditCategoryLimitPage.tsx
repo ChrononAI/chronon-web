@@ -282,7 +282,7 @@ export default function EditCategoryLimitPage() {
       await policyRulesService.updatePolicyRule(rules.id, newPayload);
       toast.success("Policy rule updated successfully");
       setTimeout(() => {
-        navigate("/admin/product-config/category-limits");
+        navigate("/admin-settings/product-config/category-limits");
       }, 100);
     } catch (error: any) {
       console.error(error);

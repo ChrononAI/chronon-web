@@ -16,6 +16,7 @@ import {
   FilePlus,
   SlidersHorizontal,
   Store,
+  TicketCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ import { useAuthStore } from "@/store/authStore";
 import { trackEvent } from "@/mixpanel";
 
 const navigation: NavigationItem[] = [
-    {
+  {
     name: "Requests",
     href: "/requests/pre-approvals",
     icon: FilePlus,
@@ -106,14 +107,37 @@ const navigation: NavigationItem[] = [
     icon: FolderKanban,
   },
   {
-    name: "Reports",
-    href: "/all-reports",
-    isBold: false,
-    icon: FileBarChart,
-  },
-  {
     name: "Admin",
-    href: "/admin/entities",
+    href: "admin/all-reports",
+    icon: Building2,
+    children: [
+      {
+        name: "Reports",
+        href: "/admin/all-reports",
+        isBold: false,
+        icon: FileBarChart,
+      },
+      {
+        name: "Settlements",
+        href: "/admin/settlements",
+        icon: TicketCheck,
+      },
+    ],
+  },
+  // {
+  //   name: "Reports",
+  //   href: "/all-reports",
+  //   isBold: false,
+  //   icon: FileBarChart,
+  // },
+  // {
+  //   name: "Settlements",
+  //   href: "/settlements",
+  //   icon: TicketCheck,
+  // },
+  {
+    name: "Admin Settings",
+    href: "/admin-settings/entities",
     isBold: false,
     icon: Building2,
   },
@@ -123,7 +147,7 @@ const permissionMap: any = {
   "Pre Approval": "pre_approval_settings",
   Advances: "advance_settings",
   Admin: "admin_dashboard_settings",
-  Stores: 'store_settings'
+  Stores: "store_settings",
 };
 
 export function Sidebar() {
@@ -143,7 +167,7 @@ export function Sidebar() {
 
   const mergePermissions = (items: any[], permissions: any): any[] => {
     return items.map((item) => {
-      if (item?.name === "Admin") {
+      if (item?.name === "Admin Settings") {
         const permission = {
           enabled:
             (orgSettings?.admin_dashboard_settings?.enabled === true &&
@@ -162,10 +186,10 @@ export function Sidebar() {
           permissions: permission,
           children,
         };
-      } else if (item?.name === "Reports") {
+      } else if (item?.name === "Admin") {
         const permission = {
-          enabled: user?.role === "ADMIN",
-          allowed: user?.role === "ADMIN",
+          enabled: user?.role === "ADMIN" || user?.role === "SUPER_ADMIN",
+          allowed: user?.role === "ADMIN" || user?.role === "SUPER_ADMIN",
         };
         const children = item.children
           ? mergePermissions(item.children, permissions)
@@ -243,8 +267,8 @@ export function Sidebar() {
 
   const handleLogout = () => {
     trackEvent("Logout Button Clicked", {
-      button_name: "Logout"
-    })
+      button_name: "Logout",
+    });
     logout();
   };
 

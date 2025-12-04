@@ -455,9 +455,9 @@ export function ExpenseDetailsStep2({
   }, []);
 
   useEffect(() => {
-    if (expense.custom_attributes.advance_account_id && advanceAccounts.length > 0) {
-      form.setValue('advance_account_id', expense.custom_attributes.advance_account_id);
-      const selAdv = advanceAccounts.find((adv: any) => adv.id === expense.custom_attributes.advance_account_id);
+    if (expense?.custom_attributes?.advance_account_id && advanceAccounts?.length > 0) {
+      form.setValue('advance_account_id', expense?.custom_attributes?.advance_account_id);
+      const selAdv = advanceAccounts.find((adv: any) => adv.id === expense?.custom_attributes?.advance_account_id);
       if (selAdv) setSelectedAdvanceAccount(selAdv);
     }
   }, [expense, advanceAccounts])

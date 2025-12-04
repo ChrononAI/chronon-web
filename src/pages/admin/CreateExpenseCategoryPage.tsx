@@ -52,7 +52,7 @@ function CreateExpenseCategoryPage() {
       const res: any = await categoryService.createCategories(payload);
       console.log(res);
       toast.message("Successfully created categories");
-      navigate("/admin/product-config/expense-categories");
+      navigate("/admin-settings/product-config/expense-categories");
     } catch (error: any) {
       console.log(error);
       toast.error(
