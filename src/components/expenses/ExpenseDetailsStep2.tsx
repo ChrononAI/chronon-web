@@ -77,6 +77,7 @@ import { toast } from "sonner";
 import { getTemplates, type Template } from "@/services/admin/templates";
 import { getEntities, type Entity } from "@/services/admin/entities";
 import { AdvanceService } from "@/services/advanceService";
+import { ExpenseValidation } from "./ExpenseValidation";
 
 // Form schema
 const expenseSchema = z.object({
@@ -464,6 +465,7 @@ export function ExpenseDetailsStep2({
 
   // Update form values when expense changes
   useEffect(() => {
+    console.log(expense);
     if (expense && !isReceiptReplaced) {
       form.reset(expense);
       // Set selected policy and category based on form data
@@ -766,10 +768,11 @@ export function ExpenseDetailsStep2({
         <div className="space-y-6 md:sticky md:top-4 md:self-start md:h-[calc(100vh-6rem)] md:overflow-hidden">
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
                 {[
                   { key: "receipt", label: "Receipt" },
                   { key: "comments", label: "Comments" },
+                  { key: "validation", label: "Validation" }
                 ].map((tab) => (
                   <button
                     key={tab.key}
@@ -778,7 +781,7 @@ export function ExpenseDetailsStep2({
                       setActiveReceiptTab(tab.key as "receipt" | "comments")
                     }
                     className={cn(
-                      "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                      "rounded-full px-2 py-2 text-sm font-medium transition-all",
                       activeReceiptTab === tab.key
                         ? "bg-primary/10 text-primary"
                         : "text-gray-500 hover:text-gray-900"
@@ -932,13 +935,13 @@ export function ExpenseDetailsStep2({
                   </div>
                 </div>
               </>
-            ) : (
+            ) : activeReceiptTab === "comments" ? (
               <ExpenseComments
                 expenseId={expense?.id}
                 readOnly={false}
                 autoFetch={activeReceiptTab === "comments"}
               />
-            )}
+            ) : <ExpenseValidation expenseId={expense?.id} />}
           </div>
         </div>
 

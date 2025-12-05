@@ -359,6 +359,22 @@ export const expenseService = {
     }
   },
 
+  async validateExpense (expense_id: string) {
+    try {
+      return await api.post('/api/v1/validate_expense', { expense_id });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async getExpenseValidation (expense_id: string) {
+    try {
+      return await api.get(`/api/v1/validation_messages/expense/${expense_id}`);
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async deleteExpense(
     id: string
   ): Promise<{ success: boolean; message: string }> {

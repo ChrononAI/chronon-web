@@ -226,6 +226,7 @@ export function CreateExpenseForm() {
         }
 
         result = await expenseService.createExpense(expensePayload);
+        await expenseService.validateExpense(result.data.id);
       } else if (formData.start_location) {
         // Mileage expense
         const expenseData: any = {
