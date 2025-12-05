@@ -23,6 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Loader2 } from "lucide-react";
 
 const entitySchema = z.object({
   entityName: z.string().min(1, "Entity Name is required"),
@@ -42,6 +43,7 @@ export const CreateEntityPage = () => {
   const [tags, setTags] = useState<string[]>([]);
   const [popupIndex, setPopupIndex] = useState<number | null>(null);
   const [newTag, setNewTag] = useState("");
+  const [loading, setLoading] = useState(false);
   const popupRef = useRef<HTMLDivElement | null>(null);
 
   const form = useForm<EntityFormValues>({
@@ -82,6 +84,7 @@ export const CreateEntityPage = () => {
   }, []);
 
   const onSubmit = async (data: EntityFormValues) => {
+    setLoading(true);
     const payload = {
       name: data.entityName,
       description: data.description || "",
@@ -150,6 +153,8 @@ export const CreateEntityPage = () => {
       }
     } catch (e) {
       toast.error("Failed to create entity");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -323,7 +328,10 @@ export const CreateEntityPage = () => {
               >
                 CANCEL
               </Button>
-              <Button type="submit">SUBMIT</Button>
+              <Button type="submit" disabled={loading}>{ loading ? <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </> : "SUBMIT"}</Button>
             </div>
           </div>
         </form>

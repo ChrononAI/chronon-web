@@ -25,7 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { AlertTriangle, CheckCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { GridOverlay } from "@mui/x-data-grid";
 import { toast } from "sonner";
@@ -54,15 +54,18 @@ function CustomToolbar({
   onCustomClick,
   rowSelection,
   activeTab,
+  marking,
 }: {
   onCustomClick: (data: any) => void;
   rowSelection: GridRowSelectionModel;
   activeTab: "paid" | "unpaid";
+  marking: boolean;
 }) {
   const disabled =
-    rowSelection.type === "include"
+    marking ||
+    (rowSelection.type === "include"
       ? Array.from(rowSelection.ids).length === 0
-      : Array.from(rowSelection.ids).length !== 0;
+      : Array.from(rowSelection.ids).length !== 0);
   return (
     <Toolbar
       sx={{
@@ -75,9 +78,14 @@ function CustomToolbar({
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        {activeTab === "unpaid" && <Button disabled={disabled} onClick={onCustomClick}>
-          Mark As Paid
-        </Button>}
+        {activeTab === "unpaid" && (
+          <Button disabled={disabled} onClick={onCustomClick}>
+            {marking ? <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Marking...
+            </> : "Mark As Paid"}
+          </Button>
+        )}
       </Box>
 
       <Box className="flex items-center gap-2">
@@ -221,6 +229,7 @@ function Settlements() {
   const [paidExpenseCount, setPaidExpenseCount] = useState(0);
   const [unpaidExpenseCount, setUnpaidExpenseCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [marking, setMarking] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<any>(null);
   const tabs = [
@@ -249,7 +258,6 @@ function Settlements() {
   }, []);
 
   const handleRowClick = ({ row }: GridRowParams) => {
-    console.log(row);
     setSelectedExpense(row);
     setOpen(true);
   };
@@ -286,7 +294,7 @@ function Settlements() {
         limit,
         offset,
         state: "PAYMENT_PENDING",
-        status: "APPROVED"
+        status: "APPROVED",
       });
       setUnpaidRows(res.data.data);
       setUnpaidExpenseCount(res.data.count);
@@ -316,6 +324,7 @@ function Settlements() {
   };
 
   const markAspaid = async (ids: string[]) => {
+    setMarking(true);
     try {
       await settlementsService.markAsPaid(ids);
       const limit = paginationModel?.pageSize || 10;
@@ -324,6 +333,8 @@ function Settlements() {
       toast.success("Expenses marked as paid");
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message);
+    } finally {
+      setMarking(false);
     }
   };
 
@@ -373,6 +384,7 @@ function Settlements() {
                 onCustomClick={onCustomClick}
                 rowSelection={rowSelection}
                 activeTab={activeTab}
+                marking={marking}
               />
             ),
           }}
@@ -437,7 +449,11 @@ function Settlements() {
           }
         />
       </Box>
-      <ViewExpenseWindow open={open} onOpenChange={setOpen} data={selectedExpense} />
+      <ViewExpenseWindow
+        open={open}
+        onOpenChange={setOpen}
+        data={selectedExpense}
+      />
     </ReportsPageWrapper>
   );
 }

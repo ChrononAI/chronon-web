@@ -19,11 +19,11 @@ interface CategoryItem {
 
 function CreateExpenseCategoryPage() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<CategoryItem[]>([
     { id: Date.now(), name: "", description: "" },
   ]);
 
-  // Add a new category-description pair
   const handleAdd = () => {
     setItems((prev) => [
       ...prev,
@@ -31,12 +31,10 @@ function CreateExpenseCategoryPage() {
     ]);
   };
 
-  // Remove a specific pair
   const handleRemove = (id: number) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // Update input values
   const handleChange = (
     id: number,
     field: keyof CategoryItem,
@@ -48,6 +46,7 @@ function CreateExpenseCategoryPage() {
   };
 
   const createCategories = async (payload: CreateCategoriesPayloadType) => {
+    setLoading(true);
     try {
       const res: any = await categoryService.createCategories(payload);
       console.log(res);
@@ -60,6 +59,8 @@ function CreateExpenseCategoryPage() {
           error.message ||
           "Failed to create categories"
       );
+    } finally {
+      setLoading(false);
     }
   };
 

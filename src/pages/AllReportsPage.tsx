@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
-import { FileText, Loader2, CalendarIcon } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import {
+  FileText,
+  Loader2,
+  CalendarIcon,
+  CheckCircle,
+  Download,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,21 +23,138 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, formatDate, formatFileSize } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   reportService,
   ReportTemplate,
   GeneratedReport,
 } from "@/services/reportService";
-import { AllReportsTable } from "@/components/reports/AllReportsTable";
-import { FilterControls } from "@/components/reports/FilterControls";
 import { trackEvent } from "@/mixpanel";
+import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
+import { Box } from "@mui/material";
+import { GridOverlay } from "@mui/x-data-grid";
+import { Badge } from "@/components/ui/badge";
+
+function CustomNoRows() {
+  return (
+    <GridOverlay>
+      <Box className="w-full">
+        <div className="text-center">
+          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No expenses found</h3>
+          <p className="text-muted-foreground">
+            There are currently no expenses.
+          </p>
+        </div>
+      </Box>
+    </GridOverlay>
+  );
+}
+
+const parseCriteria = (criteria: string) => {
+  try {
+    const parsed = JSON.parse(criteria);
+    return {
+      start_date: parsed.start_date || "N/A",
+      end_date: parsed.end_date || "N/A",
+    };
+  } catch {
+    return {
+      start_date: "N/A",
+      end_date: "N/A",
+    };
+  }
+};
+
+const columns = (
+  handleDownloadGeneratedReport: (id: string | number) => void
+): GridColDef[] => [
+  {
+    field: "report_name",
+    headerName: "TITLE",
+    flex: 1,
+    minWidth: 150,
+  },
+  {
+    field: "criteria",
+    headerName: "DATE RANGE",
+    flex: 1,
+    minWidth: 180,
+    renderCell: ({ value }) => {
+      const criteria = parseCriteria(value);
+      return (
+        <span>
+          {criteria.start_date} to {criteria.end_date}{" "}
+        </span>
+      );
+    },
+  },
+  {
+    field: "number_of_records",
+    headerName: "RECORDS",
+    flex: 1,
+    minWidth: 80,
+  },
+  {
+    field: "report_size",
+    headerName: "SIZE",
+    flex: 1,
+    minWidth: 120,
+    renderCell: ({ value }) => formatFileSize(value),
+  },
+  {
+    field: "status",
+    headerName: "STATUS",
+    flex: 1,
+    minWidth: 130,
+    renderCell: ({ value }) => {
+      return (
+        <Badge
+          className={
+            value === "GENERATED"
+              ? "bg-green-100 text-green-800 hover:bg-green-100"
+              : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+          }
+        >
+          {value}
+        </Badge>
+      );
+    },
+  },
+  {
+    field: "created_at",
+    headerName: "CREATED ON",
+    flex: 1,
+    minWidth: 150,
+    renderCell: ({ value }) => {
+      return <span>{value ? formatDate(value) : "N/A"}</span>;
+    },
+  },
+  {
+    field: "action",
+    headerName: "ACTION",
+    flex: 1,
+    minWidth: 120,
+    sortable: false,
+    filterable: false,
+    renderCell: (params) => {
+      const id = params.row.id;
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          title="Download report"
+          onClick={() => handleDownloadGeneratedReport(id)}
+        >
+          <Download className="h-4 w-4" />
+        </Button>
+      );
+    },
+  },
+];
 
 export function AllReportsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
     null
   );
@@ -46,6 +169,8 @@ export function AllReportsPage() {
     []
   );
   const [generatedReportsLoading, setGeneratedReportsLoading] = useState(true);
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel | null>(null);
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -99,7 +224,7 @@ export function AllReportsPage() {
     if (!toDate) setToDate(today);
   }, [templates, selectedTemplateId, fromDate, toDate]);
 
-  const handleDownloadGeneratedReport = async (id: number) => {
+  const handleDownloadGeneratedReport = async (id: string | number) => {
     try {
       await reportService.downloadGeneratedReport(id);
       toast.success("Download started successfully");
@@ -207,32 +332,12 @@ export function AllReportsPage() {
     setToDateOpen(false);
   };
 
-  const filteredReports = useMemo(() => {
-    let filtered = generatedReports;
-
-    if (searchTerm) {
-      filtered = filtered.filter((report) =>
-        report.report_name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((report) => report.status === statusFilter);
-    }
-
-    if (selectedDate) {
-      const filterDate = selectedDate.toISOString().split("T")[0];
-      filtered = filtered.filter((report) => {
-        if (!report.created_at) return false;
-        const reportDate = new Date(report.created_at)
-          .toISOString()
-          .split("T")[0];
-        return reportDate === filterDate;
-      });
-    }
-
-    return filtered;
-  }, [generatedReports, searchTerm, statusFilter, selectedDate]);
+  useEffect(() => {
+    const gridHeight = window.innerHeight - 300;
+    const rowHeight = 36;
+    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
+  }, []);
 
   return (
     <>
@@ -240,7 +345,7 @@ export function AllReportsPage() {
         <h1 className="text-2xl font-bold">Report</h1>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-0">
         <Card className="shadow-none">
           <CardContent className="p-6">
             {templatesLoading ? (
@@ -392,53 +497,70 @@ export function AllReportsPage() {
         </Card>
 
         {templates.length > 0 && (
-          <div className="space-y-4">
-            <FilterControls
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              searchPlaceholder="Search reports..."
-              statusFilter={statusFilter}
-              onStatusChange={setStatusFilter}
-              statusOptions={[
-                { value: "all", label: "All" },
-                { value: "GENERATED", label: "Generated" },
-                { value: "PENDING", label: "Pending" },
-              ]}
-              selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
-              className="mt-6 mb-4"
+          <Box
+            sx={{
+              height: "calc(100vh - 240px)",
+              width: "100%",
+              marginTop: "-32px",
+            }}
+          >
+            <DataGrid
+              className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+              rows={generatedReportsLoading ? [] : generatedReports}
+              columns={columns(handleDownloadGeneratedReport)}
+              loading={generatedReportsLoading}
+              slots={{
+                noRowsOverlay: CustomNoRows,
+              }}
+              sx={{
+                border: 0,
+                "& .MuiDataGrid-columnHeaderTitle": {
+                  color: "#9AA0A6",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                },
+                "& .MuiDataGrid-panel .MuiSelect-select": {
+                  fontSize: "12px",
+                },
+                "& .MuiDataGrid-main": {
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-columnHeader": {
+                  backgroundColor: "#f3f4f6",
+                  border: "none",
+                },
+                "& .MuiDataGrid-columnHeaders": {
+                  border: "none",
+                },
+                "& .MuiDataGrid-row:hover": {
+                  cursor: "pointer",
+                  backgroundColor: "#f5f5f5",
+                },
+                "& .MuiDataGrid-cell": {
+                  color: "#2E2E2E",
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
+                  {
+                    outline: "none",
+                  },
+                "& .MuiDataGrid-cell:focus-within": {
+                  outline: "none",
+                },
+                "& .MuiDataGrid-columnSeparator": {
+                  color: "#f3f4f6",
+                },
+              }}
+              showToolbar
+              density="compact"
+              checkboxSelection
+              disableRowSelectionOnClick
+              showCellVerticalBorder
+              pagination
+              paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+              onPaginationModelChange={setPaginationModel}
             />
-
-            <Card>
-              <CardContent className="p-0 h-[calc(100vh-18rem)] overflow-auto">
-                {generatedReportsLoading && generatedReports.length === 0 ? (
-                  <div className="flex items-center justify-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    <span className="ml-2">Loading generated reports...</span>
-                  </div>
-                ) : filteredReports.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-64 text-center p-6">
-                    <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium">
-                      No generated reports found
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {searchTerm || statusFilter !== "all" || selectedDate
-                        ? "Try adjusting your search terms"
-                        : "Generate a new report using the templates above to get started."}
-                    </p>
-                  </div>
-                ) : (
-                  <AllReportsTable
-                    reports={filteredReports}
-                    handleDownloadGeneratedReport={
-                      handleDownloadGeneratedReport
-                    }
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          </Box>
         )}
       </div>
     </>

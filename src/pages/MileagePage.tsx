@@ -136,6 +136,7 @@ const MileagePage = ({
     stops: [] as { id: string; location: string; locationId: string }[],
   });
   const { orgSettings } = useAuthStore();
+  const [loading, setLoading] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
@@ -166,8 +167,17 @@ const MileagePage = ({
   const isStartEndLocationLocked =
     (mode === "view" && !editMode) || hasPrefilledLocations;
   const showCancelButton = isUpdateFlow && typeof onCancel === "function";
-
+  console.log(loading);
   const renderPrimaryButtonContent = () => {
+    if (loading) {
+      return (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {mode === "create" ? "Creating..." : "Updating..."}
+        </>
+      )
+    }
+  
     if (isCalculating) {
       return (
         <>
@@ -489,6 +499,7 @@ const MileagePage = ({
       );
       return;
     }
+    setLoading(true);
     const mileage_meta: any = {
       trip_purpose: "business_travel",
       notes: values.isRoundTrip ? "Round trip" : "",
@@ -538,6 +549,8 @@ const MileagePage = ({
     } catch (error) {
       console.error(error);
       toast.error("Failed to save mileage expense");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1423,7 +1436,7 @@ const MileagePage = ({
                       )}
                       <Button
                         type="submit"
-                        disabled={saving || isCalculating}
+                        disabled={loading || saving || isCalculating}
                         className="min-w-[200px]"
                       >
                         {renderPrimaryButtonContent()}

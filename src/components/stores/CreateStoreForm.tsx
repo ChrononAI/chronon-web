@@ -412,100 +412,6 @@ export function CreateStoreForm({
             )}
           </div>
 
-          {/* {templateEntities?.map((entity) => {
-            const entityId = getEntityId(entity);
-            const fieldName = getFieldName(entity);
-            if (!entityId) return null;
-
-            return (
-              <FormField
-                key={entityId}
-                control={form.control}
-                name={entityId as any}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {fieldName}
-                      {entity.is_mandatory && (
-                        <span className="text-destructive"> *</span>
-                      )}
-                    </FormLabel>
-                    {entity.field_type === "SELECT" ? (
-                      <Popover
-                        open={entityDropdownOpen[entityId] || false}
-                        onOpenChange={(open) =>
-                          setEntityDropdownOpen((prev) => ({
-                            ...prev,
-                            [entityId]: open,
-                          }))
-                        }
-                      >
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={entityDropdownOpen[entityId]}
-                              className="h-11 w-full justify-between"
-                              disabled={mode === "view"}
-                            >
-                              <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
-                                {field.value
-                                  ? entityOptions[entityId]?.find(
-                                      (opt) => opt.id === field.value
-                                    )?.label || `Select ${fieldName}`
-                                  : `Select ${fieldName}`}
-                              </span>
-                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                          <Command>
-                            <CommandInput
-                              placeholder={`Search ${fieldName}...`}
-                            />
-                            <CommandList className="max-h-[180px] overflow-y-auto">
-                              <CommandEmpty>
-                                No {fieldName.toLowerCase()} found.
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {entityOptions[entityId]?.map((opt) => (
-                                  <CommandItem
-                                    key={opt.id}
-                                    value={opt.label}
-                                    onSelect={() => {
-                                      field.onChange(opt.id);
-                                      setEntityDropdownOpen((prev) => ({
-                                        ...prev,
-                                        [entityId]: false,
-                                      }));
-                                    }}
-                                  >
-                                    {opt.label}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    ) : (
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder={`Enter ${fieldName}`}
-                          disabled={mode === "view"}
-                        />
-                      </FormControl>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            );
-          })} */}
-
           {/* Action Buttons */}
           <div className="flex justify-end gap-2 pt-4">
             {mode === "edit" && (
@@ -528,7 +434,9 @@ export function CreateStoreForm({
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
+                    {selectedStore?.status === "COMPLETE" || mode !== "view"
+                      ? "Submitting..."
+                      : "Creating..."}
                   </>
                 ) : selectedStore?.status === "COMPLETE" ? (
                   "Resubmit"

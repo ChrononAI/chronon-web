@@ -106,7 +106,7 @@ function AdminExpenseCategories() {
         <h1 className="text-2xl font-bold">Categories</h1>
         <Button
           onClick={() =>
-            navigate("/admin/product-config/expense-categories/create")
+            navigate("/admin-settings/product-config/expense-categories/create")
           }
         >
           <Plus className="mr-2 h-4 w-4" />

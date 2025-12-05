@@ -22,4 +22,19 @@ export const setUserProfile = (profile = {}) => {
   mixpanel.people.set(profile);
 };
 
+export const trackApiError = (
+  endpoint: string,
+  error: any,
+  extraProps = {}
+) => {
+  mixpanel.track("API Error", {
+    endpoint,
+    message: error?.response?.data?.message || error?.message,
+    status: error?.response?.status,
+    statusText: error?.response?.statusText,
+    ...extraProps,
+  });
+};
+
+
 export default mixpanel;

@@ -70,6 +70,7 @@ function ProcessAdvancePage() {
   const [showCurrencyAlert, setShowCurrencyAlert] = useState(false);
   const [comments, setComments] = useState("");
   const [showActionDialog, setShowActionDialog] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const form = useForm<CurrencyConversionFormValues>({
     resolver: zodResolver(currencyConversionSchema),
@@ -170,6 +171,7 @@ function ProcessAdvancePage() {
 
   const processAdvance = async (action: string, payload?: any) => {
     if (!selectedAdvanceToApprove?.id) return;
+    setLoading(true);
     try {
       await AdvanceService.processAdvance({
         id: selectedAdvanceToApprove.id,
@@ -180,13 +182,15 @@ function ProcessAdvancePage() {
         navigate("/approvals/advances");
       }, 100);
       if (action === "approve") {
-        toast.success("Expense approved successfully");
+        toast.success("Advance approved successfully");
       } else {
-        toast.success("Expense rejected successfully");
+        toast.success("Advance rejected successfully");
       }
     } catch (error) {
       console.log(error);
       toast.error("Failed to process expense");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -401,7 +405,7 @@ function ProcessAdvancePage() {
                   className="bg-primary hover:bg-primary/90"
                   type="submit"
                 >
-                  Approve
+                  {loading ? "Approving..." : "Approve"}
                 </Button>
               </div>
             </form>
@@ -479,7 +483,7 @@ function ProcessAdvancePage() {
                     className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-20 bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <XCircle className="h-4 w-4 mr-2" />
-                    Reject Advance
+                    {loading ? "Rejecting..." : "Reject"}
                   </Button>
                 </div>
               </div>

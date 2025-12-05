@@ -33,6 +33,7 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  Loader2,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -82,7 +83,7 @@ function ProcessPreApprovalPage() {
         })
       ),
     };
-    processAdvance("approve", payload);
+    processPreApproval("approve", payload);
   };
 
   const report = selectedPreApprovalToApprove;
@@ -90,6 +91,7 @@ function ProcessPreApprovalPage() {
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<ApprovalWorkflow | null>(null);
   const [showCurrencyAlert, setShowCurrencyAlert] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const getUserSpecificStatus = (): string => {
     if (!user || !approvalWorkflow?.approval_steps?.length) {
@@ -174,11 +176,12 @@ function ProcessPreApprovalPage() {
     if (id) getApprovalWorkflow(id);
   }, [id]);
 
-  const processAdvance = async (
+  const processPreApproval = async (
     action: string,
     payload?: CurrencyConversionPayload
   ) => {
     if (!selectedPreApprovalToApprove?.id) return;
+    setLoading(true);
     try {
       await preApprovalService.processPreApproval({
         id: selectedPreApprovalToApprove.id,
@@ -186,20 +189,25 @@ function ProcessPreApprovalPage() {
         payload,
       });
       if (action === "approve") {
-        toast.success("Expense approved successfully");
+        toast.success("Pre approval approved successfully");
       } else {
-        toast.success("Expense rejected successfully");
+        toast.success("Pre approval rejected successfully");
       }
       setTimeout(() => {
         navigate("/approvals/pre-approvals");
       }, 100);
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
-      toast.error("Failed to process expense");
+      toast.error(
+        error?.response?.data?.message || "Failed to process pre approval"
+      );
+    } finally {
+      setLoading(false);
     }
   };
   const handleAction = async (action: string) => {
-    const text = action === 'approve' ? "Approve Pre Approval" : "Reject Pre Approval";
+    const text =
+      action === "approve" ? "Approve Pre Approval" : "Reject Pre Approval";
     trackEvent(text + " Button Clicked", {
       button_name: text,
     });
@@ -209,7 +217,7 @@ function ProcessPreApprovalPage() {
     ) {
       setShowCurrencyAlert(true);
     } else {
-      processAdvance(action);
+      processPreApproval(action);
     }
   };
   return (
@@ -409,9 +417,17 @@ function ProcessPreApprovalPage() {
                 </Button>
                 <Button
                   className="bg-primary hover:bg-primary/90"
+                  disabled={loading}
                   type="submit"
                 >
-                  Approve
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Approving...
+                    </>
+                  ) : (
+                    "Approve"
+                  )}
                 </Button>
               </div>
             </form>

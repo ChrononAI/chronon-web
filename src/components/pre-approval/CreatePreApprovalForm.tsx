@@ -431,29 +431,6 @@ function CreatePreApprovalForm({
               )}
             />
           </div>
-          {/* TO BE INTEGRATED LATER */}
-          {/* <div>
-                <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        Amount
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Amount"
-                          type="number"
-                          disabled={mode === 'view'}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div> */}
           <div className="flex justify-end gap-2 pt-4">
             {mode === "edit" && (
               <Button

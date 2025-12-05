@@ -24,6 +24,7 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  Loader2,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -37,6 +38,8 @@ function ProcessStorePage() {
   const { selectedStoreToApprove } = useStoreStore();
   const [comments, setComments] = useState("");
   const [showActionDialog, setShowActionDialog] = useState(false);
+  const [approveLoading, setApproveLoading] = useState(false);
+  const [rejectLoading, setRejectLoading] = useState(false);
 
   // const [report, setReport] = useState<PreApprovalType | null>(null);
   const report = selectedStoreToApprove;
@@ -128,6 +131,13 @@ function ProcessStorePage() {
 
   const processStore = async (action: string, payload?: any) => {
     if (!selectedStoreToApprove?.id) return;
+    if (action === "approve") {
+      setApproveLoading(true);
+      setRejectLoading(false);
+    } else {
+      setRejectLoading(true);
+      setApproveLoading(false);
+    }
     try {
       await storesService.processStore({
         id: selectedStoreToApprove.id,
@@ -145,6 +155,9 @@ function ProcessStorePage() {
     } catch (error) {
       console.log(error);
       toast.error("Failed to process store");
+    } finally {
+      setRejectLoading(false);
+      setApproveLoading(false);
     }
   };
 
@@ -157,7 +170,6 @@ function ProcessStorePage() {
       setShowActionDialog(true);
     } else {
       processStore(action, { action });
-      // Show confirmation modal
     }
   };
 
@@ -185,9 +197,10 @@ function ProcessStorePage() {
               <Button
                 onClick={() => handleAction("approve")}
                 className="bg-green-600 hover:bg-green-700"
+                disabled={approveLoading}
               >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Approve
+                <CheckCircle className="h-4 w-4 mr-2 animate-spin" />
+                {approveLoading ? "Approving..." : "Approve"}
               </Button>
               <Button
                 onClick={() => handleAction("reject")}
@@ -270,11 +283,7 @@ function ProcessStorePage() {
             </CardContent>
           </Card>
           <div className="lg:col-span-2">
-            <CreateStoreForm
-              mode="view"
-              showHeader={false}
-              maxWidth="w-full"
-            />
+            <CreateStoreForm mode="view" showHeader={false} maxWidth="w-full" />
           </div>
         </div>
         {approvalWorkflow && approvalWorkflow.approval_steps && (
@@ -349,11 +358,20 @@ function ProcessStorePage() {
                         approval_notes: comments,
                       })
                     }
-                    disabled={!comments.trim()}
+                    disabled={rejectLoading || !comments.trim()}
                     className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-20 bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Reject Store
+                    {rejectLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Rejecting...
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Reject Store
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>

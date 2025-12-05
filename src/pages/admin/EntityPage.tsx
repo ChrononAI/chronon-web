@@ -94,66 +94,72 @@ export const EntityPage = () => {
         </Button>
       </div>
 
-      <div className="bg-gray-100 rounded-md p-4 mb-6">
+      <div className="bg-gray-100 rounded-md p-4">
         <p className="text-sm text-gray-600">
           Setup custom entities required to be allocated to users, expenses,
           transaction etc. These entities can be used for workflows, accounting
           or any custom purposes.
         </p>
       </div>
-
-      <DataGrid
-        className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-        columns={columns}
-        rows={rows}
-        loading={loading}
-        slots={{ noRowsOverlay: CustomNoRows }}
+      <Box
         sx={{
-          border: 0,
-          "& .MuiDataGrid-columnHeaderTitle": {
-            color: "#9AA0A6",
-            fontWeight: "bold",
-            fontSize: "12px",
-          },
-          "& .MuiDataGrid-main": {
-            border: "0.2px solid #f3f4f6",
-          },
-          "& .MuiDataGrid-columnHeader": {
-            backgroundColor: "#f3f4f6",
-            border: "none",
-          },
-          "& .MuiDataGrid-columnHeaders": {
-            border: "none",
-            borderTop: "none",
-            borderBottom: "none",
-          },
-          "& .MuiCheckbox-root": {
-            color: "#9AA0A6",
-          },
-          "& .MuiDataGrid-row:hover": {
-            cursor: "pointer",
-            backgroundColor: "#f5f5f5",
-          },
-          "& .MuiDataGrid-cell": {
-            color: "#2E2E2E",
-            border: "0.2px solid #f3f4f6",
-          },
-          "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-            outline: "none",
-          },
-          "& .MuiDataGrid-cell:focus-within": {
-            outline: "none",
-          },
-          "& .MuiDataGrid-columnSeparator": {
-            color: "#f3f4f6",
-          },
+          height: "calc(100vh - 180px)",
+          width: "100%",
         }}
-        showToolbar
-        density="compact"
-        checkboxSelection
-        disableRowSelectionOnClick
-        showCellVerticalBorder
-      />
+      >
+        <DataGrid
+          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+          columns={columns}
+          rows={rows}
+          loading={loading}
+          slots={{ noRowsOverlay: CustomNoRows }}
+          sx={{
+            border: 0,
+            "& .MuiDataGrid-columnHeaderTitle": {
+              color: "#9AA0A6",
+              fontWeight: "bold",
+              fontSize: "12px",
+            },
+            "& .MuiDataGrid-main": {
+              border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-columnHeader": {
+              backgroundColor: "#f3f4f6",
+              border: "none",
+            },
+            "& .MuiDataGrid-columnHeaders": {
+              border: "none",
+              borderTop: "none",
+              borderBottom: "none",
+            },
+            "& .MuiCheckbox-root": {
+              color: "#9AA0A6",
+            },
+            "& .MuiDataGrid-row:hover": {
+              cursor: "pointer",
+              backgroundColor: "#f5f5f5",
+            },
+            "& .MuiDataGrid-cell": {
+              color: "#2E2E2E",
+              border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
+              outline: "none",
+            },
+            "& .MuiDataGrid-cell:focus-within": {
+              outline: "none",
+            },
+            "& .MuiDataGrid-columnSeparator": {
+              color: "#f3f4f6",
+            },
+          }}
+          showToolbar
+          density="compact"
+          checkboxSelection
+          disableRowSelectionOnClick
+          showCellVerticalBorder
+        />
+      </Box>
     </>
   );
 };

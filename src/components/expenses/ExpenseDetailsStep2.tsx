@@ -1427,7 +1427,7 @@ export function ExpenseDetailsStep2({
                               <FormLabel>
                                 {fieldName}
                                 {entity.is_mandatory && (
-                                  <span className="text-destructive"> *</span>
+                                  <span>*</span>
                                 )}
                               </FormLabel>
                               {entity.field_type === "SELECT" ? (
