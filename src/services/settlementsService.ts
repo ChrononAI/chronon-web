@@ -15,7 +15,7 @@ export const settlementsService = {
     try {
       if (status) {
         return await api.get(
-          `/em/expenses/admin/expenses?status=${status}payment_state=${state}&limit=${limit}&offset=${offset}`
+          `/em/expenses/admin/expenses?status=${status}&payment_state=${state}&limit=${limit}&offset=${offset}`
         );
       }
       return await api.get(
