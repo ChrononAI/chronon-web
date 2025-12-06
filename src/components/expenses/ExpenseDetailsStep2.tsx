@@ -946,7 +946,7 @@ export function ExpenseDetailsStep2({
                     </div>
                   </>
                 ) : activeReceiptTab === "comments" ? (
-                  <div className="flex-1 overflow-auto max-h-[64vh] min-h-0">
+                  <div className="flex-1 overflow-auto max-h-[60vh] min-h-0">
                     <ExpenseComments
                       expenseId={expense?.id}
                       readOnly={false}
