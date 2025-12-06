@@ -554,7 +554,7 @@ const UserMasterPage = () => {
           </Card>
           <FormFooter>
             <Button variant="outline" onClick={handleCancel} disabled={loading}>
-              Cancel
+              Back
             </Button>
             <Button onClick={handleSubmit} disabled={loading}>
               {loading ? (

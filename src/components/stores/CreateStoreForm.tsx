@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -59,6 +59,7 @@ export function CreateStoreForm({
   maxWidth?: string;
 }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { id } = useParams<{ id: string }>();
 
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
@@ -119,20 +120,7 @@ export function CreateStoreForm({
   }, [users]);
 
   const handleCancel = () => {
-    const hasChanges = Object.values(form.getValues()).some((value) =>
-      typeof value === "string" ? value.trim() : value
-    );
-
-    if (hasChanges) {
-      const confirmDiscard = window.confirm(
-        "Are you sure you want to discard your changes?"
-      );
-      if (confirmDiscard) {
-        navigate("/requests/stores");
-      }
-    } else {
       navigate("/requests/stores");
-    }
   };
 
   const onSubmit = async (values: StoreFormValues) => {
@@ -397,7 +385,7 @@ export function CreateStoreForm({
             )}
           </div>
 
-          <FormFooter>
+          {!pathname.includes("approvals") && <FormFooter>
             <Button
               type="button"
               variant="outline"
@@ -405,7 +393,7 @@ export function CreateStoreForm({
               disabled={loading}
               className="px-6 py-2"
             >
-              Cancel
+              Back
             </Button>
             {(selectedStore?.status === "COMPLETE" || mode !== "view") && (
               <Button
@@ -427,7 +415,7 @@ export function CreateStoreForm({
                 )}
               </Button>
             )}
-          </FormFooter>
+          </FormFooter>}
         </form>
       </Form>
     </div>

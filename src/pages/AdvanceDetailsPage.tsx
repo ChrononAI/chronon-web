@@ -93,6 +93,9 @@ function AdvanceDetailsPage() {
     }, [id]);
     return (
         <>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold">Advance Details</h1>
+          </div>
             {(report?.status === "COMPLETE" || report?.status === "INCOMPLETE") ? <CreateAdvanceForm mode="view" /> :
                 <div className="space-y-6">
                     <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">

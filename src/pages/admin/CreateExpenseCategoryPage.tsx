@@ -148,7 +148,7 @@ function CreateExpenseCategoryPage() {
           }
           disabled={loading}
         >
-          Cancel
+          Back
         </Button>
         <Button type="submit" disabled={loading} variant="default">
           {loading ? (

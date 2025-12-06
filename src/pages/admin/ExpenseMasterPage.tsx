@@ -563,7 +563,7 @@ const ExpenseMasterPage = () => {
           </Card>
           <FormFooter>
             <Button variant="outline" onClick={handleCancel} disabled={loading}>
-              Cancel
+              Back
             </Button>
             <Button onClick={handleSubmitCustom} disabled={loading}>
               {loading ? (

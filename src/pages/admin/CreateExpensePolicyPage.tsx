@@ -171,7 +171,7 @@ function CreateExpensePolicyPage() {
           }
           disabled={loading}
         >
-          Cancel
+          Back
         </Button>
         <Button form="create-policy-form" type="submit" disabled={loading}>
           {loading ? (

@@ -318,7 +318,7 @@ const ExpenseRequestMasterPage = () => {
               }}
               disabled={loading}
             >
-              Cancel
+              Back
             </Button>
             <Button onClick={handleSubmitCustom} disabled={loading}>
               {loading ? "Submitting..." : "Submit"}

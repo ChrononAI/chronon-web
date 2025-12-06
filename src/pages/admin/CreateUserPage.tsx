@@ -775,7 +775,7 @@ const CreateUserForm = ({
             onClick={() => navigate("/admin-settings/users")}
             disabled={submitting}
           >
-            Cancel
+            Back
           </Button>
           <Button type="submit" className="min-w-[140px]" disabled={submitting}>
             {submitting ? (

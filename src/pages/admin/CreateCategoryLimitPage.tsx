@@ -490,7 +490,7 @@ function CreateCategoryLimitPage() {
           }
           disabled={loading}
         >
-          Cancel
+          Back
         </Button>
         <Button disabled={loading} onClick={submitRule}>
           {loading ? (

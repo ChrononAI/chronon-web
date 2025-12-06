@@ -5,7 +5,6 @@ import * as z from "zod";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import api from "@/lib/api";
 import {
-  ArrowLeft,
   Calendar,
   Loader2,
   FileText,
@@ -945,11 +944,13 @@ export function ExpenseDetailsStep2({
                     </div>
                   </>
                 ) : (
-                  <ExpenseComments
-                    expenseId={expense?.id}
-                    readOnly={false}
-                    autoFetch={activeReceiptTab === "comments"}
-                  />
+                  <div className="flex-1 overflow-auto min-h-0">
+                    <ExpenseComments
+                      expenseId={expense?.id}
+                      readOnly={false}
+                      autoFetch={activeReceiptTab === "comments"}
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -1557,7 +1558,6 @@ export function ExpenseDetailsStep2({
                     onClick={onBack}
                     className="min-w-[140px]"
                   >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
                   {!readOnly && (

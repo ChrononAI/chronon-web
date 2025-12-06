@@ -1375,7 +1375,6 @@ const MileagePage = ({
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
-                    {showCancelButton && (
                       <Button
                         type="button"
                         variant="outline"
@@ -1384,7 +1383,6 @@ const MileagePage = ({
                       >
                         Cancel
                       </Button>
-                    )}
                     <Button
                       type="submit"
                       disabled={saving || isCalculating}
@@ -1424,16 +1422,14 @@ const MileagePage = ({
                     </div>
 
                     <div className="flex items-center gap-4">
-                      {showCancelButton && (
                         <Button
                           type="button"
                           variant="outline"
                           onClick={onCancel}
                           className="min-w-[140px]"
                         >
-                          Cancel
+                          Back
                         </Button>
-                      )}
                       <Button
                         type="submit"
                         disabled={loading || saving || isCalculating}

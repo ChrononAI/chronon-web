@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -95,6 +95,7 @@ export function CreateAdvanceForm({
   maxWidth?: string;
 }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [loading, setLoading] = useState(false);
 
   const { id } = useParams<{ id: string }>();
@@ -139,20 +140,7 @@ export function CreateAdvanceForm({
     currencies[0];
 
   const handleCancel = () => {
-    const hasChanges = Object.values(form.getValues()).some((value) =>
-      typeof value === "string" ? value.trim() : value
-    );
-
-    if (hasChanges) {
-      const confirmDiscard = window.confirm(
-        "Are you sure you want to discard your changes?"
-      );
-      if (confirmDiscard) {
-        navigate("/requests/advances");
-      }
-    } else {
       navigate("/requests/advances");
-    }
   };
 
   const onSubmit = async (values: AdvanceFormValues) => {
@@ -572,7 +560,7 @@ export function CreateAdvanceForm({
               />
             );
           })}
-          <FormFooter>
+          {!pathname.includes("approvals") && <FormFooter>
             <Button
               type="button"
               variant="outline"
@@ -580,7 +568,7 @@ export function CreateAdvanceForm({
               disabled={loading}
               className="px-6 py-2"
             >
-              Cancel
+              Back
             </Button>
             {(selectedAdvance?.status === "COMPLETE" || mode !== "view") && (
               <Button
@@ -601,7 +589,7 @@ export function CreateAdvanceForm({
                 )}
               </Button>
             )}
-          </FormFooter>
+          </FormFooter>}
         </form>
       </Form>
     </div>

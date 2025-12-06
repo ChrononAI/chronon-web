@@ -14,7 +14,7 @@ import { Switch } from "../ui/switch";
 import { Button } from "../ui/button";
 import { DateField } from "../ui/date-field";
 import { Loader2 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -68,6 +68,7 @@ function CreatePreApprovalForm({
   maxWidth = "max-w-4xl",
 }: CreatePreApprovalFormProps) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const { id } = useParams<{ id: string }>();
 
@@ -427,14 +428,14 @@ function CreatePreApprovalForm({
               )}
             />
           </div>
-          <FormFooter>
+          {!pathname.includes("approvals") && <FormFooter>
             <Button
               type="button"
               variant="outline"
-              // onClick={onCancel}
+              onClick={() => navigate("/requests/pre-approvals")}
               className="px-6 py-2"
             >
-              Cancel
+              Back
             </Button>
             {mode !== "view" && (
               <Button
@@ -454,7 +455,7 @@ function CreatePreApprovalForm({
                 )}
               </Button>
             )}
-          </FormFooter>
+          </FormFooter>}
         </form>
       </Form>
     </div>

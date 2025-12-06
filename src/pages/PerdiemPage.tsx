@@ -648,6 +648,12 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                       ₹{(Number(formData.totalAmount) || 0).toFixed(2)}
                     </span>
                   </div>
+                  <div className="flex items-center gap-4">
+
+                  <Button type="button" variant="outline" onClick={() => navigate("/expenses")}>
+                    Back
+                  </Button>
+
 
                   <Button
                     type="submit"
@@ -665,6 +671,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                       "Update Expense"
                     )}{" "}
                   </Button>
+                  </div>
                 </div>
               </div>
             </>
