@@ -100,6 +100,9 @@ function PreApprovalDetailsPage() {
   }, [id]);
   return (
     <>
+            <div>
+          <h1 className="text-2xl font-bold mb-6">Pre Approval Details</h1>
+        </div>
       {report?.status === "COMPLETE" || report?.status === "INCOMPLETE" ? (
         <CreatePreApprovalForm mode="view" />
       ) : (

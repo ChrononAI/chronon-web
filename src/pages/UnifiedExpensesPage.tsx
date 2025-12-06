@@ -23,7 +23,7 @@ export function UnifiedExpensesPage() {
   }, [activeTab, isPerDiemEnabled]);
 
   return (
-    <div className="w-full px-6 py-2">
+    <div className="w-full">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-1">
           Create New Expense

@@ -147,7 +147,7 @@ export function CreateExpenseForm() {
   };
 
   const actuallySubmit = async (formData: any) => {
-    // setLoading(true);
+    setLoading(true);
     try {
       let entitiesToUse = templateEntities;
       if (!entitiesToUse || entitiesToUse.length === 0) {
@@ -277,8 +277,9 @@ export function CreateExpenseForm() {
           toast.error(result?.message);
         }
       }
-    } catch {
-      toast.error("Failed to create expense");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message);
+      navigate('/expenses');
     } finally {
       setLoading(false);
       setShowDuplicateDialog(false);

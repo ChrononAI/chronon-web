@@ -7,6 +7,7 @@ import {
   GridOverlay,
   GridPaginationModel,
   GridRowModel,
+  GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
@@ -116,11 +117,16 @@ export function MyAdvancesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>({
-    page: 0,
-    pageSize: 10,
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: "include",
+    ids: new Set(),
   });
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel | null>({
+      page: 0,
+      pageSize: 10,
+    });
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -237,15 +243,15 @@ export function MyAdvancesPage() {
         await Promise.all([
           getAllAdvances({
             page: (paginationModel?.page || 0) + 1,
-            perPage: (paginationModel?.pageSize || 0),
+            perPage: paginationModel?.pageSize || 0,
           }),
           getPendingAdvances({
             page: (paginationModel?.page || 0) + 1,
-            perPage: (paginationModel?.pageSize || 0),
+            perPage: paginationModel?.pageSize || 0,
           }),
           getProcessedAdvances({
             page: (paginationModel?.page || 0) + 1,
-            perPage: (paginationModel?.pageSize || 0),
+            perPage: paginationModel?.pageSize || 0,
           }),
         ]);
       } catch (error) {
@@ -256,7 +262,12 @@ export function MyAdvancesPage() {
     };
 
     fetchData();
+    setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
+
+  useEffect(() => {
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [activeTab]);
 
   return (
     <ReportsPageWrapper
@@ -303,14 +314,18 @@ export function MyAdvancesPage() {
               fontWeight: "bold",
               fontSize: "12px",
             },
+            "& .MuiDataGrid-panel .MuiSelect-select": {
+              fontSize: "12px",
+            },
             "& .MuiDataGrid-main": {
-              border: "1px solid #F1F3F4",
+              border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
+              border: "none",
             },
-            "& .MuiCheckbox-root": {
-              color: "#9AA0A6",
+            "& .MuiDataGrid-columnHeaders": {
+              border: "none",
             },
             "& .MuiDataGrid-row:hover": {
               cursor: "pointer",
@@ -318,6 +333,7 @@ export function MyAdvancesPage() {
             },
             "& .MuiDataGrid-cell": {
               color: "#2E2E2E",
+              border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
               outline: "none",
@@ -325,12 +341,17 @@ export function MyAdvancesPage() {
             "& .MuiDataGrid-cell:focus-within": {
               outline: "none",
             },
+            "& .MuiDataGrid-columnSeparator": {
+              color: "#f3f4f6",
+            },
           }}
           showToolbar
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick
           onRowClick={handleRowClick}
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
           paginationModel={paginationModel || { page: 0, pageSize: 0 }}

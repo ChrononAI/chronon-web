@@ -37,7 +37,6 @@ export function ExpenseValidation({
         setError(null);
         try {
           const res = await expenseService.getExpenseValidation(expenseId);
-          console.log(res);
           setValidations(res.data.data);
         } catch (error: any) {
           console.error("Error fetching validaitons:", error);
@@ -62,7 +61,7 @@ export function ExpenseValidation({
           </div>
         ) : error ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-red-500">{error}</p>
+            <p className="text-sm">{error}</p>
           </div>
         ) : validations.length === 0 ? (
           <div className="flex items-center justify-center h-full">

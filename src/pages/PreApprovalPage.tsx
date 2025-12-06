@@ -6,6 +6,7 @@ import {
   GridOverlay,
   GridPaginationModel,
   GridRowModel,
+  GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
 import { formatDate, getStatusColor } from "@/lib/utils";
@@ -147,6 +148,7 @@ function PreApprovalPage() {
   const [processedRows, setProcessedRows] = useState<PreApprovalType[]>([]);
   const [processedPagination, setProcessedPagination] =
     useState<PaginationInfo | null>(null);
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() })
   const rows =
     activeTab === "all"
       ? allRows
@@ -248,7 +250,12 @@ function PreApprovalPage() {
     };
 
     fetchData();
+    setRowSelection({type: "include", ids: new Set()});
   }, [paginationModel?.page, paginationModel?.pageSize]);
+
+  useEffect(() => {
+    setRowSelection({type: "include", ids: new Set()});
+  }, [activeTab]);
 
   return (
     <ReportsPageWrapper
@@ -294,6 +301,9 @@ function PreApprovalPage() {
               fontWeight: "bold",
               fontSize: "12px",
             },
+            "& .MuiDataGrid-panel .MuiSelect-select": {
+              fontSize: "12px",
+            },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
             },
@@ -303,11 +313,6 @@ function PreApprovalPage() {
             },
             "& .MuiDataGrid-columnHeaders": {
               border: "none",
-              borderTop: "none",
-              borderBottom: "none",
-            },
-            "& .MuiCheckbox-root": {
-              color: "#9AA0A6",
             },
             "& .MuiDataGrid-row:hover": {
               cursor: "pointer",
@@ -333,6 +338,8 @@ function PreApprovalPage() {
           disableRowSelectionOnClick
           showCellVerticalBorder
           onRowClick={handleRowClick}
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
           paginationModel={paginationModel || { page: 0, pageSize: 0 }}

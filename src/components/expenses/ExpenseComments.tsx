@@ -84,7 +84,11 @@ export function ExpenseComments({
   // Auto-scroll to bottom when new comments are added
   useEffect(() => {
     if (commentsEndRef.current) {
-      commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
+      commentsEndRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
     }
   }, [comments]);
 
@@ -127,9 +131,9 @@ export function ExpenseComments({
   };
 
   return (
-    <div className={cn("flex flex-col h-full md:h-[520px]", className)}>
+    <div className={cn("flex flex-col", className)}>
       {/* Comments display area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto md:min-h-[400px] p-4 space-y-3">
         {loadingComments ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -201,10 +205,7 @@ export function ExpenseComments({
               onInput={(e) => {
                 const target = e.target as HTMLTextAreaElement;
                 target.style.height = "auto";
-                target.style.height = `${Math.min(
-                  target.scrollHeight,
-                  128
-                )}px`;
+                target.style.height = `${Math.min(target.scrollHeight, 128)}px`;
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -242,4 +243,3 @@ export function ExpenseComments({
     </div>
   );
 }
-

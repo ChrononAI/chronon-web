@@ -57,6 +57,7 @@ import { useNavigate } from "react-router-dom";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { bulkUploadService } from "@/services/admin/bulkUploadService";
 import { storesService } from "@/services/storeService";
+import { FormFooter } from "@/components/layout/FormFooter";
 
 const MODULE_TYPE_USER = "user";
 const FIELD_TYPE_SELECT = "SELECT";
@@ -767,14 +768,14 @@ const CreateUserForm = ({
           </Card>
         </fieldset>
 
-        <div className="flex justify-end gap-4 mt-6">
+        <FormFooter>
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/admin/users")}
+            onClick={() => navigate("/admin-settings/users")}
             disabled={submitting}
           >
-            Cancel
+            Back
           </Button>
           <Button type="submit" className="min-w-[140px]" disabled={submitting}>
             {submitting ? (
@@ -786,7 +787,7 @@ const CreateUserForm = ({
               "Create"
             )}
           </Button>
-        </div>
+        </FormFooter>
       </form>
     </Form>
   );
@@ -965,13 +966,10 @@ export const CreateUserPage = () => {
 
   return (
     <>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Create User</h1>
-            <p className="text-muted-foreground mt-2">
-              Create a user and assign entity values.
-            </p>
+      <div className="space-y-0">
+        <div className="flex gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold">Create User</h1>
           </div>
           <Button
             type="button"

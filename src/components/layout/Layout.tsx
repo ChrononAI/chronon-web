@@ -1,6 +1,6 @@
-import { Outlet } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { useLayoutStore } from '@/store/layoutStore';
+import { Outlet } from "react-router-dom";
+import { Sidebar } from "./Sidebar";
+import { useLayoutStore } from "@/store/layoutStore";
 
 export function Layout() {
   const { noPadding } = useLayoutStore();

@@ -9,13 +9,14 @@ import {
 import { policyRulesService } from "@/services/admin/policyRulesService";
 import { expenseService } from "@/services/expenseService";
 import { Policy } from "@/types/expense";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { FormFooter } from "@/components/layout/FormFooter";
 
 interface Operator {
   name: string;
@@ -197,6 +198,7 @@ function CreateCategoryLimitPage() {
 
   const [entities, setEntities] = useState([]);
   const [policies, setPolicies] = useState<Policy[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const getEntitites = async () => {
     try {
@@ -305,6 +307,7 @@ function CreateCategoryLimitPage() {
   };
 
   const submitRule = async () => {
+    setLoading(true);
     try {
       const newRules = {
         ...rules,
@@ -324,11 +327,13 @@ function CreateCategoryLimitPage() {
     } catch (error: any) {
       console.log(error);
       toast.error(error?.response?.data?.message || error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <>
       <div className="space-y-6">
         <div className="flex items-center mb-6">
           <Button
@@ -477,10 +482,28 @@ function CreateCategoryLimitPage() {
           );
         })}
       </div>
-      <div className="flex items-center justify-end">
-        <Button onClick={submitRule}>Create</Button>
-      </div>
-    </div>
+      <FormFooter>
+        <Button
+          variant="outline"
+          onClick={() =>
+            navigate("/admin-settings/product-config/category-limits")
+          }
+          disabled={loading}
+        >
+          Back
+        </Button>
+        <Button disabled={loading} onClick={submitRule}>
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            "Submit"
+          )}
+        </Button>
+      </FormFooter>
+    </>
   );
 }
 

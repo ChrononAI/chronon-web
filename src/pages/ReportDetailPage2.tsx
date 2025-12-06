@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +8,6 @@ import {
   XCircle,
   Undo,
   AlertTriangle,
-  ArrowLeft,
 } from "lucide-react";
 import {
   Dialog,
@@ -258,7 +256,12 @@ export function ReportDetailPage2() {
   }, [report, isFromApprovals, navigate]);
 
   const handleAction = (type: "approve" | "reject" | "send_back") => {
-    const text = type === 'approve' ? "Approve Report" : type === "reject" ? "Reject Report" : "Send Back Report"
+    const text =
+      type === "approve"
+        ? "Approve Report"
+        : type === "reject"
+        ? "Reject Report"
+        : "Send Back Report";
     trackEvent(text + " Button Clicked", {
       button_name: text,
     });
@@ -290,7 +293,9 @@ export function ReportDetailPage2() {
       await fetchReport();
     } catch (error: any) {
       console.error(`Failed to ${actionType} report`, error);
-      toast.error(error?.response?.data?.message || `Failed to ${actionType} report`);
+      toast.error(
+        error?.response?.data?.message || `Failed to ${actionType} report`
+      );
     } finally {
       setActionLoading(false);
     }
@@ -343,14 +348,6 @@ export function ReportDetailPage2() {
     );
   }
 
-  const breadcrumbItems = [
-    {
-      label: isFromApprovals ? "Reports for Approval" : "Expense Reports",
-      href: isFromApprovals ? "/approvals/reports" : "/reports",
-    },
-    { label: "View Report" },
-  ];
-
   const totalAmount = report.expenses.reduce(
     (sum, expense) => sum + parseFloat(expense.amount.toString()),
     0
@@ -368,14 +365,8 @@ export function ReportDetailPage2() {
   return (
     <>
       <div className="space-y-6">
-        <Breadcrumb items={breadcrumbItems} />
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="text-2xl font-bold">Report Approval</h1>
-          </div>
+          <h1 className="text-2xl font-bold">Report Approval</h1>
           {isFromApprovals && canApproveReport() && (
             <div className="flex gap-2">
               <Button
@@ -506,8 +497,8 @@ export function ReportDetailPage2() {
                 />
               </div>
               <div className="flex">
-                <div className="bg-gray-50 rounded-lg px-8 py-3 min-w-[680px] flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Total Amount:</span>
+                <div className="bg-gray-50 rounded-lg px-8 py-3 w-full flex items-center justify-end gap-6">
+                  <span className=" text-gray-600">Total Amount:</span>
                   <span className="text-lg font-bold text-primary">
                     {formatCurrency(totalAmount || 0)}
                   </span>

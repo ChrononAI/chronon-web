@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { policyRulesService } from "@/services/admin/policyRulesService";
 import { useCategoryLimitStore } from "@/store/admin/categoryLimitStore";
 import { Box } from "@mui/material";
-import { DataGrid, GridColDef, GridOverlay, GridPaginationModel } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridOverlay, GridPaginationModel, GridRowSelectionModel } from "@mui/x-data-grid";
 import { CheckCircle, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -58,6 +58,7 @@ function CategoryLimitPage() {
       pageSize: 10,
     });
     const [loading, setLoading] = useState(true);
+    const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -95,11 +96,15 @@ function CategoryLimitPage() {
     getPolicyRules();
   }, []);
 
+  useEffect(() => {
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [paginationModel?.page, paginationModel?.pageSize]);
+
   return (
     <div>
       {/* HEADER */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Categories</h1>
+        <h1 className="text-2xl font-bold">Category Limits</h1>
         <Button
           onClick={() =>
             navigate("/admin-settings/product-config/category-limits/create")
@@ -164,6 +169,8 @@ function CategoryLimitPage() {
           disableRowSelectionOnClick
           showCellVerticalBorder
           onRowClick={handleRowClick}
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           pagination
           paginationModel={paginationModel || { page: 0, pageSize: 0 }}
           onPaginationModelChange={setPaginationModel}

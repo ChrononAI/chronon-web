@@ -7,7 +7,7 @@ import { CheckCircle, Plus } from "lucide-react";
 import { useReportsStore } from "@/store/reportsStore";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
 import { Report } from "@/types/expense";
 import { GridPaginationModel } from "@mui/x-data-grid";
 import { Box, CircularProgress } from "@mui/material";
@@ -127,12 +127,20 @@ export function MyReportsPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [paginationModel, setPaginationModel] =
     useState<GridPaginationModel | null>(null);
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: "include",
+    ids: new Set(),
+  });
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
+    setRowSelection({
+      type: "include",
+      ids: new Set(),
+    });
   }, [activeTab]);
 
   const reportsArr =
@@ -202,6 +210,10 @@ export function MyReportsPage() {
 
   useEffect(() => {
     fetchData();
+    setRowSelection({
+      type: "include",
+      ids: new Set(),
+    });
   }, [paginationModel?.page, paginationModel?.pageSize]);
 
   const handleReportClick = (report: Report) => {
@@ -323,6 +335,8 @@ export function MyReportsPage() {
               ? unsubmittedReportsPagination.count
               : submittedReportsPagination.count
           }
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
           disableRowSelectionOnClick

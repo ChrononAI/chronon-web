@@ -97,12 +97,10 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                     {step.approvers[0].email}
                   </div>
                 )}
-                {step.approved_at ? (
+                {step.approved_at && (
                   <span className="text-[12px]">
                     {formatDate(step.approved_at)}
                   </span>
-                ) : (
-                  <span className="text-[12px]">Nov 18, 2025</span>
                 )}
               </div>
               {step.approver_note[0]?.notes && (

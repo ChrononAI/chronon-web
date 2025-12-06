@@ -1,4 +1,3 @@
-import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import {
   formatCurrency,
   formatDate,
@@ -17,7 +16,7 @@ import {
   GridRowParams,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getExpenseType } from "../MyExpensesPage";
 import {
   Tooltip,
@@ -25,7 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { AlertTriangle, CheckCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { GridOverlay } from "@mui/x-data-grid";
 import { toast } from "sonner";
@@ -33,6 +32,15 @@ import { settlementsService } from "@/services/settlementsService";
 import { ExportCsv } from "@mui/x-data-grid";
 import { Button } from "@/components/ui/button";
 import { ViewExpenseWindow } from "@/components/expenses/ViewExpenseWindow";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ReportTabs } from "@/components/reports/ReportTabs";
 
 function CustomNoRows() {
   return (
@@ -54,15 +62,20 @@ function CustomToolbar({
   onCustomClick,
   rowSelection,
   activeTab,
+  marking,
+  rowCount,
 }: {
   onCustomClick: (data: any) => void;
   rowSelection: GridRowSelectionModel;
   activeTab: "paid" | "unpaid";
+  marking: boolean;
+  rowCount: number;
 }) {
   const disabled =
-    rowSelection.type === "include"
+    marking ||
+    (rowSelection.type === "include"
       ? Array.from(rowSelection.ids).length === 0
-      : Array.from(rowSelection.ids).length !== 0;
+      : Array.from(rowSelection.ids).length === rowCount);
   return (
     <Toolbar
       sx={{
@@ -75,9 +88,18 @@ function CustomToolbar({
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        {activeTab === "unpaid" && <Button disabled={disabled} onClick={onCustomClick}>
-          Mark As Paid
-        </Button>}
+        {activeTab === "unpaid" && (
+          <Button disabled={disabled} onClick={onCustomClick}>
+            {marking ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Marking...
+              </>
+            ) : (
+              "Mark As Paid"
+            )}
+          </Button>
+        )}
       </Box>
 
       <Box className="flex items-center gap-2">
@@ -221,6 +243,7 @@ function Settlements() {
   const [paidExpenseCount, setPaidExpenseCount] = useState(0);
   const [unpaidExpenseCount, setUnpaidExpenseCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [marking, setMarking] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<any>(null);
   const tabs = [
@@ -239,7 +262,94 @@ function Settlements() {
     type: "include",
     ids: new Set<GridRowId>(),
   });
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [uploadingBulk, setUploadingBulk] = useState(false);
+  const [bulkInputKey, setBulkInputKey] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const rows: any = activeTab === "paid" ? paidRows : unpaidRows;
+
+  const handleBulkDialogChange = useCallback((open: boolean) => {
+    setShowBulkUpload(open);
+    if (!open) {
+      setBulkFile(null);
+      setBulkInputKey((key) => key + 1);
+      setUploadingBulk(false);
+    }
+  }, []);
+
+  const handleDownloadTemplate = useCallback(async () => {
+    try {
+      const response = await settlementsService.downloadBulkMarkTemplate();
+
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"] || "application/octet-stream",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "bulk-settle-expenses-template.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download bulk upload template:", error);
+      toast.error("Failed to download template");
+    }
+  }, []);
+
+  const uploadBulkFile = useCallback(
+    async (file: File) => {
+      if (uploadingBulk) return;
+
+      setUploadingBulk(true);
+      try {
+        await settlementsService.uploadBulkSettleExpense(file);
+        toast.success("Bulk settlement submitted successfully");
+        handleBulkDialogChange(false);
+      } catch (error) {
+        console.error("Failed to upload file in:", error);
+        toast.error("Failed to upload file");
+      } finally {
+        setUploadingBulk(false);
+      }
+    },
+    [handleBulkDialogChange, uploadingBulk]
+  );
+
+  const handleBulkUpload = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!bulkFile) {
+        toast.error("Please select a file to upload");
+        return;
+      }
+
+      await uploadBulkFile(bulkFile);
+    },
+    [bulkFile, uploadBulkFile]
+  );
+
+  const handleBulkFileSelect = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0] ?? null;
+      setBulkFile(file);
+    },
+    []
+  );
+
+  const handleBrowseClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleClearFile = useCallback(() => {
+    setBulkFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    setBulkInputKey((key) => key + 1);
+  }, []);
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -249,7 +359,6 @@ function Settlements() {
   }, []);
 
   const handleRowClick = ({ row }: GridRowParams) => {
-    console.log(row);
     setSelectedExpense(row);
     setOpen(true);
   };
@@ -286,7 +395,7 @@ function Settlements() {
         limit,
         offset,
         state: "PAYMENT_PENDING",
-        status: "APPROVED"
+        status: "APPROVED",
       });
       setUnpaidRows(res.data.data);
       setUnpaidExpenseCount(res.data.count);
@@ -316,6 +425,8 @@ function Settlements() {
   };
 
   const markAspaid = async (ids: string[]) => {
+    console.log(ids);
+    setMarking(true);
     try {
       await settlementsService.markAsPaid(ids);
       const limit = paginationModel?.pageSize || 10;
@@ -324,6 +435,8 @@ function Settlements() {
       toast.success("Expenses marked as paid");
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message);
+    } finally {
+      setMarking(false);
     }
   };
 
@@ -336,6 +449,7 @@ function Settlements() {
         .filter((exp: any) => !rowSelection.ids.has(exp.id))
         .map((exp: any) => exp.id);
     }
+    console.log(expense_ids);
     markAspaid(expense_ids as string[]);
   };
 
@@ -343,17 +457,33 @@ function Settlements() {
     const limit = paginationModel?.pageSize || 10;
     const offset = (paginationModel?.page || 0) * limit;
     fetchData({ limit, offset });
+    setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
 
+  useEffect(() => {
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [activeTab]);
+
   return (
-    <ReportsPageWrapper
-      title="Expenses"
-      tabs={tabs}
-      activeTab={activeTab}
-      onTabChange={(tabId) => setActiveTab(tabId as "paid" | "unpaid")}
-      showFilters={false}
-      showDateFilter={false}
-    >
+    <div>
+      <div className="flex gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold">Settlements</h1>
+        </div>
+        <Button
+          type="button"
+          className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-base"
+          onClick={() => handleBulkDialogChange(true)}
+        >
+          Bulk Upload
+        </Button>
+      </div>
+      <ReportTabs
+        activeTab={activeTab}
+        onTabChange={(tabId) => setActiveTab(tabId as "paid" | "unpaid")}
+        tabs={tabs}
+        className="mb-8"
+      />
       <Box
         sx={{
           height: "calc(100vh - 160px)",
@@ -373,6 +503,8 @@ function Settlements() {
                 onCustomClick={onCustomClick}
                 rowSelection={rowSelection}
                 activeTab={activeTab}
+                marking={marking}
+                rowCount={rows.length}
               />
             ),
           }}
@@ -437,8 +569,100 @@ function Settlements() {
           }
         />
       </Box>
-      <ViewExpenseWindow open={open} onOpenChange={setOpen} data={selectedExpense} />
-    </ReportsPageWrapper>
+      <ViewExpenseWindow
+        open={open}
+        onOpenChange={setOpen}
+        data={selectedExpense}
+      />
+      <Dialog open={showBulkUpload} onOpenChange={handleBulkDialogChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Bulk Upload Settlement Expenses</DialogTitle>
+            <DialogDescription>
+              Upload an Excel file to settle expenses in bulk. Use the template for
+              the required format.
+            </DialogDescription>
+          </DialogHeader>
+          <form className="space-y-6" onSubmit={handleBulkUpload}>
+            <div className="flex flex-col gap-3">
+              <input
+                key={bulkInputKey}
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleBulkFileSelect}
+                className="hidden"
+              />
+              <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/30 p-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">
+                      Upload spreadsheet
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {bulkFile
+                        ? bulkFile.name
+                        : "Supported formats: .xlsx, .xls, .csv"}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {bulkFile ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearFile}
+                        disabled={uploadingBulk}
+                      >
+                        Clear
+                      </Button>
+                    ) : null}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleBrowseClick}
+                      disabled={uploadingBulk}
+                    >
+                      {bulkFile ? "Change file" : "Browse"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDownloadTemplate}
+                  className="sm:w-auto"
+                >
+                  Download Template
+                </Button>
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleBulkDialogChange(false)}
+                disabled={uploadingBulk}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!bulkFile || uploadingBulk}>
+                {uploadingBulk ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  "Upload"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 

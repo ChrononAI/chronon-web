@@ -27,6 +27,7 @@ export function LoginForm() {
 
     try {
       const { user, token } = await authService.login({ email, password });
+      console.log(user);
       login(user, token);
       identifyUser(user.id.toString());
       setUserProfile(user);

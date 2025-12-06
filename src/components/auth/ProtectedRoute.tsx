@@ -14,7 +14,7 @@ export function ProtectedRoute() {
   } else if (location.pathname.includes("advances") || location.pathname.includes('/advance_accounts')) {
     enabled = orgSettings?.advance_settings?.enabled || false;
   } else if (location.pathname.includes("admin-settings")) {
-    enabled = (orgSettings.admin_dashboard_settings?.enabled && user?.role === "SUPER_ADMIN");
+    enabled = (orgSettings.admin_dashboard_settings?.enabled && user?.role === "ADMIN");
   } else if (location.pathname.includes('all-reports')) {
     enabled = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   } else if (location.pathname.includes("stores")) {

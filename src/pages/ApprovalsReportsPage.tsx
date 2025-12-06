@@ -6,7 +6,7 @@ import { NewPaginationMeta, Report } from "@/types/expense";
 import { formatDate, formatCurrency, getStatusColor } from "@/lib/utils";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { Badge } from "@/components/ui/badge";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
 import { GridOverlay } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
 import { GridPaginationModel } from "@mui/x-data-grid";
@@ -108,12 +108,20 @@ export function ApprovalsReportsPage() {
       page: 0,
       pageSize: 10,
     });
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: "include",
+    ids: new Set(),
+  });
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
+    setRowSelection({
+      type: "include",
+      ids: new Set(),
+    });
   }, [activeTab]);
 
   const fetchAllReports = async () => {
@@ -188,6 +196,10 @@ export function ApprovalsReportsPage() {
     if (paginationModel) {
       fetchData();
     }
+    setRowSelection({
+      type: "include",
+      ids: new Set(),
+    });
   }, [paginationModel?.page, paginationModel?.pageSize]);
 
   const handleViewDetails = (reportId: string) => {
@@ -288,6 +300,8 @@ export function ApprovalsReportsPage() {
           disableRowSelectionOnClick
           showCellVerticalBorder
           onRowClick={(params) => handleViewDetails(params.row.id)}
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
           paginationModel={paginationModel || { page: 0, pageSize: 0 }}

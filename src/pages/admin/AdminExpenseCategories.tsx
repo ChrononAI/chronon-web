@@ -7,6 +7,7 @@ import {
   GridColDef,
   GridOverlay,
   GridPaginationModel,
+  GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { CheckCircle, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -59,6 +60,7 @@ function AdminExpenseCategories() {
     });
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 260;
@@ -98,6 +100,7 @@ function AdminExpenseCategories() {
       page: (paginationModel?.page || 0) + 1,
       perPage: paginationModel?.pageSize || 0,
     });
+    setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
   return (
     <div>
@@ -106,11 +109,11 @@ function AdminExpenseCategories() {
         <h1 className="text-2xl font-bold">Categories</h1>
         <Button
           onClick={() =>
-            navigate("/admin/product-config/expense-categories/create")
+            navigate("/admin-settings/product-config/expense-categories/create")
           }
         >
           <Plus className="mr-2 h-4 w-4" />
-          Add New Categories
+          Add Categories
         </Button>
       </div>
       <Box sx={{ height: "calc(100vh - 100px)", width: "100%" }}>
@@ -165,6 +168,8 @@ function AdminExpenseCategories() {
           checkboxSelection
           disableRowSelectionOnClick
           showCellVerticalBorder
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
           rowCount={pagination ? pagination.total : 0}
