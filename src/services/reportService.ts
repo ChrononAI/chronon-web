@@ -524,11 +524,9 @@ class ReportService {
     }
   }
 
-  async downloadGeneratedReport(id: number): Promise<void> {
+  async downloadGeneratedReport(id: string | number): Promise<void> {
     try {
       const res = await api.get(`/reports/${id}/signed_url`);
-      console.log(res);
-
       // Using window.open is more reliable than creating an <a> tag for cross-origin URLs
       window.open(res.data.data.signed_url, "_blank");
     } catch (error) {

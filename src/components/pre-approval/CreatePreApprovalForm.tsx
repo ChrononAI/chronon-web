@@ -13,8 +13,8 @@ import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
 import { Button } from "../ui/button";
 import { DateField } from "../ui/date-field";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { Currency } from "../advances/CreateAdvanceForm";
 import { trackEvent } from "@/mixpanel";
+import { FormFooter } from "../layout/FormFooter";
 
 // Form schema
 const preApprovalSchema = z.object({
@@ -67,6 +68,7 @@ function CreatePreApprovalForm({
   maxWidth = "max-w-4xl",
 }: CreatePreApprovalFormProps) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const { id } = useParams<{ id: string }>();
 
@@ -162,18 +164,13 @@ function CreatePreApprovalForm({
   return (
     <div className={maxWidth ? `space-y-6 ${maxWidth}` : "space-y-6 max-w-4xl"}>
       {showHeader && (
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">
-            {mode === "create"
-              ? "Create Pre Approval"
-              : mode === "edit"
-              ? "Edit Pre Approval"
-              : "Pre Approval Details"}
-          </h1>
-        </div>
+        <h1 className="text-2xl font-bold">
+          {mode === "create"
+            ? "Create Pre Approval"
+            : mode === "edit"
+            ? "Edit Pre Approval"
+            : "Pre Approval Details"}
+        </h1>
       )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -431,40 +428,15 @@ function CreatePreApprovalForm({
               )}
             />
           </div>
-          {/* TO BE INTEGRATED LATER */}
-          {/* <div>
-                <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        Amount
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Amount"
-                          type="number"
-                          disabled={mode === 'view'}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div> */}
-          <div className="flex justify-end gap-2 pt-4">
-            {mode === "edit" && (
-              <Button
-                type="button"
-                variant="outline"
-                // onClick={onCancel}
-                className="px-6 py-2"
-              >
-                Cancel
-              </Button>
-            )}
+          {!pathname.includes("approvals") && <FormFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/requests/pre-approvals")}
+              className="px-6 py-2"
+            >
+              Back
+            </Button>
             {mode !== "view" && (
               <Button
                 type="submit"
@@ -477,13 +449,13 @@ function CreatePreApprovalForm({
                     {mode === "edit" ? "Updating..." : "Creating..."}
                   </>
                 ) : mode === "edit" ? (
-                  "Resubmit"
+                  "Resubmit Pre Approval"
                 ) : (
-                  "Create"
+                  "Create Pre Approval"
                 )}
               </Button>
             )}
-          </div>
+          </FormFooter>}
         </form>
       </Form>
     </div>

@@ -5,6 +5,7 @@ import { clearCachedOrgId } from '@/lib/jwtUtils';
 
 interface AuthState {
   user: User | null;
+  sidebarCollapsed: boolean;
   token: string | null;
   orgSettings: any | null;
   orgDetails: any | null;
@@ -13,6 +14,7 @@ interface AuthState {
   logout: () => void;
   setOrgSettings: (data: any) => void;
   setOrgDetails: (data: any) => void;
+  setSidebarCollapsed: (data: boolean) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -21,6 +23,7 @@ export const useAuthStore = create<AuthState>()(
       (set) => ({
         user: null,
         orgSettings: null,
+        sidebarCollapsed: false,
         orgDetails: null,
         token: null,
         isAuthenticated: false,
@@ -37,6 +40,9 @@ export const useAuthStore = create<AuthState>()(
         },
         setOrgDetails: (data) => {
           set({orgDetails: data})
+        },
+        setSidebarCollapsed: (data) => {
+          set({ sidebarCollapsed: data })
         }
       }),
       {

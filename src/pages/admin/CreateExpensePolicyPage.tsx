@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CardContent } from "@mui/material";
-import { ArrowLeft } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -15,6 +15,7 @@ import {
   CreatePolicyPayload,
   policyService,
 } from "@/services/admin/policyService";
+import { FormFooter } from "@/components/layout/FormFooter";
 
 export interface CreatePolicyForm {
   name: string;
@@ -32,6 +33,7 @@ function CreateExpensePolicyPage() {
     description: "",
     is_pre_approval_required: false,
   });
+  const [loading, setLoading] = useState(false);
 
   const getAllCategories = async () => {
     try {
@@ -48,6 +50,7 @@ function CreateExpensePolicyPage() {
   };
 
   const createPolicy = async (payload: CreatePolicyPayload) => {
+    setLoading(true);
     try {
       await policyService.createPolicy(payload);
       toast.success("Policy created successfully");
@@ -61,6 +64,8 @@ function CreateExpensePolicyPage() {
           error.message ||
           "Failed to create policy"
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -87,81 +92,99 @@ function CreateExpensePolicyPage() {
     getAllCategories();
   }, []);
   return (
-    <div className="space-y-6">
-      <div className="flex items-center mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(-1)}
-          className="mr-4"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold">Create Expense Policy</h1>
-      </div>
-      <Card className="max-w-4xl">
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4 p-3 w-full">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <Label>Name</Label>
-                <Input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  placeholder="Enter name"
-                />
-              </div>
-              <div className="space-y-3">
-                <Label>Description</Label>
-                <Input
-                  type="text"
-                  value={formData.description}
-                  onChange={(e) => handleChange("description", e.target.value)}
-                  placeholder="Enter description"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2">
-              <div className="flex flex-col gap-3 my-2">
-                <Label>Pre Approval Required</Label>
-                <div>
-                  <Switch
-                    checked={formData.is_pre_approval_required}
-                    onCheckedChange={(checked) => {
-                      handleChange("is_pre_approval_required", checked);
-                    }}
+    <>
+      <div className="space-y-6">
+        <div className="flex items-center mb-6">
+          <h1 className="text-2xl font-bold">Create Expense Policy</h1>
+        </div>
+        <Card className="max-w-4xl">
+          <CardContent>
+            <form
+              id="create-policy-form"
+              onSubmit={handleSubmit}
+              className="space-y-4 p-3 w-full"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label>Name</Label>
+                  <Input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    placeholder="Enter name"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label>Description</Label>
+                  <Input
+                    type="text"
+                    value={formData.description}
+                    onChange={(e) =>
+                      handleChange("description", e.target.value)
+                    }
+                    placeholder="Enter description"
                   />
                 </div>
               </div>
-            </div>
-            {
-              <div className="space-y-3">
-                <div>
-                  <Label>Select Categories</Label>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-                  {categories.map((cat) => {
-                    return (
-                      <div key={cat.id} className="flex items-center gap-3">
-                        <Checkbox
-                          checked={selectedCategories.includes(cat.id)}
-                          onCheckedChange={() => handleCheckboxChange(cat.id)}
-                        />
-                        <span className="text-[14px]">{cat.name}</span>
-                      </div>
-                    );
-                  })}
+              <div className="grid grid-cols-1 lg:grid-cols-2">
+                <div className="flex flex-col gap-3 my-2">
+                  <Label>Pre Approval Required</Label>
+                  <div>
+                    <Switch
+                      checked={formData.is_pre_approval_required}
+                      onCheckedChange={(checked) => {
+                        handleChange("is_pre_approval_required", checked);
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
-            }
-            <div className="flex justify-end">
-              <Button type="submit">Submit</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+              {
+                <div className="space-y-3">
+                  <div>
+                    <Label>Select Categories</Label>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+                    {categories.map((cat) => {
+                      return (
+                        <div key={cat.id} className="flex items-center gap-3">
+                          <Checkbox
+                            checked={selectedCategories.includes(cat.id)}
+                            onCheckedChange={() => handleCheckboxChange(cat.id)}
+                          />
+                          <span className="text-[14px]">{cat.name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              }
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+      <FormFooter>
+        <Button
+          variant="outline"
+          onClick={() =>
+            navigate("/admin-settings/product-config/expense-policies")
+          }
+          disabled={loading}
+        >
+          Back
+        </Button>
+        <Button form="create-policy-form" type="submit" disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            "Submit"
+          )}
+        </Button>
+      </FormFooter>
+    </>
   );
 }
 

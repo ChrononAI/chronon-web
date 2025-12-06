@@ -127,7 +127,7 @@ export function ExpenseComments({
   };
 
   return (
-    <div className={cn("flex flex-col h-full md:h-[520px]", className)}>
+    <div className={cn("flex flex-col md:min-h-[520px] max-h-full", className)}>
       {/* Comments display area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {loadingComments ? (

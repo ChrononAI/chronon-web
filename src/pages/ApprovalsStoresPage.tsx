@@ -5,6 +5,7 @@ import {
   GridColDef,
   GridOverlay,
   GridPaginationModel,
+  GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -30,67 +31,68 @@ function CustomNoRows() {
   );
 }
 
+const columns: GridColDef[] = [
+  {
+    field: "name",
+    headerName: "NAME",
+    minWidth: 120,
+    flex: 1,
+  },
+  {
+    field: "address",
+    headerName: "ADDRESS",
+    minWidth: 140,
+    flex: 1,
+  },
+  {
+    field: "city",
+    headerName: "CITY",
+    minWidth: 120,
+    flex: 1,
+  },
+  {
+    field: "status",
+    headerName: "STATUS",
+    minWidth: 180,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return (
+        <Badge className={getStatusColor(value)}>
+          {value.replace("_", " ")}
+        </Badge>
+      );
+    },
+  },
+  {
+    field: "created_by",
+    headerName: "CREATED BY",
+    minWidth: 150,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return value.email;
+    },
+  },
+  {
+    field: "created_at",
+    headerName: "CREATED AT",
+    minWidth: 150,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return formatDate(value);
+    },
+  },
+  {
+    field: "description",
+    headerName: "DESCRIPTION",
+    flex: 1,
+    minWidth: 150,
+  },
+];
+
 function ApprovalsStoresPage() {
   const navigate = useNavigate();
   const { setSelectedStoreToApprove } = useStoreStore();
 
-  const columns: GridColDef[] = [
-    {
-      field: "name",
-      headerName: "NAME",
-      minWidth: 120,
-      flex: 1,
-    },
-    {
-      field: "address",
-      headerName: "ADDRESS",
-      minWidth: 140,
-      flex: 1,
-    },
-    {
-      field: "city",
-      headerName: "CITY",
-      minWidth: 120,
-      flex: 1,
-    },
-    {
-      field: "status",
-      headerName: "STATUS",
-      minWidth: 180,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return (
-          <Badge className={getStatusColor(value)}>
-            {value.replace("_", " ")}
-          </Badge>
-        );
-      },
-    },
-    {
-      field: "created_by",
-      headerName: "CREATED BY",
-      minWidth: 150,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return value.email;
-      },
-    },
-    {
-      field: "created_at",
-      headerName: "CREATED AT",
-      minWidth: 150,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return formatDate(value);
-      },
-    },
-    {
-      field: "description",
-      headerName: "DESCRIPTION",
-      flex: 1,
-      minWidth: 150,
-    },
-  ];
   const [loading, setLoading] = useState(true);
   const [allRows, setAllRows] = useState([]);
   const [allCount, setAllCount] = useState<number>(0);
@@ -105,12 +107,17 @@ function ApprovalsStoresPage() {
   const [activeTab, setActiveTab] = useState<"pending" | "processed" | "all">(
     "all"
   );
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: "include",
+    ids: new Set(),
+  });
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
+    setRowSelection({ type: "include", ids: new Set() });
   }, [activeTab]);
 
   const rows =
@@ -193,35 +200,37 @@ function ApprovalsStoresPage() {
     }
   };
 
+  const fetchData = async (limit: number, offset: number) => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        getAllStoresToApprove({
+          limit,
+          offset,
+        }),
+        getPendingStoresToApprove({
+          limit,
+          offset,
+        }),
+        getProcessedStores({
+          limit,
+          offset,
+        }),
+      ]);
+    } catch (error) {
+      console.error("Error fetching advances:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async (limit: number, offset: number) => {
-      try {
-        setLoading(true);
-        await Promise.all([
-          getAllStoresToApprove({
-            limit,
-            offset,
-          }),
-          getPendingStoresToApprove({
-            limit,
-            offset,
-          }),
-          getProcessedStores({
-            limit,
-            offset,
-          }),
-        ]);
-      } catch (error) {
-        console.error("Error fetching advances:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     if (paginationModel) {
       const limit = paginationModel?.pageSize || 10;
       const offset = (paginationModel?.page || 0) * limit;
       fetchData(limit, offset);
     }
+    setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
   return (
     <ReportsPageWrapper
@@ -260,14 +269,18 @@ function ApprovalsStoresPage() {
               fontWeight: "bold",
               fontSize: "12px",
             },
+            "& .MuiDataGrid-panel .MuiSelect-select": {
+              fontSize: "12px",
+            },
             "& .MuiDataGrid-main": {
-              border: "1px solid #F1F3F4",
+              border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
+              border: "none",
             },
-            "& .MuiCheckbox-root": {
-              color: "#9AA0A6",
+            "& .MuiDataGrid-columnHeaders": {
+              border: "none",
             },
             "& .MuiDataGrid-row:hover": {
               cursor: "pointer",
@@ -275,6 +288,7 @@ function ApprovalsStoresPage() {
             },
             "& .MuiDataGrid-cell": {
               color: "#2E2E2E",
+              border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
               outline: "none",
@@ -282,12 +296,17 @@ function ApprovalsStoresPage() {
             "& .MuiDataGrid-cell:focus-within": {
               outline: "none",
             },
+            "& .MuiDataGrid-columnSeparator": {
+              color: "#f3f4f6",
+            },
           }}
           showToolbar
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick
           onRowClick={onRowClick}
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
           paginationModel={paginationModel || { page: 0, pageSize: 0 }}

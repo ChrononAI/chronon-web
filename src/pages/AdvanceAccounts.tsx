@@ -8,7 +8,13 @@ import {
 } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Badge, Box } from "@mui/material";
-import { DataGrid, GridColDef, GridOverlay, GridPaginationModel } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridOverlay,
+  GridPaginationModel,
+  GridRowSelectionModel,
+} from "@mui/x-data-grid";
 import {
   AccountType,
   AdvanceService,
@@ -97,14 +103,12 @@ function CustomNoRows() {
 
 function AccountCard({
   card,
-  idx,
   selectedAccount,
   setSelectedAccount,
   policies,
   preApprovals,
 }: {
   card: AccountType;
-  idx: number;
   selectedAccount: string;
   setSelectedAccount: any;
   policies: any[];
@@ -127,7 +131,7 @@ function AccountCard({
       <CardContent className="p-0 space-y-4">
         <div className="space-y-1">
           <CardTitle className="flex items-center justify-between gap-2">
-            <span className="truncate">{`ACC${idx + 1}`}</span>{" "}
+            <span className="truncate">{card.account_name}</span>{" "}
             <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-[12px] p-2 rounded-[8px]">
               Open
             </Badge>
@@ -154,16 +158,19 @@ function AdvanceAccounts() {
     useState<GridPaginationModel | null>(null);
 
   const [accounts, setAccounts] = useState<AccountType[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [ledger, setLedger] = useState<LedgerType[]>([]);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [preApprovals, setPreApprovals] = useState<PreApprovalType[]>([]);
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: "include",
+    ids: new Set(),
+  });
 
   const getAccounts = async () => {
     try {
       const res = await AdvanceService.getAccounts();
-      console.log(res);
       setSelectedAccount(res.data.data[0].id);
       setAccounts(res.data.data);
     } catch (error) {
@@ -172,9 +179,9 @@ function AdvanceAccounts() {
   };
 
   const getAccountsLedger = async (id: string) => {
+    setLoading(true);
     try {
       const res = await AdvanceService.getAccountLedger(id);
-      console.log(res)
       const newRes = JSON.parse(JSON.stringify(res.data.data));
       const newRows = newRes.map((row: LedgerType, idx: number) => {
         return {
@@ -209,7 +216,7 @@ function AdvanceAccounts() {
   };
 
   useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
+    const gridHeight = window.innerHeight - 400;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
@@ -225,7 +232,13 @@ function AdvanceAccounts() {
     if (selectedAccount) {
       getAccountsLedger(selectedAccount);
     }
+    setRowSelection({ type: "include", ids: new Set() });
   }, [selectedAccount]);
+
+  useEffect(() => {
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [paginationModel?.page, paginationModel?.pageSize])
+
   return (
     <ReportsPageWrapper
       title="Accounts"
@@ -235,16 +248,15 @@ function AdvanceAccounts() {
       showDateFilter={false}
       showCreateButton={false}
     >
-      <div className="space-y-2">
+      <div>
         <div className="flex gap-6 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-          {accounts.map((card, idx) => (
+          {accounts.map((card) => (
             <div
               key={card.id}
-              className="flex-shrink-0 w-full md:w-1/3 lg:w-1/6"
+              className="flex-shrink-0 w-full md:w-1/3 lg:w-1/5"
             >
               <AccountCard
                 card={card}
-                idx={idx}
                 selectedAccount={selectedAccount}
                 setSelectedAccount={setSelectedAccount}
                 policies={policies}
@@ -257,7 +269,6 @@ function AdvanceAccounts() {
           sx={{
             height: "calc(100vh - 260px)",
             width: "100%",
-            marginTop: "-32px",
           }}
         >
           <DataGrid
@@ -266,7 +277,7 @@ function AdvanceAccounts() {
             columns={columns}
             loading={loading}
             slots={{
-              noRowsOverlay: CustomNoRows
+              noRowsOverlay: CustomNoRows,
             }}
             sx={{
               border: 0,
@@ -311,18 +322,11 @@ function AdvanceAccounts() {
             checkboxSelection
             disableRowSelectionOnClick
             showCellVerticalBorder
+            rowSelectionModel={rowSelection}
+            onRowSelectionModelChange={setRowSelection}
             pagination
-            // paginationMode="server"
             paginationModel={paginationModel || { page: 0, pageSize: 0 }}
             onPaginationModelChange={setPaginationModel}
-            // rowCount={
-            //   (activeTab === "all"
-            //     ? allExpensesPagination?.total
-            //     : activeTab === "draft"
-            //     ? draftExpensesPagination?.total
-            //     : reportedExpensesPagination?.total) || 0
-            // }
-            // rowCount={rows.length}
           />
         </Box>
       </div>

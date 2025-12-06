@@ -271,17 +271,17 @@ export const AutoReportPage = () => {
         </Button>
       </div>
 
-      <div className="bg-gray-100 rounded-md p-4 mb-6">
+      {/* <div className="bg-gray-100 rounded-md p-4 mb-6">
         <p className="text-sm text-gray-600">
           Create submission schedules to automatically submit expense reports at
           specified intervals.
         </p>
-      </div>
+      </div> */}
       <Box
         sx={{
           height: "calc(100vh - 160px)",
           width: "100%",
-          marginTop: "-32px",
+          marginTop: "-20px",
         }}
       >
         <DataGrid

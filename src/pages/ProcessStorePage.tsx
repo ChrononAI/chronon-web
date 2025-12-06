@@ -24,6 +24,7 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  Loader2,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -37,6 +38,8 @@ function ProcessStorePage() {
   const { selectedStoreToApprove } = useStoreStore();
   const [comments, setComments] = useState("");
   const [showActionDialog, setShowActionDialog] = useState(false);
+  const [approveLoading, setApproveLoading] = useState(false);
+  const [rejectLoading, setRejectLoading] = useState(false);
 
   // const [report, setReport] = useState<PreApprovalType | null>(null);
   const report = selectedStoreToApprove;
@@ -128,6 +131,13 @@ function ProcessStorePage() {
 
   const processStore = async (action: string, payload?: any) => {
     if (!selectedStoreToApprove?.id) return;
+    if (action === "approve") {
+      setApproveLoading(true);
+      setRejectLoading(false);
+    } else {
+      setRejectLoading(true);
+      setApproveLoading(false);
+    }
     try {
       await storesService.processStore({
         id: selectedStoreToApprove.id,
@@ -145,6 +155,9 @@ function ProcessStorePage() {
     } catch (error) {
       console.log(error);
       toast.error("Failed to process store");
+    } finally {
+      setRejectLoading(false);
+      setApproveLoading(false);
     }
   };
 
@@ -157,211 +170,225 @@ function ProcessStorePage() {
       setShowActionDialog(true);
     } else {
       processStore(action, { action });
-      // Show confirmation modal
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-700">
-              {report?.name}
-            </h1>
-            <div className="flex items-center gap-3 mt-2">
-              {getStatusIcon(getUserSpecificStatus())}
-              <Badge
-                className={`${getStatusColor(
-                  getUserSpecificStatus()
-                )} text-sm px-3 py-1`}
-              >
-                {getUserSpecificStatus().replace("_", " ")}
-              </Badge>
-            </div>
-          </div>
-          {canApprove() && (
-            <div className="flex gap-2">
-              <Button
-                onClick={() => handleAction("approve")}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Approve
-              </Button>
-              <Button
-                onClick={() => handleAction("reject")}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                <XCircle className="h-4 w-4 mr-2" />
-                Reject
-              </Button>
-            </div>
-          )}
-        </div>
+    <>
+      <div>
+        <h1 className="text-2xl font-bold mb-6">Store Approval</h1>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Store Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <FileText className="h-4 w-4" />
-                    Submitted By
-                  </div>
-                  <p className="text-lg font-semibold">
-                    {report?.created_by.email}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Activity className="h-4 w-4" />
-                    Status
-                  </div>
-                  <Badge className={getStatusColor(getUserSpecificStatus())}>
-                    {getUserSpecificStatus().replace("_", " ")}
-                  </Badge>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    Created Date
-                  </div>
-                  <p className="text-lg font-semibold">
-                    {report?.created_at && formatDate(report.created_at)}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    Submitted Date
-                  </div>
-                  <p className="text-lg font-semibold">
-                    {report?.created_at
-                      ? formatDate(report.created_at)
-                      : "Not submitted"}
-                  </p>
-                </div>
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-700">
+                {report?.name}
+              </h1>
+              <div className="flex items-center gap-3 mt-2">
+                {getStatusIcon(getUserSpecificStatus())}
+                <Badge
+                  className={`${getStatusColor(
+                    getUserSpecificStatus()
+                  )} text-sm px-3 py-1`}
+                >
+                  {getUserSpecificStatus().replace("_", " ")}
+                </Badge>
               </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <FileText className="h-4 w-4" />
-                  Description
-                </div>
-                <div className="bg-muted/30 rounded-lg p-4">
-                  <p className="text-sm leading-relaxed">
-                    {report?.description}
-                  </p>
-                </div>
+            </div>
+            {canApprove() && (
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleAction("approve")}
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={approveLoading}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2 animate-spin" />
+                  {approveLoading ? "Approving..." : "Approve"}
+                </Button>
+                <Button
+                  onClick={() => handleAction("reject")}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Reject
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-          <div className="lg:col-span-2">
-            <CreateStoreForm
-              mode="view"
-              showHeader={false}
-              maxWidth="w-full"
-            />
+            )}
           </div>
         </div>
-        {approvalWorkflow && approvalWorkflow.approval_steps && (
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Approval Workflow Timeline
+                  <FileText className="h-5 w-5" />
+                  Store Information
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <FileText className="h-4 w-4" />
+                      Submitted By
+                    </div>
+                    <p className="text-lg font-semibold">
+                      {report?.created_by.email}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Activity className="h-4 w-4" />
+                      Status
+                    </div>
+                    <Badge className={getStatusColor(getUserSpecificStatus())}>
+                      {getUserSpecificStatus().replace("_", " ")}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      Created Date
+                    </div>
+                    <p className="text-lg font-semibold">
+                      {report?.created_at && formatDate(report.created_at)}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      Submitted Date
+                    </div>
+                    <p className="text-lg font-semibold">
+                      {report?.created_at
+                        ? formatDate(report.created_at)
+                        : "Not submitted"}
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    Description
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <p className="text-sm leading-relaxed">
+                      {report?.description}
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
+            <div className="lg:col-span-2">
+              <CreateStoreForm
+                mode="view"
+                showHeader={false}
+                maxWidth="w-full"
+              />
+            </div>
           </div>
-        )}
-      </div>
-      <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-red-600" />
-              Reject Store
-            </DialogTitle>
-          </DialogHeader>
-
-          {report && (
-            <div className="space-y-4">
-              <div className="bg-muted/30 rounded-lg p-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Report:
-                    </span>
-                    <span className="text-sm font-medium">{report.name}</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="comments">
-                      Comments <span className="text-red-500">*</span>
-                    </Label>
-                    <span className="text-xs text-muted-foreground">
-                      {comments.length}/500 characters
-                    </span>
-                  </div>
-                  <Textarea
-                    id="comments"
-                    placeholder="Please provide reason for rejection..."
-                    value={comments}
-                    onChange={(e) => setComments(e.target.value)}
-                    rows={3}
-                    maxLength={500}
-                    className="resize-none"
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 w-full text-center">
-                <div className="flex flex-row gap-3 justify-center w-full">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowActionDialog(false)}
-                    className="w-full sm:w-auto px-6 py-2.5 border-gray-300 hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      processStore("reject", {
-                        action: "reject",
-                        approval_notes: comments,
-                      })
-                    }
-                    disabled={!comments.trim()}
-                    className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-20 bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Reject Store
-                  </Button>
-                </div>
-              </div>
+          {approvalWorkflow && approvalWorkflow.approval_steps && (
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5" />
+                    Approval Workflow Timeline
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
+                </CardContent>
+              </Card>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-    </div>
+        </div>
+        <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <XCircle className="h-5 w-5 text-red-600" />
+                Reject Store
+              </DialogTitle>
+            </DialogHeader>
+
+            {report && (
+              <div className="space-y-4">
+                <div className="bg-muted/30 rounded-lg p-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Report:
+                      </span>
+                      <span className="text-sm font-medium">{report.name}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="comments">
+                        Comments <span className="text-red-500">*</span>
+                      </Label>
+                      <span className="text-xs text-muted-foreground">
+                        {comments.length}/500 characters
+                      </span>
+                    </div>
+                    <Textarea
+                      id="comments"
+                      placeholder="Please provide reason for rejection..."
+                      value={comments}
+                      onChange={(e) => setComments(e.target.value)}
+                      rows={3}
+                      maxLength={500}
+                      className="resize-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 w-full text-center">
+                  <div className="flex flex-row gap-3 justify-center w-full">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowActionDialog(false)}
+                      className="w-full sm:w-auto px-6 py-2.5 border-gray-300 hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        processStore("reject", {
+                          action: "reject",
+                          approval_notes: comments,
+                        })
+                      }
+                      disabled={rejectLoading || !comments.trim()}
+                      className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-20 bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {rejectLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Rejecting...
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Reject Store
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   );
 }
 

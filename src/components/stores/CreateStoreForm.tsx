@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,7 @@ import { userService } from "@/services/admin/userService";
 import { storesService } from "@/services/storeService";
 import { toast } from "sonner";
 import { trackEvent } from "@/mixpanel";
+import { FormFooter } from "../layout/FormFooter";
 
 export interface Currency {
   code: string;
@@ -58,6 +59,7 @@ export function CreateStoreForm({
   maxWidth?: string;
 }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { id } = useParams<{ id: string }>();
 
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
@@ -118,20 +120,7 @@ export function CreateStoreForm({
   }, [users]);
 
   const handleCancel = () => {
-    const hasChanges = Object.values(form.getValues()).some((value) =>
-      typeof value === "string" ? value.trim() : value
-    );
-
-    if (hasChanges) {
-      const confirmDiscard = window.confirm(
-        "Are you sure you want to discard your changes?"
-      );
-      if (confirmDiscard) {
-        navigate("/requests/stores");
-      }
-    } else {
       navigate("/requests/stores");
-    }
   };
 
   const onSubmit = async (values: StoreFormValues) => {
@@ -180,60 +169,46 @@ export function CreateStoreForm({
   return (
     <div className={maxWidth ? `space-y-6 ${maxWidth}` : "space-y-6 max-w-4xl"}>
       {/* Header */}
-      {showHeader && (
-        <div className="flex items-center mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCancel}
-            className="mr-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">Create Store</h1>
-        </div>
-      )}
+      {showHeader && <h1 className="text-2xl font-bold">Create Store</h1>}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name *</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Name"
-                      disabled={mode === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name *</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="Name"
+                    disabled={mode === "view"}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            {/* Amount Field */}
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Description"
-                      {...field}
-                      disabled={mode === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          {/* Amount Field */}
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Description"
+                    {...field}
+                    disabled={mode === "view"}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}
@@ -253,42 +228,40 @@ export function CreateStoreForm({
             )}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              control={form.control}
-              name="city"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>City *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="City"
-                      {...field}
-                      disabled={mode === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="store_code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Store Code *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Store code"
-                      {...field}
-                      disabled={mode === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City *</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="City"
+                    {...field}
+                    disabled={mode === "view"}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="store_code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Store Code *</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Store code"
+                    {...field}
+                    disabled={mode === "view"}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {!(mode === "view" && !selectedStore?.store_manager_id) && (
               <FormField
@@ -412,113 +385,16 @@ export function CreateStoreForm({
             )}
           </div>
 
-          {/* {templateEntities?.map((entity) => {
-            const entityId = getEntityId(entity);
-            const fieldName = getFieldName(entity);
-            if (!entityId) return null;
-
-            return (
-              <FormField
-                key={entityId}
-                control={form.control}
-                name={entityId as any}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {fieldName}
-                      {entity.is_mandatory && (
-                        <span className="text-destructive"> *</span>
-                      )}
-                    </FormLabel>
-                    {entity.field_type === "SELECT" ? (
-                      <Popover
-                        open={entityDropdownOpen[entityId] || false}
-                        onOpenChange={(open) =>
-                          setEntityDropdownOpen((prev) => ({
-                            ...prev,
-                            [entityId]: open,
-                          }))
-                        }
-                      >
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={entityDropdownOpen[entityId]}
-                              className="h-11 w-full justify-between"
-                              disabled={mode === "view"}
-                            >
-                              <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
-                                {field.value
-                                  ? entityOptions[entityId]?.find(
-                                      (opt) => opt.id === field.value
-                                    )?.label || `Select ${fieldName}`
-                                  : `Select ${fieldName}`}
-                              </span>
-                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                          <Command>
-                            <CommandInput
-                              placeholder={`Search ${fieldName}...`}
-                            />
-                            <CommandList className="max-h-[180px] overflow-y-auto">
-                              <CommandEmpty>
-                                No {fieldName.toLowerCase()} found.
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {entityOptions[entityId]?.map((opt) => (
-                                  <CommandItem
-                                    key={opt.id}
-                                    value={opt.label}
-                                    onSelect={() => {
-                                      field.onChange(opt.id);
-                                      setEntityDropdownOpen((prev) => ({
-                                        ...prev,
-                                        [entityId]: false,
-                                      }));
-                                    }}
-                                  >
-                                    {opt.label}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    ) : (
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder={`Enter ${fieldName}`}
-                          disabled={mode === "view"}
-                        />
-                      </FormControl>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            );
-          })} */}
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 pt-4">
-            {mode === "edit" && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={loading}
-                className="px-6 py-2"
-              >
-                Cancel
-              </Button>
-            )}
+          {!pathname.includes("approvals") && <FormFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={loading}
+              className="px-6 py-2"
+            >
+              Back
+            </Button>
             {(selectedStore?.status === "COMPLETE" || mode !== "view") && (
               <Button
                 type="submit"
@@ -528,16 +404,18 @@ export function CreateStoreForm({
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
+                    {selectedStore?.status === "COMPLETE" || mode !== "view"
+                      ? "Submitting..."
+                      : "Creating..."}
                   </>
                 ) : selectedStore?.status === "COMPLETE" ? (
-                  "Resubmit"
+                  "Resubmit Store"
                 ) : (
-                  "Create"
+                  "Create Store"
                 )}
               </Button>
             )}
-          </div>
+          </FormFooter>}
         </form>
       </Form>
     </div>

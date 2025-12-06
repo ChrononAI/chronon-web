@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -49,6 +49,7 @@ import { Box, Toolbar } from "@mui/material";
 import { categoryService } from "@/services/admin/categoryService";
 import { SearchableSelect } from "./SearchableSelect";
 import { trackEvent } from "@/mixpanel";
+import { FormFooter } from "../layout/FormFooter";
 
 // Dynamic form schema creation function
 const createReportSchema = (customAttributes: CustomAttribute[]) => {
@@ -622,14 +623,9 @@ export function CreateReportForm2({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold">
-          {editMode ? "Edit Report" : "Create Report"}
-        </h1>
-      </div>
+      <h1 className="text-2xl font-bold">
+        {editMode ? "Edit Report" : "Create Report"}
+      </h1>
 
       <div>
         <Form {...form}>
@@ -776,8 +772,8 @@ export function CreateReportForm2({
 
       {/* Total Amount Display */}
       <div className="flex">
-        <div className="bg-gray-50 rounded-lg px-8 py-3 min-w-[680px] flex items-center justify-between">
-          <span className="text-sm text-gray-600">Total Amount:</span>
+        <div className="bg-gray-50 rounded-lg px-8 py-3 w-full flex items-center justify-end gap-6">
+          <span className="text-gray-600">Total Amount:</span>
           <span className="text-lg font-bold text-primary">
             {formatCurrency(totalAmount || 0)}
           </span>
@@ -785,92 +781,97 @@ export function CreateReportForm2({
       </div>
 
       {/* Action Buttons - At the very bottom of the page */}
-      <div className="sticky bottom-0 bg-white border-t pt-6 pb-4">
-        <div className="flex justify-end gap-4">
-          {/* Delete Button - Only show in edit mode for draft reports */}
-          {editMode && reportData && (
-            <AlertDialog
-              open={showDeleteDialog}
-              onOpenChange={setShowDeleteDialog}
-            >
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="px-10 py-3 border-red-500 text-red-600 hover:bg-red-50"
-                  onClick={() => setShowDeleteDialog(true)}
+      <FormFooter>
+        {/* Delete Button - Only show in edit mode for draft reports */}
+        {editMode && reportData && (
+          <AlertDialog
+            open={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+          >
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="px-10 py-3 border-red-500 text-red-600 hover:bg-red-50"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Report</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this report? This action
+                  cannot be undone.
+                  {reportData.title && (
+                    <span className="block mt-2 font-medium">
+                      Report: {reportData.title}
+                    </span>
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isDeleting}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteReport}
+                  disabled={isDeleting}
+                  className="bg-red-600 hover:bg-red-700"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Report</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete this report? This action
-                    cannot be undone.
-                    {reportData.title && (
-                      <span className="block mt-2 font-medium">
-                        Report: {reportData.title}
-                      </span>
-                    )}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isDeleting}>
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDeleteReport}
-                    disabled={isDeleting}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    {isDeleting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Deleting...
-                      </>
-                    ) : (
-                      "Delete"
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/reports')}
+              className="px-6 py-2"
+            >
+              Back
+            </Button>
+        <Button
+          onClick={onSave}
+          disabled={saving}
+          variant="outline"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {editMode ? "Updating..." : "Saving..."}
+            </>
+          ) : editMode ? (
+            "Update Report"
+          ) : (
+            "Save Draft"
           )}
-          <Button
-            onClick={onSave}
-            disabled={saving}
-            variant="outline"
-            className="px-10 py-3 border-blue-500 text-blue-500 hover:bg-blue-50"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {editMode ? "Updating..." : "Saving..."}
-              </>
-            ) : editMode ? (
-              "Update Report"
-            ) : (
-              "Save Draft"
-            )}
-          </Button>
-          <Button
-            onClick={form.handleSubmit(onSubmit)}
-            disabled={loading}
-            className="px-10 py-3"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              "Submit"
-            )}
-          </Button>
-        </div>
-      </div>
+        </Button>
+        <Button
+          onClick={form.handleSubmit(onSubmit)}
+          disabled={loading}
+          className="px-10 py-3"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            "Submit"
+          )}
+        </Button>
+      </FormFooter>
     </div>
   );
 }

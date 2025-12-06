@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useAuthStore } from "@/store/authStore";
+import { trackApiError } from "@/mixpanel";
 
 // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://in.pulse.chronon.co.in';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://staging-api.chronon.com.chronon.co.in';
@@ -42,6 +43,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    trackApiError(error.config?.url, error);
     return Promise.reject(error);
   }
 );

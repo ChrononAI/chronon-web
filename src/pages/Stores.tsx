@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { Box } from "@mui/material";
-import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridPaginationModel, GridRowSelectionModel } from "@mui/x-data-grid";
 import { CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColor } from "@/lib/utils";
@@ -81,6 +81,7 @@ export default function Stores() {
   const [allCount, setAllCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [processedCount, setProcessedCount] = useState(0);
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
     const rows =
     activeTab === "all"
@@ -176,6 +177,7 @@ export default function Stores() {
     if (paginationModel) {
       fetchStores();
     }
+    setRowSelection({type: "include", ids: new Set()});
   }, [paginationModel?.page, paginationModel?.pageSize]);
 
   const tabs = [
@@ -183,6 +185,10 @@ export default function Stores() {
     { key: "pending", label: "Pending", count: pendingCount || 0 },
     { key: "processed", label: "Processed", count: processedCount || 0 },
   ];
+
+  useEffect(() => {
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [activeTab])
 
   return (
     <ReportsPageWrapper
@@ -258,6 +264,8 @@ export default function Stores() {
           disableRowSelectionOnClick
           showCellVerticalBorder
           onRowClick={handleRowClick}
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
           paginationModel={paginationModel || { page: 0, pageSize: 0 }}

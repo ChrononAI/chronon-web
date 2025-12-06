@@ -3,7 +3,7 @@ import { policyService } from "@/services/admin/policyService";
 import { PaginationInfo } from "@/store/expenseStore";
 import { PolicyCategory } from "@/types/expense";
 import { Box } from "@mui/material";
-import { GridOverlay } from "@mui/x-data-grid";
+import { GridOverlay, GridRowSelectionModel } from "@mui/x-data-grid";
 import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { CheckCircle, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -60,6 +60,7 @@ function AdminExpensePolicies() {
       pageSize: 10,
     });
     const [loading, setLoading] = useState(true);
+    const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -101,6 +102,7 @@ function AdminExpensePolicies() {
       page: (paginationModel?.page || 0) + 1,
       perPage: paginationModel?.pageSize || 0,
     });
+    setRowSelection({ type: "include", ids: new Set() })
   }, [paginationModel?.page, paginationModel?.pageSize]);
   return (
     <div>
@@ -168,6 +170,8 @@ function AdminExpensePolicies() {
           checkboxSelection
           disableRowSelectionOnClick
           showCellVerticalBorder
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
           rowCount={paginationInfo ? paginationInfo.total : 0}
