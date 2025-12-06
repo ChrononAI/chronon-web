@@ -222,6 +222,9 @@ function ProcessPreApprovalPage() {
   };
   return (
     <>
+      <div>
+        <h1 className="text-2xl font-bold mb-6">Pre Approval Approval</h1>
+      </div>
       <div className="space-y-6">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">

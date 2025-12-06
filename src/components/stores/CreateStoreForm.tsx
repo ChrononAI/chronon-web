@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,7 @@ import { userService } from "@/services/admin/userService";
 import { storesService } from "@/services/storeService";
 import { toast } from "sonner";
 import { trackEvent } from "@/mixpanel";
+import { FormFooter } from "../layout/FormFooter";
 
 export interface Currency {
   code: string;
@@ -180,60 +181,46 @@ export function CreateStoreForm({
   return (
     <div className={maxWidth ? `space-y-6 ${maxWidth}` : "space-y-6 max-w-4xl"}>
       {/* Header */}
-      {showHeader && (
-        <div className="flex items-center mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCancel}
-            className="mr-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">Create Store</h1>
-        </div>
-      )}
+      {showHeader && <h1 className="text-2xl font-bold">Create Store</h1>}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name *</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Name"
-                      disabled={mode === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name *</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="Name"
+                    disabled={mode === "view"}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            {/* Amount Field */}
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Description"
-                      {...field}
-                      disabled={mode === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          {/* Amount Field */}
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Description"
+                    {...field}
+                    disabled={mode === "view"}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}
@@ -253,42 +240,40 @@ export function CreateStoreForm({
             )}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              control={form.control}
-              name="city"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>City *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="City"
-                      {...field}
-                      disabled={mode === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="store_code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Store Code *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Store code"
-                      {...field}
-                      disabled={mode === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City *</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="City"
+                    {...field}
+                    disabled={mode === "view"}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="store_code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Store Code *</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Store code"
+                    {...field}
+                    disabled={mode === "view"}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {!(mode === "view" && !selectedStore?.store_manager_id) && (
               <FormField
@@ -412,19 +397,16 @@ export function CreateStoreForm({
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 pt-4">
-            {mode === "edit" && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={loading}
-                className="px-6 py-2"
-              >
-                Cancel
-              </Button>
-            )}
+          <FormFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={loading}
+              className="px-6 py-2"
+            >
+              Cancel
+            </Button>
             {(selectedStore?.status === "COMPLETE" || mode !== "view") && (
               <Button
                 type="submit"
@@ -439,13 +421,13 @@ export function CreateStoreForm({
                       : "Creating..."}
                   </>
                 ) : selectedStore?.status === "COMPLETE" ? (
-                  "Resubmit"
+                  "Resubmit Store"
                 ) : (
-                  "Create"
+                  "Create Store"
                 )}
               </Button>
             )}
-          </div>
+          </FormFooter>
         </form>
       </Form>
     </div>

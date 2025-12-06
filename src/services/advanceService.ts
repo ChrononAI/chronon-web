@@ -37,6 +37,7 @@ interface CreateAdvancePayloadType {
 export interface AccountType {
   id: string;
   org_id: string;
+  account_name: string;
   user_id: string;
   policy_id: string;
   pre_approval_id: string | null;

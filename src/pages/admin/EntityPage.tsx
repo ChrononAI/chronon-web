@@ -1,4 +1,10 @@
-import { DataGrid, GridColDef, GridOverlay } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridOverlay,
+  GridPaginationModel,
+  GridRowSelectionModel,
+} from "@mui/x-data-grid";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -49,39 +55,56 @@ function CustomNoRows() {
   );
 }
 
+const columns: GridColDef<EntityRow>[] = [
+  { field: "entity_name", headerName: "ENTITY NAME", minWidth: 300, flex: 1 },
+  { field: "description", headerName: "DESC", minWidth: 300, flex: 1 },
+  { field: "type", headerName: "TYPE", minWidth: 300, flex: 1 },
+  { field: "value", headerName: "VALUE", minWidth: 300, flex: 1 },
+];
+
 export const EntityPage = () => {
   const [rows, setRows] = useState<EntityRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const columns: GridColDef<EntityRow>[] = [
-    { field: "entity_name", headerName: "ENTITY NAME", minWidth: 300, flex: 1 },
-    { field: "description", headerName: "DESC", minWidth: 300, flex: 1 },
-    { field: "type", headerName: "TYPE", minWidth: 300, flex: 1 },
-    { field: "value", headerName: "VALUE", minWidth: 300, flex: 1 },
-  ];
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: "include",
+    ids: new Set(),
+  });
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel | null>(null);
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      const data = await getEntities();
+      const mapped: EntityRow[] = data.map((e: APIEntity, idx: number) => ({
+        id: e.id || String(idx),
+        entity_name: e.name,
+        description: e.description,
+        type: e.type || e.status,
+        value: Array.isArray(e.attributes)
+          ? e.attributes.map((a) => a.display_value || a.value).join(", ")
+          : e.display_name || "",
+      }));
+      setRows(mapped);
+    } catch (err) {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const data = await getEntities();
-        const mapped: EntityRow[] = data.map((e: APIEntity, idx: number) => ({
-          id: e.id || String(idx),
-          entity_name: e.name,
-          description: e.description,
-          type: e.type || e.status,
-          value: Array.isArray(e.attributes)
-            ? e.attributes.map((a) => a.display_value || a.value).join(", ")
-            : e.display_name || "",
-        }));
-        setRows(mapped);
-      } catch (err) {
-        setRows([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const gridHeight = window.innerHeight - 300;
+    const rowHeight = 36;
+    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
+
     load();
   }, []);
+
+  useEffect(() => {
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [paginationModel?.page, paginationModel?.pageSize]);
   return (
     <>
       <div className="flex justify-between items-center mb-6">
@@ -93,18 +116,19 @@ export const EntityPage = () => {
           </Link>
         </Button>
       </div>
-
+{/* 
       <div className="bg-gray-100 rounded-md p-4">
         <p className="text-sm text-gray-600">
           Setup custom entities required to be allocated to users, expenses,
           transaction etc. These entities can be used for workflows, accounting
           or any custom purposes.
         </p>
-      </div>
+      </div> */}
       <Box
         sx={{
-          height: "calc(100vh - 180px)",
+          height: "calc(100vh - 120px)",
           width: "100%",
+          marginTop: "-20px"
         }}
       >
         <DataGrid
@@ -120,6 +144,12 @@ export const EntityPage = () => {
               fontWeight: "bold",
               fontSize: "12px",
             },
+            "& .MuiToolbar-root": {
+              paddingX: 0,
+            },
+            "& .MuiDataGrid-panel .MuiSelect-select": {
+              fontSize: "12px",
+            },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
             },
@@ -129,11 +159,6 @@ export const EntityPage = () => {
             },
             "& .MuiDataGrid-columnHeaders": {
               border: "none",
-              borderTop: "none",
-              borderBottom: "none",
-            },
-            "& .MuiCheckbox-root": {
-              color: "#9AA0A6",
             },
             "& .MuiDataGrid-row:hover": {
               cursor: "pointer",
@@ -153,7 +178,11 @@ export const EntityPage = () => {
               color: "#f3f4f6",
             },
           }}
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           showToolbar
+          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          onPaginationModelChange={setPaginationModel}
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick

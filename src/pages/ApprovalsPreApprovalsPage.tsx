@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
-import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridPaginationModel,
+  GridRowSelectionModel,
+} from "@mui/x-data-grid";
 import { formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -30,85 +35,86 @@ function CustomNoRows() {
   );
 }
 
+const columns: GridColDef[] = [
+  {
+    field: "sequence_number",
+    headerName: "PRE APPROVAL ID",
+    minWidth: 160,
+    flex: 1,
+  },
+  {
+    field: "title",
+    headerName: "TITLE",
+    minWidth: 200,
+    flex: 1,
+  },
+  {
+    field: "start_date",
+    headerName: "START",
+    minWidth: 120,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return formatDate(value);
+    },
+  },
+  {
+    field: "end_date",
+    headerName: "END",
+    minWidth: 120,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return formatDate(value);
+    },
+  },
+  {
+    field: "policy_name",
+    headerName: "POLICY",
+    minWidth: 150,
+    flex: 1,
+  },
+  {
+    field: "status",
+    headerName: "STATUS",
+    minWidth: 180,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return (
+        <Badge className={getStatusColor(value)}>
+          {value.replace("_", " ")}
+        </Badge>
+      );
+    },
+  },
+  {
+    field: "created_by",
+    headerName: "CREATED BY",
+    minWidth: 150,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return value.email;
+    },
+  },
+  {
+    field: "created_at",
+    headerName: "CREATED AT",
+    minWidth: 150,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return formatDate(value);
+    },
+  },
+  {
+    field: "description",
+    headerName: "PURPOSE",
+    flex: 1,
+    minWidth: 150,
+  },
+];
+
 function ApprovalsPreApprovalsPage() {
   const navigate = useNavigate();
   const { setSelectedPreApprovalToApprove } = usePreApprovalStore();
 
-  const columns: GridColDef[] = [
-    {
-      field: "sequence_number",
-      headerName: "PRE APPROVAL ID",
-      minWidth: 160,
-      flex: 1
-    },
-    {
-      field: "title",
-      headerName: "TITLE",
-      minWidth: 200,
-      flex: 1
-    },
-    {
-      field: "start_date",
-      headerName: "START",
-      minWidth: 120,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return formatDate(value);
-      },
-    },
-    {
-      field: "end_date",
-      headerName: "END",
-      minWidth: 120,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return formatDate(value);
-      },
-    },
-    {
-      field: "policy_name",
-      headerName: "POLICY",
-      minWidth: 150,
-      flex: 1
-    },
-    {
-      field: "status",
-      headerName: "STATUS",
-      minWidth: 180,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return (
-          <Badge className={getStatusColor(value)}>
-            {value.replace("_", " ")}
-          </Badge>
-        );
-      },
-    },
-    {
-      field: "created_by",
-      headerName: "CREATED BY",
-      minWidth: 150,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return value.email;
-      },
-    },
-    {
-      field: "created_at",
-      headerName: "CREATED AT",
-      minWidth: 150,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return formatDate(value);
-      },
-    },
-    {
-      field: "description",
-      headerName: "PURPOSE",
-      flex: 1,
-      minWidth: 150,
-    },
-  ];
   const [loading, setLoading] = useState(true);
   const [allRows, setAllRows] = useState([]);
   const [allPagination, setAllPagination] = useState<PaginationInfo | null>(
@@ -121,17 +127,23 @@ function ApprovalsPreApprovalsPage() {
   const [processedPagination, setProcessedPagination] =
     useState<PaginationInfo | null>(null);
 
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>(null);
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel | null>(null);
 
   const [activeTab, setActiveTab] = useState<"pending" | "processed" | "all">(
     "all"
   );
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: "include",
+    ids: new Set(),
+  });
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
+    setRowSelection({ type: "include", ids: new Set() });
   }, [activeTab]);
 
   const rows =
@@ -155,9 +167,18 @@ function ApprovalsPreApprovalsPage() {
     navigate(`/approvals/pre-approvals/${row.id}`);
   };
 
-  const getAllPreApprovalsToApprove = async () => {
+  const getAllPreApprovalsToApprove = async ({
+    page,
+    perPage,
+  }: {
+    page: number;
+    perPage: number;
+  }) => {
     try {
-      const res: any = await preApprovalService.getPreApprovalToApprove();
+      const res: any = await preApprovalService.getPreApprovalToApprove({
+        page,
+        perPage,
+      });
       setAllRows(res.data.data);
       setAllPagination(res.data.pagination);
     } catch (error) {
@@ -165,10 +186,20 @@ function ApprovalsPreApprovalsPage() {
     }
   };
 
-  const getPendingPreApprovalsToApprove = async () => {
+  const getPendingPreApprovalsToApprove = async ({
+    page,
+    perPage,
+  }: {
+    page: number;
+    perPage: number;
+  }) => {
     try {
       const res: any = await preApprovalService.getPreApprovalToApproveByStatus(
-        "IN_PROGRESS"
+        {
+          status: "IN_PROGRESS",
+          page,
+          perPage,
+        }
       );
       setPendingRows(res.data.data);
       setPendingPagination(res.data.pagination);
@@ -177,10 +208,16 @@ function ApprovalsPreApprovalsPage() {
     }
   };
 
-  const getProcessedApprovals = async () => {
+  const getProcessedApprovals = async ({
+    page,
+    perPage,
+  }: {
+    page: number;
+    perPage: number;
+  }) => {
     try {
       const res: any = await preApprovalService.getPreApprovalToApproveByStatus(
-        "APPROVED,REJECTED"
+        { status: "APPROVED,REJECTED", page, perPage }
       );
       setProcessedRows(res.data.data);
       setProcessedPagination(res.data.pagination);
@@ -189,14 +226,19 @@ function ApprovalsPreApprovalsPage() {
     }
   };
 
-  useEffect(() => {
-  const fetchAll = async () => {
+  const fetchAll = async ({
+    page,
+    perPage,
+  }: {
+    page: number;
+    perPage: number;
+  }) => {
     try {
       setLoading(true);
       await Promise.all([
-        getAllPreApprovalsToApprove(),
-        getPendingPreApprovalsToApprove(),
-        getProcessedApprovals(),
+        getAllPreApprovalsToApprove({ page, perPage }),
+        getPendingPreApprovalsToApprove({ page, perPage }),
+        getProcessedApprovals({ page, perPage }),
       ]);
     } catch (error) {
       console.error("Failed to fetch approvals:", error);
@@ -205,9 +247,15 @@ function ApprovalsPreApprovalsPage() {
     }
   };
 
-  fetchAll();
-
-  }, []);
+  useEffect(() => {
+    if (paginationModel) {
+      fetchAll({
+        page: paginationModel?.page + 1,
+        perPage: paginationModel.pageSize,
+      });
+    }
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [paginationModel?.page, paginationModel?.pageSize]);
   return (
     <ReportsPageWrapper
       title="Approver Dashboard"
@@ -236,7 +284,7 @@ function ApprovalsPreApprovalsPage() {
           rows={rows}
           loading={loading}
           slots={{
-            noRowsOverlay: CustomNoRows
+            noRowsOverlay: CustomNoRows,
           }}
           sx={{
             border: 0,
@@ -245,14 +293,18 @@ function ApprovalsPreApprovalsPage() {
               fontWeight: "bold",
               fontSize: "12px",
             },
+            "& .MuiDataGrid-panel .MuiSelect-select": {
+              fontSize: "12px",
+            },
             "& .MuiDataGrid-main": {
-              border: "1px solid #F1F3F4",
+              border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
+              border: "none",
             },
-            "& .MuiCheckbox-root": {
-              color: "#9AA0A6",
+            "& .MuiDataGrid-columnHeaders": {
+              border: "none",
             },
             "& .MuiDataGrid-row:hover": {
               cursor: "pointer",
@@ -260,6 +312,7 @@ function ApprovalsPreApprovalsPage() {
             },
             "& .MuiDataGrid-cell": {
               color: "#2E2E2E",
+              border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
               outline: "none",
@@ -267,14 +320,19 @@ function ApprovalsPreApprovalsPage() {
             "& .MuiDataGrid-cell:focus-within": {
               outline: "none",
             },
+            "& .MuiDataGrid-columnSeparator": {
+              color: "#f3f4f6",
+            },
           }}
           showToolbar
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick
           onRowClick={onRowClick}
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           pagination
-          // paginationMode="server"
+          paginationMode="server"
           paginationModel={paginationModel || { page: 0, pageSize: 0 }}
           onPaginationModelChange={setPaginationModel}
           rowCount={

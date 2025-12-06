@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, Loader2, ChevronDown } from "lucide-react";
+import { Loader2, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -42,7 +42,7 @@ import { AdvanceService, AdvanceType } from "@/services/advanceService";
 import { getTemplates, type Template } from "@/services/admin/templates";
 import { getEntities, type Entity } from "@/services/admin/entities";
 import { trackEvent } from "@/mixpanel";
-
+import { FormFooter } from "../layout/FormFooter";
 export interface Currency {
   code: string;
   name: string;
@@ -130,7 +130,7 @@ export function CreateAdvanceForm({
       });
       setPolicies(expensePolicies);
     } catch (error) {
-      toast.error('Failed to fetch policies');
+      toast.error("Failed to fetch policies");
     }
   };
 
@@ -313,22 +313,14 @@ export function CreateAdvanceForm({
   return (
     <div className={maxWidth ? `space-y-6 ${maxWidth}` : "space-y-6 max-w-4xl"}>
       {/* Header */}
-      {showHeader && (
-        <div className="flex items-center mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCancel}
-            className="mr-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">Create Advance</h1>
-        </div>
-      )}
+      {showHeader && <h1 className="text-2xl font-bold">Create Advance</h1>}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form
+          id="advance-submission-form"
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-6"
+        >
           <FormField
             control={form.control}
             name="title"
@@ -580,24 +572,21 @@ export function CreateAdvanceForm({
               />
             );
           })}
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 pt-4">
-            {mode === "edit" && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={loading}
-                className="px-6 py-2"
-              >
-                Cancel
-              </Button>
-            )}
+          <FormFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={loading}
+              className="px-6 py-2"
+            >
+              Cancel
+            </Button>
             {(selectedAdvance?.status === "COMPLETE" || mode !== "view") && (
               <Button
                 type="submit"
-                disabled={!form.formState.isValid || loading}
+                form="advance-submission-form"
+                disabled={loading}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
               >
                 {loading ? (
@@ -612,7 +601,7 @@ export function CreateAdvanceForm({
                 )}
               </Button>
             )}
-          </div>
+          </FormFooter>
         </form>
       </Form>
     </div>

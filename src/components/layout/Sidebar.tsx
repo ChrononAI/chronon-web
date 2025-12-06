@@ -152,6 +152,7 @@ const permissionMap: any = {
 
 export function Sidebar() {
   const location = useLocation();
+  const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed } = useAuthStore();
   const [openItems, setOpenItems] = useState<string[]>(() => {
     // Load from localStorage on initial render
     if (typeof window !== "undefined") {
@@ -160,9 +161,7 @@ export function Sidebar() {
     }
     return [];
   });
-  const [collapsed, setCollapsed] = useState(false);
   const [newNavItems, setNewNavItems] = useState<NavigationItem[]>([]);
-  const { user, orgSettings, logout } = useAuthStore();
   const isAdminActive = location.pathname.startsWith("/admin");
 
   const mergePermissions = (items: any[], permissions: any): any[] => {
@@ -171,11 +170,11 @@ export function Sidebar() {
         const permission = {
           enabled:
             (orgSettings?.admin_dashboard_settings?.enabled === true &&
-              user?.role === "SUPER_ADMIN") ||
+              user?.role === "ADMIN") ||
             false,
           allowed:
             (orgSettings?.admin_dashboard_settings?.allowed === true &&
-              user?.role === "SUPER_ADMIN") ||
+              user?.role === "ADMIN") ||
             false,
         };
         const children = item.children
@@ -322,7 +321,7 @@ export function Sidebar() {
     const isDisabled = item.disabled;
 
     if (item.children) {
-      const isOpen = !collapsed && openItems.includes(item.name);
+      const isOpen = !sidebarCollapsed && openItems.includes(item.name);
       return (
         <Collapsible
           key={item.name}
@@ -334,7 +333,7 @@ export function Sidebar() {
           <CollapsibleTrigger asChild>
             <Button
               variant="ghost"
-              onClick={() => setCollapsed(false)}
+              onClick={() => setSidebarCollapsed(false)}
               className={cn(
                 "w-full justify-between h-auto font-normal transition-all duration-200",
                 isDisabled &&
@@ -421,12 +420,12 @@ export function Sidebar() {
     <div
       className={cn(
         "bg-card border-r h-full overflow-y-auto flex flex-col transition-all duration-300 ease-in-out",
-        collapsed ? "w-12" : "w-64"
+        sidebarCollapsed ? "w-12" : "w-64"
       )}
     >
       {/* Header Section */}
       <div className="flex items-center justify-between p-4">
-        {!collapsed && (
+        {!sidebarCollapsed && (
           <Link to="/" className="flex items-center space-x-2">
             <h1 className="text-2xl font-bold text-primary truncate">
               CHRONON
@@ -436,10 +435,10 @@ export function Sidebar() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setCollapsed((prev) => !prev)}
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           className="ml-auto"
         >
-          {collapsed ? (
+          {sidebarCollapsed ? (
             <ChevronRight className="h-5 w-5" />
           ) : (
             <ChevronLeft className="h-5 w-5" />
@@ -451,7 +450,7 @@ export function Sidebar() {
       <nav
         className={cn(
           "px-2 space-y-2 flex-1 transition-all duration-300",
-          collapsed && "px-1"
+          sidebarCollapsed && "px-1"
         )}
       >
         {newNavItems.length > 0 &&
@@ -460,7 +459,7 @@ export function Sidebar() {
               {renderNavigationItem(
                 {
                   ...item,
-                  name: collapsed ? "" : item.name, // Hide text if collapsed
+                  name: sidebarCollapsed ? "" : item.name, // Hide text if collapsed
                 },
                 0
               )}
@@ -476,7 +475,7 @@ export function Sidebar() {
               <div
                 className={cn(
                   "flex items-center space-x-2 transition-all duration-300",
-                  collapsed && "justify-center w-full"
+                  sidebarCollapsed && "justify-center w-full"
                 )}
               >
                 <Avatar className="h-10 w-10">
@@ -487,7 +486,7 @@ export function Sidebar() {
                   </AvatarFallback>
                 </Avatar>
 
-                {!collapsed && (
+                {!sidebarCollapsed && (
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
                       {user?.firstName} {user?.lastName}
@@ -501,7 +500,7 @@ export function Sidebar() {
             </div>
           </DropdownMenuTrigger>
 
-          {!collapsed && (
+          {!sidebarCollapsed && (
             <DropdownMenuContent
               className="w-56 ml-4"
               side="right"

@@ -31,7 +31,12 @@ import {
   GeneratedReport,
 } from "@/services/reportService";
 import { trackEvent } from "@/mixpanel";
-import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridPaginationModel,
+  GridRowSelectionModel,
+} from "@mui/x-data-grid";
 import { Box } from "@mui/material";
 import { GridOverlay } from "@mui/x-data-grid";
 import { Badge } from "@/components/ui/badge";
@@ -171,6 +176,10 @@ export function AllReportsPage() {
   const [generatedReportsLoading, setGeneratedReportsLoading] = useState(true);
   const [paginationModel, setPaginationModel] =
     useState<GridPaginationModel | null>(null);
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: "include",
+    ids: new Set(),
+  });
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -333,11 +342,15 @@ export function AllReportsPage() {
   };
 
   useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
+    const gridHeight = window.innerHeight - 400;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, []);
+
+  useEffect(() => {
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [paginationModel?.page, paginationModel?.pageSize])
 
   return (
     <>
@@ -553,6 +566,8 @@ export function AllReportsPage() {
               }}
               showToolbar
               density="compact"
+              rowSelectionModel={rowSelection}
+              onRowSelectionModelChange={setRowSelection}
               checkboxSelection
               disableRowSelectionOnClick
               showCellVerticalBorder

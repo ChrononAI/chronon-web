@@ -107,17 +107,17 @@ fetchAllPreApprovals: async () => {
         }
     },
 
-    getPreApprovalToApprove: async () => {
+    getPreApprovalToApprove: async ({ page, perPage }: { page: number; perPage: number }) => {
         try {
-            return await api.get('/api/v1/pre_approvals/approvers');
+            return await api.get(`/api/v1/pre_approvals/approvers?page=${page}&per_page=${perPage}`);
         } catch (error) {
             throw error;
         }
     },
 
-    getPreApprovalToApproveByStatus: async (status: string) => {
+    getPreApprovalToApproveByStatus: async ({ page, perPage, status }: { page: number; perPage: number; status: string }) => {
         try {
-            return await api.get(`/api/v1/pre_approvals/approvers?status=${status}`)
+            return await api.get(`/api/v1/pre_approvals/approvers?status=${status}&page=${page}&per_page=${perPage}`)
         } catch (error) {
             throw error;
         }

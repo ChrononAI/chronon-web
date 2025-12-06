@@ -3,7 +3,7 @@ import { expenseService } from "@/services/expenseService";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { useExpenseStore } from "@/store/expenseStore";
 import { Box } from "@mui/material";
-import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridPaginationModel, GridRowSelectionModel } from "@mui/x-data-grid";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 import {
   Tooltip,
@@ -12,7 +12,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate, getStatusColor, getOrgCurrency } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatDate,
+  getStatusColor,
+  getOrgCurrency,
+} from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { GridOverlay } from "@mui/x-data-grid";
 // import { CustomLoader } from "./MyReportsPage";
@@ -176,6 +181,10 @@ export function MyExpensesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: "include",
+    ids: new Set(),
+  });
 
   const rows =
     activeTab === "all"
@@ -184,7 +193,8 @@ export function MyExpensesPage() {
       ? draftExpenses
       : reportedExpenses;
 
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>(null);
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel | null>(null);
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -234,25 +244,30 @@ export function MyExpensesPage() {
     }
   };
 
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        fetchAllExpenses(),
+        fetchDraftExpenses(),
+        fetchCompletedExpenses(),
+      ]);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        await Promise.all([
-          fetchAllExpenses(),
-          fetchDraftExpenses(),
-          fetchCompletedExpenses(),
-        ]);
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoading(false);
-      }
-    };
     if (paginationModel) {
       fetchData();
     }
+    setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
+
+  useEffect(() => {
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [activeTab]);
 
   const tabs = [
     { key: "all", label: "All", count: allExpensesPagination.total },
@@ -357,6 +372,8 @@ export function MyExpensesPage() {
           disableRowSelectionOnClick
           showCellVerticalBorder
           onRowClick={(params) => navigate(`/expenses/${params.id}`)}
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
           paginationModel={paginationModel || { page: 0, pageSize: 0 }}

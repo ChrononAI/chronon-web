@@ -13,7 +13,7 @@ import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
 import { Button } from "../ui/button";
 import { DateField } from "../ui/date-field";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Select,
@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { Currency } from "../advances/CreateAdvanceForm";
 import { trackEvent } from "@/mixpanel";
+import { FormFooter } from "../layout/FormFooter";
 
 // Form schema
 const preApprovalSchema = z.object({
@@ -162,18 +163,13 @@ function CreatePreApprovalForm({
   return (
     <div className={maxWidth ? `space-y-6 ${maxWidth}` : "space-y-6 max-w-4xl"}>
       {showHeader && (
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-2xl font-bold">
-            {mode === "create"
-              ? "Create Pre Approval"
-              : mode === "edit"
-              ? "Edit Pre Approval"
-              : "Pre Approval Details"}
-          </h1>
-        </div>
+        <h1 className="text-2xl font-bold">
+          {mode === "create"
+            ? "Create Pre Approval"
+            : mode === "edit"
+            ? "Edit Pre Approval"
+            : "Pre Approval Details"}
+        </h1>
       )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -431,17 +427,15 @@ function CreatePreApprovalForm({
               )}
             />
           </div>
-          <div className="flex justify-end gap-2 pt-4">
-            {mode === "edit" && (
-              <Button
-                type="button"
-                variant="outline"
-                // onClick={onCancel}
-                className="px-6 py-2"
-              >
-                Cancel
-              </Button>
-            )}
+          <FormFooter>
+            <Button
+              type="button"
+              variant="outline"
+              // onClick={onCancel}
+              className="px-6 py-2"
+            >
+              Cancel
+            </Button>
             {mode !== "view" && (
               <Button
                 type="submit"
@@ -454,13 +448,13 @@ function CreatePreApprovalForm({
                     {mode === "edit" ? "Updating..." : "Creating..."}
                   </>
                 ) : mode === "edit" ? (
-                  "Resubmit"
+                  "Resubmit Pre Approval"
                 ) : (
-                  "Create"
+                  "Create Pre Approval"
                 )}
               </Button>
             )}
-          </div>
+          </FormFooter>
         </form>
       </Form>
     </div>

@@ -24,6 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
+import { FormFooter } from "@/components/layout/FormFooter";
 
 const entitySchema = z.object({
   entityName: z.string().min(1, "Entity Name is required"),
@@ -320,11 +321,12 @@ export const CreateEntityPage = () => {
               </div>
             )}
 
-            <div className="flex justify-end gap-4 pt-6">
+          </div>
+            <FormFooter>
               <Button
                 variant="outline"
                 type="button"
-                onClick={() => navigate("/admin/entities")}
+                onClick={() => navigate("/admin-settings/entities")}
               >
                 CANCEL
               </Button>
@@ -332,8 +334,7 @@ export const CreateEntityPage = () => {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Submitting...
               </> : "SUBMIT"}</Button>
-            </div>
-          </div>
+              </FormFooter>
         </form>
       </Form>
     </div>

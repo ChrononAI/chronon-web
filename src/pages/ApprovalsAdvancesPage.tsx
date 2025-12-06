@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
-import { DataGrid, GridColDef, GridOverlay, GridPaginationModel } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridOverlay, GridPaginationModel, GridRowSelectionModel } from "@mui/x-data-grid";
 import { formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
@@ -26,67 +26,68 @@ function CustomNoRows() {
   );
 }
 
+const columns: GridColDef[] = [
+  {
+    field: "sequence_number",
+    headerName: "ADVANCE ID",
+    minWidth: 160,
+    flex: 1,
+  },
+  {
+    field: "title",
+    headerName: "TITLE",
+    minWidth: 200,
+    flex: 1,
+  },
+  {
+    field: "policy_name",
+    headerName: "POLICY",
+    minWidth: 150,
+    flex: 1,
+  },
+  {
+    field: "status",
+    headerName: "STATUS",
+    minWidth: 180,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return (
+        <Badge className={getStatusColor(value)}>
+          {value.replace("_", " ")}
+        </Badge>
+      );
+    },
+  },
+  {
+    field: "created_by",
+    headerName: "CREATED BY",
+    minWidth: 150,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return value.email;
+    },
+  },
+  {
+    field: "created_at",
+    headerName: "CREATED AT",
+    minWidth: 150,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return formatDate(value);
+    },
+  },
+  {
+    field: "description",
+    headerName: "PURPOSE",
+    flex: 1,
+    minWidth: 150,
+  },
+];
+
 function ApprovalsAdvancesPage() {
   const navigate = useNavigate();
   const { setSelectedAdvanceToApprove } = useAdvanceStore();
 
-  const columns: GridColDef[] = [
-    {
-      field: "sequence_number",
-      headerName: "ADVANCE ID",
-      minWidth: 160,
-      flex: 1,
-    },
-    {
-      field: "title",
-      headerName: "TITLE",
-      minWidth: 200,
-      flex: 1,
-    },
-    {
-      field: "policy_name",
-      headerName: "POLICY",
-      minWidth: 150,
-      flex: 1,
-    },
-    {
-      field: "status",
-      headerName: "STATUS",
-      minWidth: 180,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return (
-          <Badge className={getStatusColor(value)}>
-            {value.replace("_", " ")}
-          </Badge>
-        );
-      },
-    },
-    {
-      field: "created_by",
-      headerName: "CREATED BY",
-      minWidth: 150,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return value.email;
-      },
-    },
-    {
-      field: "created_at",
-      headerName: "CREATED AT",
-      minWidth: 150,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return formatDate(value);
-      },
-    },
-    {
-      field: "description",
-      headerName: "PURPOSE",
-      flex: 1,
-      minWidth: 150,
-    },
-  ];
   const [loading, setLoading] = useState(true);
   const [allRows, setAllRows] = useState([]);
   const [allPagination, setAllPagination] = useState<PaginationInfo | null>(
@@ -105,12 +106,14 @@ function ApprovalsAdvancesPage() {
   const [activeTab, setActiveTab] = useState<"pending" | "processed" | "all">(
     "all"
   );
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
+    setRowSelection({ type: "include", ids: new Set() });
   }, [activeTab]);
 
   const rows =
@@ -193,34 +196,37 @@ function ApprovalsAdvancesPage() {
     }
   };
 
+  const fetchData = async (page: number, perPage: number) => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        getAllAdvancesToApprove({
+          page,
+          perPage,
+        }),
+        getPendingAdvancesToApprove({
+          page,
+          perPage,
+        }),
+        getProcessedAdvances({
+          page,
+          perPage,
+        }),
+      ]);
+    } catch (error) {
+      console.error("Error fetching advances:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async (page: number, perPage: number) => {
-      try {
-        setLoading(true);
-        await Promise.all([
-          getAllAdvancesToApprove({
-            page,
-            perPage,
-          }),
-          getPendingAdvancesToApprove({
-            page,
-            perPage,
-          }),
-          getProcessedAdvances({
-            page,
-            perPage,
-          }),
-        ]);
-      } catch (error) {
-        console.error("Error fetching advances:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     if (paginationModel) {
       fetchData(paginationModel.page + 1, paginationModel.pageSize);
     }
+    setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
+
   return (
     <ReportsPageWrapper
       title="Approver Dashboard"
@@ -258,14 +264,18 @@ function ApprovalsAdvancesPage() {
               fontWeight: "bold",
               fontSize: "12px",
             },
+            "& .MuiDataGrid-panel .MuiSelect-select": {
+              fontSize: "12px",
+            },
             "& .MuiDataGrid-main": {
-              border: "1px solid #F1F3F4",
+              border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
+              border: "none",
             },
-            "& .MuiCheckbox-root": {
-              color: "#9AA0A6",
+            "& .MuiDataGrid-columnHeaders": {
+              border: "none",
             },
             "& .MuiDataGrid-row:hover": {
               cursor: "pointer",
@@ -273,6 +283,7 @@ function ApprovalsAdvancesPage() {
             },
             "& .MuiDataGrid-cell": {
               color: "#2E2E2E",
+              border: "0.2px solid #f3f4f6",
             },
             "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
               outline: "none",
@@ -280,12 +291,17 @@ function ApprovalsAdvancesPage() {
             "& .MuiDataGrid-cell:focus-within": {
               outline: "none",
             },
+            "& .MuiDataGrid-columnSeparator": {
+              color: "#f3f4f6",
+            },
           }}
           showToolbar
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick
           onRowClick={onRowClick}
+          rowSelectionModel={rowSelection}
+          onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
           paginationModel={paginationModel || { page: 0, pageSize: 0 }}

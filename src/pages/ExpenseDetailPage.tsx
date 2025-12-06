@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import MileagePage from "@/pages/MileagePage";
 import PerdiemPage from "@/pages/PerdiemPage";
@@ -96,7 +95,6 @@ export function ExpenseDetailPage() {
   const searchParams = new URLSearchParams(location.search);
   const isFromReport = searchParams.get("from") === "report";
   const isFromApprovals = searchParams.get("from") === "approvals";
-  const reportId = searchParams.get("reportId");
   const returnTo = searchParams.get("returnTo");
 
   useEffect(() => {
@@ -247,44 +245,11 @@ export function ExpenseDetailPage() {
         </div>
       </>
     );
-  }
-
-  let breadcrumbItems;
-
-  if (isFromApprovals) {
-    breadcrumbItems = [
-      { label: "Requests for Approval", href: "/approvals/reports" },
-      {
-        label: "View Report",
-        href: reportId ? `/reports/${reportId}?from=approvals` : "#",
-      },
-      { label: "View Expense" },
-    ];
-  } else if (isFromReport && reportId) {
-    breadcrumbItems = [
-      { label: "Expenses Reports", href: "/reports" },
-      {
-        label: "View Report",
-        href: `/reports/${reportId}`,
-      },
-      { label: "View Expense" },
-    ];
-  } else if (returnTo === "create") {
-    breadcrumbItems = [
-      { label: "Create Expense", href: "/expenses/create" },
-      { label: "View Expense" },
-    ];
-  } else {
-    breadcrumbItems = [
-      { label: "My Expenses", href: "/expenses" },
-      { label: "View Expense" },
-    ];
-  }
+  };
 
   return (
     <>
       <div className="space-y-6">
-        <Breadcrumb items={breadcrumbItems} />
         <div className="flex items-center justify-between">
           <div>
             <div className="text-2xl font-bold">Expense Details</div>

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { getTemplates, assignEntity } from "@/services/admin/templates";
 import { getEntities } from "@/services/admin/entities";
 import { toast } from "sonner";
+import { FormFooter } from "@/components/layout/FormFooter";
 
 const CORE_FIELDS = ["Report ID"];
 
@@ -149,177 +150,181 @@ const ExpenseReportMasterPage = () => {
       />
 
       {activeTab === "core" ? (
-        <Card className="p-6">
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold">Core Values</h2>
-            <p className="text-sm text-muted-foreground">
-              Configure which core expense fields are mandatory.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded text-sm font-medium text-gray-600">
-              <div>Field</div>
-              <div>Mandatory</div>
+        <>
+          <Card className="p-6">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold">Core Values</h2>
+              <p className="text-sm text-muted-foreground">
+                Configure which core expense fields are mandatory.
+              </p>
             </div>
 
-            {CORE_FIELDS.map((label) => (
-              <div
-                key={label}
-                className="grid grid-cols-2 gap-4 items-center p-3 border rounded bg-white"
-              >
-                <div className="text-sm">{label}</div>
-                <Select
-                  value={fieldSettings[label]}
-                  onValueChange={(v) => handleSelectChange(label, v)}
-                >
-                  <SelectTrigger className="w-full h-10">
-                    <SelectValue placeholder="Select mandatory status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MANDATORY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded text-sm font-medium text-gray-600">
+                <div>Field</div>
+                <div>Mandatory</div>
               </div>
-            ))}
-          </div>
 
-          <div className="mt-6 text-right">
-            <Button>Save Configuration</Button>
-          </div>
-        </Card>
-      ) : (
-        <Card className="p-6">
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold">Custom Values</h2>
-            <p className="text-sm text-muted-foreground">
-              Add or manage custom expense fields here.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <div className="space-y-3">
-              {customFields.length === 0 && (
-                <p className="text-sm text-gray-600">No custom values added.</p>
-              )}
-
-              {customFields.map((row, idx) => (
+              {CORE_FIELDS.map((label) => (
                 <div
-                  key={idx}
-                  className="grid grid-cols-3 gap-4 items-center border-b pb-3 pt-3"
+                  key={label}
+                  className="grid grid-cols-2 gap-4 items-center p-3 border rounded bg-white"
                 >
-                  <div>
-                    <Select
-                      value={row.entityId}
-                      onValueChange={(v) =>
-                        updateCustomField(idx, { entityId: v })
-                      }
-                      disabled={entitiesLoading}
-                    >
-                      <SelectTrigger className="w-full h-10">
-                        <SelectValue
-                          placeholder={
-                            entitiesLoading
-                              ? "Loading entities..."
-                              : "Select entity"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {entities.length > 0 ? (
-                          entities.map((entity) => (
-                            <SelectItem key={entity.id} value={entity.id}>
-                              {entity.display_name || entity.name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-entities" disabled>
-                            {entitiesLoading
-                              ? "Loading..."
-                              : "No entities found"}
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Select
-                      value={row.mandatory}
-                      onValueChange={(v) =>
-                        updateCustomField(idx, { mandatory: v })
-                      }
-                    >
-                      <SelectTrigger className="w-full h-10">
-                        <SelectValue placeholder="Mandatory" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MANDATORY_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-2 flex-wrap">
-                      {row.categories.map((c, i) => (
-                        <div
-                          key={i}
-                          className="px-3 py-1 rounded bg-gray-200 text-sm"
-                        >
-                          {c}
-                        </div>
+                  <div className="text-sm">{label}</div>
+                  <Select
+                    value={fieldSettings[label]}
+                    onValueChange={(v) => handleSelectChange(label, v)}
+                  >
+                    <SelectTrigger className="w-full h-10">
+                      <SelectValue placeholder="Select mandatory status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MANDATORY_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
                       ))}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      onClick={() =>
-                        setCustomFields((prev) =>
-                          prev.filter((_, i) => i !== idx)
-                        )
-                      }
-                    >
-                      Remove
-                    </Button>
-                  </div>
+                    </SelectContent>
+                  </Select>
                 </div>
               ))}
             </div>
-
-            <div className="mt-4">
-              <a
-                className="text-sm text-blue-600 underline cursor-pointer"
-                onClick={addCustomField}
-              >
-                Add
-              </a>
+          </Card>
+          <FormFooter>
+            <Button>Save Configuration</Button>
+          </FormFooter>
+        </>
+      ) : (
+        <>
+          <Card className="p-6">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold">Custom Values</h2>
+              <p className="text-sm text-muted-foreground">
+                Add or manage custom expense fields here.
+              </p>
             </div>
 
-            <div className="mt-8 flex items-center gap-6">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setCustomFields([]);
-                  setTemplates([]);
-                  setActiveTab("core");
-                }}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleSubmitCustom} disabled={loading}>
-                {loading ? "Submitting..." : "Submit"}
-              </Button>
+            <div className="flex flex-col gap-4">
+              <div className="space-y-3">
+                {customFields.length === 0 && (
+                  <p className="text-sm text-gray-600">
+                    No custom values added.
+                  </p>
+                )}
+
+                {customFields.map((row, idx) => (
+                  <div
+                    key={idx}
+                    className="grid grid-cols-3 gap-4 items-center border-b pb-3 pt-3"
+                  >
+                    <div>
+                      <Select
+                        value={row.entityId}
+                        onValueChange={(v) =>
+                          updateCustomField(idx, { entityId: v })
+                        }
+                        disabled={entitiesLoading}
+                      >
+                        <SelectTrigger className="w-full h-10">
+                          <SelectValue
+                            placeholder={
+                              entitiesLoading
+                                ? "Loading entities..."
+                                : "Select entity"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {entities.length > 0 ? (
+                            entities.map((entity) => (
+                              <SelectItem key={entity.id} value={entity.id}>
+                                {entity.display_name || entity.name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-entities" disabled>
+                              {entitiesLoading
+                                ? "Loading..."
+                                : "No entities found"}
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Select
+                        value={row.mandatory}
+                        onValueChange={(v) =>
+                          updateCustomField(idx, { mandatory: v })
+                        }
+                      >
+                        <SelectTrigger className="w-full h-10">
+                          <SelectValue placeholder="Mandatory" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MANDATORY_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-2 flex-wrap">
+                        {row.categories.map((c, i) => (
+                          <div
+                            key={i}
+                            className="px-3 py-1 rounded bg-gray-200 text-sm"
+                          >
+                            {c}
+                          </div>
+                        ))}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        onClick={() =>
+                          setCustomFields((prev) =>
+                            prev.filter((_, i) => i !== idx)
+                          )
+                        }
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4">
+                <a
+                  className="text-sm text-blue-600 underline cursor-pointer"
+                  onClick={addCustomField}
+                >
+                  Add
+                </a>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+          <FormFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCustomFields([]);
+                setTemplates([]);
+                setActiveTab("core");
+              }}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitCustom} disabled={loading}>
+              {loading ? "Submitting..." : "Submit"}
+            </Button>
+          </FormFooter>
+        </>
       )}
     </>
   );
