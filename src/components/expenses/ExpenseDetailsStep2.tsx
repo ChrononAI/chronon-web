@@ -77,6 +77,7 @@ import { getTemplates, type Template } from "@/services/admin/templates";
 import { getEntities, type Entity } from "@/services/admin/entities";
 import { AdvanceService } from "@/services/advanceService";
 import { FormFooter } from "../layout/FormFooter";
+import { ExpenseValidation } from "./ExpenseValidation";
 
 // Form schema
 const expenseSchema = z.object({
@@ -779,6 +780,7 @@ export function ExpenseDetailsStep2({
                   {[
                     { key: "receipt", label: "Receipt" },
                     { key: "comments", label: "Comments" },
+                    { key: "validation", label: "Validation" }
                   ].map((tab) => (
                     <button
                       key={tab.key}
@@ -943,15 +945,15 @@ export function ExpenseDetailsStep2({
                       </div>
                     </div>
                   </>
-                ) : (
-                  <div className="flex-1 overflow-auto min-h-0">
+                ) : activeReceiptTab === "comments" ? (
+                  <div className="flex-1 overflow-auto max-h-[64vh] min-h-0">
                     <ExpenseComments
                       expenseId={expense?.id}
                       readOnly={false}
                       autoFetch={activeReceiptTab === "comments"}
                     />
                   </div>
-                )}
+                ) : <ExpenseValidation expenseId={expense?.id} />}
               </div>
             </div>
           </div>
@@ -1532,7 +1534,6 @@ export function ExpenseDetailsStep2({
 
                 <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
                   <Button type="button" variant="outline" onClick={onBack}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
                   {mode !== "view" && (

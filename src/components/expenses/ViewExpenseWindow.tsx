@@ -27,7 +27,13 @@ import {
   PreApprovalType,
 } from "@/services/preApprovalService";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
-import { formatCurrency, cn, getDistanceUnit, formatDistance } from "@/lib/utils";
+import {
+  formatCurrency,
+  cn,
+  getDistanceUnit,
+  formatDistance,
+} from "@/lib/utils";
+import { ExpenseValidation } from "./ExpenseValidation";
 
 const formatDate = (date: string) => {
   if (date) {
@@ -65,8 +71,12 @@ export function ViewExpenseWindow({
 
   // Comments states
   const [activeTab, setActiveTab] = useState<"receipt" | "comments">("receipt");
-  const [activeMileageTab, setActiveMileageTab] = useState<"map" | "comments">("map");
-  const [activePerDiemTab, setActivePerDiemTab] = useState<"info" | "comments">("info");
+  const [activeMileageTab, setActiveMileageTab] = useState<"map" | "comments">(
+    "map"
+  );
+  const [activePerDiemTab, setActivePerDiemTab] = useState<"info" | "comments">(
+    "info"
+  );
 
   const loadPoliciesWithCategories = async () => {
     try {
@@ -170,251 +180,260 @@ export function ViewExpenseWindow({
           </DialogTitle>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto min-h-0">
-        {data?.expense_type === "RECEIPT_BASED" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div>
-              <Card>
-                <CardContent className="p-6 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Policy *
-                      </label>
-                      <Input value={selectedPolicy?.name} disabled />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Category *
-                      </label>
-                      <Input value={data?.category} disabled />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Receipt Number *
-                      </label>
-                      <Input value={data?.invoice_number || ""} disabled />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Vendor *
-                      </label>
-                      <Input value={data?.vendor} disabled />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Amount *
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Input
-                          value={data?.foreign_currency === 'USD' ? 'USD ($)' : data?.foreign_currency === 'EUR' ? 'EUR (€)' : 'INR (₹)'}
-                          disabled
-                        />
-                        <Input
-                        className="col-span-2"
-                          value={data?.foreign_amount || data?.amount}
-                          disabled
-                        />
-                      </div>
-                      <p className="text-[12px] text-gray-500 ml-2">
-                        {formatCurrency(data?.amount)}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">Date *</label>
-                      <Input
-                        value={formatDate(data?.expense_date || "")}
-                        disabled
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {selectedAdvance && (
+          {data?.expense_type === "RECEIPT_BASED" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <Card>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-[14px] font-medium">
-                          Advance
+                          Policy *
                         </label>
-                        <Input value={selectedAdvance?.title} disabled />
+                        <Input value={selectedPolicy?.name} disabled />
                       </div>
-                    )}
-                    {selectedPreApproval && (
                       <div className="space-y-2">
                         <label className="text-[14px] font-medium">
-                          Pre Approval
+                          Category *
                         </label>
-                        <Input value={selectedPreApproval?.title} disabled />
+                        <Input value={data?.category} disabled />
                       </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-medium">
-                      Description *
-                    </label>
-                    <Textarea value={data?.description} disabled />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            <div>
-              <Card className="flex flex-col h-full">
-                <CardContent className="flex flex-col flex-1 p-0">
-                  <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-6 pb-4">
-                    <div className="flex items-center gap-3">
-                      {[
-                        { key: "receipt", label: "Receipt" },
-                        { key: "comments", label: "Comments" },
-                      ].map((tab) => (
-                        <button
-                          key={tab.key}
-                          type="button"
-                          onClick={() =>
-                            setActiveTab(tab.key as "receipt" | "comments")
-                          }
-                          className={cn(
-                            "rounded-full px-4 py-2 text-sm font-medium transition-all",
-                            activeTab === tab.key
-                              ? "bg-primary/10 text-primary"
-                              : "text-gray-500 hover:text-gray-900"
-                          )}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
                     </div>
-                    {receiptUrl && activeTab === "receipt" && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">1</span>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500">
-                          {receiptUrl.toLowerCase().includes(".pdf")
-                            ? "PDF"
-                            : "Image"}
-                        </span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Receipt Number *
+                        </label>
+                        <Input value={data?.invoice_number || ""} disabled />
                       </div>
-                    )}
-                  </div>
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Vendor *
+                        </label>
+                        <Input value={data?.vendor} disabled />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Amount *
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Input
+                            value={
+                              data?.foreign_currency === "USD"
+                                ? "USD ($)"
+                                : data?.foreign_currency === "EUR"
+                                ? "EUR (€)"
+                                : "INR (₹)"
+                            }
+                            disabled
+                          />
+                          <Input
+                            className="col-span-2"
+                            value={data?.foreign_amount || data?.amount}
+                            disabled
+                          />
+                        </div>
+                        <p className="text-[12px] text-gray-500 ml-2">
+                          {formatCurrency(data?.amount)}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Date *
+                        </label>
+                        <Input
+                          value={formatDate(data?.expense_date || "")}
+                          disabled
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {selectedAdvance && (
+                        <div className="space-y-2">
+                          <label className="text-[14px] font-medium">
+                            Advance
+                          </label>
+                          <Input value={selectedAdvance?.title} disabled />
+                        </div>
+                      )}
+                      {selectedPreApproval && (
+                        <div className="space-y-2">
+                          <label className="text-[14px] font-medium">
+                            Pre Approval
+                          </label>
+                          <Input value={selectedPreApproval?.title} disabled />
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-medium">
+                        Description *
+                      </label>
+                      <Textarea value={data?.description} disabled />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <div>
+                <Card className="flex flex-col h-full">
+                  <CardContent className="flex flex-col flex-1 p-0">
+                    <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-6 pb-4">
+                      <div className="flex items-center gap-3">
+                        {[
+                          { key: "receipt", label: "Receipt" },
+                          { key: "comments", label: "Comments" },
+                          { key: "validations", label: "Validations" }
+                        ].map((tab) => (
+                          <button
+                            key={tab.key}
+                            type="button"
+                            onClick={() =>
+                              setActiveTab(tab.key as "receipt" | "comments")
+                            }
+                            className={cn(
+                              "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                              activeTab === tab.key
+                                ? "bg-primary/10 text-primary"
+                                : "text-gray-500 hover:text-gray-900"
+                            )}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+                      {receiptUrl && activeTab === "receipt" && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">1</span>
+                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs text-gray-500">
+                            {receiptUrl.toLowerCase().includes(".pdf")
+                              ? "PDF"
+                              : "Image"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="flex-1 min-h-[520px] px-6 pb-6">
-                    {activeTab === "receipt" ? (
-                      <>
-                    {!!receiptUrl ? (
-                      <div className="space-y-4">
-                        {/* Interactive Receipt Viewer */}
-                        {loading ? (
-                          <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
-                            <div className="text-center">
-                              <Loader2 className="h-12 w-12 mx-auto text-gray-400 mb-3 animate-spin" />
-                              <p className="text-sm text-gray-600 mb-2">
-                                Loading receipt...
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                Please wait
-                              </p>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-                            {/* Receipt Controls */}
-                            <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleMapZoomOut}
-                                  disabled={mapZoom <= 0.5}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <ZoomOut className="h-4 w-4" />
-                                </Button>
-                                <span className="text-xs text-gray-600 min-w-[3rem] text-center">
-                                  {Math.round(mapZoom * 100)}%
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleMapZoomIn}
-                                  disabled={mapZoom >= 3}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <ZoomIn className="h-4 w-4" />
-                                </Button>
-                                <div className="w-px h-6 bg-gray-300 mx-2" />
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleMapRotate}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <RotateCw className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleMapReset}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <RefreshCw className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
+                    <div className="flex-1 min-h-[520px] px-6 pb-6">
+                      {activeTab === "receipt" ? (
+                        <>
+                          {!!receiptUrl ? (
+                            <div className="space-y-4">
+                              {/* Interactive Receipt Viewer */}
+                              {loading ? (
+                                <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
+                                  <div className="text-center">
+                                    <Loader2 className="h-12 w-12 mx-auto text-gray-400 mb-3 animate-spin" />
+                                    <p className="text-sm text-gray-600 mb-2">
+                                      Loading receipt...
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      Please wait
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                                  {/* Receipt Controls */}
+                                  <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleMapZoomOut}
+                                        disabled={mapZoom <= 0.5}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <ZoomOut className="h-4 w-4" />
+                                      </Button>
+                                      <span className="text-xs text-gray-600 min-w-[3rem] text-center">
+                                        {Math.round(mapZoom * 100)}%
+                                      </span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleMapZoomIn}
+                                        disabled={mapZoom >= 3}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <ZoomIn className="h-4 w-4" />
+                                      </Button>
+                                      <div className="w-px h-6 bg-gray-300 mx-2" />
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleMapRotate}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <RotateCw className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleMapReset}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <RefreshCw className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
 
-                            {/* Receipt Display */}
-                            <div className="relative overflow-auto max-h-96 bg-gray-100">
-                              <div className="flex items-center justify-center p-4">
-                                {(() => {
-                                  // Determine the source URL and file type
-                                  let sourceUrl: string | null;
-                                  sourceUrl = receiptUrl;
-                                  // Show loading state if we're fetching the duplicate receipt URL
+                                  {/* Receipt Display */}
+                                  <div className="relative overflow-auto max-h-96 bg-gray-100">
+                                    <div className="flex items-center justify-center p-4">
+                                      {(() => {
+                                        // Determine the source URL and file type
+                                        let sourceUrl: string | null;
+                                        sourceUrl = receiptUrl;
+                                        // Show loading state if we're fetching the duplicate receipt URL
 
-                                  // Check if this is a PDF by looking at the URL
-                                  const isPdf = sourceUrl
-                                    ?.toLowerCase()
-                                    .includes(".pdf");
+                                        // Check if this is a PDF by looking at the URL
+                                        const isPdf = sourceUrl
+                                          ?.toLowerCase()
+                                          .includes(".pdf");
 
-                                  if (isPdf) {
-                                    // For PDFs, use embed tag with simple styling to avoid PDF viewer interface
-                                    return (
-                                      <div className="w-full h-80 border border-gray-200 rounded bg-white flex flex-col">
-                                        <div className="flex-1 flex items-center justify-center">
-                                          <embed
-                                            src={`${sourceUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
-                                            type="application/pdf"
-                                            className="w-full h-full border-0 rounded"
-                                            style={{
-                                              transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
-                                              transformOrigin: "center",
-                                            }}
-                                          />
-                                        </div>
-                                      </div>
-                                    );
-                                  } else {
-                                    // For regular images, use img tag
-                                    return (
-                                      <img
-                                        src={sourceUrl || ""}
-                                        alt="Receipt preview"
-                                        className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                                        style={{
-                                          transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
-                                          transformOrigin: "center",
-                                          maxHeight: "100%",
-                                          objectFit: "contain",
-                                        }}
-                                        // onClick={handleReceiptFullscreen}
-                                        onError={(e) => {
-                                          // Fallback: if image fails to load, show download option
-                                          e.currentTarget.style.display =
-                                            "none";
-                                          const fallbackDiv =
-                                            document.createElement("div");
-                                          fallbackDiv.className =
-                                            "flex flex-col items-center justify-center h-full text-center p-4";
-                                          fallbackDiv.innerHTML = `<p class="text-gray-600 mb-4">Receipt preview not available.</p>
+                                        if (isPdf) {
+                                          // For PDFs, use embed tag with simple styling to avoid PDF viewer interface
+                                          return (
+                                            <div className="w-full h-80 border border-gray-200 rounded bg-white flex flex-col">
+                                              <div className="flex-1 flex items-center justify-center">
+                                                <embed
+                                                  src={`${sourceUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
+                                                  type="application/pdf"
+                                                  className="w-full h-full border-0 rounded"
+                                                  style={{
+                                                    transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
+                                                    transformOrigin: "center",
+                                                  }}
+                                                />
+                                              </div>
+                                            </div>
+                                          );
+                                        } else {
+                                          // For regular images, use img tag
+                                          return (
+                                            <img
+                                              src={sourceUrl || ""}
+                                              alt="Receipt preview"
+                                              className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                                              style={{
+                                                transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
+                                                transformOrigin: "center",
+                                                maxHeight: "100%",
+                                                objectFit: "contain",
+                                              }}
+                                              // onClick={handleReceiptFullscreen}
+                                              onError={(e) => {
+                                                // Fallback: if image fails to load, show download option
+                                                e.currentTarget.style.display =
+                                                  "none";
+                                                const fallbackDiv =
+                                                  document.createElement("div");
+                                                fallbackDiv.className =
+                                                  "flex flex-col items-center justify-center h-full text-center p-4";
+                                                fallbackDiv.innerHTML = `<p class="text-gray-600 mb-4">Receipt preview not available.</p>
                                                                                 <a href="${
                                                                                   sourceUrl ??
                                                                                   "#"
@@ -424,174 +443,183 @@ export function ViewExpenseWindow({
                                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                                                 d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                                                                 </svg>Download Receipt</a>`;
-                                          e.currentTarget.parentNode?.appendChild(
-                                            fallbackDiv
+                                                e.currentTarget.parentNode?.appendChild(
+                                                  fallbackDiv
+                                                );
+                                              }}
+                                            />
                                           );
-                                        }}
-                                      />
-                                    );
-                                  }
-                                })()}
+                                        }
+                                      })()}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
+                              <div className="text-center">
+                                <FileText className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                                <p className="text-sm text-gray-600 mb-2">
+                                  No receipt uploaded
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  Manual entry mode
+                                </p>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-200">
-                        <div className="text-center">
-                          <FileText className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                          <p className="text-sm text-gray-600 mb-2">
-                            No receipt uploaded
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Manual entry mode
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                      </>
-                    ) : (
-                      <ExpenseComments
-                        expenseId={data?.id}
-                        readOnly={false}
-                        autoFetch={activeTab === "comments"}
-                      />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        ) : data?.expense_type === "PER_DIEM" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div>
-              <Card>
-                <CardContent className="p-6 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Start Date *
-                      </label>
-                      <Input
-                        value={formatDate(data?.start_date || "")}
-                        disabled
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        End Date *
-                      </label>
-                      <Input value={formatDate(data?.end_date || "")} disabled />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Location *
-                      </label>
-                      <Input value={data?.location || ""} disabled />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Number of Days *
-                      </label>
-                      <Input value={days} disabled />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">Policy *</label>
-                      <Input value={selectedPolicy?.name} disabled />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Category *
-                      </label>
-                      <Input value={data?.category} disabled />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-medium">Purpose *</label>
-                    <Textarea value={data?.description} disabled />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">
-                      Total Per Diem
-                    </Label>
-                    <div className="text-2xl font-bold text-blue-600 mt-1">
-                      {formatCurrency(Number(data?.amount) || 0)}
-                    </div>
-                    <p className="text-sm text-gray-500">{days} days</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            <div>
-              <Card className="flex flex-col h-full">
-                <CardContent className="flex flex-col flex-1 p-0">
-                  <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-6 pb-4">
-                    <div className="flex items-center gap-3">
-                      {[
-                        { key: "info", label: "Info" },
-                        { key: "comments", label: "Comments" },
-                      ].map((tab) => (
-                        <button
-                          key={tab.key}
-                          type="button"
-                          onClick={() =>
-                            setActivePerDiemTab(tab.key as "info" | "comments")
-                          }
-                          className={cn(
-                            "rounded-full px-4 py-2 text-sm font-medium transition-all",
-                            activePerDiemTab === tab.key
-                              ? "bg-primary/10 text-primary"
-                              : "text-gray-500 hover:text-gray-900"
                           )}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
+                        </>
+                      ) : activeTab === "comments" ? (
+                        <ExpenseComments
+                          expenseId={data?.id}
+                          readOnly={false}
+                          autoFetch={activeTab === "comments"}
+                        />
+                      ) : <ExpenseValidation expenseId={data?.id} />}
                     </div>
-                  </div>
-
-                  <div className="flex-1 min-h-[520px] px-6 pb-6">
-                    {activePerDiemTab === "info" ? (
-                      <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center h-full">
-                        <Calendar className="h-14 w-14 text-gray-300" />
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">
-                            Per Diem Information
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Expense details will appear here
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <ExpenseComments
-                        expenseId={data?.id}
-                        readOnly={false}
-                        autoFetch={activePerDiemTab === "comments"}
-                      />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-            {/* Map Display Card */}
-            <div>
-              <Card className="flex flex-col h-full">
-                <CardContent className="flex flex-col flex-1 p-0">
-                  <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-6 pb-4">
-                    <div className="flex items-center gap-3">
-                      {[
-                        { key: "map", label: "Route Map" },
-                        { key: "comments", label: "Comments" },
-                      ].map((tab) => (
+          ) : data?.expense_type === "PER_DIEM" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <Card>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Start Date *
+                        </label>
+                        <Input
+                          value={formatDate(data?.start_date || "")}
+                          disabled
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          End Date *
+                        </label>
+                        <Input
+                          value={formatDate(data?.end_date || "")}
+                          disabled
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Location *
+                        </label>
+                        <Input value={data?.location || ""} disabled />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Number of Days *
+                        </label>
+                        <Input value={days} disabled />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Policy *
+                        </label>
+                        <Input value={selectedPolicy?.name} disabled />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Category *
+                        </label>
+                        <Input value={data?.category} disabled />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-medium">
+                        Purpose *
+                      </label>
+                      <Textarea value={data?.description} disabled />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">
+                        Total Per Diem
+                      </Label>
+                      <div className="text-2xl font-bold text-blue-600 mt-1">
+                        {formatCurrency(Number(data?.amount) || 0)}
+                      </div>
+                      <p className="text-sm text-gray-500">{days} days</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <div>
+                <Card className="flex flex-col h-full">
+                  <CardContent className="flex flex-col flex-1 p-0">
+                    <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-6 pb-4">
+                      <div className="flex items-center gap-3">
+                        {[
+                          { key: "info", label: "Info" },
+                          { key: "comments", label: "Comments" },
+                        ].map((tab) => (
+                          <button
+                            key={tab.key}
+                            type="button"
+                            onClick={() =>
+                              setActivePerDiemTab(
+                                tab.key as "info" | "comments"
+                              )
+                            }
+                            className={cn(
+                              "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                              activePerDiemTab === tab.key
+                                ? "bg-primary/10 text-primary"
+                                : "text-gray-500 hover:text-gray-900"
+                            )}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-h-[520px] px-6 pb-6">
+                      {activePerDiemTab === "info" ? (
+                        <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center h-full">
+                          <Calendar className="h-14 w-14 text-gray-300" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">
+                              Per Diem Information
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Expense details will appear here
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <ExpenseComments
+                          expenseId={data?.id}
+                          readOnly={false}
+                          autoFetch={activePerDiemTab === "comments"}
+                        />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+              {/* Map Display Card */}
+              <div>
+                <Card className="flex flex-col h-full">
+                  <CardContent className="flex flex-col flex-1 p-0">
+                    <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-6 pb-4">
+                      <div className="flex items-center gap-3">
+                        {[
+                          { key: "map", label: "Route Map" },
+                          { key: "comments", label: "Comments" },
+                        ].map((tab) => (
                           <button
                             key={tab.key}
                             type="button"
@@ -611,259 +639,279 @@ export function ViewExpenseWindow({
                       </div>
                     </div>
 
-                  <div className="flex-1 min-h-[520px] px-6 pb-6">
-                    {activeMileageTab === "map" ? (
-                      <>
-                        {data?.mileage_meta?.map_url ? (
-                          <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-                            {/* Map Controls */}
-                            <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleMapZoomOut}
-                                  disabled={mapZoom <= 0.5}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <ZoomOut className="h-4 w-4" />
-                                </Button>
-                                <span className="text-xs text-gray-600 min-w-[3rem] text-center">
-                                  {Math.round(mapZoom * 100)}%
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleMapZoomIn}
-                                  disabled={mapZoom >= 3}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <ZoomIn className="h-4 w-4" />
-                                </Button>
-                                <div className="w-px h-6 bg-gray-300 mx-2" />
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleMapRotate}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <RotateCw className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleMapReset}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <RefreshCw className="h-4 w-4" />
-                                </Button>
+                    <div className="flex-1 min-h-[520px] px-6 pb-6">
+                      {activeMileageTab === "map" ? (
+                        <>
+                          {data?.mileage_meta?.map_url ? (
+                            <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                              {/* Map Controls */}
+                              <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200">
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleMapZoomOut}
+                                    disabled={mapZoom <= 0.5}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <ZoomOut className="h-4 w-4" />
+                                  </Button>
+                                  <span className="text-xs text-gray-600 min-w-[3rem] text-center">
+                                    {Math.round(mapZoom * 100)}%
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleMapZoomIn}
+                                    disabled={mapZoom >= 3}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <ZoomIn className="h-4 w-4" />
+                                  </Button>
+                                  <div className="w-px h-6 bg-gray-300 mx-2" />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleMapRotate}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <RotateCw className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleMapReset}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <RefreshCw className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Map Display */}
+                              <div className="relative overflow-auto max-h-96 bg-gray-100">
+                                <div className="flex items-center justify-center p-4">
+                                  <img
+                                    src={data.mileage_meta.map_url}
+                                    alt="Route map"
+                                    className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                                    style={{
+                                      transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
+                                      transformOrigin: "center",
+                                      maxHeight: "100%",
+                                      objectFit: "contain",
+                                    }}
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none";
+                                      const fallbackDiv =
+                                        document.createElement("div");
+                                      fallbackDiv.className =
+                                        "flex flex-col items-center justify-center h-full text-center p-4";
+                                      fallbackDiv.innerHTML = `<p class="text-gray-600 mb-4">Map preview not available.</p>`;
+                                      e.currentTarget.parentNode?.appendChild(
+                                        fallbackDiv
+                                      );
+                                    }}
+                                  />
+                                </div>
                               </div>
                             </div>
+                          ) : (
+                            <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 h-full flex items-center justify-center">
+                              <div className="text-center">
+                                <div className="mx-auto mb-4 h-16 w-16 text-gray-300">
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-full w-full"
+                                  >
+                                    <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                  </svg>
+                                </div>
+                                <p className="text-base font-medium text-gray-700">
+                                  Map View
+                                </p>
+                                <p className="text-sm text-gray-400 mt-1">
+                                  Route visualization will appear here
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <ExpenseComments
+                          expenseId={data?.id}
+                          readOnly={false}
+                          autoFetch={activeMileageTab === "comments"}
+                        />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <div>
+                <Card className="flex flex-col h-full">
+                  <CardContent className="p-6 space-y-4 overflow-y-auto flex-1">
+                    <div className="relative">
+                      {data?.start_location && (
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
+                          A
+                        </span>
+                      )}
+                      <Input
+                        value={data?.start_location || ""}
+                        disabled
+                        placeholder="A Start Location"
+                        className={`text-sm ${
+                          data?.start_location ? "pl-8" : ""
+                        }`}
+                      />
+                    </div>
 
-                            {/* Map Display */}
-                            <div className="relative overflow-auto max-h-96 bg-gray-100">
-                              <div className="flex items-center justify-center p-4">
-                                <img
-                                  src={data.mileage_meta.map_url}
-                                  alt="Route map"
-                                  className="max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                                  style={{
-                                    transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
-                                    transformOrigin: "center",
-                                    maxHeight: "100%",
-                                    objectFit: "contain",
-                                  }}
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = "none";
-                                    const fallbackDiv =
-                                      document.createElement("div");
-                                    fallbackDiv.className =
-                                      "flex flex-col items-center justify-center h-full text-center p-4";
-                                    fallbackDiv.innerHTML = `<p class="text-gray-600 mb-4">Map preview not available.</p>`;
-                                    e.currentTarget.parentNode?.appendChild(
-                                      fallbackDiv
-                                    );
-                                  }}
+                    {/* Display stops if they exist */}
+                    {data?.mileage_meta?.stops &&
+                      data.mileage_meta.stops.length > 0 && (
+                        <>
+                          {data.mileage_meta.stops.map(
+                            (stop: any, index: number) => (
+                              <div key={stop.id} className="relative">
+                                {stop.location && (
+                                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
+                                    {String.fromCharCode(66 + index)}
+                                  </span>
+                                )}
+                                <Input
+                                  value={stop.location || ""}
+                                  disabled
+                                  placeholder={`${String.fromCharCode(
+                                    66 + index
+                                  )} Stop ${index + 1}`}
+                                  className={`text-sm ${
+                                    stop.location ? "pl-8" : ""
+                                  }`}
                                 />
                               </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 h-full flex items-center justify-center">
-                            <div className="text-center">
-                              <div className="mx-auto mb-4 h-16 w-16 text-gray-300">
-                                <svg
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.5"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="h-full w-full"
-                                >
-                                  <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
-                                  <circle cx="12" cy="10" r="3" />
-                                </svg>
-                              </div>
-                              <p className="text-base font-medium text-gray-700">Map View</p>
-                              <p className="text-sm text-gray-400 mt-1">
-                                Route visualization will appear here
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <ExpenseComments
-                        expenseId={data?.id}
-                        readOnly={false}
-                        autoFetch={activeMileageTab === "comments"}
-                      />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            <div>
-              <Card className="flex flex-col h-full">
-                <CardContent className="p-6 space-y-4 overflow-y-auto flex-1">
-                  <div className="relative">
-                    {data?.start_location && (
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
-                        A
-                      </span>
-                    )}
-                    <Input
-                      value={data?.start_location || ""}
-                      disabled
-                      placeholder="A Start Location"
-                      className={`text-sm ${
-                        data?.start_location ? "pl-8" : ""
-                      }`}
-                    />
-                  </div>
+                            )
+                          )}
+                        </>
+                      )}
 
-                  {/* Display stops if they exist */}
-                  {data?.mileage_meta?.stops &&
-                    data.mileage_meta.stops.length > 0 && (
-                      <>
-                        {data.mileage_meta.stops.map(
-                          (stop: any, index: number) => (
-                            <div key={stop.id} className="relative">
-                              {stop.location && (
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
-                                  {String.fromCharCode(66 + index)}
-                                </span>
-                              )}
-                              <Input
-                                value={stop.location || ""}
-                                disabled
-                                placeholder={`${String.fromCharCode(
-                                  66 + index
-                                )} Stop ${index + 1}`}
-                                className={`text-sm ${
-                                  stop.location ? "pl-8" : ""
-                                }`}
-                              />
-                            </div>
-                          )
-                        )}
-                      </>
-                    )}
-
-                  <div className="relative">
-                    {data?.end_location && (
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
-                        {String.fromCharCode(
+                    <div className="relative">
+                      {data?.end_location && (
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
+                          {String.fromCharCode(
+                            65 + (data?.mileage_meta?.stops?.length || 0) + 1
+                          )}
+                        </span>
+                      )}
+                      <Input
+                        value={data?.end_location || ""}
+                        disabled
+                        placeholder={`${String.fromCharCode(
                           65 + (data?.mileage_meta?.stops?.length || 0) + 1
-                        )}
-                      </span>
-                    )}
-                    <Input
-                      value={data?.end_location || ""}
-                      disabled
-                      placeholder={`${String.fromCharCode(
-                        65 + (data?.mileage_meta?.stops?.length || 0) + 1
-                      )} End Location`}
-                      className={`text-sm ${data?.end_location ? "pl-8" : ""}`}
-                    />
-                  </div>
+                        )} End Location`}
+                        className={`text-sm ${
+                          data?.end_location ? "pl-8" : ""
+                        }`}
+                      />
+                    </div>
 
-                  <div className="flex items-center justify-end gap-3 my-2">
-                    <label className="text-[14px] font-medium">
-                      Round Trip
-                    </label>
-                    <Switch checked={data?.is_round_trip} disabled />
-                  </div>
+                    <div className="flex items-center justify-end gap-3 my-2">
+                      <label className="text-[14px] font-medium">
+                        Round Trip
+                      </label>
+                      <Switch checked={data?.is_round_trip} disabled />
+                    </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-medium">Vehicle *</label>
-                    <Input
-                      value={getVehicleType(data?.vehicle_type || "")}
-                      disabled
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-medium">
-                      Distance *
-                    </label>
-                    <Input
-                      value={data?.distance ? formatDistance(Number(data.distance), data?.distance_unit || getDistanceUnit().toUpperCase()) : ""}
-                      disabled
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-[14px] font-medium">
-                        Policy *
+                        Vehicle *
                       </label>
-                      <Input value={selectedPolicy?.name} disabled />
+                      <Input
+                        value={getVehicleType(data?.vehicle_type || "")}
+                        disabled
+                      />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[14px] font-medium">
-                        Category *
+                        Distance *
                       </label>
-                      <Input value={data?.category} disabled />
+                      <Input
+                        value={
+                          data?.distance
+                            ? formatDistance(
+                                Number(data.distance),
+                                data?.distance_unit ||
+                                  getDistanceUnit().toUpperCase()
+                              )
+                            : ""
+                        }
+                        disabled
+                      />
                     </div>
-                  </div>
-                  <div>
-                    <label>Date *</label>
-                    <Input
-                      value={formatDate(data?.expense_date || "")}
-                      disabled
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[14px] font-medium">Purpose *</label>
-                    <Textarea value={data?.description} disabled />
-                  </div>
-
-                  {/* Display notes if available */}
-                  {data?.mileage_meta?.notes && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Policy *
+                        </label>
+                        <Input value={selectedPolicy?.name} disabled />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Category *
+                        </label>
+                        <Input value={data?.category} disabled />
+                      </div>
+                    </div>
+                    <div>
+                      <label>Date *</label>
+                      <Input
+                        value={formatDate(data?.expense_date || "")}
+                        disabled
+                      />
+                    </div>
                     <div className="space-y-2">
-                      <label className="text-[14px] font-medium">Notes</label>
-                      <Textarea value={data.mileage_meta.notes} disabled />
+                      <label className="text-[14px] font-medium">
+                        Purpose *
+                      </label>
+                      <Textarea value={data?.description} disabled />
                     </div>
-                  )}
 
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">
-                      Total Amount
-                    </Label>
-                    <div className="text-2xl font-bold text-blue-600 mt-1">
-                      {formatCurrency(Number(data?.amount) || 0)}
-                    </div>
-                    {data?.distance && (
-                      <p className="text-sm text-gray-500">
-                        {formatDistance(Number(data.distance), data?.distance_unit || getDistanceUnit().toUpperCase())}
-                      </p>
+                    {/* Display notes if available */}
+                    {data?.mileage_meta?.notes && (
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">Notes</label>
+                        <Textarea value={data.mileage_meta.notes} disabled />
+                      </div>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">
+                        Total Amount
+                      </Label>
+                      <div className="text-2xl font-bold text-blue-600 mt-1">
+                        {formatCurrency(Number(data?.amount) || 0)}
+                      </div>
+                      {data?.distance && (
+                        <p className="text-sm text-gray-500">
+                          {formatDistance(
+                            Number(data.distance),
+                            data?.distance_unit ||
+                              getDistanceUnit().toUpperCase()
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-          </div>
-        )}
+          )}
         </div>
       </DialogContent>
     </Dialog>

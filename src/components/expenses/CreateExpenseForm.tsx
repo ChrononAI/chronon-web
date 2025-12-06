@@ -226,6 +226,7 @@ export function CreateExpenseForm() {
         }
 
         result = await expenseService.createExpense(expensePayload);
+        await expenseService.validateExpense(result.data.id);
       } else if (formData.start_location) {
         // Mileage expense
         const expenseData: any = {
@@ -276,8 +277,9 @@ export function CreateExpenseForm() {
           toast.error(result?.message);
         }
       }
-    } catch {
-      toast.error("Failed to create expense");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message);
+      navigate('/expenses');
     } finally {
       setLoading(false);
       setShowDuplicateDialog(false);
