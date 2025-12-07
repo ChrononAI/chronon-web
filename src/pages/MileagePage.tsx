@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -101,6 +101,7 @@ const MileagePage = ({
   onCancel,
 }: MileagePageProps) => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const form = useForm<MileageFormValues>({
     resolver: zodResolver(mileageSchema),
@@ -166,8 +167,6 @@ const MileagePage = ({
   const isUpdateFlow = mode === "edit" || editMode;
   const isStartEndLocationLocked =
     (mode === "view" && !editMode) || hasPrefilledLocations;
-  const showCancelButton = isUpdateFlow && typeof onCancel === "function";
-  console.log(loading);
   const renderPrimaryButtonContent = () => {
     if (loading) {
       return (
@@ -175,9 +174,9 @@ const MileagePage = ({
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           {mode === "create" ? "Creating..." : "Updating..."}
         </>
-      )
+      );
     }
-  
+
     if (isCalculating) {
       return (
         <>
@@ -890,7 +889,13 @@ const MileagePage = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Section - Map/Comments */}
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col">
+        <div
+          className={`${
+            pathname.includes("create")
+              ? "h-[calc(100vh-236px)]"
+              : "h-[calc(100vh-208px)]"
+          }  rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col`}
+        >
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 flex-shrink-0">
             <div className="flex items-center gap-3">
               {[
@@ -989,7 +994,13 @@ const MileagePage = ({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <Card>
-              <div className="max-h-[calc(100vh-220px)] overflow-y-auto pr-1 md:pr-2">
+              <div
+                className={`${
+                  pathname.includes("create")
+                    ? "h-[calc(100vh-236px)]"
+                    : "h-[calc(100vh-210px)]"
+                } overflow-y-auto pr-1 md:pr-2`}
+              >
                 <CardContent className="px-6 py-4 space-y-6 pb-20 md:pb-24">
                   {/* 🚗 Route Section */}
                   <div className="space-y-2">
@@ -1375,14 +1386,14 @@ const MileagePage = ({
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onCancel}
-                        className="h-11"
-                      >
-                        Cancel
-                      </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onCancel}
+                      className="h-11"
+                    >
+                      Cancel
+                    </Button>
                     <Button
                       type="submit"
                       disabled={saving || isCalculating}
@@ -1394,42 +1405,49 @@ const MileagePage = ({
                 </div>
 
                 <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
-                  <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-5">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-gray-600">
-                        Total Amount
-                      </span>
-                      <span className="text-2xl font-bold text-blue-600 mt-1">
-                        {formData.amount ||
-                          formatCurrency(0, orgSettings.currency)}
-                      </span>
-                      {chargeableDistanceValue &&
-                      mileagePrice &&
-                      !usesMetricSystem() ? (
-                        <span className="text-sm font-semibold text-gray-600 mt-1 block">
-                          {chargeableDistanceValue.toFixed(2)}{" "}
-                          {getDistanceUnit()} ×{" "}
-                          {formatCurrency(mileagePrice, orgSettings.currency)}{" "}
-                          per {getDistanceUnit()}
-                        </span>
-                      ) : (
-                        formData.distance && (
-                          <span className="text-sm text-gray-500">
-                            {formData.distance}
+                  <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-3">
+                    <div>
+                      <div className="flex">
+                        <div>
+                          <div className="text-sm font-medium text-gray-600">
+                            Total Amount
+                          </div>
+                          <span className="text-2xl font-bold text-blue-600">
+                            {formData.amount ||
+                              formatCurrency(0, orgSettings.currency)}
                           </span>
-                        )
-                      )}
+                          {chargeableDistanceValue &&
+                          mileagePrice &&
+                          !usesMetricSystem() ? (
+                            <div className="text-sm font-semibold text-gray-600 mt-1 block">
+                              {chargeableDistanceValue.toFixed(2)}{" "}
+                              {getDistanceUnit()} ×{" "}
+                              {formatCurrency(
+                                mileagePrice,
+                                orgSettings.currency
+                              )}{" "}
+                              per {getDistanceUnit()}
+                            </div>
+                          ) : (
+                            formData.distance && (
+                              <span className="text-sm text-gray-500 mr-2">
+                                {`(${formData.distance})`}
+                              </span>
+                            )
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={onCancel}
-                          className="min-w-[140px]"
-                        >
-                          Back
-                        </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onCancel}
+                        className="min-w-[140px]"
+                      >
+                        Back
+                      </Button>
                       <Button
                         type="submit"
                         disabled={loading || saving || isCalculating}

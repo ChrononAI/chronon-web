@@ -776,11 +776,11 @@ export function ExpenseDetailsStep2({
           <div className="space-y-6 md:sticky md:top-4 md:self-start md:h-full md:overflow-hidden">
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col h-full">
               <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-0.5">
                   {[
                     { key: "receipt", label: "Receipt" },
                     { key: "comments", label: "Comments" },
-                    { key: "validation", label: "Validation" }
+                    { key: "validation", label: "Validation" },
                   ].map((tab) => (
                     <button
                       key={tab.key}
@@ -789,7 +789,7 @@ export function ExpenseDetailsStep2({
                         setActiveReceiptTab(tab.key as "receipt" | "comments")
                       }
                       className={cn(
-                        "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                        "rounded-full px-3 py-2 text-sm font-medium transition-all",
                         activeReceiptTab === tab.key
                           ? "bg-primary/10 text-primary"
                           : "text-gray-500 hover:text-gray-900"
@@ -800,7 +800,7 @@ export function ExpenseDetailsStep2({
                   ))}
                 </div>
 
-                {!readOnly && hasReceipt && (
+                {!readOnly && hasReceipt && activeReceiptTab === "receipt" && (
                   <Button
                     type="button"
                     variant="outline"
@@ -953,7 +953,9 @@ export function ExpenseDetailsStep2({
                       autoFetch={activeReceiptTab === "comments"}
                     />
                   </div>
-                ) : <ExpenseValidation expenseId={expense?.id} />}
+                ) : (
+                  <ExpenseValidation expenseId={expense?.id} />
+                )}
               </div>
             </div>
           </div>
@@ -1259,12 +1261,20 @@ export function ExpenseDetailsStep2({
                                       disabled={readOnly}
                                       className={inputFieldClass}
                                       value={
-                                        userRate ??
-                                        expense?.user_conversion_rate ??
-                                        apiRate ??
-                                        ""
+                                        (
+                                          userRate ??
+                                          expense?.user_conversion_rate ??
+                                          apiRate ??
+                                          ""
+                                        )?.toString() !== ""
+                                          ? Number(
+                                              userRate ??
+                                                expense?.user_conversion_rate ??
+                                                apiRate ??
+                                                0
+                                            ).toFixed(3)
+                                          : ""
                                       }
-                                      // 👇 Update ONLY user_conversion_rate (NOT api_conversion_rate)
                                       onChange={(e) => {
                                         form.setValue(
                                           "user_conversion_rate",

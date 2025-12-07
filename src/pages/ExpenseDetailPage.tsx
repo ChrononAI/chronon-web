@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { ExpenseDetailsStep2 } from "@/components/expenses/ExpenseDetailsStep2";
+import { getTemplates, Template } from "@/services/admin/templates";
 
 const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE", "SENT_BACK"];
 
@@ -89,6 +90,7 @@ export function ExpenseDetailPage() {
   const [saving, setSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [templateEntities, setTemplateEntities] = useState<Template["entities"]>([]);
   // const [conversionRate, setConversionRate] = useState();
 
   const baseCurrency = getOrgCurrency();
@@ -96,6 +98,20 @@ export function ExpenseDetailPage() {
   const isFromReport = searchParams.get("from") === "report";
   const isFromApprovals = searchParams.get("from") === "approvals";
   const returnTo = searchParams.get("returnTo");
+
+  const loadTemplateEntities = async () => {
+    try {
+      const templates = await getTemplates();
+      const expenseTemplate = Array.isArray(templates)
+        ? templates.find((t) => t.module_type === "expense")
+        : null;
+      if (expenseTemplate?.entities) {
+        setTemplateEntities(expenseTemplate.entities);
+      }
+    } catch (error) {
+      console.error("Failed to load template entities:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -131,6 +147,7 @@ export function ExpenseDetailPage() {
     };
 
     fetchData();
+    loadTemplateEntities();
   }, [id]);
 
   const fetchReceipt = async (receiptId: string, orgId: string) => {
@@ -149,8 +166,41 @@ export function ExpenseDetailPage() {
   const handleExpenseSubmit = async (formData: any) => {
     if (!expense || !id) return;
     setSaving(true);
-    console.log(formData);
+    if (!formData.custom_attributes) {
+      formData.custom_attributes = {};
+    }
+    let entitiesToUse = templateEntities;
+      if (!entitiesToUse || entitiesToUse.length === 0) {
+        try {
+          const templates = await getTemplates();
+          const expenseTemplate = Array.isArray(templates)
+            ? templates.find((t) => t.module_type === "expense")
+            : null;
+          if (expenseTemplate?.entities) {
+            entitiesToUse = expenseTemplate.entities;
+          }
+        } catch (error) {
+          console.error("Failed to load template entities:", error);
+        }
+      }
+      if (entitiesToUse && entitiesToUse.length > 0) {
+        const entityIdSet = new Set(
+          entitiesToUse
+            .map((entity) => entity?.entity_id || entity?.id)
+            .filter(Boolean)
+        );
+
+        Object.keys(formData).forEach((key) => {
+          if (entityIdSet.has(key) && formData[key]) {
+            const value = String(formData[key]).trim();
+            if (value) {
+              formData.custom_attributes[key] = value;
+            }
+          }
+        });
+      }
     const filteredData = filterFormData(formData);
+    console.log(formData);
     try {
       if (filteredData.invoice_number) {
         filteredData.expense_date = new Date(filteredData.expense_date)
@@ -161,10 +211,15 @@ export function ExpenseDetailPage() {
           filteredData.foreign_currency = null;
         }
         if (formData.advance_account_id) {
-          filteredData.custom_attributes["advance_account_id"] =
+          if (!filteredData.custom_attributes) {
+            filteredData.custom_attributes = {};
+          }
+          filteredData.custom_attributes.advance_account_id =
             formData.advance_account_id;
         }
+        console.log(filteredData);
         await expenseService.updateExpense(id, filteredData);
+        await expenseService.validateExpense(id);
       } else if (formData.start_location) {
         const expenseData: UpdateExpenseData = {
           amount: parseFloat(formData.amount),
@@ -245,7 +300,7 @@ export function ExpenseDetailPage() {
         </div>
       </>
     );
-  };
+  }
 
   return (
     <>

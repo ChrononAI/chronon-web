@@ -173,7 +173,7 @@ export function ViewExpenseWindow({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[80%] max-w-full max-h-[90vh] flex flex-col">
+      <DialogContent className="w-[80%] max-w-full h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center justify-between">
             <div>View Expense</div>
@@ -181,9 +181,9 @@ export function ViewExpenseWindow({
         </DialogHeader>
         <div className="flex-1 overflow-y-auto min-h-0">
           {data?.expense_type === "RECEIPT_BASED" ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div>
-                <Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 h-full">
+              <div className="h-full">
+                <Card className="min-h-full">
                   <CardContent className="p-6 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
@@ -276,9 +276,9 @@ export function ViewExpenseWindow({
                   </CardContent>
                 </Card>
               </div>
-              <div>
-                <Card className="flex flex-col h-full">
-                  <CardContent className="flex flex-col flex-1 p-0">
+              <div className="min-h-full">
+                <Card className="flex flex-col min-h-full">
+                  <CardContent className="flex flex-col flex-1 p-0 min-h-full">
                     <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-6 pb-4">
                       <div className="flex items-center gap-3">
                         {[
@@ -483,9 +483,9 @@ export function ViewExpenseWindow({
               </div>
             </div>
           ) : data?.expense_type === "PER_DIEM" ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 h-full">
               <div>
-                <Card>
+                <Card className="h-full">
                   <CardContent className="p-6 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">

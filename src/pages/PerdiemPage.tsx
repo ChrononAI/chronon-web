@@ -354,7 +354,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:min-h-[calc(100vh-8rem)]">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:min-h-[calc(100vh-256px)]">
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col">
               <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 flex-shrink-0">
                 <div className="flex items-center gap-3">
@@ -634,7 +634,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
               </div>
 
               <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
-                <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-5">
+                <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-3">
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-600">
@@ -650,7 +650,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                   </div>
                   <div className="flex items-center gap-4">
 
-                  <Button type="button" variant="outline" onClick={() => navigate("/expenses")}>
+                  <Button type="button" variant="outline" className="min-w-[140px]" onClick={() => navigate("/expenses")}>
                     Back
                   </Button>
 

@@ -475,7 +475,7 @@ function Settlements() {
           className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-base"
           onClick={() => handleBulkDialogChange(true)}
         >
-          Bulk Upload
+          Bulk Mark Paid
         </Button>
       </div>
       <ReportTabs
@@ -635,7 +635,7 @@ function Settlements() {
                   onClick={handleDownloadTemplate}
                   className="sm:w-auto"
                 >
-                  Download Template
+                  Download Unsettled Expenses
                 </Button>
               </div>
             </div>
