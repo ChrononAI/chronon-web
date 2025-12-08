@@ -131,19 +131,19 @@ export function ExpenseComments({
   };
 
   return (
-    <div className={cn("flex flex-col", className)}>
+    <div className={cn("flex flex-col overflow-hidden", className)}>
       {/* Comments display area */}
-      <div className="flex-1 overflow-y-auto md:min-h-[400px] p-4 space-y-3">
+      <div className="overflow-y-auto min-h-[40vh] max-h-[30vh] md:max-h-[50vh] p-4 space-y-3">
         {loadingComments ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center min-h-[40vh]">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
         ) : commentError ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center min-h-[40vh]">
             <p className="text-sm text-red-500">{commentError}</p>
           </div>
         ) : comments.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center min-h-[40vh]">
             <p className="text-sm text-gray-500">No comments yet</p>
           </div>
         ) : (

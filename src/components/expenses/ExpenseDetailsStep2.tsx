@@ -117,6 +117,7 @@ interface ExpenseDetailsStepProps {
   onSubmit: (data: ExpenseFormValues) => void;
   mode?: "create" | "edit" | "view";
   loading: boolean;
+  receiptLoading?: boolean;
   isReceiptReplaced?: boolean;
   setIsReceiptReplaced?: any;
   uploadedFile: File | null;
@@ -131,6 +132,7 @@ export function ExpenseDetailsStep2({
   onSubmit,
   mode,
   loading,
+  receiptLoading,
   isReceiptReplaced,
   setIsReceiptReplaced,
   uploadedFile,
@@ -740,7 +742,7 @@ export function ExpenseDetailsStep2({
     isPdfUrl(activeReceiptUrl);
 
   const hasReceipt = Boolean(activeReceiptUrl);
-  const isLoadingReceipt = replaceRecLoading || duplicateReceiptLoading;
+  const isLoadingReceipt = replaceRecLoading || duplicateReceiptLoading || receiptLoading;
   const inputFieldClass =
     "h-11 border border-gray-200 bg-white px-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
   const selectTriggerClass =
@@ -816,7 +818,7 @@ export function ExpenseDetailsStep2({
               <div>
                 {activeReceiptTab === "receipt" ? (
                   <>
-                    <div className="md:flex-1 md:h-max-[240px] md:overflow-hidden">
+                    <div className="md:flex-1 md:max-h-[50vh] lg:max-h-[60vh] overflow-hidden">
                       {isLoadingReceipt ? (
                         <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center">
                           <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
@@ -835,7 +837,7 @@ export function ExpenseDetailsStep2({
                             <embed
                               src={`${activeReceiptUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                               type="application/pdf"
-                              className="h-[520px] w-full rounded-xl border border-gray-200 bg-white"
+                              className="max-h-[30vh] md:max-h-[60vh] lg:max-h-[50vh] w-full rounded-xl border border-gray-200 bg-white"
                               style={{
                                 transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
                                 transformOrigin: "center",
@@ -845,7 +847,7 @@ export function ExpenseDetailsStep2({
                             <img
                               src={activeReceiptUrl ?? ""}
                               alt="Receipt preview"
-                              className="md:max-h-[20vh] lg:max-h-[56vh] w-full rounded-xl border border-gray-200 bg-white object-contain"
+                              className="max-h-[30vh] md:max-h-[60vh] lg:max-h-[50vh] w-full rounded-xl border border-gray-200 bg-white object-contain"
                               style={{
                                 transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
                                 transformOrigin: "center",

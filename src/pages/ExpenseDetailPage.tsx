@@ -84,6 +84,7 @@ export function ExpenseDetailPage() {
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
   const [isReceiptReplaced, setIsReceiptReplaced] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(false);
   // const [policies, setPolicies] = useState<Policy[]>([]);
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -152,6 +153,7 @@ export function ExpenseDetailPage() {
 
   const fetchReceipt = async (receiptId: string, orgId: string) => {
     try {
+      setReceiptLoading(true);
       const response: any = await expenseService.fetchReceiptPreview(
         receiptId,
         orgId
@@ -160,6 +162,8 @@ export function ExpenseDetailPage() {
     } catch (error) {
       console.log(error);
       toast.error("Failed to fetch receipt image");
+    } finally {
+      setReceiptLoading(false);
     }
   };
 
@@ -415,6 +419,7 @@ export function ExpenseDetailPage() {
               }
             }}
             onSubmit={handleExpenseSubmit}
+            receiptLoading={receiptLoading}
             mode={
               expense.status === "COMPLETE" ||
               expense.status === "INCOMPLETE" ||
