@@ -182,100 +182,6 @@ export function ViewExpenseWindow({
         <div className="flex-1 overflow-y-auto min-h-0">
           {data?.expense_type === "RECEIPT_BASED" ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 h-full">
-              <div className="h-full">
-                <Card className="min-h-full">
-                  <CardContent className="p-6 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[14px] font-medium">
-                          Policy *
-                        </label>
-                        <Input value={selectedPolicy?.name} disabled />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[14px] font-medium">
-                          Category *
-                        </label>
-                        <Input value={data?.category} disabled />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[14px] font-medium">
-                          Receipt Number *
-                        </label>
-                        <Input value={data?.invoice_number || ""} disabled />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[14px] font-medium">
-                          Vendor *
-                        </label>
-                        <Input value={data?.vendor} disabled />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[14px] font-medium">
-                          Amount *
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                          <Input
-                            value={
-                              data?.foreign_currency === "USD"
-                                ? "USD ($)"
-                                : data?.foreign_currency === "EUR"
-                                ? "EUR (€)"
-                                : "INR (₹)"
-                            }
-                            disabled
-                          />
-                          <Input
-                            className="col-span-2"
-                            value={data?.foreign_amount || data?.amount}
-                            disabled
-                          />
-                        </div>
-                        <p className="text-[12px] text-gray-500 ml-2">
-                          {formatCurrency(data?.amount)}
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[14px] font-medium">
-                          Date *
-                        </label>
-                        <Input
-                          value={formatDate(data?.expense_date || "")}
-                          disabled
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {selectedAdvance && (
-                        <div className="space-y-2">
-                          <label className="text-[14px] font-medium">
-                            Advance
-                          </label>
-                          <Input value={selectedAdvance?.title} disabled />
-                        </div>
-                      )}
-                      {selectedPreApproval && (
-                        <div className="space-y-2">
-                          <label className="text-[14px] font-medium">
-                            Pre Approval
-                          </label>
-                          <Input value={selectedPreApproval?.title} disabled />
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Description *
-                      </label>
-                      <Textarea value={data?.description} disabled />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
               <div className="min-h-full">
                 <Card className="flex flex-col min-h-full">
                   <CardContent className="flex flex-col flex-1 p-0 min-h-full">
@@ -284,7 +190,7 @@ export function ViewExpenseWindow({
                         {[
                           { key: "receipt", label: "Receipt" },
                           { key: "comments", label: "Comments" },
-                          { key: "validations", label: "Validations" }
+                          { key: "validations", label: "Validations" },
                         ].map((tab) => (
                           <button
                             key={tab.key}
@@ -381,7 +287,7 @@ export function ViewExpenseWindow({
                                   </div>
 
                                   {/* Receipt Display */}
-                                  <div className="relative overflow-auto max-h-96 bg-gray-100">
+                                  <div className="relative overflow-auto max-h-[60vh] bg-gray-100">
                                     <div className="flex items-center justify-center p-4">
                                       {(() => {
                                         // Determine the source URL and file type
@@ -476,7 +382,103 @@ export function ViewExpenseWindow({
                           readOnly={false}
                           autoFetch={activeTab === "comments"}
                         />
-                      ) : <ExpenseValidation expenseId={data?.id} />}
+                      ) : (
+                        <ExpenseValidation expenseId={data?.id} />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="h-full">
+                <Card className="min-h-full">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Policy *
+                        </label>
+                        <Input value={selectedPolicy?.name} disabled />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Category *
+                        </label>
+                        <Input value={data?.category} disabled />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Receipt Number *
+                        </label>
+                        <Input value={data?.invoice_number || ""} disabled />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Vendor *
+                        </label>
+                        <Input value={data?.vendor} disabled />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Amount *
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Input
+                            value={
+                              data?.foreign_currency === "USD"
+                                ? "USD ($)"
+                                : data?.foreign_currency === "EUR"
+                                ? "EUR (€)"
+                                : "INR (₹)"
+                            }
+                            disabled
+                          />
+                          <Input
+                            className="col-span-2"
+                            value={data?.foreign_amount || data?.amount}
+                            disabled
+                          />
+                        </div>
+                        <p className="text-[12px] text-gray-500 ml-2">
+                          {formatCurrency(data?.amount)}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Date *
+                        </label>
+                        <Input
+                          value={formatDate(data?.expense_date || "")}
+                          disabled
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {selectedAdvance && (
+                        <div className="space-y-2">
+                          <label className="text-[14px] font-medium">
+                            Advance
+                          </label>
+                          <Input value={selectedAdvance?.title} disabled />
+                        </div>
+                      )}
+                      {selectedPreApproval && (
+                        <div className="space-y-2">
+                          <label className="text-[14px] font-medium">
+                            Pre Approval
+                          </label>
+                          <Input value={selectedPreApproval?.title} disabled />
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-medium">
+                        Description *
+                      </label>
+                      <Textarea className="resize-none" value={data?.description} disabled />
                     </div>
                   </CardContent>
                 </Card>
@@ -484,6 +486,60 @@ export function ViewExpenseWindow({
             </div>
           ) : data?.expense_type === "PER_DIEM" ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 h-full">
+              <div>
+                <Card className="flex flex-col h-full">
+                  <CardContent className="flex flex-col flex-1 p-0">
+                    <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-6 pb-4">
+                      <div className="flex items-center gap-3">
+                        {[
+                          { key: "info", label: "Info" },
+                          { key: "comments", label: "Comments" },
+                        ].map((tab) => (
+                          <button
+                            key={tab.key}
+                            type="button"
+                            onClick={() =>
+                              setActivePerDiemTab(
+                                tab.key as "info" | "comments"
+                              )
+                            }
+                            className={cn(
+                              "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                              activePerDiemTab === tab.key
+                                ? "bg-primary/10 text-primary"
+                                : "text-gray-500 hover:text-gray-900"
+                            )}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-h-[520px] px-6 pb-6">
+                      {activePerDiemTab === "info" ? (
+                        <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center h-full">
+                          <Calendar className="h-14 w-14 text-gray-300" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">
+                              Per Diem Information
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Expense details will appear here
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <ExpenseComments
+                          expenseId={data?.id}
+                          readOnly={false}
+                          autoFetch={activePerDiemTab === "comments"}
+                        />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
               <div>
                 <Card className="h-full">
                   <CardContent className="p-6 space-y-4">
@@ -539,7 +595,7 @@ export function ViewExpenseWindow({
                       <label className="text-[14px] font-medium">
                         Purpose *
                       </label>
-                      <Textarea value={data?.description} disabled />
+                      <Textarea className="resize-none" value={data?.description} disabled />
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-700">
@@ -553,64 +609,166 @@ export function ViewExpenseWindow({
                   </CardContent>
                 </Card>
               </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+              {/* Map Display Card */}
               <div>
                 <Card className="flex flex-col h-full">
-                  <CardContent className="flex flex-col flex-1 p-0">
-                    <div className="flex items-center justify-between border-b border-gray-100 px-6 pt-6 pb-4">
-                      <div className="flex items-center gap-3">
-                        {[
-                          { key: "info", label: "Info" },
-                          { key: "comments", label: "Comments" },
-                        ].map((tab) => (
-                          <button
-                            key={tab.key}
-                            type="button"
-                            onClick={() =>
-                              setActivePerDiemTab(
-                                tab.key as "info" | "comments"
-                              )
-                            }
-                            className={cn(
-                              "rounded-full px-4 py-2 text-sm font-medium transition-all",
-                              activePerDiemTab === tab.key
-                                ? "bg-primary/10 text-primary"
-                                : "text-gray-500 hover:text-gray-900"
-                            )}
-                          >
-                            {tab.label}
-                          </button>
-                        ))}
-                      </div>
+                  <CardContent className="p-6 space-y-4 overflow-y-auto flex-1">
+                    <div className="relative">
+                      {data?.start_location && (
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
+                          A
+                        </span>
+                      )}
+                      <Input
+                        value={data?.start_location || ""}
+                        disabled
+                        placeholder="A Start Location"
+                        className={`text-sm ${
+                          data?.start_location ? "pl-8" : ""
+                        }`}
+                      />
                     </div>
 
-                    <div className="flex-1 min-h-[520px] px-6 pb-6">
-                      {activePerDiemTab === "info" ? (
-                        <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center h-full">
-                          <Calendar className="h-14 w-14 text-gray-300" />
-                          <div>
-                            <p className="text-sm font-medium text-gray-700">
-                              Per Diem Information
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Expense details will appear here
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <ExpenseComments
-                          expenseId={data?.id}
-                          readOnly={false}
-                          autoFetch={activePerDiemTab === "comments"}
-                        />
+                    {/* Display stops if they exist */}
+                    {data?.mileage_meta?.stops &&
+                      data.mileage_meta.stops.length > 0 && (
+                        <>
+                          {data.mileage_meta.stops.map(
+                            (stop: any, index: number) => (
+                              <div key={stop.id} className="relative">
+                                {stop.location && (
+                                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
+                                    {String.fromCharCode(66 + index)}
+                                  </span>
+                                )}
+                                <Input
+                                  value={stop.location || ""}
+                                  disabled
+                                  placeholder={`${String.fromCharCode(
+                                    66 + index
+                                  )} Stop ${index + 1}`}
+                                  className={`text-sm ${
+                                    stop.location ? "pl-8" : ""
+                                  }`}
+                                />
+                              </div>
+                            )
+                          )}
+                        </>
+                      )}
+
+                    <div className="relative">
+                      {data?.end_location && (
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
+                          {String.fromCharCode(
+                            65 + (data?.mileage_meta?.stops?.length || 0) + 1
+                          )}
+                        </span>
+                      )}
+                      <Input
+                        value={data?.end_location || ""}
+                        disabled
+                        placeholder={`${String.fromCharCode(
+                          65 + (data?.mileage_meta?.stops?.length || 0) + 1
+                        )} End Location`}
+                        className={`text-sm ${
+                          data?.end_location ? "pl-8" : ""
+                        }`}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 my-2">
+                      <label className="text-[14px] font-medium">
+                        Round Trip
+                      </label>
+                      <Switch checked={data?.is_round_trip} disabled />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-medium">
+                        Vehicle *
+                      </label>
+                      <Input
+                        value={getVehicleType(data?.vehicle_type || "")}
+                        disabled
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-medium">
+                        Distance *
+                      </label>
+                      <Input
+                        value={
+                          data?.distance
+                            ? formatDistance(
+                                Number(data.distance),
+                                data?.distance_unit ||
+                                  getDistanceUnit().toUpperCase()
+                              )
+                            : ""
+                        }
+                        disabled
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Policy *
+                        </label>
+                        <Input value={selectedPolicy?.name} disabled />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">
+                          Category *
+                        </label>
+                        <Input value={data?.category} disabled />
+                      </div>
+                    </div>
+                    <div>
+                      <label>Date *</label>
+                      <Input
+                        value={formatDate(data?.expense_date || "")}
+                        disabled
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[14px] font-medium">
+                        Purpose *
+                      </label>
+                      <Textarea className="resize-none" value={data?.description} disabled />
+                    </div>
+
+                    {/* Display notes if available */}
+                    {data?.mileage_meta?.notes && (
+                      <div className="space-y-2">
+                        <label className="text-[14px] font-medium">Notes</label>
+                        <Textarea className="resize-none" value={data.mileage_meta.notes} disabled />
+                      </div>
+                    )}
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">
+                        Total Amount
+                      </Label>
+                      <div className="text-2xl font-bold text-blue-600 mt-1">
+                        {formatCurrency(Number(data?.amount) || 0)}
+                      </div>
+                      {data?.distance && (
+                        <p className="text-sm text-gray-500">
+                          {formatDistance(
+                            Number(data.distance),
+                            data?.distance_unit ||
+                              getDistanceUnit().toUpperCase()
+                          )}
+                        </p>
                       )}
                     </div>
                   </CardContent>
                 </Card>
               </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-              {/* Map Display Card */}
               <div>
                 <Card className="flex flex-col h-full">
                   <CardContent className="flex flex-col flex-1 p-0">
@@ -749,162 +907,6 @@ export function ViewExpenseWindow({
                           readOnly={false}
                           autoFetch={activeMileageTab === "comments"}
                         />
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              <div>
-                <Card className="flex flex-col h-full">
-                  <CardContent className="p-6 space-y-4 overflow-y-auto flex-1">
-                    <div className="relative">
-                      {data?.start_location && (
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
-                          A
-                        </span>
-                      )}
-                      <Input
-                        value={data?.start_location || ""}
-                        disabled
-                        placeholder="A Start Location"
-                        className={`text-sm ${
-                          data?.start_location ? "pl-8" : ""
-                        }`}
-                      />
-                    </div>
-
-                    {/* Display stops if they exist */}
-                    {data?.mileage_meta?.stops &&
-                      data.mileage_meta.stops.length > 0 && (
-                        <>
-                          {data.mileage_meta.stops.map(
-                            (stop: any, index: number) => (
-                              <div key={stop.id} className="relative">
-                                {stop.location && (
-                                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
-                                    {String.fromCharCode(66 + index)}
-                                  </span>
-                                )}
-                                <Input
-                                  value={stop.location || ""}
-                                  disabled
-                                  placeholder={`${String.fromCharCode(
-                                    66 + index
-                                  )} Stop ${index + 1}`}
-                                  className={`text-sm ${
-                                    stop.location ? "pl-8" : ""
-                                  }`}
-                                />
-                              </div>
-                            )
-                          )}
-                        </>
-                      )}
-
-                    <div className="relative">
-                      {data?.end_location && (
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold text-xs">
-                          {String.fromCharCode(
-                            65 + (data?.mileage_meta?.stops?.length || 0) + 1
-                          )}
-                        </span>
-                      )}
-                      <Input
-                        value={data?.end_location || ""}
-                        disabled
-                        placeholder={`${String.fromCharCode(
-                          65 + (data?.mileage_meta?.stops?.length || 0) + 1
-                        )} End Location`}
-                        className={`text-sm ${
-                          data?.end_location ? "pl-8" : ""
-                        }`}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-end gap-3 my-2">
-                      <label className="text-[14px] font-medium">
-                        Round Trip
-                      </label>
-                      <Switch checked={data?.is_round_trip} disabled />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Vehicle *
-                      </label>
-                      <Input
-                        value={getVehicleType(data?.vehicle_type || "")}
-                        disabled
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Distance *
-                      </label>
-                      <Input
-                        value={
-                          data?.distance
-                            ? formatDistance(
-                                Number(data.distance),
-                                data?.distance_unit ||
-                                  getDistanceUnit().toUpperCase()
-                              )
-                            : ""
-                        }
-                        disabled
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[14px] font-medium">
-                          Policy *
-                        </label>
-                        <Input value={selectedPolicy?.name} disabled />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[14px] font-medium">
-                          Category *
-                        </label>
-                        <Input value={data?.category} disabled />
-                      </div>
-                    </div>
-                    <div>
-                      <label>Date *</label>
-                      <Input
-                        value={formatDate(data?.expense_date || "")}
-                        disabled
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[14px] font-medium">
-                        Purpose *
-                      </label>
-                      <Textarea value={data?.description} disabled />
-                    </div>
-
-                    {/* Display notes if available */}
-                    {data?.mileage_meta?.notes && (
-                      <div className="space-y-2">
-                        <label className="text-[14px] font-medium">Notes</label>
-                        <Textarea value={data.mileage_meta.notes} disabled />
-                      </div>
-                    )}
-
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">
-                        Total Amount
-                      </Label>
-                      <div className="text-2xl font-bold text-blue-600 mt-1">
-                        {formatCurrency(Number(data?.amount) || 0)}
-                      </div>
-                      {data?.distance && (
-                        <p className="text-sm text-gray-500">
-                          {formatDistance(
-                            Number(data.distance),
-                            data?.distance_unit ||
-                              getDistanceUnit().toUpperCase()
-                          )}
-                        </p>
                       )}
                     </div>
                   </CardContent>

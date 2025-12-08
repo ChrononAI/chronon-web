@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -70,6 +70,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const { pathname } = useLocation();
 
   const form = useForm<PerdiemFormValues>({
     resolver: zodResolver(perdiemSchema),
@@ -354,7 +355,13 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:min-h-[calc(100vh-256px)]">
+          <div
+            className={`grid grid-cols-1 gap-6 lg:grid-cols-2 ${
+              pathname.includes("create")
+                ? "h-[calc(100vh-236px)]"
+                : "h-[calc(100vh-208px)]"
+            }`}
+          >
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col">
               <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 flex-shrink-0">
                 <div className="flex items-center gap-3">
@@ -598,6 +605,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                                 handleInputChange("purpose", e.target.value);
                                 field.onChange(e.target.value);
                               }}
+                              className="resize-none"
                               disabled={mode === "view"}
                             />
                           </FormControl>
@@ -649,28 +657,31 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                     </span>
                   </div>
                   <div className="flex items-center gap-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="px-6 py-2"
+                      onClick={() => navigate("/expenses")}
+                    >
+                      Back
+                    </Button>
 
-                  <Button type="button" variant="outline" className="min-w-[140px]" onClick={() => navigate("/expenses")}>
-                    Back
-                  </Button>
-
-
-                  <Button
-                    type="submit"
-                    className="min-w-[200px]"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {mode === "edit" ? "Updating..." : "Creating..."}
-                      </>
-                    ) : mode === "create" ? (
-                      "Create Expense"
-                    ) : (
-                      "Update Expense"
-                    )}{" "}
-                  </Button>
+                    <Button
+                      type="submit"
+                      className="min-w-[200px]"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {mode === "edit" ? "Updating..." : "Creating..."}
+                        </>
+                      ) : mode === "create" ? (
+                        "Create Expense"
+                      ) : (
+                        "Update Expense"
+                      )}{" "}
+                    </Button>
                   </div>
                 </div>
               </div>

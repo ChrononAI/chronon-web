@@ -742,11 +742,11 @@ export function ExpenseDetailsStep2({
   const hasReceipt = Boolean(activeReceiptUrl);
   const isLoadingReceipt = replaceRecLoading || duplicateReceiptLoading;
   const inputFieldClass =
-    "h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+    "h-11 border border-gray-200 bg-white px-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
   const selectTriggerClass =
-    "h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm shadow-none focus:outline-none focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+    "h-11 border border-gray-200 bg-white px-4 text-sm shadow-none focus:outline-none focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
   const textareaClass =
-    "rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+    "border border-gray-200 bg-white px-4 py-3 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
 
   return (
     <>
@@ -816,7 +816,7 @@ export function ExpenseDetailsStep2({
               <div>
                 {activeReceiptTab === "receipt" ? (
                   <>
-                    <div className="md:flex-1 md:overflow-hidden">
+                    <div className="md:flex-1 md:h-max-[240px] md:overflow-hidden">
                       {isLoadingReceipt ? (
                         <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center">
                           <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
@@ -830,7 +830,7 @@ export function ExpenseDetailsStep2({
                           </div>
                         </div>
                       ) : hasReceipt ? (
-                        <div className="flex flex-1 items-center justify-center rounded-b-2xl bg-gray-50 p-6 md:h-full">
+                        <div className="flex flex-1 items-center justify-center rounded-b-2xl bg-gray-50 p-2 md:h-full">
                           {isPdfReceipt ? (
                             <embed
                               src={`${activeReceiptUrl}#toolbar=0&navpanes=0&scrollbar=0`}
@@ -845,7 +845,7 @@ export function ExpenseDetailsStep2({
                             <img
                               src={activeReceiptUrl ?? ""}
                               alt="Receipt preview"
-                              className="max-h-[520px] w-full rounded-xl border border-gray-200 bg-white object-contain"
+                              className="md:max-h-[20vh] lg:max-h-[56vh] w-full rounded-xl border border-gray-200 bg-white object-contain"
                               style={{
                                 transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
                                 transformOrigin: "center",
@@ -1567,7 +1567,7 @@ export function ExpenseDetailsStep2({
                     type="button"
                     variant="outline"
                     onClick={onBack}
-                    className="min-w-[140px]"
+                    className="px-6 py-2"
                   >
                     Back
                   </Button>

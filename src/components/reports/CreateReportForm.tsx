@@ -508,6 +508,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
                         <FormControl>
                           <Textarea
                             {...field}
+                            className="resize-none"
                             placeholder="Enter report description"
                             rows={4}
                           />

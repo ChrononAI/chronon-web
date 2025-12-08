@@ -773,6 +773,7 @@ const CreateUserForm = ({
             type="button"
             variant="outline"
             onClick={() => navigate("/admin-settings/users")}
+            className="px-6 py-2"
             disabled={submitting}
           >
             Back

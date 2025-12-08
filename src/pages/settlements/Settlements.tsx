@@ -205,8 +205,13 @@ const columns: GridColDef[] = [
   {
     field: "payment_state",
     headerName: "PAYMENT STATE",
-    minWidth: 120,
+    minWidth: 180,
     flex: 1,
+        renderCell: (params: any) => (
+      <Badge className={getStatusColor(params.value)}>
+        {params.value.replace("_", " ")}
+      </Badge>
+    ),
   },
   {
     field: "amount",
@@ -224,18 +229,7 @@ const columns: GridColDef[] = [
     minWidth: 80,
     flex: 1,
     renderCell: () => getOrgCurrency(),
-  },
-  {
-    field: "status",
-    headerName: "STATUS",
-    flex: 1,
-    minWidth: 180,
-    renderCell: (params: any) => (
-      <Badge className={getStatusColor(params.value)}>
-        {params.value.replace("_", " ")}
-      </Badge>
-    ),
-  },
+  }
 ];
 
 function Settlements() {

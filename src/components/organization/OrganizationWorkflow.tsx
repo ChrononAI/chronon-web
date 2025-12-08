@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Building, CheckCircle, Upload, X } from 'lucide-react';
+import { ArrowRight, Building, CheckCircle, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -545,9 +545,8 @@ export function OrganizationWorkflow() {
               variant="outline"
               onClick={handleBack}
               disabled={currentStep === 1}
-              className="flex items-center gap-2"
+              className="px-6 py-2"
             >
-              <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
 

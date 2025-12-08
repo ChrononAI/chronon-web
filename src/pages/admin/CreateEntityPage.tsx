@@ -326,6 +326,7 @@ export const CreateEntityPage = () => {
               <Button
                 variant="outline"
                 type="button"
+                className="px-6 py-2"
                 onClick={() => navigate("/admin-settings/entities")}
               >
                 Back

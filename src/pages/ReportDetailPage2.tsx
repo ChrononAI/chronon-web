@@ -20,7 +20,12 @@ import { Label } from "@/components/ui/label";
 import { approvalService } from "@/services/approvalService";
 import { reportService } from "@/services/reportService";
 import { ReportWithExpenses, ApprovalWorkflow, Expense } from "@/types/expense";
-import { formatDate, formatCurrency, getStatusColor } from "@/lib/utils";
+import {
+  formatDate,
+  formatCurrency,
+  getStatusColor,
+  getOrgCurrency,
+} from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
@@ -36,6 +41,7 @@ import { getExpenseType } from "./MyExpensesPage";
 import { Input } from "@/components/ui/input";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import { trackEvent } from "@/mixpanel";
+import { FormFooter } from "@/components/layout/FormFooter";
 
 const columns: GridColDef[] = [
   {
@@ -133,7 +139,7 @@ const columns: GridColDef[] = [
     headerName: "CURRENCY",
     minWidth: 100,
     flex: 1,
-    renderCell: () => "INR",
+    renderCell: () => getOrgCurrency(),
   },
   {
     field: "status",
@@ -517,6 +523,16 @@ export function ReportDetailPage2() {
             </div>
           )}
         </div>
+        <FormFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/approvals/reports")}
+            className="px-6 py-2"
+          >
+            Back
+          </Button>
+        </FormFooter>
       </div>
 
       {/* Action Dialog */}

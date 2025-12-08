@@ -170,11 +170,11 @@ export function Sidebar() {
         const permission = {
           enabled:
             (orgSettings?.admin_dashboard_settings?.enabled === true &&
-              user?.role === "ADMIN") ||
+              user?.role === "SUPER_ADMIN") ||
             false,
           allowed:
             (orgSettings?.admin_dashboard_settings?.allowed === true &&
-              user?.role === "ADMIN") ||
+              user?.role === "SUPER_ADMIN") ||
             false,
         };
         const children = item.children

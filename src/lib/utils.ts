@@ -85,8 +85,10 @@ export const getStatusColor = (status: string): string => {
   switch (status.toUpperCase()) {
     case "PENDING":
     case "PENDING_APPROVAL":
+    case "PAYMENT_PENDING":
       return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
     case "APPROVED":
+    case "PAID":
     case "FULLY_APPROVED":
       return "bg-green-100 text-green-800 hover:bg-green-100";
     case "REJECTED":

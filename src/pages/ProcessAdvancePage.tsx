@@ -71,6 +71,7 @@ function ProcessAdvancePage() {
   const [comments, setComments] = useState("");
   const [showActionDialog, setShowActionDialog] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingApprove, setLoadingApprove] = useState(false);
 
   const form = useForm<CurrencyConversionFormValues>({
     resolver: zodResolver(currencyConversionSchema),
@@ -178,9 +179,7 @@ function ProcessAdvancePage() {
         action,
         payload,
       });
-      setTimeout(() => {
-        navigate("/approvals/advances");
-      }, 100);
+      navigate("/approvals/advances");
       if (action === "approve") {
         toast.success("Advance approved successfully");
       } else {
@@ -189,8 +188,6 @@ function ProcessAdvancePage() {
     } catch (error) {
       console.log(error);
       toast.error("Failed to process expense");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -222,6 +219,7 @@ function ProcessAdvancePage() {
     ) {
       setShowCurrencyAlert(true);
     } else {
+      setLoadingApprove(true);
       processAdvance(action);
       // Show confirmation modal
     }
@@ -254,10 +252,11 @@ function ProcessAdvancePage() {
               <div className="flex gap-2">
                 <Button
                   onClick={() => handleAction("approve")}
+                  disabled={loadingApprove}
                   className="bg-green-600 hover:bg-green-700"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Approve
+                  {loadingApprove ? "Approving..." : "Approve"}
                 </Button>
                 <Button
                   onClick={() => handleAction("reject")}
@@ -411,6 +410,7 @@ function ProcessAdvancePage() {
                   </Button>
                   <Button
                     className="bg-primary hover:bg-primary/90"
+                    disabled={loading}
                     type="submit"
                   >
                     {loading ? "Approving..." : "Approve"}
@@ -489,7 +489,7 @@ function ProcessAdvancePage() {
                           approval_notes: comments,
                         })
                       }
-                      disabled={!comments.trim()}
+                      disabled={!comments.trim() || loading}
                       className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-20 bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       <XCircle className="h-4 w-4 mr-2" />

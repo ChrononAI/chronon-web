@@ -1344,6 +1344,7 @@ const MileagePage = ({
                               field.onChange(e.target.value);
                             }}
                             disabled={mode === "view" && !editMode}
+                            className="resize-none"
                             placeholder="Enter purpose of travel"
                           />
                         </FormControl>
@@ -1444,7 +1445,7 @@ const MileagePage = ({
                         type="button"
                         variant="outline"
                         onClick={onCancel}
-                        className="min-w-[140px]"
+                        className="px-6 py-2"
                       >
                         Back
                       </Button>

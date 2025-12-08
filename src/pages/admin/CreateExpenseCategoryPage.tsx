@@ -147,6 +147,7 @@ function CreateExpenseCategoryPage() {
             navigate("/admin-settings/product-config/expense-categories")
           }
           disabled={loading}
+          className="px-6 py-2"
         >
           Back
         </Button>
