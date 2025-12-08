@@ -68,9 +68,9 @@ function CreatePreApprovalForm({
   maxWidth = "max-w-4xl",
 }: CreatePreApprovalFormProps) {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
 
   const { id } = useParams<{ id: string }>();
+  const { pathname } = useLocation();
 
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
@@ -138,6 +138,16 @@ function CreatePreApprovalForm({
       setLoading(false);
     }
   };
+
+  const handleBack = () => {
+    if (pathname.includes("approvals")) {
+      console.log(pathname);
+      navigate('/approvals/pre-approvals');
+    } else {
+      console.log(pathname);
+      navigate('/requests/pre-approvals');
+    }
+  }
 
   const getPreApprovalById = async (id: string) => {
     try {
@@ -428,11 +438,11 @@ function CreatePreApprovalForm({
               )}
             />
           </div>
-          {!pathname.includes("approvals") && <FormFooter>
+          <FormFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/requests/pre-approvals")}
+              onClick={handleBack}
               className="px-6 py-2"
             >
               Back
@@ -455,7 +465,7 @@ function CreatePreApprovalForm({
                 )}
               </Button>
             )}
-          </FormFooter>}
+          </FormFooter>
         </form>
       </Form>
     </div>

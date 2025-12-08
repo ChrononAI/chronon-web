@@ -1532,7 +1532,6 @@ export function ExpenseDetailsStep2({
 
                 <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
                   <Button type="button" variant="outline" onClick={onBack}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
                   {mode !== "view" && (
