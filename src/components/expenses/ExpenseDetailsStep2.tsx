@@ -7,12 +7,10 @@ import api from "@/lib/api";
 import {
   Calendar,
   Loader2,
-  FileText,
   ZoomIn,
   ZoomOut,
   RotateCw,
   RefreshCw,
-  Maximize2,
   Download,
   X,
   ChevronDown,
@@ -54,7 +52,6 @@ import { cn, getOrgCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
-import { ExpenseComments } from "./ExpenseComments";
 import {
   fileParseService,
   ParsedInvoiceData,
@@ -77,7 +74,7 @@ import { getTemplates, type Template } from "@/services/admin/templates";
 import { getEntities, type Entity } from "@/services/admin/entities";
 import { AdvanceService } from "@/services/advanceService";
 import { FormFooter } from "../layout/FormFooter";
-import { ExpenseValidation } from "./ExpenseValidation";
+import ReceiptViewer from "./ReceiptViewer";
 
 // Form schema
 const expenseSchema = z.object({
@@ -742,7 +739,8 @@ export function ExpenseDetailsStep2({
     isPdfUrl(activeReceiptUrl);
 
   const hasReceipt = Boolean(activeReceiptUrl);
-  const isLoadingReceipt = replaceRecLoading || duplicateReceiptLoading || receiptLoading;
+  const isLoadingReceipt =
+    replaceRecLoading || duplicateReceiptLoading || receiptLoading;
   const inputFieldClass =
     "h-11 border border-gray-200 bg-white px-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
   const selectTriggerClass =
@@ -775,7 +773,7 @@ export function ExpenseDetailsStep2({
         )}
 
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="space-y-6 md:sticky md:top-4 md:self-start md:h-full md:overflow-hidden">
+          {/* <div className="space-y-6 md:sticky md:top-4 md:self-start md:h-full md:overflow-hidden">
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col h-full">
               <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
                 <div className="flex items-center gap-0.5">
@@ -960,6 +958,39 @@ export function ExpenseDetailsStep2({
                 )}
               </div>
             </div>
+          </div> */}
+          <div
+            className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
+              expense?.original_expense_id
+                ? "md:h-[calc(100vh-18rem)]"
+                : "md:h-[calc(100vh-13rem)]"
+            } md:overflow-y-auto`}
+          >
+            <ReceiptViewer
+              activeReceiptTab={activeReceiptTab}
+              setActiveReceiptTab={setActiveReceiptTab}
+              readOnly={readOnly}
+              hasReceipt={hasReceipt}
+              handleReplaceReceipt={handleReplaceReceipt}
+              replaceRecLoading={replaceRecLoading}
+              loading={loading}
+              isLoadingReceipt={isLoadingReceipt}
+              isPdfReceipt={isPdfReceipt}
+              activeReceiptUrl={activeReceiptUrl}
+              receiptZoom={receiptZoom}
+              receiptRotation={receiptRotation}
+              handleReceiptFullscreen={handleReceiptFullscreen}
+              handleReceiptDownload={handleReceiptDownload}
+              uploadReceipt={uploadReceipt}
+              receiptDisplayName={receiptDisplayName}
+              receiptDisplayType={receiptDisplayType}
+              expense={expense}
+              uploadedFile={uploadedFile}
+              handleReceiptRotate={handleReceiptRotate}
+              handleReceiptZoomIn={handleReceiptZoomIn}
+              handleReceiptZoomOut={handleReceiptZoomOut}
+              handleReceiptReset={handleReceiptReset}
+            />
           </div>
 
           <Form {...form}>

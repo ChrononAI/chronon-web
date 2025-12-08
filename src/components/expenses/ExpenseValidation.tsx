@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
-import { expenseService } from "@/services/expenseService";
 import { cn } from "@/lib/utils";
 
-interface ValidationItem {
+export interface ValidationItem {
   id: string;
   title: string;
   message: string;
@@ -19,41 +17,19 @@ interface ValidationItem {
 }
 
 export function ExpenseValidation({
-  expenseId,
   className,
+  error,
+  loading,
+  validations
 }: {
-  expenseId: string;
   className?: string;
+  error: string | null;
+  loading: boolean;
+  validations: ValidationItem[];
 }) {
-  const [validations, setValidations] = useState<ValidationItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // Fetch comments when expenseId is available
-  useEffect(() => {
-    const fetchValidation = async () => {
-      if (expenseId) {
-        setLoading(true);
-        setError(null);
-        try {
-          const res = await expenseService.getExpenseValidation(expenseId);
-          setValidations(res.data.data);
-        } catch (error: any) {
-          console.error("Error fetching validaitons:", error);
-          setError(
-            error.response?.data?.message || "Failed to load validations"
-          );
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchValidation();
-  }, [expenseId]);
 
   return (
-    <div className={cn("flex flex-col h-full md:h-[520px]", className)}>
+    <div className={cn("flex flex-col h-full", className)}>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
@@ -68,7 +44,7 @@ export function ExpenseValidation({
             <p className="text-sm text-gray-500">No validations</p>
           </div>
         ) : (
-          validations.map((validation) => (
+          validations.map((validation: ValidationItem) => (
             <div
               key={validation.id}
               className={cn("flex animate-in fade-in slide-in-from-bottom-2")}

@@ -132,7 +132,7 @@ const columns: GridColDef[] = [
     type: "number",
     align: "right",
     headerAlign: "right",
-    valueFormatter: (params: any) => formatCurrency(params, "INR"),
+    valueFormatter: (params: any) => formatCurrency(params),
   },
   {
     field: "currency",
@@ -571,7 +571,7 @@ export function ReportDetailPage2() {
                       Total Value:
                     </span>
                     <span className="text-sm font-medium">
-                      {formatCurrency(totalAmount, "INR")}
+                      {formatCurrency(totalAmount)}
                     </span>
                   </div>
                   <div className="flex justify-between">

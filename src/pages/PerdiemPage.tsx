@@ -6,7 +6,6 @@ import * as z from "zod";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { DateField } from "@/components/ui/date-field";
 import { Calendar, Copy, ExternalLink, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -106,7 +105,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   });
   const [days, setDays] = useState<number>(0);
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
-  const [editMode, setEditMode] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
   const [activePerdiemTab, setActivePerdiemTab] = useState<"info" | "comments">(
@@ -122,11 +120,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
   // Pre-fill form data when in view mode
   useEffect(() => {
-    if (mode === "view") {
-      setEditMode(true);
-    } else {
-      setEditMode(true);
-    }
     if (expenseData) {
       const formatDate = (dateString: string) => {
         try {
@@ -330,7 +323,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   ]);
 
   return (
-    <div className="w-full pt-1">
+    <>
       {/* Duplicate Expense Indicator */}
       {expenseData?.original_expense_id && (
         <Alert className="bg-yellow-50 border-yellow-200 mb-4">
@@ -353,42 +346,43 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         </Alert>
       )}
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          <div
-            className={`grid grid-cols-1 gap-6 lg:grid-cols-2 ${
-              pathname.includes("create")
-                ? "h-[calc(100vh-236px)]"
-                : "h-[calc(100vh-208px)]"
-            }`}
-          >
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col">
-              <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  {[
-                    { key: "info", label: "Info" },
-                    { key: "comments", label: "Comments" },
-                  ].map((tab) => (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      onClick={() =>
-                        setActivePerdiemTab(tab.key as "info" | "comments")
-                      }
-                      className={cn(
-                        "rounded-full px-4 py-2 text-sm font-medium transition-all",
-                        activePerdiemTab === tab.key
-                          ? "bg-primary/10 text-primary"
-                          : "text-gray-500 hover:text-gray-900"
-                      )}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <div
+          className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
+            pathname.includes("create")
+              ? "md:h-[calc(100vh-18rem)]"
+              : "md:h-[calc(100vh-13rem)]"
+          } md:overflow-y-auto`}
+        >
+          <div className="flex flex-col h-full">
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {[
+                  { key: "info", label: "Info" },
+                  { key: "comments", label: "Comments" },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() =>
+                      setActivePerdiemTab(tab.key as "info" | "comments")
+                    }
+                    className={cn(
+                      "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                      activePerdiemTab === tab.key
+                        ? "bg-primary/10 text-primary"
+                        : "text-gray-500 hover:text-gray-900"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
+            </div>
+
+            <div className="h-full flex-1 overflow-hidden">
               {activePerdiemTab === "info" ? (
-                <div className="flex-1 min-h-[520px]">
+                <div className="flex flex-col h-full">
                   <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 text-center h-full w-full">
                     <Calendar className="h-14 w-14 text-gray-300" />
                     <div>
@@ -409,55 +403,66 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                 />
               )}
             </div>
+          </div>
+        </div>
+        <div>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className={`rounded-2xl border border-gray-200 space-y-6 bg-white shadow-sm min-h-full ${
+                pathname.includes("create")
+                  ? "md:h-[calc(100vh-18rem)]"
+                  : "md:h-[calc(100vh-13rem)]"
+              } md:overflow-y-auto`}
+            >
+                <div className="overflow-y-auto pr-1 md:pr-2">
+                  <div className="px-6 py-6 space-y-6 pb-40 md:pb-48">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="startDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Date *</FormLabel>
+                            <FormControl>
+                              <DateField
+                                id="startDate"
+                                value={formData.startDate}
+                                onChange={(value) => {
+                                  handleInputChange("startDate", value);
+                                  field.onChange(value);
+                                  handleInputChange("endDate", value);
+                                }}
+                                disabled={mode === "view"}
+                                maxDate={today}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-            <Card>
-              <div className="max-h-[calc(100vh-220px)] overflow-y-auto pr-1 md:pr-2">
-                <CardContent className="px-6 py-6 space-y-6 pb-40 md:pb-48">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="startDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date *</FormLabel>
-                          <FormControl>
-                            <DateField
-                              id="startDate"
-                              value={formData.startDate}
-                              onChange={(value) => {
-                                handleInputChange("startDate", value);
-                                field.onChange(value);
-                                handleInputChange("endDate", value);
-                              }}
-                              disabled={mode === "view"}
-                              maxDate={today}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="days"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Number of Days
-                      </Label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-                        <Input
-                          id="days"
-                          type="text"
-                          value={days}
-                          readOnly
-                          className="bg-gray-50 pl-10"
-                        />
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="days"
+                          className="text-sm font-medium text-gray-700"
+                        >
+                          Number of Days
+                        </Label>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+                          <Input
+                            id="days"
+                            type="text"
+                            value={days}
+                            readOnly
+                            className="bg-gray-50 pl-10"
+                            disabled={mode === "view"}
+                          />
+                        </div>
                       </div>
-                    </div>
 
-                    {/* <FormField
+                      {/* <FormField
                       control={form.control}
                       name="endDate"
                       render={({ field }) => (
@@ -480,9 +485,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         </FormItem>
                       )}
                     /> */}
-                  </div>
+                    </div>
 
-                  {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label
                         htmlFor="days"
@@ -503,193 +508,193 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                     </div>
                   </div> */}
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="policy"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Policy
-                      </Label>
-                      <Input
-                        id="policy"
-                        type="text"
-                        value={selectedPolicy?.name}
-                        className="bg-gray-50 text-gray-500"
-                        disabled
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="policy"
+                          className="text-sm font-medium text-gray-700"
+                        >
+                          Policy
+                        </Label>
+                        <Input
+                          id="policy"
+                          type="text"
+                          value={selectedPolicy?.name}
+                          className="bg-gray-50 text-gray-500"
+                          disabled
+                        />
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="categoryId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category *</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={(value) => {
+                                handleInputChange("categoryId", value);
+                                field.onChange(value);
+                              }}
+                              disabled={
+                                mode === "view" ||
+                                !selectedPolicy ||
+                                loadingPolicies
+                              }
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue
+                                    placeholder={
+                                      !selectedPolicy
+                                        ? "Select policy first"
+                                        : "Select category"
+                                    }
+                                  />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {categories.map((category) => (
+                                  <SelectItem
+                                    key={category.id}
+                                    value={category.id}
+                                  >
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
                     </div>
-                    <FormField
-                      control={form.control}
-                      name="categoryId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Category *</FormLabel>
-                          <Select
-                            value={field.value}
-                            onValueChange={(value) => {
-                              handleInputChange("categoryId", value);
-                              field.onChange(value);
-                            }}
-                            disabled={
-                              (mode === "view" && !editMode) ||
-                              !selectedPolicy ||
-                              loadingPolicies
-                            }
-                          >
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="location"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Location *</FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue
-                                  placeholder={
-                                    !selectedPolicy
-                                      ? "Select policy first"
-                                      : "Select category"
-                                  }
-                                />
-                              </SelectTrigger>
+                              <Input
+                                type="text"
+                                placeholder="e.g., Mumbai, Delhi, Bangalore"
+                                value={formData.location}
+                                onChange={(e) => {
+                                  handleInputChange("location", e.target.value);
+                                  field.onChange(e.target.value);
+                                }}
+                                disabled={mode === "view"}
+                              />
                             </FormControl>
-                            <SelectContent>
-                              {categories.map((category) => (
-                                <SelectItem
-                                  key={category.id}
-                                  value={category.id}
-                                >
-                                  {category.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="location"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Location *</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="text"
-                              placeholder="e.g., Mumbai, Delhi, Bangalore"
-                              value={formData.location}
-                              onChange={(e) => {
-                                handleInputChange("location", e.target.value);
-                                field.onChange(e.target.value);
-                              }}
-                              disabled={mode === "view"}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-1 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="purpose"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Purpose *</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                value={formData.purpose}
+                                placeholder="e.g. Annual Sales Conference"
+                                onChange={(e) => {
+                                  handleInputChange("purpose", e.target.value);
+                                  field.onChange(e.target.value);
+                                }}
+                                className="resize-none"
+                                disabled={mode === "view"}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
-
-                  <div className="grid grid-cols-1 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="purpose"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Purpose *</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              value={formData.purpose}
-                              placeholder="e.g. Annual Sales Conference"
-                              onChange={(e) => {
-                                handleInputChange("purpose", e.target.value);
-                                field.onChange(e.target.value);
-                              }}
-                              className="resize-none"
-                              disabled={mode === "view"}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </div>
-            </Card>
-          </div>
-
-          {(mode === "create" || mode === "edit") && (
-            <>
-              <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
-                <div>
-                  <Label className="text-sm font-medium text-gray-600">
-                    Total Per Diem
-                  </Label>
-                  <div className="text-2xl font-bold text-blue-600 mt-1">
-                    ₹{(Number(formData.totalAmount) || 0).toFixed(2)}
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    {days} {days === 1 ? "day" : "days"}
-                  </p>
                 </div>
-                <Button
-                  type="submit"
-                  className="h-11 bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  {mode === "create" ? "Create" : "Update"} Expense
-                </Button>
-              </div>
 
-              <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
-                <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-3">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-600">
-                        Total Per Diem Amount
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        ({days} {days === 1 ? "day" : "days"})
+              <>
+                <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">
+                      Total Per Diem
+                    </Label>
+                    <div className="text-2xl font-bold text-blue-600 mt-1">
+                      ₹{(Number(formData.totalAmount) || 0).toFixed(2)}
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {days} {days === 1 ? "day" : "days"}
+                    </p>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="h-11 bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    {mode === "create" ? "Create" : "Update"} Expense
+                  </Button>
+                </div>
+
+                <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
+                  <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-3">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-600">
+                          Total Per Diem Amount
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          ({days} {days === 1 ? "day" : "days"})
+                        </span>
+                      </div>
+                      <span className="text-2xl font-bold text-blue-600">
+                        ₹{(Number(formData.totalAmount) || 0).toFixed(2)}
                       </span>
                     </div>
-                    <span className="text-2xl font-bold text-blue-600">
-                      ₹{(Number(formData.totalAmount) || 0).toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="px-6 py-2"
-                      onClick={() => navigate("/expenses")}
-                    >
-                      Back
-                    </Button>
+                    <div className="flex items-center gap-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="px-6 py-2"
+                        onClick={() => navigate("/expenses")}
+                      >
+                        Back
+                      </Button>
 
-                    <Button
-                      type="submit"
-                      className="min-w-[200px]"
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {mode === "edit" ? "Updating..." : "Creating..."}
-                        </>
-                      ) : mode === "create" ? (
-                        "Create Expense"
-                      ) : (
-                        "Update Expense"
-                      )}{" "}
-                    </Button>
+                      {mode !== "view" && (
+                        <Button
+                          type="submit"
+                          className="min-w-[200px]"
+                          disabled={loading}
+                        >
+                          {loading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              {mode === "edit" ? "Updating..." : "Creating..."}
+                            </>
+                          ) : mode === "create" ? (
+                            "Create Expense"
+                          ) : (
+                            "Update Expense"
+                          )}{" "}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </>
-          )}
-        </form>
-      </Form>
-    </div>
+              </>
+            </form>
+          </Form>
+        </div>
+      </div>
+    </>
   );
 };
 

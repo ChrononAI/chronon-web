@@ -91,7 +91,9 @@ export function ExpenseDetailPage() {
   const [saving, setSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [templateEntities, setTemplateEntities] = useState<Template["entities"]>([]);
+  const [templateEntities, setTemplateEntities] = useState<
+    Template["entities"]
+  >([]);
   // const [conversionRate, setConversionRate] = useState();
 
   const baseCurrency = getOrgCurrency();
@@ -174,35 +176,35 @@ export function ExpenseDetailPage() {
       formData.custom_attributes = {};
     }
     let entitiesToUse = templateEntities;
-      if (!entitiesToUse || entitiesToUse.length === 0) {
-        try {
-          const templates = await getTemplates();
-          const expenseTemplate = Array.isArray(templates)
-            ? templates.find((t) => t.module_type === "expense")
-            : null;
-          if (expenseTemplate?.entities) {
-            entitiesToUse = expenseTemplate.entities;
-          }
-        } catch (error) {
-          console.error("Failed to load template entities:", error);
+    if (!entitiesToUse || entitiesToUse.length === 0) {
+      try {
+        const templates = await getTemplates();
+        const expenseTemplate = Array.isArray(templates)
+          ? templates.find((t) => t.module_type === "expense")
+          : null;
+        if (expenseTemplate?.entities) {
+          entitiesToUse = expenseTemplate.entities;
         }
+      } catch (error) {
+        console.error("Failed to load template entities:", error);
       }
-      if (entitiesToUse && entitiesToUse.length > 0) {
-        const entityIdSet = new Set(
-          entitiesToUse
-            .map((entity) => entity?.entity_id || entity?.id)
-            .filter(Boolean)
-        );
+    }
+    if (entitiesToUse && entitiesToUse.length > 0) {
+      const entityIdSet = new Set(
+        entitiesToUse
+          .map((entity) => entity?.entity_id || entity?.id)
+          .filter(Boolean)
+      );
 
-        Object.keys(formData).forEach((key) => {
-          if (entityIdSet.has(key) && formData[key]) {
-            const value = String(formData[key]).trim();
-            if (value) {
-              formData.custom_attributes[key] = value;
-            }
+      Object.keys(formData).forEach((key) => {
+        if (entityIdSet.has(key) && formData[key]) {
+          const value = String(formData[key]).trim();
+          if (value) {
+            formData.custom_attributes[key] = value;
           }
-        });
-      }
+        }
+      });
+    }
     const filteredData = filterFormData(formData);
     console.log(formData);
     try {
@@ -394,6 +396,13 @@ export function ExpenseDetailPage() {
             isEditable={EDITABLE_STATUSES.includes(
               expense.status.toUpperCase()
             )}
+            onCancel={() => {
+              if (returnTo === "create") {
+                window.location.href = "/expenses/create";
+              } else {
+                window.history.back();
+              }
+            }}
             onUpdate={handleExpenseSubmit}
             isEditing={isEditing}
             saving={saving}

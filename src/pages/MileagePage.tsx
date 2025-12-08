@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -865,7 +864,7 @@ const MileagePage = ({
   }, []);
 
   return (
-    <div className="max-w-full mx-auto pt-1 pb-6">
+    <>
       {expenseData?.original_expense_id && (
         <Alert className="bg-yellow-50 border-yellow-200 mb-4">
           <Copy className="h-4 w-4 text-yellow-600" />
@@ -887,121 +886,125 @@ const MileagePage = ({
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Section - Map/Comments */}
+      <div className="grid gap-6 md:grid-cols-2">
         <div
-          className={`${
+          className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
             pathname.includes("create")
-              ? "h-[calc(100vh-236px)]"
-              : "h-[calc(100vh-208px)]"
-          }  rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col`}
+              ? "md:h-[calc(100vh-18rem)]"
+              : "md:h-[calc(100vh-13rem)]"
+          } md:overflow-y-auto`}
         >
-          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 flex-shrink-0">
-            <div className="flex items-center gap-3">
-              {[
-                { key: "map", label: "Map" },
-                { key: "comments", label: "Comments" },
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setActiveMapTab(tab.key as "map" | "comments")}
-                  className={cn(
-                    "rounded-full px-4 py-2 text-sm font-medium transition-all",
-                    activeMapTab === tab.key
-                      ? "bg-primary/10 text-primary"
-                      : "text-gray-500 hover:text-gray-900"
-                  )}
-                >
-                  {tab.label}
-                </button>
-              ))}
+          <div className="flex flex-col h-full">
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {[
+                  { key: "map", label: "Map" },
+                  { key: "comments", label: "Comments" },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() =>
+                      setActiveMapTab(tab.key as "map" | "comments")
+                    }
+                    className={cn(
+                      "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                      activeMapTab === tab.key
+                        ? "bg-primary/10 text-primary"
+                        : "text-gray-500 hover:text-gray-900"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          {activeMapTab === "map" ? (
-            <div className="md:flex-1 md:overflow-hidden">
-              {isCalculating ? (
-                <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
-                  <div className="mx-auto h-16 w-16 text-gray-300">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-full w-full"
-                    >
-                      <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">
-                      Loading Map View...
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Route visualization will appear here
-                    </p>
-                  </div>
-                </div>
-              ) : mapUrl ? (
-                <div className="flex items-start justify-center rounded-b-2xl bg-gray-50 pt-4 px-6 pb-6 md:h-full">
-                  <img
-                    src={mapUrl}
-                    alt="Route Map"
-                    className="h-[520px] w-full rounded-xl object-contain cursor-pointer"
-                    onClick={handleMapFullscreen}
-                  />
+
+            <div className="h-full flex-1 overflow-hidden">
+              {activeMapTab === "map" ? (
+                <div className="md:flex-1 md:overflow-hidden">
+                  {isCalculating ? (
+                    <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
+                      <div className="mx-auto h-16 w-16 text-gray-300">
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-full w-full"
+                        >
+                          <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">
+                          Loading Map View...
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Route visualization will appear here
+                        </p>
+                      </div>
+                    </div>
+                  ) : mapUrl ? (
+                    <div className="flex items-start justify-center rounded-b-2xl bg-gray-50 pt-4 px-6 pb-6 overflow-auto md:h-full">
+                      <img
+                        src={mapUrl}
+                        alt="Route Map"
+                        className="w-full rounded-xl object-contain cursor-pointer"
+                        onClick={handleMapFullscreen}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
+                      <div className="mx-auto h-16 w-16 text-gray-300">
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-full w-full"
+                        >
+                          <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">
+                          Map View
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Route visualization will appear here
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
-                  <div className="mx-auto h-16 w-16 text-gray-300">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-full w-full"
-                    >
-                      <path d="M12 21s-8-5.058-8-11a8 8 0 1 1 16 0c0 5.942-8 11-8 11z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">
-                      Map View
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Route visualization will appear here
-                    </p>
-                  </div>
-                </div>
+                <ExpenseComments
+                  expenseId={expenseData?.id}
+                  readOnly={false}
+                  autoFetch={activeMapTab === "comments"}
+                />
               )}
             </div>
-          ) : (
-            <ExpenseComments
-              expenseId={expenseData?.id}
-              readOnly={false}
-              autoFetch={activeMapTab === "comments"}
-            />
-          )}
+          </div>
         </div>
 
-        {/* Right Section - Form */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
-            <Card>
               <div
-                className={`${
+                className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
                   pathname.includes("create")
-                    ? "h-[calc(100vh-236px)]"
-                    : "h-[calc(100vh-210px)]"
-                } overflow-y-auto pr-1 md:pr-2`}
+                    ? "md:h-[calc(100vh-18rem)]"
+                    : "md:h-[calc(100vh-13rem)]"
+                } md:overflow-y-auto`}
               >
-                <CardContent className="px-6 py-4 space-y-6 pb-20 md:pb-24">
+                <div className="px-6 py-4 space-y-6">
                   {/* 🚗 Route Section */}
                   <div className="space-y-2">
                     <FormField
@@ -1352,67 +1355,65 @@ const MileagePage = ({
                       </FormItem>
                     )}
                   />
-                </CardContent>
+                </div>
               </div>
-            </Card>
 
-            {(mode === "create" || mode === "edit" || editMode) && (
-              <>
-                <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-600">
-                        Total Amount
-                      </Label>
-                      <div className="text-2xl font-bold text-blue-600 mt-1">
-                        {formData.amount ||
-                          formatCurrency(0, orgSettings.currency)}
-                      </div>
-                      {chargeableDistanceValue &&
-                      mileagePrice &&
-                      !usesMetricSystem() ? (
-                        <p className="text-sm font-semibold text-gray-600 mt-1">
-                          {chargeableDistanceValue.toFixed(2)}{" "}
-                          {getDistanceUnit()} ×{" "}
-                          {formatCurrency(mileagePrice, orgSettings.currency)}{" "}
-                          per {getDistanceUnit()}
-                        </p>
-                      ) : (
-                        formData.distance && (
-                          <p className="text-sm text-gray-500">
-                            {formData.distance}
-                          </p>
-                        )
-                      )}
+            <>
+              <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">
+                      Total Amount
+                    </Label>
+                    <div className="text-2xl font-bold text-blue-600 mt-1">
+                      {formData.amount ||
+                        formatCurrency(0, orgSettings.currency)}
                     </div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={onCancel}
-                      className="h-11"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={saving || isCalculating}
-                      className="h-11 bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      {renderPrimaryButtonContent()}
-                    </Button>
+                    {chargeableDistanceValue &&
+                    mileagePrice &&
+                    !usesMetricSystem() ? (
+                      <p className="text-sm font-semibold text-gray-600 mt-1">
+                        {chargeableDistanceValue.toFixed(2)} {getDistanceUnit()}{" "}
+                        × {formatCurrency(mileagePrice, orgSettings.currency)}{" "}
+                        per {getDistanceUnit()}
+                      </p>
+                    ) : (
+                      formData.distance && (
+                        <p className="text-sm text-gray-500">
+                          {formData.distance}
+                        </p>
+                      )
+                    )}
                   </div>
                 </div>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onCancel}
+                    className="h-11"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={saving || isCalculating}
+                    className="h-11 bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {renderPrimaryButtonContent()}
+                  </Button>
+                </div>
+              </div>
 
-                <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
-                  <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-3">
-                    <div>
-                      <div className="flex">
-                        <div>
-                          <div className="text-sm font-medium text-gray-600">
-                            Total Amount
-                          </div>
+              <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
+                <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-3">
+                  <div>
+                    <div className="flex">
+                      <div>
+                        <div className="text-sm font-medium text-gray-600">
+                          Total Amount
+                        </div>
+                        <span className="flex items-end gap-2">
                           <span className="text-2xl font-bold text-blue-600">
                             {formData.amount ||
                               formatCurrency(0, orgSettings.currency)}
@@ -1420,7 +1421,7 @@ const MileagePage = ({
                           {chargeableDistanceValue &&
                           mileagePrice &&
                           !usesMetricSystem() ? (
-                            <div className="text-sm font-semibold text-gray-600 mt-1 block">
+                            <div className="text-sm font-semibold text-gray-600 mb-1 block">
                               {chargeableDistanceValue.toFixed(2)}{" "}
                               {getDistanceUnit()} ×{" "}
                               {formatCurrency(
@@ -1431,24 +1432,26 @@ const MileagePage = ({
                             </div>
                           ) : (
                             formData.distance && (
-                              <span className="text-sm text-gray-500 mr-2">
+                              <span className="text-sm text-gray-500 mb-1 mr-2">
                                 {`(${formData.distance})`}
                               </span>
                             )
                           )}
-                        </div>
+                        </span>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex items-center gap-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onCancel}
-                        className="px-6 py-2"
-                      >
-                        Back
-                      </Button>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onCancel}
+                      className="px-6 py-2"
+                    >
+                      Back
+                    </Button>
+                    {(mode === "create" || mode === "edit" || editMode) && (
                       <Button
                         type="submit"
                         disabled={loading || saving || isCalculating}
@@ -1456,102 +1459,101 @@ const MileagePage = ({
                       >
                         {renderPrimaryButtonContent()}
                       </Button>
-                    </div>
+                    )}
                   </div>
                 </div>
-              </>
-            )}
-          </form>
-        </Form>
-
-        {/* Fullscreen Map Modal */}
-        {isMapFullscreen && mapUrl && (
-          <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
-            <div className="relative w-full h-full flex flex-col">
-              {/* Fullscreen Header */}
-              <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-                <div className="flex items-center gap-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Route Map
-                  </h3>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMapZoomOut}
-                    disabled={mapZoom <= 0.5}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ZoomOut className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm text-gray-600 min-w-[3rem] text-center">
-                    {Math.round(mapZoom * 100)}%
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMapZoomIn}
-                    disabled={mapZoom >= 3}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ZoomIn className="h-4 w-4" />
-                  </Button>
-                  <div className="w-px h-6 bg-gray-300 mx-2" />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMapRotate}
-                    className="h-8 w-8 p-0"
-                  >
-                    <RotateCw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMapReset}
-                    className="h-8 w-8 p-0"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                  <div className="w-px h-6 bg-gray-300 mx-2" />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMapDownload}
-                    className="h-8 px-3 text-xs"
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsMapFullscreen(false)}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
               </div>
+            </>
+          </form>
+        </Form>\          {/* Fullscreen Map Modal */}
+          {isMapFullscreen && mapUrl && (
+            <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
+              <div className="relative w-full h-full flex flex-col">
+                {/* Fullscreen Header */}
+                <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+                  <div className="flex items-center gap-4">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Route Map
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleMapZoomOut}
+                      disabled={mapZoom <= 0.5}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ZoomOut className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-gray-600 min-w-[3rem] text-center">
+                      {Math.round(mapZoom * 100)}%
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleMapZoomIn}
+                      disabled={mapZoom >= 3}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ZoomIn className="h-4 w-4" />
+                    </Button>
+                    <div className="w-px h-6 bg-gray-300 mx-2" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleMapRotate}
+                      className="h-8 w-8 p-0"
+                    >
+                      <RotateCw className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleMapReset}
+                      className="h-8 w-8 p-0"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <div className="w-px h-6 bg-gray-300 mx-2" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleMapDownload}
+                      className="h-8 px-3 text-xs"
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
+                    </Button>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsMapFullscreen(false)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
 
-              {/* Fullscreen Content */}
-              <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
-                <img
-                  src={mapUrl}
-                  alt="Route Map Fullscreen"
-                  className="max-w-full max-h-full object-contain"
-                  style={{
-                    transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
-                    transformOrigin: "center",
-                  }}
-                />
+                {/* Fullscreen Content */}
+                <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
+                  <img
+                    src={mapUrl}
+                    alt="Route Map Fullscreen"
+                    className="max-w-full max-h-full object-contain"
+                    style={{
+                      transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
+                      transformOrigin: "center",
+                    }}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
-    </div>
+
+    </>
   );
 };
 
