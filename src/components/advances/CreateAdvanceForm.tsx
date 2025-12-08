@@ -140,7 +140,11 @@ export function CreateAdvanceForm({
     currencies[0];
 
   const handleCancel = () => {
+    if (pathname.includes("approvals")) {
+      navigate("/approvals/advances");
+    } else {
       navigate("/requests/advances");
+    }
   };
 
   const onSubmit = async (values: AdvanceFormValues) => {
@@ -560,7 +564,7 @@ export function CreateAdvanceForm({
               />
             );
           })}
-          {!pathname.includes("approvals") && <FormFooter>
+          <FormFooter>
             <Button
               type="button"
               variant="outline"
@@ -589,7 +593,7 @@ export function CreateAdvanceForm({
                 )}
               </Button>
             )}
-          </FormFooter>}
+          </FormFooter>
         </form>
       </Form>
     </div>
