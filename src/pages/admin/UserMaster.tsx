@@ -176,7 +176,7 @@ const UserMasterPage = () => {
       }
     };
     loadEntities();
-  }, [activeTab, entities.length, entitiesLoading, templates.length]);
+  }, [activeTab, templates.length]);
 
   const userTemplate = useMemo(() => {
     return templates.find((t) => t.module_type === "user");
