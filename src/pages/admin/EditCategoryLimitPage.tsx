@@ -265,7 +265,6 @@ export default function EditCategoryLimitPage() {
 
   const handleSave = async () => {
     try {
-      console.log(rules);
       const newRules = removeLimitValuesForPerDiem(rules, policies);
       setRules(newRules);
       const payload = {

@@ -304,8 +304,7 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
           custom_attributes: customAttributesData,
           expense_ids: markedExpenses.map(exp => exp.id)
         };
-        const expIds = markedExpenses.map(expense => expense.id)
-        console.log(expIds);
+        markedExpenses.map(expense => expense.id)
         const updateResponse = await reportService.updateReport(reportData.id, updateData);
         // await reportService.addExpensesToReport(reportData.id, expIds);
 
@@ -324,7 +323,6 @@ export function CreateReportForm({ editMode = false, reportData }: CreateReportF
           additionalFields: additionalFieldsData,
           customAttributes: customAttributesData,
         };
-        console.log('inside else');
 
         const createResponse = await reportService.createReport(newReportData);
 

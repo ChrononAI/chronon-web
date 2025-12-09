@@ -206,7 +206,6 @@ export function ExpenseDetailPage() {
       });
     }
     const filteredData = filterFormData(formData);
-    console.log(formData);
     try {
       if (filteredData.invoice_number) {
         filteredData.expense_date = new Date(filteredData.expense_date)
@@ -223,7 +222,6 @@ export function ExpenseDetailPage() {
           filteredData.custom_attributes.advance_account_id =
             formData.advance_account_id;
         }
-        console.log(filteredData);
         await expenseService.updateExpense(id, filteredData);
         await expenseService.validateExpense(id);
       } else if (formData.start_location) {

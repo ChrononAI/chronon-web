@@ -230,7 +230,6 @@ export function CreateReportForm2({
   const getAllCategories = async () => {
     try {
       const res = await categoryService.getAllCategories();
-      console.log(res);
       setCategories(res.data.data);
     } catch (error) {
       console.log(error);

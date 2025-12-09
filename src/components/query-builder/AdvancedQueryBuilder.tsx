@@ -142,8 +142,6 @@ const AdvancedQueryBuilder: React.FC = () => {
       title: "Query Executed",
       description: `Parsed ${conditions.length} conditions and ${actions.length} actions.`,
     });
-
-    console.log('Parsed Query:', { conditions, actions });
   };
 
   const saveQuery = () => {

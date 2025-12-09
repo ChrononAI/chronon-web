@@ -1,4 +1,11 @@
-import { Circle, ScanEye, FileCheck, FileOutput, FileClock, FileX } from "lucide-react";
+import {
+  Circle,
+  ScanEye,
+  FileCheck,
+  FileOutput,
+  FileClock,
+  FileX,
+} from "lucide-react";
 import { ApprovalWorkflow } from "@/types/expense";
 import { formatDate } from "@/lib/utils";
 import {
@@ -7,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import { Badge } from "../ui/badge";
 
 interface WorkflowTimelineProps {
   approvalWorkflow: ApprovalWorkflow;
@@ -29,21 +37,6 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
         return <Circle className="h-5 w-5 text-gray-400" />;
     }
   };
-
-  // const getStatusColor = (status: string) => {
-  //   switch (status.toUpperCase()) {
-  //     case "APPROVED":
-  //       return "border-green-300 bg-green-50";
-  //     case "PENDING":
-  //       return "border-yellow-300 bg-yellow-50";
-  //     case "IN_PROGRESS":
-  //       return "border-blue-300 bg-blue-50";
-  //     case "REJECTED":
-  //       return "border-red-300 bg-red-50";
-  //     default:
-  //       return "border-gray-300 bg-gray-50";
-  //   }
-  // };
 
   const getText = ({
     status,
@@ -72,59 +65,133 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
 
   return (
     <div className="space-y-4">
-      {approvalWorkflow.approval_steps &&
-      approvalWorkflow.approval_steps.length > 0 ? (
-        approvalWorkflow.approval_steps.map((step, index) => (
-          <div key={index} className="flex items-start space-x-4">
-            <div className="flex flex-col items-center">
-              {getStatusIcon(step.status)}
-              {index < (approvalWorkflow.approval_steps?.length || 0) - 1 && (
-                <div className="w-px h-8 bg-gray-300 mt-2" />
-              )}
-            </div>
-            <div className={`flex-1`}>
-              {/* <div> */}
-              <div className="flex items-center justify-between text-sm">
-                {getText({
-                  status: step.status,
-                  firstName: step.approvers[0].first_name || "",
-                  lastName: step.approvers[0].last_name || "",
-                })}
+      {approvalWorkflow?.approval_steps?.length > 0 ? (
+        approvalWorkflow.approval_steps.map((step, index) => {
+          const approvers = step.approvers || [];
+          const primaryApprover = approvers[0] || {};
+
+          // Step-level approved time OR approver-level approved time
+          const approvedAt = step.approved_at || step.approved_at || null;
+
+          // Approver note (first available)
+          const note =
+            step.approver_note?.[0]?.notes ||
+            step.approver_note?.[0]?.notes ||
+            "";
+
+          const isMulti = approvers.length > 1;
+
+          return (
+            <div key={index} className="flex items-start space-x-4">
+              {/* Status Icon + Connector */}
+              <div className="flex flex-col items-center">
+                {getStatusIcon(step.status)}
+
+                {index < approvalWorkflow.approval_steps.length - 1 && (
+                  <div className="w-px h-8 bg-gray-300 mt-2" />
+                )}
               </div>
-              <div className="flex items-center justify-between">
-                {step.approvers[0] && (
-                  <div className="text-[12px] text-muted-foreground mt-1 flex items-center justify-between">
-                    {step.approvers[0].email}
+
+              {/* Step Content */}
+              <div className="flex-1">
+                {/* ----------- SINGLE APPROVER UI (same as original) ----------- */}
+                {!isMulti && (
+                  <>
+                    <div className="flex items-center justify-between text-sm">
+                      {getText({
+                        status: step.status,
+                        firstName: primaryApprover.first_name || "",
+                        lastName: primaryApprover.last_name || "",
+                      })}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      {primaryApprover.email && (
+                        <div className="text-[12px] text-muted-foreground mt-1">
+                          {primaryApprover.email}
+                        </div>
+                      )}
+
+                      {approvedAt && (
+                        <span className="text-[12px]">
+                          {formatDate(approvedAt)}
+                        </span>
+                      )}
+                    </div>
+
+                    {note && (
+                      <TooltipProvider>
+                        <Tooltip delayDuration={50}>
+                          <TooltipTrigger asChild>
+                            <span className="mt-1 block text-gray-600 italic text-[12px] truncate max-w-72 overflow-hidden">
+                              "{note.trim()}"
+                            </span>
+                          </TooltipTrigger>
+
+                          <TooltipContent
+                            className="bg-gray-100 border-gray-300 text-black"
+                            side="bottom"
+                          >
+                            <p>{note}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </>
+                )}
+
+                {/* ----------- MULTI APPROVER UI (new) ----------- */}
+                {isMulti && (
+                  <div className="space-y-1">
+                    <div className="space-y-0.5 text-sm flex items-center gap-2">
+                      {approvers.map((a, idx) => (
+                        <div
+                          key={a.user_id}
+                          className="flex items-center justify-between"
+                        >
+                          <span>
+                            {a.first_name} {a.last_name}
+                          </span>
+                          {idx !== approvers.length - 1 && <span>,</span>}
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <div>
+                        <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
+                          {step.status.replace("_", " ")}
+                        </Badge>
+                      </div>
+                      {approvedAt && (
+                        <div className="text-[12px] text-gray-600 mt-1">
+                          Approved: {formatDate(approvedAt)}
+                        </div>
+                      )}
+                    </div>
+                    {note && (
+                      <TooltipProvider>
+                        <Tooltip delayDuration={50}>
+                          <TooltipTrigger asChild>
+                            <span className="block text-gray-600 italic text-[12px] truncate max-w-72 overflow-hidden">
+                              "{note.trim()}"
+                            </span>
+                          </TooltipTrigger>
+
+                          <TooltipContent
+                            className="bg-gray-100 border-gray-300 text-black"
+                            side="bottom"
+                          >
+                            <p>{note}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </div>
                 )}
-                {step.approved_at && (
-                  <span className="text-[12px]">
-                    {formatDate(step.approved_at)}
-                  </span>
-                )}
               </div>
-              {step.approver_note[0]?.notes && (
-                <TooltipProvider>
-                  <Tooltip delayDuration={50}>
-                    <TooltipTrigger asChild>
-                      <span className="mt-1 block text-gray-600 italic text-[12px] truncate max-w-72 overflow-hidden">
-                        "{step.approver_note[0]?.notes.trim()}"
-                      </span>
-                    </TooltipTrigger>
-
-                    <TooltipContent
-                      className="bg-gray-100 border-gray-300 text-black"
-                      side="bottom"
-                    >
-                      <p>{step.approver_note[0]?.notes || ""}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              {/* </div> */}
             </div>
-          </div>
-        ))
+          );
+        })
       ) : (
         <div className="text-center py-8 text-muted-foreground">
           <p>No approval workflow steps available</p>

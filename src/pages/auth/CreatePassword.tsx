@@ -63,7 +63,6 @@ function CreatePassword() {
     setIsLoading(true);
     try {
       const res: any = await authService.createPassword(payload);
-      console.log(res);
       toast.success(res.data.message || "Password created successfully");
       navigate("/login");
     } catch (error: any) {

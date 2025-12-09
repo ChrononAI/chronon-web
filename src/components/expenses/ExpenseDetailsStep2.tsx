@@ -203,8 +203,6 @@ export function ExpenseDetailsStep2({
         orgId
       );
       setReceiptSignedUrl([response.data.data.signed_url]);
-      console.log("fetch receipt", response);
-      console.log(form.getValues("receipt_id"));
     } catch (error) {
       console.log(error);
       toast.error("Failed to fetch receipt image");
@@ -239,7 +237,6 @@ export function ExpenseDetailsStep2({
       const parsedData = await fileParseService.parseInvoiceFile(file);
       if (parsedData.is_duplicate_receipt) {
         setSemiParsedData(parsedData);
-        console.log(parsedData);
         setShowDuplicateDialog(true);
       } else {
         fetchReceipt(parsedData.id, orgId || "");
@@ -1861,7 +1858,6 @@ export function ExpenseDetailsStep2({
                 setShowDuplicateDialog(false);
                 // setCurrentStep(2);
                 if (!isReceiptReuploaded) setParsedData(semiParsedData);
-                console.log(semiParsedData);
                 fetchReceipt(semiParsedData?.id || "", orgId || "");
                 setPolicyCategory(semiParsedData);
                 form.setValue("receipt_id", semiParsedData?.id || "");

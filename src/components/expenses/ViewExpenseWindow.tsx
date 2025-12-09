@@ -58,7 +58,6 @@ export function ViewExpenseWindow({
   data: Expense | null;
   onOpenChange: any;
 }) {
-  console.log(data);
   const orgId = getOrgIdFromToken();
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const loading = false;

@@ -306,6 +306,7 @@ export function ReportDetailPage2() {
       setActionLoading(false);
     }
   };
+
   // Check if user can approve any expense in the report
   const canApproveReport = () => {
     if (!report || !user) return false;
@@ -319,7 +320,6 @@ export function ReportDetailPage2() {
     const pendingExpenses = report.expenses.filter(
       (exp) => exp.status === "PENDING" || exp.status === "PENDING_APPROVAL"
     ).length;
-
     const isUserInCurrentStep = approvalWorkflow?.approval_steps
       .find((step) => step.status === "IN_PROGRESS")
       ?.approvers.some((approver) => approver.user_id === user.id.toString());
@@ -364,7 +364,6 @@ export function ReportDetailPage2() {
 
   const handleViewExpense = async (expense: Expense) => {
     setShowViewExpense(true);
-    console.log(expense);
     setExpenseToView(expense);
   };
 

@@ -86,6 +86,7 @@ export const getStatusColor = (status: string): string => {
     case "PENDING":
     case "PENDING_APPROVAL":
     case "PAYMENT_PENDING":
+      case "IN_PROGRESS":
       return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
     case "APPROVED":
     case "PAID":

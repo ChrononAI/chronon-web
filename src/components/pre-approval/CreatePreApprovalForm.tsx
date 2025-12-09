@@ -163,7 +163,6 @@ function CreatePreApprovalForm({
   const getPreApprovalById = async (id: string) => {
     try {
       const res: any = await preApprovalService.getPreApprovalById(id);
-      console.log(res);
       const data = {
         ...res.data.data[0],
         amount: res.data.data[0].amount.toString(),

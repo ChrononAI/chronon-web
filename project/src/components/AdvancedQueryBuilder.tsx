@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { X, Plus, Copy, Play, Save } from 'lucide-react';
+import { Plus, Copy, Play, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AutocompleteField from './AutocompleteField';
 
@@ -69,7 +69,6 @@ const recipients = [
 
 const AdvancedQueryBuilder: React.FC = () => {
   const [queryText, setQueryText] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
 
   const generateFieldOptions = () => {
@@ -87,12 +86,6 @@ const AdvancedQueryBuilder: React.FC = () => {
     });
 
     return options;
-  };
-
-  const getFieldValues = (fieldPath: string) => {
-    const [objectName, attribute] = fieldPath.split('.');
-    const schema = fieldSchemas.find(s => s.name === objectName);
-    return schema?.values?.[attribute] || [];
   };
 
   const parseQuery = (query: string) => {
@@ -129,7 +122,6 @@ const AdvancedQueryBuilder: React.FC = () => {
     // This would be called when user wants to build visually
     const sampleQuery = `IF (employee.level == L1) AND (category == food) AND (expense.amount < 5000) THEN SEND TO (ReportingManager) THEN (Finance)`;
     setQueryText(sampleQuery);
-    setIsEditing(true);
   };
 
   const executeQuery = () => {
@@ -148,8 +140,6 @@ const AdvancedQueryBuilder: React.FC = () => {
       title: "Query Executed",
       description: `Parsed ${conditions.length} conditions and ${actions.length} actions.`,
     });
-
-    console.log('Parsed Query:', { conditions, actions });
   };
 
   const saveQuery = () => {

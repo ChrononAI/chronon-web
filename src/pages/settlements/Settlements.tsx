@@ -419,7 +419,6 @@ function Settlements() {
   };
 
   const markAspaid = async (ids: string[]) => {
-    console.log(ids);
     setMarking(true);
     try {
       await settlementsService.markAsPaid(ids);
@@ -443,7 +442,6 @@ function Settlements() {
         .filter((exp: any) => !rowSelection.ids.has(exp.id))
         .map((exp: any) => exp.id);
     }
-    console.log(expense_ids);
     markAspaid(expense_ids as string[]);
   };
 

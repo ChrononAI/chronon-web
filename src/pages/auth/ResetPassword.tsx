@@ -27,8 +27,7 @@ function ResetPassword() {
   }) => {
     setIsLoading(true);
     try {
-      const res: any = await authService.verifyResetPassword(payload);
-      console.log(res);
+      authService.verifyResetPassword(payload);
       toast.success("Password reset successful");
       navigate("/login");
     } catch (error: any) {
