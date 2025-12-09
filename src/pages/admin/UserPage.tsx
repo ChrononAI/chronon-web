@@ -8,7 +8,7 @@ import {
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { CheckCircle, Download, Plus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
@@ -54,6 +54,8 @@ function CustomNoRows() {
 }
 
 const UserPage = () => {
+  const location = useLocation();
+  const isRequests = location.pathname.includes("/requests/users");
   const [rows, setRows] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [paginationModel, setPaginationModel] =
@@ -182,7 +184,7 @@ const UserPage = () => {
         </div>
         <div className="flex items-center gap-2">
           <Button asChild>
-            <Link to="/admin-settings/users/create">
+            <Link to={isRequests ? "/requests/users/create" : "/admin-settings/users/create"}>
               <Plus className="mr-2 h-4 w-4" />
               CREATE
             </Link>
@@ -262,8 +264,9 @@ const UserPage = () => {
           onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel || { page: 0, pageSize: 25 }}
           onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 25, 50, 100]}
           rowCount={rowCount}
           disableRowSelectionOnClick
           showCellVerticalBorder

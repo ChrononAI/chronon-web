@@ -105,4 +105,23 @@ export const storesService = {
       throw error;
     }
   },
+  async getStoreComments(storeId: string) {
+    try {
+      const response = await api.get(`/api/v1/store_comments?store_id=${storeId}`);
+      return response.data?.data || [];
+    } catch (error) {
+      throw error;
+    }
+  },
+  async postStoreComment(storeId: string, comment: string, notify: boolean = false) {
+    try {
+      return await api.post(`/api/v1/store_comments`, {
+        store_id: storeId,
+        comment,
+        notify,
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
 };

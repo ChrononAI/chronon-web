@@ -69,6 +69,11 @@ const navigation: NavigationItem[] = [
         href: "/requests/stores",
         icon: Store,
       },
+      {
+        name: "Users",
+        href: "/requests/users",
+        icon: User,
+      },
     ],
   },
   { name: "Expenses", href: "/expenses", icon: Banknote },
@@ -229,6 +234,19 @@ export function Sidebar() {
           children,
         };
       } else if (item.name === "Stores") {
+        const permission = {
+          enabled: orgSettings?.store_settings?.enabled || false,
+          allowed: orgSettings?.store_settings?.allowed || false,
+        };
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
+      } else if (item.name === "Users") {
         const permission = {
           enabled: orgSettings?.store_settings?.enabled || false,
           allowed: orgSettings?.store_settings?.allowed || false,
