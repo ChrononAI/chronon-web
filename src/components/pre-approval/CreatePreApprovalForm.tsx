@@ -68,13 +68,15 @@ function CreatePreApprovalForm({
   maxWidth = "max-w-4xl",
 }: CreatePreApprovalFormProps) {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
 
   const { id } = useParams<{ id: string }>();
+  const { pathname } = useLocation();
 
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedPreApproval, setSelectedPreApproval] =
+    useState<PreApprovalType | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -116,33 +118,57 @@ function CreatePreApprovalForm({
       button_name: "Create Pre Approval",
     });
     setLoading(true);
-    const newFd = JSON.parse(JSON.stringify(formData));
-    if (!newFd.amount || !newFd.currency) {
-      delete newFd.amount;
-      delete newFd.currency;
-    }
-    if (!newFd.policy_id) {
-      newFd.policy_id = null;
-    }
-    const { hotelRequired, flightRequired, ...rest } = newFd;
-    try {
-      const response: any = await preApprovalService.createPreApproval(rest);
-      await preApprovalService.submitPreApproval(response.data.data.id);
-      toast.success("Pre approval created successfully");
-      setTimeout(() => {
+    if (selectedPreApproval?.status === "COMPLETE") {
+      try {
+        await preApprovalService.submitPreApproval(selectedPreApproval?.id);
+        toast.success("Pre approval submitted successfully");
         navigate("/requests/pre-approvals");
-      }, 200);
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
+      } catch (error: any) {
+        console.log(error);
+        toast.error(error?.response?.data?.message || error.message);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      const newFd = JSON.parse(JSON.stringify(formData));
+      if (!newFd.amount || !newFd.currency) {
+        delete newFd.amount;
+        delete newFd.currency;
+      }
+      if (!newFd.policy_id) {
+        newFd.policy_id = null;
+      }
+      const { hotelRequired, flightRequired, ...rest } = newFd;
+      try {
+        const response: any = await preApprovalService.createPreApproval(rest);
+        await preApprovalService.submitPreApproval(response.data.data.id);
+        toast.success("Pre approval created successfully");
+        navigate("/requests/pre-approvals");
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleBack = () => {
+    if (pathname.includes("/approvals")) {
+      navigate("/approvals/pre-approvals");
+    } else {
+      navigate("/requests/pre-approvals");
     }
   };
 
   const getPreApprovalById = async (id: string) => {
     try {
       const res: any = await preApprovalService.getPreApprovalById(id);
-      form.reset(res.data.data[0]);
+      const data = {
+        ...res.data.data[0],
+        amount: res.data.data[0].amount.toString(),
+      };
+      form.reset(data);
+      setSelectedPreApproval(data);
       const selectedPol = policies.find(
         (pol) => pol.id === res.data.data[0].policy_id
       );
@@ -186,7 +212,7 @@ function CreatePreApprovalForm({
                       {...field}
                       placeholder="Title"
                       // readOnly={readOnly}
-                      disabled={mode === "view"}
+                      disabled={mode !== "create"}
                     />
                   </FormControl>
                   <FormMessage />
@@ -208,7 +234,7 @@ function CreatePreApprovalForm({
                       onChange={(value) => {
                         field.onChange(value);
                       }}
-                      disabled={mode === "view"}
+                      disabled={mode !== "create"}
                       minDate={today}
                     />
                   </FormControl>
@@ -230,7 +256,7 @@ function CreatePreApprovalForm({
                         // handleInputChange("expenseDate", value);
                         field.onChange(value);
                       }}
-                      disabled={mode === "view"}
+                      disabled={mode !== "create"}
                       minDate={today}
                     />
                   </FormControl>
@@ -254,7 +280,7 @@ function CreatePreApprovalForm({
                         const policy = policies.find((p) => p.id === value);
                         setSelectedPolicy(policy || null);
                       }}
-                      disabled={mode === "view"}
+                      disabled={mode !== "create"}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -301,7 +327,7 @@ function CreatePreApprovalForm({
                       if (curr) setSelectedCurrency(curr);
                     }}
                     value={field.value}
-                    disabled={mode === "view"}
+                    disabled={mode !== "create"}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -360,7 +386,7 @@ function CreatePreApprovalForm({
                         step="0.01"
                         min="0"
                         {...field}
-                        disabled={mode === "view"}
+                        disabled={mode !== "create"}
                       />
                     </div>
                   </FormControl>
@@ -380,7 +406,7 @@ function CreatePreApprovalForm({
                     <Input
                       {...field}
                       placeholder="Purpose"
-                      disabled={mode === "view"}
+                      disabled={mode !== "create"}
                     />
                   </FormControl>
                   <FormMessage />
@@ -400,7 +426,7 @@ function CreatePreApprovalForm({
                       <Switch
                         checked={field.value}
                         onCheckedChange={field.onChange}
-                        disabled={mode === "view"}
+                        disabled={mode !== "create"}
                       />
                     </div>
                   </FormControl>
@@ -419,7 +445,7 @@ function CreatePreApprovalForm({
                       <Switch
                         checked={field.value}
                         onCheckedChange={field.onChange}
-                        disabled={mode === "view"}
+                        disabled={mode !== "create"}
                       />
                     </div>
                   </FormControl>
@@ -428,16 +454,17 @@ function CreatePreApprovalForm({
               )}
             />
           </div>
-          {!pathname.includes("approvals") && <FormFooter>
+          <FormFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/requests/pre-approvals")}
+              onClick={handleBack}
               className="px-6 py-2"
             >
               Back
             </Button>
-            {mode !== "view" && (
+            {(selectedPreApproval?.status === "COMPLETE" ||
+              mode !== "view") && (
               <Button
                 type="submit"
                 disabled={loading}
@@ -446,16 +473,16 @@ function CreatePreApprovalForm({
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {mode === "edit" ? "Updating..." : "Creating..."}
+                    {mode === "edit" ? "Submitting..." : "Creating..."}
                   </>
-                ) : mode === "edit" ? (
+                ) : selectedPreApproval?.status === "COMPLETE" ? (
                   "Resubmit Pre Approval"
                 ) : (
                   "Create Pre Approval"
                 )}
               </Button>
             )}
-          </FormFooter>}
+          </FormFooter>
         </form>
       </Form>
     </div>

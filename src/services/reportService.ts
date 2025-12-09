@@ -86,8 +86,6 @@ class ReportService {
         );
         return availableExpenses;
       }
-
-      console.log("No expenses found or invalid response structure");
       return [];
     } catch (error) {
       console.error("Error fetching unassigned expenses:", error);

@@ -203,7 +203,7 @@ function ProcessStorePage() {
                   className="bg-green-600 hover:bg-green-700"
                   disabled={approveLoading}
                 >
-                  <CheckCircle className="h-4 w-4 mr-2 animate-spin" />
+                  <CheckCircle className="h-4 w-4 mr-2" />
                   {approveLoading ? "Approving..." : "Approve"}
                 </Button>
                 <Button

@@ -94,7 +94,6 @@ export function GenerateReportDialog({ open, onOpenChange, onReportGenerated, se
         end_date: formattedToDate,
         report_name: reportName
       });
-      console.log(response);
       if (response.success && response.data) {
         toast.success(response.message || 'Report generated successfully!');
         

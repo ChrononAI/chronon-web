@@ -20,7 +20,12 @@ import { Label } from "@/components/ui/label";
 import { approvalService } from "@/services/approvalService";
 import { reportService } from "@/services/reportService";
 import { ReportWithExpenses, ApprovalWorkflow, Expense } from "@/types/expense";
-import { formatDate, formatCurrency, getStatusColor } from "@/lib/utils";
+import {
+  formatDate,
+  formatCurrency,
+  getStatusColor,
+  getOrgCurrency,
+} from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
@@ -36,6 +41,7 @@ import { getExpenseType } from "./MyExpensesPage";
 import { Input } from "@/components/ui/input";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import { trackEvent } from "@/mixpanel";
+import { FormFooter } from "@/components/layout/FormFooter";
 
 const columns: GridColDef[] = [
   {
@@ -126,14 +132,14 @@ const columns: GridColDef[] = [
     type: "number",
     align: "right",
     headerAlign: "right",
-    valueFormatter: (params: any) => formatCurrency(params, "INR"),
+    valueFormatter: (params: any) => formatCurrency(params),
   },
   {
     field: "currency",
     headerName: "CURRENCY",
     minWidth: 100,
     flex: 1,
-    renderCell: () => "INR",
+    renderCell: () => getOrgCurrency(),
   },
   {
     field: "status",
@@ -300,6 +306,7 @@ export function ReportDetailPage2() {
       setActionLoading(false);
     }
   };
+
   // Check if user can approve any expense in the report
   const canApproveReport = () => {
     if (!report || !user) return false;
@@ -313,7 +320,6 @@ export function ReportDetailPage2() {
     const pendingExpenses = report.expenses.filter(
       (exp) => exp.status === "PENDING" || exp.status === "PENDING_APPROVAL"
     ).length;
-
     const isUserInCurrentStep = approvalWorkflow?.approval_steps
       .find((step) => step.status === "IN_PROGRESS")
       ?.approvers.some((approver) => approver.user_id === user.id.toString());
@@ -358,7 +364,6 @@ export function ReportDetailPage2() {
 
   const handleViewExpense = async (expense: Expense) => {
     setShowViewExpense(true);
-    console.log(expense);
     setExpenseToView(expense);
   };
 
@@ -517,6 +522,16 @@ export function ReportDetailPage2() {
             </div>
           )}
         </div>
+        <FormFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/approvals/reports")}
+            className="px-6 py-2"
+          >
+            Back
+          </Button>
+        </FormFooter>
       </div>
 
       {/* Action Dialog */}
@@ -555,7 +570,7 @@ export function ReportDetailPage2() {
                       Total Value:
                     </span>
                     <span className="text-sm font-medium">
-                      {formatCurrency(totalAmount, "INR")}
+                      {formatCurrency(totalAmount)}
                     </span>
                   </div>
                   <div className="flex justify-between">

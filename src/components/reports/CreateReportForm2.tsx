@@ -230,7 +230,6 @@ export function CreateReportForm2({
   const getAllCategories = async () => {
     try {
       const res = await categoryService.getAllCategories();
-      console.log(res);
       setCategories(res.data.data);
     } catch (error) {
       console.log(error);
@@ -716,6 +715,9 @@ export function CreateReportForm2({
             "& .MuiDataGrid-panel .MuiSelect-select": {
               fontSize: "12px",
             },
+            "& .MuiToolbar-root": {
+              paddingX: 0,
+            },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
             },
@@ -834,18 +836,14 @@ export function CreateReportForm2({
           </AlertDialog>
         )}
         <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/reports')}
-              className="px-6 py-2"
-            >
-              Back
-            </Button>
-        <Button
-          onClick={onSave}
-          disabled={saving}
+          type="button"
           variant="outline"
+          onClick={() => navigate("/reports")}
+          className="px-6 py-2"
         >
+          Back
+        </Button>
+        <Button onClick={onSave} disabled={saving} variant="outline">
           {saving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

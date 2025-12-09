@@ -7,12 +7,10 @@ import api from "@/lib/api";
 import {
   Calendar,
   Loader2,
-  FileText,
   ZoomIn,
   ZoomOut,
   RotateCw,
   RefreshCw,
-  Maximize2,
   Download,
   X,
   ChevronDown,
@@ -54,7 +52,6 @@ import { cn, getOrgCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
-import { ExpenseComments } from "./ExpenseComments";
 import {
   fileParseService,
   ParsedInvoiceData,
@@ -77,6 +74,7 @@ import { getTemplates, type Template } from "@/services/admin/templates";
 import { getEntities, type Entity } from "@/services/admin/entities";
 import { AdvanceService } from "@/services/advanceService";
 import { FormFooter } from "../layout/FormFooter";
+import ReceiptViewer from "./ReceiptViewer";
 
 // Form schema
 const expenseSchema = z.object({
@@ -116,6 +114,7 @@ interface ExpenseDetailsStepProps {
   onSubmit: (data: ExpenseFormValues) => void;
   mode?: "create" | "edit" | "view";
   loading: boolean;
+  receiptLoading?: boolean;
   isReceiptReplaced?: boolean;
   setIsReceiptReplaced?: any;
   uploadedFile: File | null;
@@ -130,6 +129,7 @@ export function ExpenseDetailsStep2({
   onSubmit,
   mode,
   loading,
+  receiptLoading,
   isReceiptReplaced,
   setIsReceiptReplaced,
   uploadedFile,
@@ -203,8 +203,6 @@ export function ExpenseDetailsStep2({
         orgId
       );
       setReceiptSignedUrl([response.data.data.signed_url]);
-      console.log("fetch receipt", response);
-      console.log(form.getValues("receipt_id"));
     } catch (error) {
       console.log(error);
       toast.error("Failed to fetch receipt image");
@@ -239,7 +237,6 @@ export function ExpenseDetailsStep2({
       const parsedData = await fileParseService.parseInvoiceFile(file);
       if (parsedData.is_duplicate_receipt) {
         setSemiParsedData(parsedData);
-        console.log(parsedData);
         setShowDuplicateDialog(true);
       } else {
         fetchReceipt(parsedData.id, orgId || "");
@@ -739,13 +736,14 @@ export function ExpenseDetailsStep2({
     isPdfUrl(activeReceiptUrl);
 
   const hasReceipt = Boolean(activeReceiptUrl);
-  const isLoadingReceipt = replaceRecLoading || duplicateReceiptLoading;
+  const isLoadingReceipt =
+    replaceRecLoading || duplicateReceiptLoading || receiptLoading;
   const inputFieldClass =
-    "h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+    "h-11 border border-gray-200 bg-white px-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
   const selectTriggerClass =
-    "h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm shadow-none focus:outline-none focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+    "h-11 border border-gray-200 bg-white px-4 text-sm shadow-none focus:outline-none focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
   const textareaClass =
-    "rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+    "border border-gray-200 bg-white px-4 py-3 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
 
   return (
     <>
@@ -772,13 +770,14 @@ export function ExpenseDetailsStep2({
         )}
 
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="space-y-6 md:sticky md:top-4 md:self-start md:h-full md:overflow-hidden">
+          {/* <div className="space-y-6 md:sticky md:top-4 md:self-start md:h-full md:overflow-hidden">
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col h-full">
               <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-0.5">
                   {[
                     { key: "receipt", label: "Receipt" },
                     { key: "comments", label: "Comments" },
+                    { key: "validation", label: "Validation" },
                   ].map((tab) => (
                     <button
                       key={tab.key}
@@ -787,7 +786,7 @@ export function ExpenseDetailsStep2({
                         setActiveReceiptTab(tab.key as "receipt" | "comments")
                       }
                       className={cn(
-                        "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                        "rounded-full px-3 py-2 text-sm font-medium transition-all",
                         activeReceiptTab === tab.key
                           ? "bg-primary/10 text-primary"
                           : "text-gray-500 hover:text-gray-900"
@@ -798,7 +797,7 @@ export function ExpenseDetailsStep2({
                   ))}
                 </div>
 
-                {!readOnly && hasReceipt && (
+                {!readOnly && hasReceipt && activeReceiptTab === "receipt" && (
                   <Button
                     type="button"
                     variant="outline"
@@ -814,7 +813,7 @@ export function ExpenseDetailsStep2({
               <div>
                 {activeReceiptTab === "receipt" ? (
                   <>
-                    <div className="md:flex-1 md:overflow-hidden">
+                    <div className="md:flex-1 md:max-h-[50vh] lg:max-h-[60vh] overflow-hidden">
                       {isLoadingReceipt ? (
                         <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center">
                           <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
@@ -828,12 +827,12 @@ export function ExpenseDetailsStep2({
                           </div>
                         </div>
                       ) : hasReceipt ? (
-                        <div className="flex flex-1 items-center justify-center rounded-b-2xl bg-gray-50 p-6 md:h-full">
+                        <div className="flex flex-1 items-center justify-center rounded-b-2xl bg-gray-50 p-2 md:h-full">
                           {isPdfReceipt ? (
                             <embed
                               src={`${activeReceiptUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                               type="application/pdf"
-                              className="h-[520px] w-full rounded-xl border border-gray-200 bg-white"
+                              className="max-h-[30vh] md:max-h-[60vh] lg:max-h-[50vh] w-full rounded-xl border border-gray-200 bg-white"
                               style={{
                                 transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
                                 transformOrigin: "center",
@@ -843,7 +842,7 @@ export function ExpenseDetailsStep2({
                             <img
                               src={activeReceiptUrl ?? ""}
                               alt="Receipt preview"
-                              className="max-h-[520px] w-full rounded-xl border border-gray-200 bg-white object-contain"
+                              className="max-h-[30vh] md:max-h-[60vh] lg:max-h-[50vh] w-full rounded-xl border border-gray-200 bg-white object-contain"
                               style={{
                                 transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
                                 transformOrigin: "center",
@@ -943,17 +942,52 @@ export function ExpenseDetailsStep2({
                       </div>
                     </div>
                   </>
-                ) : (
-                  <div className="flex-1 overflow-auto min-h-0">
+                ) : activeReceiptTab === "comments" ? (
+                  <div className="flex-1 overflow-auto max-h-[60vh] min-h-0">
                     <ExpenseComments
                       expenseId={expense?.id}
                       readOnly={false}
                       autoFetch={activeReceiptTab === "comments"}
                     />
                   </div>
+                ) : (
+                  <ExpenseValidation expenseId={expense?.id} />
                 )}
               </div>
             </div>
+          </div> */}
+          <div
+            className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
+              expense?.original_expense_id
+                ? "md:h-[calc(100vh-18rem)]"
+                : "md:h-[calc(100vh-13rem)]"
+            } md:overflow-y-auto`}
+          >
+            <ReceiptViewer
+              activeReceiptTab={activeReceiptTab}
+              setActiveReceiptTab={setActiveReceiptTab}
+              readOnly={readOnly}
+              hasReceipt={hasReceipt}
+              handleReplaceReceipt={handleReplaceReceipt}
+              replaceRecLoading={replaceRecLoading}
+              loading={loading}
+              isLoadingReceipt={isLoadingReceipt}
+              isPdfReceipt={isPdfReceipt}
+              activeReceiptUrl={activeReceiptUrl}
+              receiptZoom={receiptZoom}
+              receiptRotation={receiptRotation}
+              handleReceiptFullscreen={handleReceiptFullscreen}
+              handleReceiptDownload={handleReceiptDownload}
+              uploadReceipt={uploadReceipt}
+              receiptDisplayName={receiptDisplayName}
+              receiptDisplayType={receiptDisplayType}
+              expense={expense}
+              uploadedFile={uploadedFile}
+              handleReceiptRotate={handleReceiptRotate}
+              handleReceiptZoomIn={handleReceiptZoomIn}
+              handleReceiptZoomOut={handleReceiptZoomOut}
+              handleReceiptReset={handleReceiptReset}
+            />
           </div>
 
           <Form {...form}>
@@ -1257,12 +1291,20 @@ export function ExpenseDetailsStep2({
                                       disabled={readOnly}
                                       className={inputFieldClass}
                                       value={
-                                        userRate ??
-                                        expense?.user_conversion_rate ??
-                                        apiRate ??
-                                        ""
+                                        (
+                                          userRate ??
+                                          expense?.user_conversion_rate ??
+                                          apiRate ??
+                                          ""
+                                        )?.toString() !== ""
+                                          ? Number(
+                                              userRate ??
+                                                expense?.user_conversion_rate ??
+                                                apiRate ??
+                                                0
+                                            ).toFixed(3)
+                                          : ""
                                       }
-                                      // 👇 Update ONLY user_conversion_rate (NOT api_conversion_rate)
                                       onChange={(e) => {
                                         form.setValue(
                                           "user_conversion_rate",
@@ -1532,7 +1574,6 @@ export function ExpenseDetailsStep2({
 
                 <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
                   <Button type="button" variant="outline" onClick={onBack}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
                   {mode !== "view" && (
@@ -1556,7 +1597,7 @@ export function ExpenseDetailsStep2({
                     type="button"
                     variant="outline"
                     onClick={onBack}
-                    className="min-w-[140px]"
+                    className="px-6 py-2"
                   >
                     Back
                   </Button>
@@ -1817,7 +1858,6 @@ export function ExpenseDetailsStep2({
                 setShowDuplicateDialog(false);
                 // setCurrentStep(2);
                 if (!isReceiptReuploaded) setParsedData(semiParsedData);
-                console.log(semiParsedData);
                 fetchReceipt(semiParsedData?.id || "", orgId || "");
                 setPolicyCategory(semiParsedData);
                 form.setValue("receipt_id", semiParsedData?.id || "");

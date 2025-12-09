@@ -562,7 +562,12 @@ const ExpenseMasterPage = () => {
             )}
           </Card>
           <FormFooter>
-            <Button variant="outline" onClick={handleCancel} disabled={loading}>
+            <Button
+              variant="outline"
+              className="px-6 py-2"
+              onClick={handleCancel}
+              disabled={loading}
+            >
               Back
             </Button>
             <Button onClick={handleSubmitCustom} disabled={loading}>

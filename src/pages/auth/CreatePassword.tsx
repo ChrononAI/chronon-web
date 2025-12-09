@@ -63,7 +63,6 @@ function CreatePassword() {
     setIsLoading(true);
     try {
       const res: any = await authService.createPassword(payload);
-      console.log(res);
       toast.success(res.data.message || "Password created successfully");
       navigate("/login");
     } catch (error: any) {
@@ -131,7 +130,7 @@ function CreatePassword() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-gray-900 text-sm"
+                  className="w-full px-3 py-2.5 border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-gray-900 text-sm"
                   style={{ backgroundColor: "#f8fafc" }}
                   required
                 />
@@ -161,7 +160,7 @@ function CreatePassword() {
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-gray-900 text-sm"
+                  className="w-full px-3 py-2.5 pr-10 border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-gray-900 text-sm"
                   style={{ backgroundColor: "#f8fafc" }}
                   required
                 />

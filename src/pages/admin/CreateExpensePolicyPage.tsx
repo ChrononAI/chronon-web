@@ -170,6 +170,7 @@ function CreateExpensePolicyPage() {
             navigate("/admin-settings/product-config/expense-policies")
           }
           disabled={loading}
+          className="px-6 py-2"
         >
           Back
         </Button>

@@ -16,7 +16,7 @@ export const approvalService = {
       if (!orgId) {
         throw new Error('Organization ID not found in token');
       }
-      const response = await api.get(`/reports/approvers/reports?status=APPROVED,REJECTED,IN_PROGRESS&limit=${limit}&offset=${offset}`);
+      const response = await api.get(`/reports/approvers/reports?status=APPROVED,REJECTED,IN_PROGRESS,SENT_BACK&limit=${limit}&offset=${offset}`);
       return response;
     } catch (error) {
       console.error(`Error fetching reports with status ${status}:`, error);

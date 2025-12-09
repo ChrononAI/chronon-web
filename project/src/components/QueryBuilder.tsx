@@ -5,8 +5,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { X, Plus, ArrowRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
 interface Field {
   name: string;
   label: string;
@@ -169,8 +167,6 @@ const QueryBuilder: React.FC = () => {
     if (query.rules.length === 0) return '';
     
     const conditions = query.rules.map(rule => {
-      const field = getFieldOptions(rule.field);
-      const operatorLabel = operatorLabels[rule.operator] || rule.operator;
       return `(${rule.field} ${rule.operator} ${rule.value})`;
     }).join(` ${query.combinator} `);
 

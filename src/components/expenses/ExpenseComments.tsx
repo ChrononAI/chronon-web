@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Send } from "lucide-react";
 import { expenseService } from "@/services/expenseService";
@@ -48,7 +48,6 @@ export function ExpenseComments({
   const [postingComment, setPostingComment] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
-  const commentsEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch comments when expenseId is available
   useEffect(() => {
@@ -82,11 +81,6 @@ export function ExpenseComments({
   }, [expenseId, autoFetch]);
 
   // Auto-scroll to bottom when new comments are added
-  useEffect(() => {
-    if (commentsEndRef.current) {
-      commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [comments]);
 
   // Handle posting a new comment
   const handlePostComment = async () => {
@@ -127,9 +121,12 @@ export function ExpenseComments({
   };
 
   return (
-    <div className={cn("flex flex-col md:min-h-[520px] max-h-full", className)}>
-      {/* Comments display area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+    <div className={cn("flex flex-col h-full", className)}>
+      {/* Scrollable Comments Area */}
+      <div
+        className="flex-1 overflow-y-auto p-4 space-y-3 pb-4"
+        id="comments-scroll"
+      >
         {loadingComments ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -150,7 +147,7 @@ export function ExpenseComments({
               <div
                 key={comment.id}
                 className={cn(
-                  "flex animate-in fade-in slide-in-from-bottom-2",
+                  "flex animate-in fade-in slide-in-from-bottom-2 m-1",
                   isCurrentUser ? "justify-end" : "justify-start"
                 )}
               >
@@ -161,14 +158,14 @@ export function ExpenseComments({
                   )}
                 >
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-sm text-gray-700 font-medium">
+                    <span className="text-[12px] text-gray-700 font-medium">
                       {isCurrentUser
                         ? "You"
                         : comment.creator_user?.full_name ||
                           comment.creator_user?.email ||
                           "Unknown"}
                     </span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-[12px] text-gray-500">
                       {formatDateOnly(comment.created_at)}
                     </span>
                   </div>
@@ -180,11 +177,10 @@ export function ExpenseComments({
             );
           })
         )}
-        <div ref={commentsEndRef} />
       </div>
 
-      {/* Input area */}
-      <div className="border-t border-gray-100 p-4">
+      {/* Sticky Footer - Input Area */}
+      <div className="flex-none sticky bottom-0 z-10 bg-white border-t border-gray-200 p-3">
         {expenseId ? (
           <div className="flex items-end gap-2">
             <textarea
@@ -193,25 +189,16 @@ export function ExpenseComments({
               placeholder="Type a message..."
               disabled={readOnly || postingComment}
               rows={1}
-              className="flex-1 resize-none rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent max-h-32 overflow-y-auto"
-              style={{
-                minHeight: "48px",
-                height: "auto",
-              }}
+              className="flex-1 resize-none rounded-md border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary max-h-32"
               onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = "auto";
-                target.style.height = `${Math.min(
-                  target.scrollHeight,
-                  128
-                )}px`;
+                const t = e.target as HTMLTextAreaElement;
+                t.style.height = "auto";
+                t.style.height = `${Math.min(t.scrollHeight, 128)}px`;
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  if (newComment.trim() && !postingComment) {
-                    handlePostComment();
-                  }
+                  if (newComment.trim() && !postingComment) handlePostComment();
                 }
               }}
             />
@@ -219,7 +206,7 @@ export function ExpenseComments({
               <Button
                 type="button"
                 size="icon"
-                className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90 shrink-0 disabled:opacity-50"
+                className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90"
                 disabled={!newComment.trim() || postingComment}
                 onClick={handlePostComment}
               >
@@ -242,4 +229,3 @@ export function ExpenseComments({
     </div>
   );
 }
-

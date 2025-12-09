@@ -356,7 +356,6 @@ export function ReportDetailPage() {
 
   const handleViewExpense = async (expense: Expense) => {
     setShowViewExpense(true);
-    console.log(expense);
     setExpenseToView(expense);
   };
 

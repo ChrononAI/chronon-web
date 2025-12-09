@@ -27,7 +27,6 @@ export function LoginForm() {
 
     try {
       const { user, token } = await authService.login({ email, password });
-      console.log(user);
       login(user, token);
       identifyUser(user.id.toString());
       setUserProfile(user);
@@ -75,7 +74,7 @@ export function LoginForm() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-gray-900 text-sm"
+            className="w-full px-3 py-2.5 border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-gray-900 text-sm"
             style={{ backgroundColor: "#f8fafc" }}
             required
           />
@@ -93,7 +92,7 @@ export function LoginForm() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-gray-900 text-sm"
+              className="w-full px-3 py-2.5 pr-10 border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-gray-900 text-sm"
               style={{ backgroundColor: "#f8fafc" }}
               required
             />

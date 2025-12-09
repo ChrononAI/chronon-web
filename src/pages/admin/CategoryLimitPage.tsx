@@ -87,7 +87,6 @@ function CategoryLimitPage() {
   };
 
   const handleRowClick = ({ row }: any) => {
-    console.log(row);
     setSelectedLimit(row);
     navigate(`/admin-settings/product-config/category-limits/${row.id}`);
   };

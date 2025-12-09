@@ -49,8 +49,7 @@ function CreateExpenseCategoryPage() {
   const createCategories = async (payload: CreateCategoriesPayloadType) => {
     setLoading(true);
     try {
-      const res: any = await categoryService.createCategories(payload);
-      console.log(res);
+      await categoryService.createCategories(payload);
       toast.success("Successfully created categories");
       navigate("/admin-settings/product-config/expense-categories");
     } catch (error: any) {
@@ -147,6 +146,7 @@ function CreateExpenseCategoryPage() {
             navigate("/admin-settings/product-config/expense-categories")
           }
           disabled={loading}
+          className="px-6 py-2"
         >
           Back
         </Button>

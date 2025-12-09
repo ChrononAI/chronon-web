@@ -329,6 +329,7 @@ const ExpenseMasterPage = () => {
                 setActiveTab("core");
               }}
               disabled={loading}
+              className="px-6 py-2"
             >
               Back
             </Button>

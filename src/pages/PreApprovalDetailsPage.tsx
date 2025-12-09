@@ -104,7 +104,7 @@ function PreApprovalDetailsPage() {
           <h1 className="text-2xl font-bold mb-6">Pre Approval Details</h1>
         </div>
       {report?.status === "COMPLETE" || report?.status === "INCOMPLETE" ? (
-        <CreatePreApprovalForm mode="view" />
+        <CreatePreApprovalForm mode="edit" showHeader={false} />
       ) : (
         <div className="space-y-6">
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
