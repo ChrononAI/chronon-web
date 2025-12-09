@@ -406,7 +406,7 @@ const CreateUserForm = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit)} id="create-user-form">
         <fieldset
           disabled={loadingEntityFields || submitting}
           className="space-y-6"
@@ -778,7 +778,7 @@ const CreateUserForm = ({
           >
             Back
           </Button>
-          <Button type="submit" className="min-w-[140px]" disabled={submitting}>
+          <Button type="submit" form="create-user-form" className="min-w-[140px]" disabled={submitting}>
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

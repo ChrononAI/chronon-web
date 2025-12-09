@@ -83,7 +83,7 @@ function CreateExpenseCategoryPage() {
         <h1 className="text-2xl font-bold">Create Expense Categories</h1>
         <Card>
           <CardContent className="p-6 w-full">
-            <form onSubmit={handleSubmit} className="space-y-4 p-3 w-full">
+            <form onSubmit={handleSubmit} id="create-category-form" className="space-y-4 p-3 w-full">
               <div className="flex justify-end">
                 <Button type="button" variant="outline" onClick={handleAdd}>
                   + Add Another
@@ -150,7 +150,7 @@ function CreateExpenseCategoryPage() {
         >
           Back
         </Button>
-        <Button type="submit" disabled={loading} variant="default">
+        <Button type="submit" form="create-category-form" disabled={loading} variant="default">
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
