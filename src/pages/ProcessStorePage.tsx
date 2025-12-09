@@ -18,6 +18,8 @@ import { storesService } from "@/services/storeService";
 import { useAuthStore } from "@/store/authStore";
 import { useStoreStore } from "@/store/storeStore";
 import { ApprovalWorkflow } from "@/types/expense";
+import { StoreComments } from "@/components/stores/StoreComments";
+import { cn } from "@/lib/utils";
 import {
   Activity,
   Calendar,
@@ -26,6 +28,7 @@ import {
   FileText,
   Loader2,
   XCircle,
+  MessageSquare,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -46,6 +49,7 @@ function ProcessStorePage() {
 
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<ApprovalWorkflow | null>(null);
+  const [activeTab, setActiveTab] = useState<"timeline" | "comments">("timeline");
 
   const getUserSpecificStatus = (): string => {
     if (!user || !approvalWorkflow?.approval_steps?.length) {
@@ -294,21 +298,48 @@ function ProcessStorePage() {
               />
             </div>
           </div>
-          {approvalWorkflow && approvalWorkflow.approval_steps && (
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5" />
-                    Approval Workflow Timeline
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          <Card className="flex flex-col h-[600px]">
+            <CardHeader className="flex-none border-b border-gray-200 p-3">
+              <div className="flex items-center gap-3">
+                {[
+                  { key: "timeline", label: "Workflow Timeline", icon: Activity },
+                  { key: "comments", label: "Comments", icon: MessageSquare },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setActiveTab(tab.key as "timeline" | "comments")}
+                    className={cn(
+                      "flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all",
+                      activeTab === tab.key
+                        ? "bg-primary/10 text-primary"
+                        : "text-gray-500 hover:text-gray-900"
+                    )}
+                  >
+                    <tab.icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-hidden p-0">
+              {activeTab === "timeline" ? (
+                approvalWorkflow && approvalWorkflow.approval_steps ? (
+                  <div className="h-full overflow-y-auto p-6">
+                    <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-sm text-gray-500">No workflow timeline available</p>
+                  </div>
+                )
+              ) : (
+                <div className="h-full overflow-hidden">
+                  <StoreComments storeId={id} readOnly={false} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
         <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
           <DialogContent className="sm:max-w-md">

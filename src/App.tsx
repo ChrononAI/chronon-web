@@ -105,6 +105,9 @@ function App() {
               <Route path="/requests/advances/:id" element={<AdvanceDetailsPage />} />
               <Route path="/advance_accounts" element={<AdvanceAccounts />} />
 
+              <Route path="/requests/users" element={<UserPage />} />
+              <Route path="/requests/users/create" element={<CreateUserPage />} />
+
               {/* APPROVALS */}
               <Route path="/approvals/reports" element={<ApprovalsReportsPage />} />
               <Route path="/approvals/reports/:id" element={<ReportDetailPage2 />} />
