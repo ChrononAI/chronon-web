@@ -182,7 +182,7 @@ const ExpenseMasterPage = () => {
       }
     };
     loadEntities();
-  }, [activeTab, entities.length, entitiesLoading, templates.length]);
+  }, [activeTab, templates.length]);
 
   const expenseTemplate = useMemo(() => {
     return templates.find((t) => t.module_type === "expense");

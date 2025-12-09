@@ -203,6 +203,8 @@ function AdvanceAccounts() {
       setPolicies(res);
     } catch (error) {
       console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -212,6 +214,8 @@ function AdvanceAccounts() {
       setPreApprovals(res.data.data);
     } catch (error) {
       console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
