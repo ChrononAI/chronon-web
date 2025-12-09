@@ -226,10 +226,19 @@ function AdvanceAccounts() {
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, []);
 
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([getAccounts(), getPolicies(), fetchPreApprovals()]);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    getAccounts();
-    getPolicies();
-    fetchPreApprovals();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -241,7 +250,7 @@ function AdvanceAccounts() {
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
-  }, [paginationModel?.page, paginationModel?.pageSize])
+  }, [paginationModel?.page, paginationModel?.pageSize]);
 
   return (
     <ReportsPageWrapper

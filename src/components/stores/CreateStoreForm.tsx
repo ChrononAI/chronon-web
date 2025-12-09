@@ -52,19 +52,21 @@ const getFieldName = (entity: TemplateEntity): string => {
 };
 
 // Form schema
-const storeSchema = z.object({
-  description: z.string().optional(),
-  name: z.string().min(1, "Title is required"),
-  address: z.string().min(1, "Address is required"),
-  city: z.string().min(1, "City is required"),
-  area_manager_id: z.string().min(1, "Area manager is required").nullable(),
-  store_manager_id: z.string().min(1, "Store manager is required").nullable(),
-  store_code: z.string().min(1, "Store code is required"),
-  opening_date: z.preprocess(
-    (v) => (v ? new Date(v as string) : v),
-    z.date({ required_error: "Date is required" })
-  ),
-}).passthrough();
+const storeSchema = z
+  .object({
+    description: z.string().optional(),
+    name: z.string().min(1, "Title is required"),
+    address: z.string().min(1, "Address is required"),
+    city: z.string().min(1, "City is required"),
+    area_manager_id: z.string().min(1, "Area manager is required").nullable(),
+    store_manager_id: z.string().min(1, "Store manager is required").nullable(),
+    store_code: z.string().min(1, "Store code is required"),
+    opening_date: z.preprocess(
+      (v) => (v ? new Date(v as string) : v),
+      z.date({ required_error: "Date is required" })
+    ),
+  })
+  .passthrough();
 
 type StoreFormValues = z.infer<typeof storeSchema> & Record<string, any>;
 
@@ -126,15 +128,30 @@ export function CreateStoreForm({
     try {
       const res: any = await storesService.getStoreById(id);
       let store = res.data.data;
+      console.log(store);
       if (store) {
-        if (store.custom_attributes?.opening_date) {
+        if (store.custom_attributes) {
           store = {
             ...store,
-            opening_date: store.custom_attributes.opening_date,
-            custom_attributes: {
-              opening_date: store.custom_attributes?.opening_date,
-            },
+            ...store.custom_attributes
           };
+        }
+        if (
+          store.custom_attributes &&
+          typeof store.custom_attributes === "object"
+        ) {
+          Object.entries(store.custom_attributes).forEach(
+            ([entityId, value]) => {
+              if (
+                entityId &&
+                value !== null &&
+                value !== undefined &&
+                value !== ""
+              ) {
+                form.setValue(entityId as any, String(value));
+              }
+            }
+          );
         }
         form.reset(store);
         setSelectedStore(store);
@@ -235,7 +252,12 @@ export function CreateStoreForm({
             ...customAttributes,
           },
         };
-        const response: any = await storesService.createStore(payload);
+        const entityIds = new Set(entitiesToUse.map((e) => e.entity_id));
+
+        const filteredPayload = Object.fromEntries(
+          Object.entries(payload).filter(([key]) => !entityIds.has(key))
+        );
+        const response: any = await storesService.createStore(filteredPayload);
         await storesService.submitStore(response.data.data.id);
         toast.success("Store created successfully");
         setTimeout(() => {

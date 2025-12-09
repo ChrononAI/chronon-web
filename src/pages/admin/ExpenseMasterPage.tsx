@@ -68,7 +68,7 @@ interface AssignedEntitiesListProps {
   entities: Entity[];
 }
 
-const AssignedEntitiesList = ({
+export const AssignedEntitiesList = ({
   assignedEntities,
   entities,
 }: AssignedEntitiesListProps) => {
