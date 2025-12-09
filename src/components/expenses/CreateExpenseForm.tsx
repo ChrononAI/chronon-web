@@ -57,7 +57,9 @@ export function CreateExpenseForm() {
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [uploadStepKey, setUploadStepKey] = useState(0);
   const [isReceiptReplaced, setIsReceiptReplaced] = useState(false);
-  const [templateEntities, setTemplateEntities] = useState<Template["entities"]>([]);
+  const [templateEntities, setTemplateEntities] = useState<
+    Template["entities"]
+  >([]);
   useEffect(() => {
     if (currentStep === 2) {
       const loadTemplateEntities = async () => {
@@ -145,7 +147,7 @@ export function CreateExpenseForm() {
   };
 
   const actuallySubmit = async (formData: any) => {
-    setLoading(true);
+    // setLoading(true);
     try {
       let entitiesToUse = templateEntities;
       if (!entitiesToUse || entitiesToUse.length === 0) {
@@ -180,6 +182,10 @@ export function CreateExpenseForm() {
         });
       }
 
+      if (formData.advance_account_id) {
+        customAttributes["advance_account_id"] = formData.advance_account_id;
+      }
+
       let result;
       if (formData.invoice_number) {
         // Regular expense with invoice number
@@ -187,9 +193,10 @@ export function CreateExpenseForm() {
           expense_policy_id: formData.expense_policy_id,
           category_id: formData.category_id,
           amount: parseFloat(formData.amount),
-          expense_date: formData.expense_date instanceof Date 
-            ? formData.expense_date.toISOString().split("T")[0]
-            : formData.expense_date,
+          expense_date:
+            formData.expense_date instanceof Date
+              ? formData.expense_date.toISOString().split("T")[0]
+              : formData.expense_date,
           vendor: formData.vendor,
           invoice_number: formData.invoice_number,
           description: formData.description,
@@ -197,12 +204,22 @@ export function CreateExpenseForm() {
           currency: formData.currency || baseCurrency || "INR",
         };
 
-        if (formData.advance_id) expensePayload.advance_id = formData.advance_id;
-        if (formData.pre_approval_id) expensePayload.pre_approval_id = formData.pre_approval_id;
-        if (formData.foreign_amount) expensePayload.foreign_amount = parseFloat(formData.foreign_amount);
-        if (formData.foreign_currency) expensePayload.foreign_currency = formData.foreign_currency;
-        if (formData.api_conversion_rate) expensePayload.api_conversion_rate = parseFloat(formData.api_conversion_rate);
-        if (formData.user_conversion_rate) expensePayload.user_conversion_rate = parseFloat(formData.user_conversion_rate);
+        if (formData.advance_id)
+          expensePayload.advance_id = formData.advance_id;
+        if (formData.pre_approval_id)
+          expensePayload.pre_approval_id = formData.pre_approval_id;
+        if (formData.foreign_amount)
+          expensePayload.foreign_amount = parseFloat(formData.foreign_amount);
+        if (formData.foreign_currency)
+          expensePayload.foreign_currency = formData.foreign_currency;
+        if (formData.api_conversion_rate)
+          expensePayload.api_conversion_rate = parseFloat(
+            formData.api_conversion_rate
+          );
+        if (formData.user_conversion_rate)
+          expensePayload.user_conversion_rate = parseFloat(
+            formData.user_conversion_rate
+          );
 
         if (Object.keys(customAttributes).length > 0) {
           expensePayload.custom_attributes = customAttributes;
@@ -215,9 +232,10 @@ export function CreateExpenseForm() {
           expense_policy_id: formData.expense_policy_id || formData.policyId,
           category_id: formData.category_id || formData.categoryId,
           amount: parseFloat(formData.amount),
-          expense_date: formData.expense_date instanceof Date
-            ? formData.expense_date.toISOString().split("T")[0]
-            : formData.expense_date,
+          expense_date:
+            formData.expense_date instanceof Date
+              ? formData.expense_date.toISOString().split("T")[0]
+              : formData.expense_date,
           description: formData.description,
           vendor: formData.vendor || formData.merchant,
           receipt_id: formData.receipt_id,
@@ -232,11 +250,13 @@ export function CreateExpenseForm() {
         };
 
         if (formData.invoice_number || formData.invoiceNumber) {
-          expenseData.invoice_number = formData.invoice_number || formData.invoiceNumber;
+          expenseData.invoice_number =
+            formData.invoice_number || formData.invoiceNumber;
         }
         if (formData.advance_id) expenseData.advance_id = formData.advance_id;
-        if (formData.pre_approval_id) expenseData.pre_approval_id = formData.pre_approval_id;
-
+        if (formData.pre_approval_id)
+          expenseData.pre_approval_id = formData.pre_approval_id;
+        delete customAttributes.advance_account_id;
         if (Object.keys(customAttributes).length > 0) {
           expenseData.custom_attributes = customAttributes;
         }

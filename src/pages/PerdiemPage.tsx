@@ -660,7 +660,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         {mode === "edit" ? "Updating..." : "Creating..."}
                       </>
                     ) : mode === "create" ? (
-                      "Create expense"
+                      "Create Expense"
                     ) : (
                       "Update expense"
                     )}{" "}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, Loader2, Plus } from "lucide-react";
+import { ChevronDown, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const POPULAR_CITIES = [
@@ -77,6 +77,9 @@ export default function FlightPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [depart, setDepart] = useState<Date | undefined>(undefined);
+  const [returnDate, setReturnDate] = useState<Date | undefined>(undefined);
+  const [departOpen, setDepartOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
   const [passengers, setPassengers] = useState("");
   const [showFlights, setShowFlights] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
@@ -133,7 +136,7 @@ export default function FlightPage() {
       {/* Search Form */}
       <div>
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-0">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-0">
             {/* From */}
             <div className="p-4 border-r border-gray-200">
               <label className="text-xs text-gray-600 uppercase mb-1 block">
@@ -205,7 +208,7 @@ export default function FlightPage() {
               <label className="text-xs text-gray-600 uppercase mb-1 block">
                 Depart
               </label>
-              <Popover>
+              <Popover open={departOpen} onOpenChange={setDepartOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
@@ -233,8 +236,61 @@ export default function FlightPage() {
                   <Calendar
                     mode="single"
                     selected={depart}
-                    onSelect={setDepart}
+                    onSelect={(date) => {
+                      if (date) {
+                        setDepart(date);
+                        setTimeout(() => setDepartOpen(false), 0);
+                      }
+                    }}
                     disabled={(date) => date < new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Return */}
+            <div className="p-4 border-r border-gray-200">
+              <label className="text-xs text-gray-600 uppercase mb-1 block">
+                Return
+              </label>
+              <Popover open={returnOpen} onOpenChange={setReturnOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start text-left font-normal p-0 h-auto hover:bg-transparent"
+                    )}
+                  >
+                    <div>
+                      <div className={cn(
+                        "text-xl font-bold",
+                        returnDate ? "text-gray-900" : "text-gray-400"
+                      )}>
+                        {returnDate ? `${format(returnDate, "d")} ${format(returnDate, "MMM")}'${format(returnDate, "yy")}` : "Select date"}
+                      </div>
+                      {returnDate && (
+                        <div className="text-xs text-gray-600 mt-0.5">
+                          {format(returnDate, "EEEE")}
+                        </div>
+                      )}
+                    </div>
+                    <ChevronDown className="ml-auto h-4 w-4 text-gray-400" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={returnDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setReturnDate(date);
+                        setTimeout(() => setReturnOpen(false), 0);
+                      }
+                    }}
+                    disabled={(date) => 
+                      depart ? date <= depart : date < new Date()
+                    }
                     initialFocus
                   />
                 </PopoverContent>
@@ -361,10 +417,19 @@ export default function FlightPage() {
                         <h3 className="font-semibold text-gray-900">{flight.airline}</h3>
                         <span className="text-sm text-gray-500">{flight.flightNumber}</span>
                       </div>
-                      <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                        <Plus className="h-3 w-3" />
-                        Add to compare +
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {flight.price > 6000 ? (
+                          <div className="inline-flex items-center gap-1.5 bg-red-100 text-red-700 px-2.5 py-1 rounded-md text-xs font-medium">
+                            <AlertCircle className="h-3.5 w-3.5" />
+                            Policy Limit Exceeded
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-md text-xs font-medium">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Policy Limit
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Center Section - Flight Times and Duration */}

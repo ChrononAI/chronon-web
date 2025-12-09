@@ -287,11 +287,10 @@ export function ReportDetailPage2() {
       }
       toast.success(result.message);
       setShowActionDialog(false);
-      // Refresh data
       await fetchReport();
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Failed to ${actionType} report`, error);
-      toast.error(`Failed to ${actionType} report`);
+      toast.error(error?.response?.data?.message || `Failed to ${actionType} report`);
     } finally {
       setActionLoading(false);
     }

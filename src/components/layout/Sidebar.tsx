@@ -13,7 +13,9 @@ import {
   FolderKanban,
   Building2,
   FileSpreadsheet,
+  FilePlus,
   SlidersHorizontal,
+  Store,
   Plane,
   Bed,
   PlaneTakeoff,
@@ -49,8 +51,28 @@ import { useAuthStore } from "@/store/authStore";
 import { trackEvent } from "@/mixpanel";
 
 const navigation: NavigationItem[] = [
-  { name: "Pre Approval", href: "/pre-approvals", icon: ClipboardCheck },
-  { name: "Advances", href: "/advances", icon: Wallet },
+    {
+    name: "Requests",
+    href: "/requests/pre-approvals",
+    icon: FilePlus,
+    children: [
+      {
+        name: "Pre Approval",
+        href: "/requests/pre-approvals",
+        icon: CheckSquare,
+      },
+      {
+        name: "Advances",
+        href: "/requests/advances",
+        icon: ClipboardCheck,
+      },
+      {
+        name: "Stores",
+        href: "/requests/stores",
+        icon: Store,
+      },
+    ],
+  },
   { name: "Expenses", href: "/expenses", icon: Banknote },
   { name: "Expense Reports", href: "/reports", icon: FileSpreadsheet },
   {
@@ -72,6 +94,11 @@ const navigation: NavigationItem[] = [
         name: "Advances",
         href: "/approvals/advances",
         icon: Wallet,
+      },
+      {
+        name: "Stores",
+        href: "/approvals/stores",
+        icon: Store,
       },
     ],
   },
@@ -107,6 +134,7 @@ const permissionMap: any = {
   "Pre Approval": "pre_approval_settings",
   Advances: "advance_settings",
   Admin: "admin_dashboard_settings",
+  Stores: 'store_settings'
 };
 
 export function Sidebar() {
@@ -130,11 +158,11 @@ export function Sidebar() {
         const permission = {
           enabled:
             (orgSettings?.admin_dashboard_settings?.enabled === true &&
-              user?.role === "ADMIN") ||
+              user?.role === "SUPER_ADMIN") ||
             false,
           allowed:
             (orgSettings?.admin_dashboard_settings?.allowed === true &&
-              user?.role === "ADMIN") ||
+              user?.role === "SUPER_ADMIN") ||
             false,
         };
         const children = item.children
@@ -147,8 +175,8 @@ export function Sidebar() {
         };
       } else if (item?.name === "Reports") {
         const permission = {
-          enabled: user?.role === "ADMIN",
-          allowed: user?.role === "ADMIN",
+          enabled: user?.role === "ADMIN" || user?.role === "SUPER_ADMIN",
+          allowed: user?.role === "ADMIN" || user?.role === "SUPER_ADMIN",
         };
         const children = item.children
           ? mergePermissions(item.children, permissions)
@@ -183,6 +211,19 @@ export function Sidebar() {
           ? mergePermissions(item.children, permissions)
           : undefined;
 
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
+      } else if (item.name === "Stores") {
+        const permission = {
+          enabled: orgSettings?.store_settings?.enabled || false,
+          allowed: orgSettings?.store_settings?.allowed || false,
+        };
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
         return {
           ...item,
           permissions: permission,

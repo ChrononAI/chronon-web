@@ -76,6 +76,7 @@ import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { getTemplates, type Template } from "@/services/admin/templates";
 import { getEntities, type Entity } from "@/services/admin/entities";
+import { AdvanceService } from "@/services/advanceService";
 
 // Form schema
 const expenseSchema = z.object({
@@ -89,6 +90,7 @@ const expenseSchema = z.object({
     (v) => (v ? new Date(v as string) : v),
     z.date({ required_error: "Date is required" })
   ),
+  advance_account_id: z.string().optional().nullable(),
   description: z.string().min(1, "Description is required"),
   foreign_currency: z.string().optional().nullable(),
   currency: z.string().optional().default("INR"),
@@ -139,7 +141,6 @@ export function ExpenseDetailsStep2({
   const baseCurrency = getOrgCurrency();
   const orgId = getOrgIdFromToken();
   const { parsedData, setParsedData } = useExpenseStore();
-  console.log(loading);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(
     null
@@ -150,16 +151,25 @@ export function ExpenseDetailsStep2({
   const [selectedCategory, setSelectedCategory] =
     useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-  const [entityDropdownOpen, setEntityDropdownOpen] = useState<Record<string, boolean>>({});
+  const [entityDropdownOpen, setEntityDropdownOpen] = useState<
+    Record<string, boolean>
+  >({});
   const [replaceRecLoading, setReplaceRecLoading] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [shouldGetConversion, setShouldGetConversion] = useState(
     !Boolean(expense)
   );
+  const [advanceAccounts, setAdvanceAccounts] = useState([]);
+  const [selectedAdvanceAccount, setSelectedAdvanceAccount] =
+    useState<any>(null);
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string[]>([]);
   const [showConversion, setShowConversion] = useState(false);
-  const [templateEntities, setTemplateEntities] = useState<TemplateEntity[]>([]);
-  const [entityOptions, setEntityOptions] = useState<Record<string, Array<{ id: string; label: string }>>>({});
+  const [templateEntities, setTemplateEntities] = useState<TemplateEntity[]>(
+    []
+  );
+  const [entityOptions, setEntityOptions] = useState<
+    Record<string, Array<{ id: string; label: string }>>
+  >({});
   const [isReceiptReuploaded, setIsReceiptReuploaded] = useState(false);
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -333,6 +343,15 @@ export function ExpenseDetailsStep2({
     }
   };
 
+  const getAccounts = async () => {
+    try {
+      const res = await AdvanceService.getAccounts();
+      setAdvanceAccounts(res.data.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     if (form.watch("currency") !== baseCurrency) {
       setShowConversion(true);
@@ -371,6 +390,7 @@ export function ExpenseDetailsStep2({
 
   useEffect(() => {
     loadPoliciesWithCategories();
+    getAccounts();
   }, []);
 
   useEffect(() => {
@@ -380,14 +400,14 @@ export function ExpenseDetailsStep2({
           getTemplates(),
           getEntities(),
         ]);
-        
+
         const expenseTemplate = Array.isArray(templatesRes)
           ? templatesRes.find((t) => t.module_type === "expense")
           : null;
 
         if (expenseTemplate?.entities) {
           setTemplateEntities(expenseTemplate.entities);
-          
+
           // Set default values for template entities only if they don't already have values
           expenseTemplate.entities.forEach((entity) => {
             const entityId = getEntityId(entity);
@@ -401,7 +421,10 @@ export function ExpenseDetailsStep2({
           });
         }
 
-        const entityMap: Record<string, Array<{ id: string; label: string }>> = {};
+        const entityMap: Record<
+          string,
+          Array<{ id: string; label: string }>
+        > = {};
         entitiesRes.forEach((ent: Entity) => {
           if (ent.id && Array.isArray(ent.attributes)) {
             entityMap[ent.id] = ent.attributes.map((attr) => ({
@@ -411,7 +434,10 @@ export function ExpenseDetailsStep2({
           }
         });
 
-        const mappedOptions: Record<string, Array<{ id: string; label: string }>> = {};
+        const mappedOptions: Record<
+          string,
+          Array<{ id: string; label: string }>
+        > = {};
         expenseTemplate?.entities?.forEach((entity) => {
           const entityId = getEntityId(entity);
           if (entityId) {
@@ -427,6 +453,14 @@ export function ExpenseDetailsStep2({
 
     loadTemplates();
   }, []);
+
+  useEffect(() => {
+    if (expense?.custom_attributes?.advance_account_id && advanceAccounts.length > 0) {
+      form.setValue('advance_account_id', expense.custom_attributes.advance_account_id);
+      const selAdv = advanceAccounts.find((adv: any) => adv.id === expense.custom_attributes.advance_account_id);
+      if (selAdv) setSelectedAdvanceAccount(selAdv);
+    }
+  }, [expense, advanceAccounts])
 
   // Update form values when expense changes
   useEffect(() => {
@@ -459,19 +493,35 @@ export function ExpenseDetailsStep2({
       }
 
       // Prefill custom attributes from expense.custom_attributes
-      if (expense.custom_attributes && typeof expense.custom_attributes === 'object') {
-        Object.entries(expense.custom_attributes).forEach(([entityId, value]) => {
-          if (entityId && value !== null && value !== undefined && value !== "") {
-            form.setValue(entityId as any, String(value));
+      if (
+        expense.custom_attributes &&
+        typeof expense.custom_attributes === "object"
+      ) {
+        Object.entries(expense.custom_attributes).forEach(
+          ([entityId, value]) => {
+            if (
+              entityId &&
+              value !== null &&
+              value !== undefined &&
+              value !== ""
+            ) {
+              form.setValue(entityId as any, String(value));
+            }
           }
-        });
+        );
       }
     }
   }, [form, policies, expense, isReceiptReplaced]);
+  form.getValues('advance_account_id');
 
   // Prefill custom attributes when both expense and template entities are available
   useEffect(() => {
-    if (expense && templateEntities.length > 0 && expense.custom_attributes && typeof expense.custom_attributes === 'object') {
+    if (
+      expense &&
+      templateEntities.length > 0 &&
+      expense.custom_attributes &&
+      typeof expense.custom_attributes === "object"
+    ) {
       Object.entries(expense.custom_attributes).forEach(([entityId, value]) => {
         if (entityId && value !== null && value !== undefined && value !== "") {
           // Verify this entityId exists in template entities
@@ -1323,6 +1373,45 @@ export function ExpenseDetailsStep2({
                       )}
                     />
 
+                    {orgSettings?.advance_settings?.enabled && <FormField
+                      control={form.control}
+                      name="advance_account_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Advance Account</FormLabel>
+                          <Select
+                            value={field.value || ""}
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              const acc = advanceAccounts.find(
+                                (p: any) => p.id === value
+                              );
+                              setSelectedAdvanceAccount(acc || null);
+                            }}
+                            disabled={readOnly}
+                          >
+                            <FormControl>
+                              <SelectTrigger className={selectTriggerClass}>
+                                <SelectValue placeholder="Select an advance">
+                                  {field.value && selectedAdvanceAccount
+                                    ? selectedAdvanceAccount.account_name
+                                    : "Select an advance"}
+                                </SelectValue>
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {advanceAccounts.map((adv: any) => (
+                                <SelectItem key={adv.id} value={adv.id}>
+                                  <div>{adv.account_name}</div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />}
+
                     {templateEntities?.map((entity) => {
                       const entityId = getEntityId(entity);
                       const fieldName = getFieldName(entity);
@@ -1356,7 +1445,9 @@ export function ExpenseDetailsStep2({
                                       <Button
                                         variant="outline"
                                         role="combobox"
-                                        aria-expanded={entityDropdownOpen[entityId]}
+                                        aria-expanded={
+                                          entityDropdownOpen[entityId]
+                                        }
                                         className="h-11 w-full justify-between"
                                         disabled={readOnly}
                                       >
@@ -1373,27 +1464,33 @@ export function ExpenseDetailsStep2({
                                   </PopoverTrigger>
                                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                     <Command>
-                                      <CommandInput placeholder={`Search ${fieldName}...`} />
+                                      <CommandInput
+                                        placeholder={`Search ${fieldName}...`}
+                                      />
                                       <CommandList className="max-h-[180px] overflow-y-auto">
                                         <CommandEmpty>
                                           No {fieldName.toLowerCase()} found.
                                         </CommandEmpty>
                                         <CommandGroup>
-                                          {entityOptions[entityId]?.map((opt) => (
-                                            <CommandItem
-                                              key={opt.id}
-                                              value={opt.label}
-                                              onSelect={() => {
-                                                field.onChange(opt.id);
-                                                setEntityDropdownOpen((prev) => ({
-                                                  ...prev,
-                                                  [entityId]: false,
-                                                }));
-                                              }}
-                                            >
-                                              {opt.label}
-                                            </CommandItem>
-                                          ))}
+                                          {entityOptions[entityId]?.map(
+                                            (opt) => (
+                                              <CommandItem
+                                                key={opt.id}
+                                                value={opt.label}
+                                                onSelect={() => {
+                                                  field.onChange(opt.id);
+                                                  setEntityDropdownOpen(
+                                                    (prev) => ({
+                                                      ...prev,
+                                                      [entityId]: false,
+                                                    })
+                                                  );
+                                                }}
+                                              >
+                                                {opt.label}
+                                              </CommandItem>
+                                            )
+                                          )}
                                         </CommandGroup>
                                       </CommandList>
                                     </Command>

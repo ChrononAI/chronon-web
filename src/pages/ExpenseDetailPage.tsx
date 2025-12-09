@@ -151,15 +151,20 @@ export function ExpenseDetailPage() {
   const handleExpenseSubmit = async (formData: any) => {
     if (!expense || !id) return;
     setSaving(true);
+    console.log(formData);
     const filteredData = filterFormData(formData);
     try {
       if (filteredData.invoice_number) {
-        filteredData.expense_date = new Date(filteredData.expense_date).toISOString().split(
-          "T"
-        )[0];
+        filteredData.expense_date = new Date(filteredData.expense_date)
+          .toISOString()
+          .split("T")[0];
         filteredData.currency = baseCurrency || "INR";
         if (!filteredData.foreign_amount) {
           filteredData.foreign_currency = null;
+        }
+        if (formData.advance_account_id) {
+          filteredData.custom_attributes["advance_account_id"] =
+            formData.advance_account_id;
         }
         await expenseService.updateExpense(id, filteredData);
       } else if (formData.start_location) {
@@ -188,9 +193,9 @@ export function ExpenseDetailPage() {
       }
       toast.success("Expense updated successfully");
       navigate("/expenses");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update expense:", error);
-      toast.error("Failed to update expense");
+      toast.error(error?.response?.data?.message || error.message);
     } finally {
       setSaving(false);
     }
@@ -201,17 +206,12 @@ export function ExpenseDetailPage() {
 
     setIsDeleting(true);
     try {
-      const response = await expenseService.deleteExpense(id);
-      if (response.success) {
-        toast.success("Expense deleted successfully");
-        navigate("/expenses");
-      } else {
-        toast.error(response.message || "Failed to delete expense");
-        setShowDeleteDialog(false);
-      }
-    } catch (error) {
+      await expenseService.deleteExpense(id);
+      toast.success("Expense deleted successfully");
+      navigate("/expenses");
+    } catch (error: any) {
       console.error("Failed to delete expense:", error);
-      toast.error("Failed to delete expense");
+      toast.error(error?.response?.data?.message || "Failed to delete expense");
       setShowDeleteDialog(false);
     } finally {
       setIsDeleting(false);

@@ -38,9 +38,11 @@ export function ReportTabs({
             <span className={cn(
               "px-2 py-1 rounded-full text-xs font-medium",
               activeTab === tab.key 
-                ? "bg-green-100 text-green-600" 
+                ? "text-white" 
                 : "bg-gray-100 text-gray-600"
-            )}>
+            )}
+            style={activeTab === tab.key ? { backgroundColor: '#20D39C' } : {}}
+            >
               {tab.count}
             </span>
           )}

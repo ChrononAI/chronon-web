@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, Star, MapPin, Utensils, Wifi, Car, Loader2 } from "lucide-react";
+import { ChevronDown, Star, MapPin, Utensils, Wifi, Car, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hotelService, HotelData, CITY_CODES } from "@/services/hotelService";
 
@@ -79,8 +79,10 @@ export default function HotelPage() {
   const [location, setLocation] = useState("");
   const [checkIn, setCheckIn] = useState<Date | undefined>(undefined);
   const [checkOut, setCheckOut] = useState<Date | undefined>(undefined);
-  const [rooms, setRooms] = useState("");
-  const [adults, setAdults] = useState("");
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [rooms, setRooms] = useState("1");
+  const [adults, setAdults] = useState("1");
   const [priceRange, setPriceRange] = useState("");
   const [showHotels, setShowHotels] = useState(false);
   const [allHotels, setAllHotels] = useState<Hotel[]>([]);
@@ -226,7 +228,7 @@ export default function HotelPage() {
               <label className="text-xs text-gray-600 uppercase mb-1 block">
                 Check-In
               </label>
-              <Popover>
+              <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
@@ -254,7 +256,12 @@ export default function HotelPage() {
                   <Calendar
                     mode="single"
                     selected={checkIn}
-                    onSelect={setCheckIn}
+                    onSelect={(date) => {
+                      if (date) {
+                        setCheckIn(date);
+                        setTimeout(() => setCheckInOpen(false), 0);
+                      }
+                    }}
                     disabled={(date) => date < new Date()}
                     initialFocus
                   />
@@ -267,7 +274,7 @@ export default function HotelPage() {
               <label className="text-xs text-gray-600 uppercase mb-1 block">
                 Check-Out
               </label>
-              <Popover>
+              <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
@@ -295,7 +302,12 @@ export default function HotelPage() {
                   <Calendar
                     mode="single"
                     selected={checkOut}
-                    onSelect={setCheckOut}
+                    onSelect={(date) => {
+                      if (date) {
+                        setCheckOut(date);
+                        setTimeout(() => setCheckOutOpen(false), 0);
+                      }
+                    }}
                     disabled={(date) => 
                       checkIn ? date <= checkIn : date < new Date()
                     }
@@ -319,21 +331,12 @@ export default function HotelPage() {
                     )}
                   >
                     <div>
-                      {rooms && adults ? (
-                        <>
-                          <div className="text-xl font-bold text-gray-900">
-                            {rooms} {rooms === "1" ? "Room" : "Rooms"}
-                          </div>
-                          <div className="text-xs text-gray-600 mt-0.5">
-                            {adults} {adults === "1" ? "Adult" : "Adults"}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="text-xl font-bold text-gray-400">Select</div>
-                          <div className="text-xs text-gray-400 mt-0.5">Rooms & Guests</div>
-                        </>
-                      )}
+                      <div className="text-xl font-bold text-gray-900">
+                        {rooms} {rooms === "1" ? "Room" : "Rooms"}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-0.5">
+                        {adults} {adults === "1" ? "Adult" : "Adults"}
+                      </div>
                     </div>
                     <ChevronDown className="ml-auto h-4 w-4 text-gray-400" />
                   </Button>
@@ -349,7 +352,8 @@ export default function HotelPage() {
                           className="h-8 w-8"
                           onClick={() => {
                             const currentRooms = rooms ? parseInt(rooms) : 1;
-                            setRooms(Math.max(1, currentRooms - 1).toString());
+                            const newRooms = Math.max(1, currentRooms - 1);
+                            setRooms(newRooms.toString());
                           }}
                         >
                           -
@@ -361,7 +365,8 @@ export default function HotelPage() {
                           className="h-8 w-8"
                           onClick={() => {
                             const currentRooms = rooms ? parseInt(rooms) : 0;
-                            setRooms((currentRooms + 1).toString());
+                            const newRooms = currentRooms + 1;
+                            setRooms(newRooms.toString());
                           }}
                         >
                           +
@@ -377,7 +382,8 @@ export default function HotelPage() {
                           className="h-8 w-8"
                           onClick={() => {
                             const currentAdults = adults ? parseInt(adults) : 1;
-                            setAdults(Math.max(1, currentAdults - 1).toString());
+                            const newAdults = Math.max(1, currentAdults - 1);
+                            setAdults(newAdults.toString());
                           }}
                         >
                           -
@@ -389,7 +395,8 @@ export default function HotelPage() {
                           className="h-8 w-8"
                           onClick={() => {
                             const currentAdults = adults ? parseInt(adults) : 0;
-                            setAdults((currentAdults + 1).toString());
+                            const newAdults = currentAdults + 1;
+                            setAdults(newAdults.toString());
                           }}
                         >
                           +
@@ -581,6 +588,19 @@ export default function HotelPage() {
                           <h3 className="text-xl font-semibold text-gray-900 mb-1">
                             {hotel.name}
                           </h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            {hotel.currentPrice > 2500 ? (
+                              <div className="inline-flex items-center gap-1.5 bg-red-100 text-red-700 px-2.5 py-1 rounded-md text-xs font-medium">
+                                <AlertCircle className="h-3.5 w-3.5" />
+                                Policy Limit Exceeded
+                              </div>
+                            ) : (
+                              <div className="inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-md text-xs font-medium">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                Policy Limit
+                              </div>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                             <MapPin className="h-4 w-4" />
                             <span>{hotel.location}</span>

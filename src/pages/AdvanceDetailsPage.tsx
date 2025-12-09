@@ -20,20 +20,6 @@ function AdvanceDetailsPage() {
     const report = selectedAdvance;
     const [approvalWorkflow, setApprovalWorkflow] = useState<ApprovalWorkflow | null>(null);
 
-    // const getUserSpecificStatus = (): string => {
-    //     if (!user || !approvalWorkflow || !approvalWorkflow.approval_steps) {
-    //         return report?.status || 'UNDER_REVIEW';
-    //     }
-    //     const currentUserId = user.id.toString();
-    //     const userStep = approvalWorkflow.approval_steps.find(step =>
-    //         step.approvers.some(approver => approver.user_id === currentUserId)
-    //     );
-    //     if (!userStep) {
-    //         return report?.status || 'UNDER_REVIEW';
-    //     }
-    //     return userStep.status === 'APPROVED' ? 'APPROVED' : userStep.status === 'REJECTED' ? 'REJECTED' : 'UNDER_REVIEW';
-    // };
-
     const getUserSpecificStatus = (): string => {
         if (!user || !approvalWorkflow?.approval_steps?.length) {
             return report?.status || 'UNDER_REVIEW';

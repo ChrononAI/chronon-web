@@ -128,7 +128,7 @@ function CreatePreApprovalForm({
       await preApprovalService.submitPreApproval(response.data.data.id);
       toast.success("Pre approval created successfully");
       setTimeout(() => {
-        navigate("/pre-approvals");
+        navigate("/requests/pre-approvals");
       }, 200);
     } catch (error) {
       console.log(error);

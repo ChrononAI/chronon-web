@@ -72,13 +72,13 @@ export const placesService = {
     destinationPlaceIds,
     vehicle,
     isRoundTrip,
-    signal
+    signal,
   }: {
     originPlaceId: string;
     destinationPlaceIds: string | string[];
     vehicle: string;
     isRoundTrip: boolean;
-    signal: any
+    signal: any;
   }): Promise<MileageCostData | null> {
     try {
       // Handle multiple destinations by comma-separating them
@@ -134,7 +134,7 @@ export const placesService = {
       return response.data?.data ?? null;
     } catch (error) {
       console.error("Error fetching default start/end locations:", error);
-      return null;
+      throw error;
     }
   },
 };

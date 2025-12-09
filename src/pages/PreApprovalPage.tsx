@@ -134,7 +134,7 @@ function PreApprovalPage() {
 
   const handleRowClick = ({ row }: GridRowModel) => {
     setSelectedPreApproval(row);
-    navigate(`/pre-approvals/${row.id}`);
+    navigate(`/requests/pre-approvals/${row.id}`);
   };
 
   const [allRows, setAllRows] = useState<PreApprovalType[]>([]);
@@ -270,7 +270,7 @@ function PreApprovalPage() {
       showDateFilter={false}
       showCreateButton={true}
       createButtonText="Create Pre Approval"
-      createButtonLink="/pre-approvals/create"
+      createButtonLink="/requests/pre-approvals/create"
     >
       <Box
         sx={{

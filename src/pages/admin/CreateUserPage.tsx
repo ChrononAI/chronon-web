@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -11,19 +11,19 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
+} from "@/components/ui/form";
 import {
   Select,
   SelectTrigger,
   SelectContent,
   SelectItem,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -31,14 +31,14 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -46,82 +46,83 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { getTemplates } from "@/services/admin/templates"
-import { getEntities } from "@/services/admin/entities"
-import { Loader2, ChevronDown, Check } from "lucide-react"
-import { Separator } from "@/components/ui/separator"
-import api from "@/lib/api"
-import { toast } from "sonner"
-import { useNavigate } from "react-router-dom"
-import { getOrgIdFromToken } from "@/lib/jwtUtils"
-import { bulkUploadService } from "@/services/admin/bulkUploadService"
+} from "@/components/ui/dialog";
+import { getTemplates } from "@/services/admin/templates";
+import { getEntities } from "@/services/admin/entities";
+import { Loader2, ChevronDown, Check } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import api from "@/lib/api";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { getOrgIdFromToken } from "@/lib/jwtUtils";
+import { bulkUploadService } from "@/services/admin/bulkUploadService";
+import { storesService } from "@/services/storeService";
 
-const MODULE_TYPE_USER = "user"
-const FIELD_TYPE_SELECT = "SELECT"
+const MODULE_TYPE_USER = "user";
+const FIELD_TYPE_SELECT = "SELECT";
 const ROLE_OPTIONS = [
   { value: "ADMIN", label: "Admin" },
   { value: "USER", label: "User" },
-] as const
+] as const;
 
 interface EntityOption {
-  id: string
-  label: string
+  id: string;
+  label: string;
 }
 
 interface UserOption {
-  id: string
-  email: string
-  firstName: string
-  lastName: string
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
 }
 
 interface TemplateEntity {
-  entity_id?: string
-  id?: string
-  display_name?: string
-  field_name?: string
-  field_type?: string
-  is_mandatory?: boolean
-  description?: string
+  entity_id?: string;
+  id?: string;
+  display_name?: string;
+  field_name?: string;
+  field_type?: string;
+  is_mandatory?: boolean;
+  description?: string;
 }
 
 interface EntityAttribute {
-  id: string
-  display_value?: string
-  value?: string
+  id: string;
+  display_value?: string;
+  value?: string;
 }
 
 interface EntityResponse {
-  id?: string
-  attributes?: EntityAttribute[]
+  id?: string;
+  attributes?: EntityAttribute[];
 }
 
 interface ApiReportingUser {
-  id?: string | number
-  email?: string
-  first_name?: string
-  last_name?: string
+  id?: string | number;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 type UserFormValues = {
-  email: string
-  firstName: string
-  lastName: string
-  phoneNumber: string
-  role: string
-  employeeCode?: string
-  reportingManager?: string
-  [key: string]: string | undefined
-}
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  role: string;
+  employeeCode?: string;
+  reportingManager?: string;
+  [key: string]: string | undefined;
+};
 
 const getEntityId = (entity: TemplateEntity): string => {
-  return entity.entity_id || entity.id || ""
-}
+  return entity.entity_id || entity.id || "";
+};
 
 const getFieldName = (entity: TemplateEntity): string => {
-  return entity.display_name || entity.field_name || getEntityId(entity)
-}
+  return entity.display_name || entity.field_name || getEntityId(entity);
+};
 
 const createUserSchema = (templateEntities: TemplateEntity[]) => {
   const baseSchema = {
@@ -140,28 +141,30 @@ const createUserSchema = (templateEntities: TemplateEntity[]) => {
     role: z.string().trim().min(1, "Role is required"),
     employeeCode: z.string().trim().optional(),
     reportingManager: z.string().trim().optional(),
-  }
+  };
 
-  const dynamicFields: Record<string, z.ZodTypeAny> = {}
+  const dynamicFields: Record<string, z.ZodTypeAny> = {};
   templateEntities.forEach((entity) => {
-    const entityId = getEntityId(entity)
+    const entityId = getEntityId(entity);
     if (entityId) {
-      const fieldName = getFieldName(entity)
+      const fieldName = getFieldName(entity);
       if (entity.is_mandatory) {
         dynamicFields[entityId] = z
           .string()
           .trim()
-          .min(1, `${fieldName} is required`)
+          .min(1, `${fieldName} is required`);
       } else {
-        dynamicFields[entityId] = z.string().trim().optional()
+        dynamicFields[entityId] = z.string().trim().optional();
       }
     }
-  })
+  });
 
-  return z.object({ ...baseSchema, ...dynamicFields })
-}
+  return z.object({ ...baseSchema, ...dynamicFields });
+};
 
-const createDefaultValues = (templateEntities: TemplateEntity[]): UserFormValues => {
+const createDefaultValues = (
+  templateEntities: TemplateEntity[]
+): UserFormValues => {
   const defaults: UserFormValues = {
     email: "",
     firstName: "",
@@ -170,67 +173,80 @@ const createDefaultValues = (templateEntities: TemplateEntity[]): UserFormValues
     role: "",
     employeeCode: "",
     reportingManager: "",
-  }
+  };
 
   templateEntities.forEach((entity) => {
-    const entityId = getEntityId(entity)
+    const entityId = getEntityId(entity);
     if (entityId) {
-      defaults[entityId] = ""
+      defaults[entityId] = "";
     }
-  })
+  });
 
-  return defaults
-}
+  return defaults;
+};
 
 interface CreateUserFormProps {
-  templates: TemplateEntity[]
-  entityOptions: Record<string, EntityOption[]>
-  loadingEntityFields: boolean
+  templates: TemplateEntity[];
+  entityOptions: Record<string, EntityOption[]>;
+  loadingEntityFields: boolean;
 }
 
-const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: CreateUserFormProps) => {
-  const navigate = useNavigate()
-  const [reportingManagers, setReportingManagers] = useState<UserOption[]>([])
-  const [loadingManagers, setLoadingManagers] = useState(false)
-  const [managersLoaded, setManagersLoaded] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [reportingManagerOpen, setReportingManagerOpen] = useState(false)
-  const isMounted = useRef(true)
+const CreateUserForm = ({
+  templates,
+  entityOptions,
+  loadingEntityFields,
+}: CreateUserFormProps) => {
+  const navigate = useNavigate();
+  const [reportingManagers, setReportingManagers] = useState<UserOption[]>([]);
+  const [loadingManagers, setLoadingManagers] = useState(false);
+  const [managersLoaded, setManagersLoaded] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [reportingManagerOpen, setReportingManagerOpen] = useState(false);
+  const [storeOpen, setStoreOpen] = useState(false);
+  const [stores, setStores] = useState([]);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    isMounted.current = true
+    isMounted.current = true;
     return () => {
-      isMounted.current = false
-    }
-  }, [])
+      isMounted.current = false;
+    };
+  }, []);
 
-  const resolver = useMemo(() => zodResolver(createUserSchema(templates)), [templates])
-  const defaultValues = useMemo(() => createDefaultValues(templates), [templates])
+  const resolver = useMemo(
+    () => zodResolver(createUserSchema(templates)),
+    [templates]
+  );
+  const defaultValues = useMemo(
+    () => createDefaultValues(templates),
+    [templates]
+  );
   const knownEntityIds = useMemo(
-    () => new Set(templates.map((entity) => getEntityId(entity)).filter(Boolean)),
-    [templates],
-  )
+    () =>
+      new Set(templates.map((entity) => getEntityId(entity)).filter(Boolean)),
+    [templates]
+  );
 
   const form = useForm<UserFormValues>({
     resolver,
     defaultValues,
     mode: "onSubmit",
     reValidateMode: "onChange",
-  })
+  });
 
   const loadReportingManagers = useCallback(async () => {
-    if (loadingManagers || managersLoaded) return
+    if (loadingManagers || managersLoaded) return;
 
-    setLoadingManagers(true)
+    setLoadingManagers(true);
     try {
-      const orgId = getOrgIdFromToken()
+      const orgId = getOrgIdFromToken();
       if (!orgId) {
-        console.error("Organization ID not found")
-        return
+        console.error("Organization ID not found");
+        return;
       }
 
-      const response = await api.get(`/auth/em/users?org_id=${orgId}`)
-      const users: ApiReportingUser[] = response.data?.data || []
+      const response = await api.get(`/auth/em/users?org_id=${orgId}`);
+      const users: ApiReportingUser[] = response.data?.data || [];
       const managers: UserOption[] = users
         .map((user) => ({
           id: user.id !== undefined && user.id !== null ? String(user.id) : "",
@@ -238,48 +254,48 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
           firstName: user.first_name || "",
           lastName: user.last_name || "",
         }))
-        .filter((user) => user.id)
+        .filter((user) => user.id);
 
-      if (!isMounted.current) return
+      if (!isMounted.current) return;
 
-      setReportingManagers(managers)
-      setManagersLoaded(true)
+      setReportingManagers(managers);
+      setManagersLoaded(true);
     } catch (error) {
-      if (!isMounted.current) return
-      console.error("Failed to load reporting managers:", error)
+      if (!isMounted.current) return;
+      console.error("Failed to load reporting managers:", error);
     } finally {
       if (isMounted.current) {
-        setLoadingManagers(false)
+        setLoadingManagers(false);
       }
     }
-  }, [loadingManagers, managersLoaded])
+  }, [loadingManagers, managersLoaded]);
 
   const handleReportingManagerOpen = useCallback(
     (open: boolean) => {
-      setReportingManagerOpen(open)
+      setReportingManagerOpen(open);
       if (open) {
-        loadReportingManagers()
+        loadReportingManagers();
       }
     },
-    [loadReportingManagers],
-  )
+    [loadReportingManagers]
+  );
 
   const onSubmit = useCallback(
     async (values: UserFormValues) => {
-      const entityAssignments: { entity_id: string; value: string }[] = []
+      const entityAssignments: { entity_id: string; value: string }[] = [];
       templates.forEach((entity) => {
-        const entityId = getEntityId(entity)
-        const value = values[entityId]
+        const entityId = getEntityId(entity);
+        const value = values[entityId];
         if (entityId && typeof value === "string" && value.trim().length > 0) {
           entityAssignments.push({
             entity_id: `user.${entityId}`,
             value: value.trim(),
-          })
+          });
         }
-      })
+      });
 
-      const employeeCode = values.employeeCode?.trim()
-      const reportingManager = values.reportingManager?.trim()
+      const employeeCode = values.employeeCode?.trim();
+      const reportingManager = values.reportingManager?.trim();
 
       const payload = {
         email: values.email,
@@ -290,19 +306,19 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
         employee_code: employeeCode ? employeeCode : undefined,
         reporting_manager: reportingManager ? reportingManager : undefined,
         entity_assignments: entityAssignments,
-      }
+      };
 
-      setSubmitting(true)
+      setSubmitting(true);
       try {
-        const response = await api.post(`/auth/em/users`, payload)
-        toast.success(response.data.message || "User created successfully")
+        const response = await api.post(`/auth/em/users`, payload);
+        toast.success(response.data.message || "User created successfully");
 
         if (isMounted.current) {
-          form.reset(createDefaultValues(templates))
+          form.reset(createDefaultValues(templates));
         }
-        navigate("/admin/users")
+        navigate("/admin/users");
       } catch (error: any) {
-        console.error("Failed to create user:", error)
+        console.error("Failed to create user:", error);
 
         const fieldNameMap: Record<string, string> = {
           last_name: "lastName",
@@ -312,68 +328,88 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
           email: "email",
           role: "role",
           reporting_manager: "reportingManager",
-        }
+        };
 
-        const errorData = error?.response?.data
-        const errors = errorData?.errors
+        const errorData = error?.response?.data;
+        const errors = errorData?.errors;
 
         if (errors && typeof errors === "object" && !Array.isArray(errors)) {
-          const allErrorMessages: string[] = []
+          const allErrorMessages: string[] = [];
 
           Object.keys(errors).forEach((apiFieldName) => {
-            const errorMessages = errors[apiFieldName]
+            const errorMessages = errors[apiFieldName];
             if (errorMessages) {
               const errorMessage = Array.isArray(errorMessages)
                 ? errorMessages[0]
                 : typeof errorMessages === "string"
-                  ? errorMessages
-                  : String(errorMessages)
+                ? errorMessages
+                : String(errorMessages);
 
               if (errorMessage) {
-                allErrorMessages.push(errorMessage)
+                allErrorMessages.push(errorMessage);
 
                 const formFieldName =
-                  fieldNameMap[apiFieldName] || (knownEntityIds.has(apiFieldName) ? apiFieldName : undefined)
+                  fieldNameMap[apiFieldName] ||
+                  (knownEntityIds.has(apiFieldName) ? apiFieldName : undefined);
 
                 if (formFieldName) {
                   form.setError(formFieldName as never, {
                     type: "server",
                     message: errorMessage,
-                  })
+                  });
                 }
               }
             }
-          })
+          });
 
           if (allErrorMessages.length > 0) {
-            const firstError = allErrorMessages[0]
+            const firstError = allErrorMessages[0];
             toast.error(
               allErrorMessages.length > 1
                 ? `${firstError} (and ${allErrorMessages.length - 1} more)`
-                : firstError,
-            )
+                : firstError
+            );
           } else if (errorData?.message) {
-            toast.error(errorData.message)
+            toast.error(errorData.message);
           } else {
-            toast.error("Please fix the errors in the form")
+            toast.error("Please fix the errors in the form");
           }
         } else {
-          const errorMessage = errorData?.message || "Failed to create user"
-          toast.error(errorMessage)
+          const errorMessage = errorData?.message || "Failed to create user";
+          toast.error(errorMessage);
         }
       } finally {
         if (isMounted.current) {
-          setSubmitting(false)
+          setSubmitting(false);
         }
       }
     },
-    [form, knownEntityIds, navigate, templates],
-  )
+    [form, knownEntityIds, navigate, templates]
+  );
+
+  useEffect(() => {
+    const getApprovedStores = async () => {
+      try {
+        const res = await storesService.getStoresByStatus({
+          limit: 100,
+          offset: 0,
+          status: "APPROVED",
+        });
+        setStores(res.data.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    getApprovedStores();
+  }, []);
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <fieldset disabled={loadingEntityFields || submitting} className="space-y-6">
+        <fieldset
+          disabled={loadingEntityFields || submitting}
+          className="space-y-6"
+        >
           <Card>
             <CardHeader>
               <CardTitle>User Information</CardTitle>
@@ -465,7 +501,12 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
                       <FormLabel aria-required={true}>
                         Select Role <span className="text-destructive">*</span>
                       </FormLabel>
-                      <Select onValueChange={(val) => field.onChange(val || undefined)} value={field.value || ""}>
+                      <Select
+                        onValueChange={(val) =>
+                          field.onChange(val || undefined)
+                        }
+                        value={field.value || ""}
+                      >
                         <FormControl>
                           <SelectTrigger aria-required={true}>
                             <SelectValue placeholder="Select a role" />
@@ -502,17 +543,24 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
                   control={form.control}
                   name="reportingManager"
                   render={({ field }) => {
-                    const selectedManager = reportingManagers.find((m) => m.id === field.value)
+                    const selectedManager = reportingManagers.find(
+                      (m) => m.id === field.value
+                    );
                     return (
                       <FormItem>
                         <FormLabel>Reporting Manager</FormLabel>
-                        <Popover open={reportingManagerOpen} onOpenChange={handleReportingManagerOpen}>
+                        <Popover
+                          open={reportingManagerOpen}
+                          onOpenChange={handleReportingManagerOpen}
+                        >
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
                                 variant="outline"
                                 role="combobox"
-                                disabled={loadingManagers || loadingEntityFields}
+                                disabled={
+                                  loadingManagers || loadingEntityFields
+                                }
                                 className="w-full justify-between"
                               >
                                 {selectedManager
@@ -529,7 +577,9 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
                               <CommandInput placeholder="Search reporting manager..." />
                               <CommandList className="max-h-[180px] overflow-y-auto">
                                 <CommandEmpty>
-                                  {loadingManagers ? "Loading..." : "No reporting manager found."}
+                                  {loadingManagers
+                                    ? "Loading..."
+                                    : "No reporting manager found."}
                                 </CommandEmpty>
                                 <CommandGroup>
                                   {reportingManagers.map((manager) => (
@@ -537,16 +587,19 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
                                       key={manager.id}
                                       value={`${manager.firstName} ${manager.lastName} ${manager.email}`}
                                       onSelect={() => {
-                                        field.onChange(manager.id)
-                                        setReportingManagerOpen(false)
+                                        field.onChange(manager.id);
+                                        setReportingManagerOpen(false);
                                       }}
                                     >
                                       <Check
                                         className={`mr-2 h-4 w-4 ${
-                                          field.value === manager.id ? "opacity-100" : "opacity-0"
+                                          field.value === manager.id
+                                            ? "opacity-100"
+                                            : "opacity-0"
                                         }`}
                                       />
-                                      {manager.firstName} {manager.lastName} ({manager.email})
+                                      {manager.firstName} {manager.lastName} (
+                                      {manager.email})
                                     </CommandItem>
                                   ))}
                                 </CommandGroup>
@@ -556,7 +609,77 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
                         </Popover>
                         <FormMessage />
                       </FormItem>
-                    )
+                    );
+                  }}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="store_id"
+                  render={({ field }) => {
+                    const selectedStore: any = stores.find(
+                      (m: any) => m.id === field.value
+                    );
+                    return (
+                      <FormItem>
+                        <FormLabel>Store</FormLabel>
+                        <Popover open={storeOpen} onOpenChange={setStoreOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                disabled={
+                                  loadingManagers || loadingEntityFields
+                                }
+                                className="w-full justify-between"
+                              >
+                                {selectedStore
+                                  ? `${selectedStore.name}`
+                                  : loadingManagers
+                                  ? "Loading..."
+                                  : "Select store"}
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                              <CommandInput placeholder="Search stores..." />
+                              <CommandList className="max-h-[180px] overflow-y-auto">
+                                <CommandEmpty>
+                                  {loadingManagers
+                                    ? "Loading..."
+                                    : "No stores found."}
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {stores.map((store: any) => (
+                                    <CommandItem
+                                      key={store.id}
+                                      value={store.id}
+                                      onSelect={() => {
+                                        field.onChange(store.id);
+                                        setStoreOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={`mr-2 h-4 w-4 ${
+                                          field.value === store.id
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                        }`}
+                                      />
+                                      {store.name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    );
                   }}
                 />
               </div>
@@ -579,8 +702,8 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
                   <Separator className="my-6" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {templates.map((entity) => {
-                      const entityId = getEntityId(entity)
-                      const fieldName = getFieldName(entity)
+                      const entityId = getEntityId(entity);
+                      const fieldName = getFieldName(entity);
                       return (
                         <FormField
                           key={entityId}
@@ -597,13 +720,20 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
                                   <span className="text-destructive">*</span>
                                 )}
                               </FormLabel>
-                              {entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT ? (
+                              {entity.field_type?.toUpperCase() ===
+                              FIELD_TYPE_SELECT ? (
                                 <Select
-                                  onValueChange={(val) => field.onChange(val || undefined)}
+                                  onValueChange={(val) =>
+                                    field.onChange(val || undefined)
+                                  }
                                   value={field.value || ""}
                                 >
                                   <FormControl>
-                                    <SelectTrigger aria-required={entity.is_mandatory ?? false}>
+                                    <SelectTrigger
+                                      aria-required={
+                                        entity.is_mandatory ?? false
+                                      }
+                                    >
                                       <SelectValue placeholder="Select" />
                                     </SelectTrigger>
                                   </FormControl>
@@ -628,7 +758,7 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
                             </FormItem>
                           )}
                         />
-                      )
+                      );
                     })}
                   </div>
                 </>
@@ -659,166 +789,179 @@ const CreateUserForm = ({ templates, entityOptions, loadingEntityFields }: Creat
         </div>
       </form>
     </Form>
-  )
-}
+  );
+};
 
 export const CreateUserPage = () => {
-  const [templates, setTemplates] = useState<TemplateEntity[]>([])
-  const [entityOptions, setEntityOptions] = useState<Record<string, EntityOption[]>>({})
-  const [loading, setLoading] = useState(false)
-  const [showBulkUpload, setShowBulkUpload] = useState(false)
-  const [bulkFile, setBulkFile] = useState<File | null>(null)
-  const [uploadingBulk, setUploadingBulk] = useState(false)
-  const [bulkInputKey, setBulkInputKey] = useState(0)
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [templates, setTemplates] = useState<TemplateEntity[]>([]);
+  const [entityOptions, setEntityOptions] = useState<
+    Record<string, EntityOption[]>
+  >({});
+  const [loading, setLoading] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [uploadingBulk, setUploadingBulk] = useState(false);
+  const [bulkInputKey, setBulkInputKey] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleBulkDialogChange = useCallback((open: boolean) => {
-    setShowBulkUpload(open)
+    setShowBulkUpload(open);
     if (!open) {
-      setBulkFile(null)
-      setBulkInputKey((key) => key + 1)
-      setUploadingBulk(false)
+      setBulkFile(null);
+      setBulkInputKey((key) => key + 1);
+      setUploadingBulk(false);
     }
-  }, [])
+  }, []);
 
   const handleDownloadTemplate = useCallback(async () => {
     try {
-      const response = await bulkUploadService.downloadUserTemplate()
+      const response = await bulkUploadService.downloadUserTemplate();
 
       const blob = new Blob([response.data], {
         type: response.headers["content-type"] || "application/octet-stream",
-      })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.setAttribute("download", "user-bulk-upload-template.xlsx")
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "user-bulk-upload-template.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Failed to download bulk upload template:", error)
-      toast.error("Failed to download template")
+      console.error("Failed to download bulk upload template:", error);
+      toast.error("Failed to download template");
     }
-  }, [])
+  }, []);
 
   const uploadBulkFile = useCallback(
     async (file: File) => {
-      if (uploadingBulk) return
+      if (uploadingBulk) return;
 
-      setUploadingBulk(true)
+      setUploadingBulk(true);
       try {
-        await bulkUploadService.uploadUsers(file)
-        toast.success("Bulk upload submitted successfully")
-        handleBulkDialogChange(false)
+        await bulkUploadService.uploadUsers(file);
+        toast.success("Bulk upload submitted successfully");
+        handleBulkDialogChange(false);
       } catch (error) {
-        console.error("Failed to upload users in bulk:", error)
-        toast.error("Failed to upload file")
+        console.error("Failed to upload users in bulk:", error);
+        toast.error("Failed to upload file");
       } finally {
-        setUploadingBulk(false)
+        setUploadingBulk(false);
       }
     },
-    [handleBulkDialogChange, uploadingBulk],
-  )
+    [handleBulkDialogChange, uploadingBulk]
+  );
 
   const handleBulkUpload = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault()
+      event.preventDefault();
       if (!bulkFile) {
-        toast.error("Please select a file to upload")
-        return
+        toast.error("Please select a file to upload");
+        return;
       }
 
-      await uploadBulkFile(bulkFile)
+      await uploadBulkFile(bulkFile);
     },
-    [bulkFile, uploadBulkFile],
-  )
+    [bulkFile, uploadBulkFile]
+  );
 
-  const handleBulkFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null
-    setBulkFile(file)
-  }, [])
+  const handleBulkFileSelect = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0] ?? null;
+      setBulkFile(file);
+    },
+    []
+  );
 
   const handleBrowseClick = useCallback(() => {
-    fileInputRef.current?.click()
-  }, [])
+    fileInputRef.current?.click();
+  }, []);
 
   const handleClearFile = useCallback(() => {
-    setBulkFile(null)
+    setBulkFile(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+      fileInputRef.current.value = "";
     }
-    setBulkInputKey((key) => key + 1)
-  }, [])
+    setBulkInputKey((key) => key + 1);
+  }, []);
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
 
     const loadData = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
-        const [templatesRes, entitiesRes] = await Promise.all([getTemplates(), getEntities()])
+        const [templatesRes, entitiesRes] = await Promise.all([
+          getTemplates(),
+          getEntities(),
+        ]);
         const userTemplate = Array.isArray(templatesRes)
           ? templatesRes.find((t) => t.module_type === MODULE_TYPE_USER)
-          : null
+          : null;
 
         if (!userTemplate?.entities?.length) {
           if (!cancelled) {
-            setTemplates([])
-            setEntityOptions({})
+            setTemplates([]);
+            setEntityOptions({});
           }
-          return
+          return;
         }
 
-        const templateEntities = userTemplate.entities as TemplateEntity[]
+        const templateEntities = userTemplate.entities as TemplateEntity[];
         if (!cancelled) {
-          setTemplates(templateEntities)
+          setTemplates(templateEntities);
         }
 
-        const entityMap: Record<string, EntityOption[]> = {}
+        const entityMap: Record<string, EntityOption[]> = {};
         entitiesRes.forEach((ent: EntityResponse) => {
           if (ent.id && Array.isArray(ent.attributes)) {
             entityMap[ent.id] = ent.attributes.map((attr) => ({
               id: attr.id,
               label: attr.display_value ?? attr.value ?? "—",
-            }))
+            }));
           }
-        })
+        });
 
-        const mappedOptions: Record<string, EntityOption[]> = {}
+        const mappedOptions: Record<string, EntityOption[]> = {};
         templateEntities.forEach((templateEntity) => {
-          const entityId = getEntityId(templateEntity)
+          const entityId = getEntityId(templateEntity);
           if (entityId) {
-            mappedOptions[entityId] = entityMap[entityId] || []
+            mappedOptions[entityId] = entityMap[entityId] || [];
           }
-        })
+        });
 
         if (!cancelled) {
-          setEntityOptions(mappedOptions)
+          setEntityOptions(mappedOptions);
         }
       } catch (error) {
         if (!cancelled) {
-          console.error("Failed to load user template data:", error)
-          toast.error("Failed to load form configuration")
+          console.error("Failed to load user template data:", error);
+          toast.error("Failed to load form configuration");
         }
       } finally {
         if (!cancelled) {
-          setLoading(false)
+          setLoading(false);
         }
       }
-    }
+    };
 
-    loadData()
+    loadData();
 
     return () => {
-      cancelled = true
-    }
-  }, [])
+      cancelled = true;
+    };
+  }, []);
 
   const templateKey = useMemo(
-    () => templates.map((template) => getEntityId(template)).filter(Boolean).sort().join("|"),
-    [templates],
-  )
+    () =>
+      templates
+        .map((template) => getEntityId(template))
+        .filter(Boolean)
+        .sort()
+        .join("|"),
+    [templates]
+  );
 
   return (
       <>
@@ -839,82 +982,103 @@ export const CreateUserPage = () => {
             </Button>
           </div>
 
-          <CreateUserForm
-            key={templateKey}
-            templates={templates}
-            entityOptions={entityOptions}
-            loadingEntityFields={loading}
-          />
-        </div>
-        <Dialog open={showBulkUpload} onOpenChange={handleBulkDialogChange}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Bulk Upload Users</DialogTitle>
-              <DialogDescription>
-                Upload an Excel file to create users in bulk. Use the template for the required format.
-              </DialogDescription>
-            </DialogHeader>
-            <form className="space-y-6" onSubmit={handleBulkUpload}>
-              <div className="flex flex-col gap-3">
-                <input
-                  key={bulkInputKey}
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  onChange={handleBulkFileSelect}
-                  className="hidden"
-                />
-                <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/30 p-4">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-foreground">Upload spreadsheet</p>
-                      <p className="text-xs text-muted-foreground">
-                        {bulkFile ? bulkFile.name : "Supported formats: .xlsx, .xls, .csv"}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {bulkFile ? (
-                        <Button type="button" variant="ghost" size="sm" onClick={handleClearFile} disabled={uploadingBulk}>
-                          Clear
-                        </Button>
-                      ) : null}
-                      <Button type="button" size="sm" onClick={handleBrowseClick} disabled={uploadingBulk}>
-                        {bulkFile ? "Change file" : "Browse"}
+        <CreateUserForm
+          key={templateKey}
+          templates={templates}
+          entityOptions={entityOptions}
+          loadingEntityFields={loading}
+        />
+      </div>
+      <Dialog open={showBulkUpload} onOpenChange={handleBulkDialogChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Bulk Upload Users</DialogTitle>
+            <DialogDescription>
+              Upload an Excel file to create users in bulk. Use the template for
+              the required format.
+            </DialogDescription>
+          </DialogHeader>
+          <form className="space-y-6" onSubmit={handleBulkUpload}>
+            <div className="flex flex-col gap-3">
+              <input
+                key={bulkInputKey}
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleBulkFileSelect}
+                className="hidden"
+              />
+              <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/30 p-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">
+                      Upload spreadsheet
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {bulkFile
+                        ? bulkFile.name
+                        : "Supported formats: .xlsx, .xls, .csv"}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {bulkFile ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearFile}
+                        disabled={uploadingBulk}
+                      >
+                        Clear
                       </Button>
-                    </div>
+                    ) : null}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleBrowseClick}
+                      disabled={uploadingBulk}
+                    >
+                      {bulkFile ? "Change file" : "Browse"}
+                    </Button>
                   </div>
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <Button type="button" variant="outline" onClick={handleDownloadTemplate} className="sm:w-auto">
-                    Download Template
-                  </Button>
-                </div>
               </div>
-              <DialogFooter className="gap-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => handleBulkDialogChange(false)}
-                  disabled={uploadingBulk}
+                  onClick={handleDownloadTemplate}
+                  className="sm:w-auto"
                 >
-                  Cancel
+                  Download Template
                 </Button>
-                <Button type="submit" disabled={!bulkFile || uploadingBulk}>
-                  {uploadingBulk ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    "Upload"
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </>
-  )
-}
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleBulkDialogChange(false)}
+                disabled={uploadingBulk}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!bulkFile || uploadingBulk}>
+                {uploadingBulk ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  "Upload"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
 
-export default CreateUserPage
+export default CreateUserPage;
