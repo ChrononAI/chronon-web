@@ -56,7 +56,6 @@ import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { bulkUploadService } from "@/services/admin/bulkUploadService";
-import { storesService } from "@/services/storeService";
 import { FormFooter } from "@/components/layout/FormFooter";
 
 const MODULE_TYPE_USER = "user";
@@ -205,8 +204,6 @@ const CreateUserForm = ({
   const [managersLoaded, setManagersLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [reportingManagerOpen, setReportingManagerOpen] = useState(false);
-  const [storeOpen, setStoreOpen] = useState(false);
-  const [stores, setStores] = useState([]);
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -389,22 +386,6 @@ const CreateUserForm = ({
     },
     [form, knownEntityIds, navigate, templates]
   );
-
-  useEffect(() => {
-    const getApprovedStores = async () => {
-      try {
-        const res = await storesService.getStoresByStatus({
-          limit: 100,
-          offset: 0,
-          status: "APPROVED",
-        });
-        setStores(res.data.data);
-      } catch (error) {
-        console.log(error);
-      }
-    };
-    getApprovedStores();
-  }, []);
 
   return (
     <Form {...form}>
@@ -616,7 +597,7 @@ const CreateUserForm = ({
                   }}
                 />
 
-                <FormField
+                {/* <FormField
                   control={form.control}
                   name="store_id"
                   render={({ field }) => {
@@ -684,7 +665,7 @@ const CreateUserForm = ({
                       </FormItem>
                     );
                   }}
-                />
+                /> */}
               </div>
 
               {loadingEntityFields && (
@@ -694,11 +675,11 @@ const CreateUserForm = ({
                 </div>
               )}
 
-              {!loadingEntityFields && templates.length === 0 && (
+              {/* {!loadingEntityFields && templates.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   No entity fields available for this user template.
                 </div>
-              )}
+              )} */}
 
               {!loadingEntityFields && templates.length > 0 && (
                 <>
