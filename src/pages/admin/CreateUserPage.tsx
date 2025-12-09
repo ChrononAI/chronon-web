@@ -53,7 +53,7 @@ import { Loader2, ChevronDown, Check } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { bulkUploadService } from "@/services/admin/bulkUploadService";
 import { storesService } from "@/services/storeService";
@@ -198,6 +198,8 @@ const CreateUserForm = ({
   loadingEntityFields,
 }: CreateUserFormProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isRequests = location.pathname.includes("/requests/users");
   const [reportingManagers, setReportingManagers] = useState<UserOption[]>([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
   const [managersLoaded, setManagersLoaded] = useState(false);
@@ -317,7 +319,7 @@ const CreateUserForm = ({
         if (isMounted.current) {
           form.reset(createDefaultValues(templates));
         }
-        navigate("/admin-settings/users");
+        navigate(isRequests ? "/requests/users" : "/admin-settings/users");
       } catch (error: any) {
         console.error("Failed to create user:", error);
 
@@ -772,7 +774,7 @@ const CreateUserForm = ({
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/admin-settings/users")}
+            onClick={() => navigate(isRequests ? "/requests/users" : "/admin-settings/users")}
             className="px-6 py-2"
             disabled={submitting}
           >
@@ -795,6 +797,8 @@ const CreateUserForm = ({
 };
 
 export const CreateUserPage = () => {
+  const location = useLocation();
+  const isAdminSettings = location.pathname.includes("/admin-settings/users");
   const [templates, setTemplates] = useState<TemplateEntity[]>([]);
   const [entityOptions, setEntityOptions] = useState<
     Record<string, EntityOption[]>
@@ -818,7 +822,6 @@ export const CreateUserPage = () => {
   const handleDownloadTemplate = useCallback(async () => {
     try {
       const response = await bulkUploadService.downloadUserTemplate();
-
       const blob = new Blob([response.data], {
         type: response.headers["content-type"] || "application/octet-stream",
       });
@@ -839,7 +842,6 @@ export const CreateUserPage = () => {
   const uploadBulkFile = useCallback(
     async (file: File) => {
       if (uploadingBulk) return;
-
       setUploadingBulk(true);
       try {
         await bulkUploadService.uploadUsers(file);
@@ -862,7 +864,6 @@ export const CreateUserPage = () => {
         toast.error("Please select a file to upload");
         return;
       }
-
       await uploadBulkFile(bulkFile);
     },
     [bulkFile, uploadBulkFile]
@@ -972,13 +973,15 @@ export const CreateUserPage = () => {
           <div className="mb-6">
             <h1 className="text-2xl font-bold">Create User</h1>
           </div>
-          <Button
-            type="button"
-            className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-base"
-            onClick={() => handleBulkDialogChange(true)}
-          >
-            Bulk Upload
-          </Button>
+          {isAdminSettings && (
+            <Button
+              type="button"
+              className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-base"
+              onClick={() => handleBulkDialogChange(true)}
+            >
+              Bulk Upload
+            </Button>
+          )}
         </div>
 
         <CreateUserForm
@@ -988,94 +991,96 @@ export const CreateUserPage = () => {
           loadingEntityFields={loading}
         />
       </div>
-      <Dialog open={showBulkUpload} onOpenChange={handleBulkDialogChange}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Bulk Upload Users</DialogTitle>
-            <DialogDescription>
-              Upload an Excel file to create users in bulk. Use the template for
-              the required format.
-            </DialogDescription>
-          </DialogHeader>
-          <form className="space-y-6" onSubmit={handleBulkUpload}>
-            <div className="flex flex-col gap-3">
-              <input
-                key={bulkInputKey}
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleBulkFileSelect}
-                className="hidden"
-              />
-              <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/30 p-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">
-                      Upload spreadsheet
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {bulkFile
-                        ? bulkFile.name
-                        : "Supported formats: .xlsx, .xls, .csv"}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {bulkFile ? (
+      {isAdminSettings && (
+        <Dialog open={showBulkUpload} onOpenChange={handleBulkDialogChange}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Bulk Upload Users</DialogTitle>
+              <DialogDescription>
+                Upload an Excel file to create users in bulk. Use the template for
+                the required format.
+              </DialogDescription>
+            </DialogHeader>
+            <form className="space-y-6" onSubmit={handleBulkUpload}>
+              <div className="flex flex-col gap-3">
+                <input
+                  key={bulkInputKey}
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleBulkFileSelect}
+                  className="hidden"
+                />
+                <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/30 p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        Upload spreadsheet
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {bulkFile
+                          ? bulkFile.name
+                          : "Supported formats: .xlsx, .xls, .csv"}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {bulkFile ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleClearFile}
+                          disabled={uploadingBulk}
+                        >
+                          Clear
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
-                        variant="ghost"
                         size="sm"
-                        onClick={handleClearFile}
+                        onClick={handleBrowseClick}
                         disabled={uploadingBulk}
                       >
-                        Clear
+                        {bulkFile ? "Change file" : "Browse"}
                       </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleBrowseClick}
-                      disabled={uploadingBulk}
-                    >
-                      {bulkFile ? "Change file" : "Browse"}
-                    </Button>
+                    </div>
                   </div>
                 </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleDownloadTemplate}
+                    className="sm:w-auto"
+                  >
+                    Download Template
+                  </Button>
+                </div>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <DialogFooter className="gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleDownloadTemplate}
-                  className="sm:w-auto"
+                  onClick={() => handleBulkDialogChange(false)}
+                  disabled={uploadingBulk}
                 >
-                  Download Template
+                  Cancel
                 </Button>
-              </div>
-            </div>
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleBulkDialogChange(false)}
-                disabled={uploadingBulk}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={!bulkFile || uploadingBulk}>
-                {uploadingBulk ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  "Upload"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                <Button type="submit" disabled={!bulkFile || uploadingBulk}>
+                  {uploadingBulk ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    "Upload"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };
