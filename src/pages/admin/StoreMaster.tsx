@@ -19,7 +19,16 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { FormFooter } from "@/components/layout/FormFooter";
 
-const CORE_FIELDS = ["User Master"];
+const CORE_FIELDS = [
+  "Name",
+  "Description",
+  "Address",
+  "City",
+  "Opening Date",
+  "Store Code",
+  "Store Manager",
+  "Area Manager"
+];
 
 const MANDATORY_OPTIONS = [
   { value: "MANDATORY", label: "Mandatory" },
@@ -69,6 +78,7 @@ const AssignedEntitiesList = ({
   if (!assignedEntities || assignedEntities.length === 0) {
     return null;
   }
+  console.log(entities, assignedEntities);
 
   return (
     <div className="mt-6 pt-6 border-t">
@@ -124,11 +134,11 @@ const AssignedEntitiesList = ({
 
 interface CustomField {
   entityId: string;
-  mandatory: "MANDATORY" | "NOT_MANDATORY";
+  mandatory: string;
   categories: string[];
 }
 
-const UserMasterPage = () => {
+const StoreMaster = () => {
   const [activeTab, setActiveTab] = useState<"core" | "custom">("core");
   const [fieldSettings, setFieldSettings] = useState<Record<string, string>>(
     {}
@@ -176,23 +186,26 @@ const UserMasterPage = () => {
       }
     };
     loadEntities();
-  }, [activeTab, templates.length]);
-
-  const userTemplate = useMemo(() => {
-    return templates.find((t) => t.module_type === "user");
+  }, [activeTab, entities.length, entitiesLoading, templates.length]);
+  console.log(templates);
+  const storeTemplate = useMemo(() => {
+    return templates.find((t) => t.module_type === "store");
   }, [templates]);
 
   const assignedEntities = useMemo(() => {
-    if (!userTemplate?.entities || !Array.isArray(userTemplate.entities)) {
+    if (
+      !storeTemplate?.entities ||
+      !Array.isArray(storeTemplate.entities)
+    ) {
       return [];
     }
-    return userTemplate.entities;
-  }, [userTemplate]);
+    return storeTemplate.entities;
+  }, [storeTemplate]);
 
   const assignedEntityIds = useMemo(() => {
     return assignedEntities
       .map((e) => getEntityId(e))
-      .filter((id: any): id is string => Boolean(id));
+      .filter((id): id is string => Boolean(id));
   }, [assignedEntities]);
 
   const availableEntities = useMemo(() => {
@@ -237,7 +250,7 @@ const UserMasterPage = () => {
     }
   }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmitCustom = async () => {
     if (customFields.length === 0) {
       toast.error("Add at least one custom field before submitting");
       return;
@@ -249,9 +262,9 @@ const UserMasterPage = () => {
       return;
     }
 
-    if (!userTemplate?.id) {
+    if (!storeTemplate?.id) {
       toast.error(
-        "User template not found. Please ensure templates are loaded."
+        "Expense template not found. Please ensure templates are loaded."
       );
       return;
     }
@@ -270,7 +283,7 @@ const UserMasterPage = () => {
 
         try {
           await assignEntity({
-            module_template_id: userTemplate.id,
+            module_template_id: storeTemplate.id,
             entity_id: row.entityId,
             is_mandatory: row.mandatory === "MANDATORY",
           });
@@ -350,7 +363,7 @@ const UserMasterPage = () => {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">User Master</h1>
+        <h1 className="text-2xl font-bold">Store Masters</h1>
       </div>
 
       <ReportTabs
@@ -387,7 +400,7 @@ const UserMasterPage = () => {
                 {CORE_FIELDS.map((label) => (
                   <div
                     key={label}
-                    className="grid grid-cols-2 gap-4 items-center p-3 border rounded bg-white"
+                    className="grid grid-cols-2 gap-4 items-center p-3 rounded bg-white"
                   >
                     <div className="text-sm">{label}</div>
                     <Select
@@ -491,7 +504,7 @@ const UserMasterPage = () => {
                         <Select
                           value={row.mandatory}
                           onValueChange={(v) =>
-                            updateCustomField(idx, { mandatory: v as any })
+                            updateCustomField(idx, { mandatory: v })
                           }
                         >
                           <SelectTrigger className="w-full">
@@ -561,7 +574,7 @@ const UserMasterPage = () => {
             >
               Back
             </Button>
-            <Button onClick={handleSubmit} disabled={loading}>
+            <Button onClick={handleSubmitCustom} disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -578,4 +591,4 @@ const UserMasterPage = () => {
   );
 };
 
-export default UserMasterPage;
+export default StoreMaster;

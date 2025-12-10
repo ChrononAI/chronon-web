@@ -20,6 +20,7 @@ import {
   FileBarChart,
   DollarSign,
   Workflow,
+  Store,
 } from "lucide-react";
 import {
   Collapsible,
@@ -90,6 +91,11 @@ const navigation: NavigationItem[] = [
         href: "/admin-settings/masters/users-masters",
         icon: UserCog,
       },
+      {
+        name: "Store Masters",
+        href: "/admin-settings/masters/store-masters",
+        icon: Store
+      }
     ],
   },
   {

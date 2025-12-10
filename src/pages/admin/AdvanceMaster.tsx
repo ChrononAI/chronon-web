@@ -13,6 +13,7 @@ import { getTemplates, assignEntity } from "@/services/admin/templates";
 import { getEntities } from "@/services/admin/entities";
 import { toast } from "sonner";
 import { FormFooter } from "@/components/layout/FormFooter";
+import { AssignedEntitiesList } from "./ExpenseMasterPage";
 
 const CORE_FIELDS = ["Advance ID"];
 
@@ -46,6 +47,20 @@ const ExpenseMasterPage = () => {
   const handleSelectChange = (field: string, value: string) => {
     setFieldSettings((prev) => ({ ...prev, [field]: value }));
   };
+
+  const expenseTemplate = useMemo(() => {
+    return templates.find((t) => t.module_type === "advance");
+  }, [templates]);
+
+  const assignedEntities = useMemo(() => {
+    if (
+      !expenseTemplate?.entities ||
+      !Array.isArray(expenseTemplate.entities)
+    ) {
+      return [];
+    }
+    return expenseTemplate.entities;
+  }, [expenseTemplate]);
 
   useEffect(() => {
     const load = async () => {
@@ -187,7 +202,7 @@ const ExpenseMasterPage = () => {
                     value={fieldSettings[label]}
                     onValueChange={(v) => handleSelectChange(label, v)}
                   >
-                    <SelectTrigger className="w-full h-10">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select mandatory status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -237,7 +252,7 @@ const ExpenseMasterPage = () => {
                         }
                         disabled={entitiesLoading}
                       >
-                        <SelectTrigger className="w-full h-10">
+                        <SelectTrigger className="w-full">
                           <SelectValue
                             placeholder={
                               entitiesLoading
@@ -271,7 +286,7 @@ const ExpenseMasterPage = () => {
                           updateCustomField(idx, { mandatory: v })
                         }
                       >
-                        <SelectTrigger className="w-full h-10">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Mandatory" />
                         </SelectTrigger>
                         <SelectContent>
@@ -319,6 +334,10 @@ const ExpenseMasterPage = () => {
                 </a>
               </div>
             </div>
+            <AssignedEntitiesList
+              assignedEntities={assignedEntities}
+              entities={entities}
+            />
           </Card>
           <FormFooter>
             <Button

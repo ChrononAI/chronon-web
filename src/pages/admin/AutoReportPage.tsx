@@ -361,7 +361,7 @@ export const AutoReportPage = () => {
                   setSelectedMonthDate(undefined);
                 }}
               >
-                <SelectTrigger className="h-11">
+                <SelectTrigger>
                   <SelectValue placeholder="Select schedule" />
                 </SelectTrigger>
                 <SelectContent>
@@ -381,7 +381,7 @@ export const AutoReportPage = () => {
                     value={selectedMonthDate}
                     onValueChange={setSelectedMonthDate}
                   >
-                    <SelectTrigger className="h-11 w-full">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a date" />
                     </SelectTrigger>
                     <SelectContent className="max-h-72">
@@ -394,7 +394,7 @@ export const AutoReportPage = () => {
                   </Select>
                 ) : (
                   <Select value={selectedDay} onValueChange={setSelectedDay}>
-                    <SelectTrigger className="h-11 w-full">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a day" />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">

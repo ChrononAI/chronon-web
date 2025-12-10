@@ -73,7 +73,7 @@ export function DynamicCustomField<
                         variant="outline"
                         role="combobox"
                         aria-expanded={dropdownOpen}
-                        className="w-full justify-between"
+                        className="w-full h-11 justify-between"
                         disabled={readOnly}
                       >
                         <span className="truncate">
@@ -147,7 +147,7 @@ export function DynamicCustomField<
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full pl-3 text-left font-normal",
+                          "w-full pl-3 h-11 text-left font-normal",
                           !field.value && "text-muted-foreground"
                         )}
                         disabled={readOnly}

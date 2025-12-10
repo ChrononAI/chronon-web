@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, ChevronDown } from "lucide-react";
+import { Loader2, ChevronDown, Calendar } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Select,
   SelectContent,
@@ -43,6 +44,8 @@ import { getTemplates, type Template } from "@/services/admin/templates";
 import { getEntities, type Entity } from "@/services/admin/entities";
 import { trackEvent } from "@/mixpanel";
 import { FormFooter } from "../layout/FormFooter";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 export interface Currency {
   code: string;
   name: string;
@@ -71,6 +74,15 @@ const advanceSchema = z.object({
   currency: z.string().min(1, "Please select a currency"),
   title: z.string().min(1, "Title is required"),
   policy_id: z.string().optional(),
+  from_date: z.preprocess(
+    (v) => (v ? new Date(v as string) : undefined),
+    z.date().optional()
+  ),
+
+  to_date: z.preprocess(
+    (v) => (v ? new Date(v as string) : undefined),
+    z.date().optional()
+  ),
 });
 
 type AdvanceFormValues = z.infer<typeof advanceSchema> & Record<string, any>;
@@ -172,7 +184,7 @@ export function CreateAdvanceForm({
           button_name: "Create Advance",
         });
         const allFormValues = form.getValues();
-        const customAttributes: Record<string, string> = {};
+        const customAttributes: Record<string, string | Date> = {};
 
         templateEntities.forEach((entity) => {
           const entityId = getEntityId(entity);
@@ -184,7 +196,13 @@ export function CreateAdvanceForm({
           }
         });
 
-        const { title, description, amount, currency, policy_id } = values;
+        const { title, description, amount, currency, policy_id, from_date, to_date } = values;
+        if (from_date) {
+          customAttributes["from_date"] = from_date;
+        }
+        if (to_date) {
+          customAttributes["to_date"] = to_date;
+        }
         const payload: any = {
           title,
           description,
@@ -196,13 +214,12 @@ export function CreateAdvanceForm({
         if (Object.keys(customAttributes).length > 0) {
           payload.custom_attributes = customAttributes;
         }
-
         const response: any = await AdvanceService.createAdvance(payload);
         await AdvanceService.submitAdvance(response.data.data.id);
         toast.success("Advance created successfully");
-        setTimeout(() => {
+        // setTimeout(() => {
           navigate("/requests/advances");
-        }, 200);
+        // }, 200);
       } catch (error: any) {
         toast.error(error.response?.data?.message || error.message);
       } finally {
@@ -417,6 +434,92 @@ export function CreateAdvanceForm({
                       />
                     </div>
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="from_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>From</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "h-11 w-full justify-between pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                          disabled={mode === "view"}
+                        >
+                          {field.value ? (
+                            format(new Date(field.value), "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <Calendar className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={field.value && new Date(field.value)}
+                        onSelect={(date) => field.onChange(date)}
+                        disabled={(date) =>
+                          date < new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="to_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>To</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "h-11 w-full justify-between pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                          disabled={mode === "view"}
+                        >
+                          {field.value ? (
+                            format(new Date(field.value), "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <Calendar className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={field.value && new Date(field.value)}
+                        onSelect={(date) => field.onChange(date)}
+                        disabled={(date) =>
+                          date < new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}

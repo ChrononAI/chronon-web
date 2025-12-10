@@ -153,6 +153,7 @@ export function ExpenseDetailsStep({
   expense,
 }: ExpenseDetailsStepProps) {
   const navigate = useNavigate();
+  console.log(receiptUrls);
   const { orgSettings } = useAuthStore();
   const orgId = getOrgIdFromToken();
   const {
@@ -364,18 +365,26 @@ export function ExpenseDetailsStep({
   }, []);
 
   useEffect(() => {
+    console.log("ExpenseDetailsStep: Component mounted, loading templates...");
     const loadTemplates = async () => {
       try {
+        console.log("Making API calls: getTemplates() and getEntities()");
         const [templatesRes, entitiesRes] = await Promise.all([
           getTemplates(),
           getEntities(),
         ]);
         
+        console.log("Templates API response:", templatesRes);
+        console.log("Entities API response:", entitiesRes);
+        
         const expenseTemplate = Array.isArray(templatesRes)
           ? templatesRes.find((t) => t.module_type === "expense")
           : null;
 
+        console.log("Expense template found:", expenseTemplate);
+
         if (expenseTemplate?.entities) {
+          console.log("Setting template entities:", expenseTemplate.entities);
           setTemplateEntities(expenseTemplate.entities);
           
           // Set default values for template entities
@@ -405,6 +414,7 @@ export function ExpenseDetailsStep({
           }
         });
 
+        console.log("Entity options mapped:", mappedOptions);
         setEntityOptions(mappedOptions);
       } catch (error) {
         console.error("Failed to load templates:", error);
@@ -417,6 +427,7 @@ export function ExpenseDetailsStep({
   // Update form values when expenseData changes
   useEffect(() => {
     if (expenseData && !isReceiptReplaced) {
+      console.log(expenseData);
       form.reset(expenseData);
       // Set selected policy and category based on form data
       if (expenseData.foreign_amount && expenseData.foreign_currency) {
@@ -658,11 +669,11 @@ export function ExpenseDetailsStep({
   const hasReceipt = Boolean(activeReceiptUrl);
   const isLoadingReceipt = replaceRecLoading || duplicateReceiptLoading;
   const inputFieldClass =
-    "h-11 border border-gray-200 bg-white px-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+    "rounded-xl border border-gray-200 bg-white px-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
   const selectTriggerClass =
-    "h-11 border border-gray-200 bg-white px-4 text-sm shadow-none focus:outline-none focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+    "rounded-xl border border-gray-200 bg-white px-4 text-sm shadow-none focus:outline-none focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
   const textareaClass =
-    "border border-gray-200 bg-white px-4 py-3 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+    "rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
 
   return (
     <div className="space-y-12">
@@ -1654,6 +1665,7 @@ export function ExpenseDetailsStep({
                 setShowDuplicateDialog(false);
                 // setCurrentStep(2);
                 setParsedData(semiParsedData);
+                console.log(semiParsedData);
                 fetchReceipt(semiParsedData?.id, orgId);
                 setIsReceiptReplaced(true);
               }}

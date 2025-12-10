@@ -64,6 +64,7 @@ import StoreDetailsPage from "./pages/StoreDetailsPage";
 import ApprovalsStoresPage from "./pages/ApprovalsStoresPage";
 import ProcessStorePage from "./pages/ProcessStorePage";
 import Settlements from "./pages/settlements/Settlements";
+import StoreMaster from "./pages/admin/StoreMaster";
 
 function App() {
   return (
@@ -135,6 +136,7 @@ function App() {
                 <Route path="/admin-settings/masters/advance-masters" element={<AdvanceMaster />} />
                 <Route path="/admin-settings/masters/expense-request-masters" element={<ExpenseRequestMaster />} />
                 <Route path="/admin-settings/masters/users-masters" element={<UserMaster />} />
+                <Route path="/admin-settings/masters/store-masters" element={<StoreMaster />} />
                 <Route path="/admin-settings/users" element={<UserPage />} />
                 <Route path="/admin-settings/users/create" element={<CreateUserPage />} />
                 <Route path="/admin-settings/product-config/workflow" element={<WorkFlowPage />} />

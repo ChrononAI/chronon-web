@@ -22,7 +22,7 @@ export function SearchableSelect({ categories, selectedCategory, setSelectedCate
         <Button
           variant="outline"
           role="combobox"
-          className={`w-full justify-between pr-8 ${
+          className={`w-full h-11 justify-between pr-8 ${
               selectedCategory ? "pr-10" : ""
             }`}
         >

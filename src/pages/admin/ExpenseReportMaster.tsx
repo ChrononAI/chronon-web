@@ -225,7 +225,7 @@ const ExpenseReportMasterPage = () => {
                         }
                         disabled={entitiesLoading}
                       >
-                        <SelectTrigger className="w-full h-10">
+                        <SelectTrigger className="w-full">
                           <SelectValue
                             placeholder={
                               entitiesLoading
@@ -259,7 +259,7 @@ const ExpenseReportMasterPage = () => {
                           updateCustomField(idx, { mandatory: v })
                         }
                       >
-                        <SelectTrigger className="w-full h-10">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Mandatory" />
                         </SelectTrigger>
                         <SelectContent>
