@@ -165,12 +165,12 @@ function CreatePreApprovalForm({
       const res: any = await preApprovalService.getPreApprovalById(id);
       const data = {
         ...res.data.data[0],
-        amount: res.data.data[0].amount.toString(),
+        amount: res.data.data[0]?.amount?.toString(),
       };
       form.reset(data);
       setSelectedPreApproval(data);
       const selectedPol = policies.find(
-        (pol) => pol.id === res.data.data[0].policy_id
+        (pol) => pol.id === data.policy_id
       );
       if (selectedPol) setSelectedPolicy(selectedPol);
     } catch (error) {
