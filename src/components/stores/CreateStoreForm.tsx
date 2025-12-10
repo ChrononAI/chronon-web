@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -133,7 +133,7 @@ export function CreateStoreForm({
         if (store.custom_attributes) {
           store = {
             ...store,
-            ...store.custom_attributes
+            ...store.custom_attributes,
           };
         }
         if (
@@ -176,12 +176,15 @@ export function CreateStoreForm({
   }, [users]);
 
   const handleCancel = () => {
-    navigate("/requests/stores");
+    if (pathname.includes("approvals")) {
+      navigate("/approvals/stores");
+    } else {
+      navigate("/requests/stores");
+    }
   };
 
   const onSubmit = async (values: any) => {
     const { opening_date, ...rest } = values;
-    console.log(values);
 
     const newValues = {
       ...rest,
@@ -685,40 +688,37 @@ export function CreateStoreForm({
               );
             })}
           </div>
-
-          {!pathname.includes("approvals") && (
-            <FormFooter>
+          <FormFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={loading}
+              className="px-6 py-2"
+            >
+              Back
+            </Button>
+            {(selectedStore?.status === "COMPLETE" || mode !== "view") && (
               <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
+                type="submit"
                 disabled={loading}
-                className="px-6 py-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
               >
-                Back
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {selectedStore?.status === "COMPLETE" || mode !== "view"
+                      ? "Submitting..."
+                      : "Creating..."}
+                  </>
+                ) : selectedStore?.status === "COMPLETE" ? (
+                  "Resubmit Store"
+                ) : (
+                  "Create Store"
+                )}
               </Button>
-              {(selectedStore?.status === "COMPLETE" || mode !== "view") && (
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {selectedStore?.status === "COMPLETE" || mode !== "view"
-                        ? "Submitting..."
-                        : "Creating..."}
-                    </>
-                  ) : selectedStore?.status === "COMPLETE" ? (
-                    "Resubmit Store"
-                  ) : (
-                    "Create Store"
-                  )}
-                </Button>
-              )}
-            </FormFooter>
-          )}
+            )}
+          </FormFooter>
         </form>
       </Form>
     </div>
