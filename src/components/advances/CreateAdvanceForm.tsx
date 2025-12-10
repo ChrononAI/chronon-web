@@ -340,7 +340,6 @@ export function CreateAdvanceForm({
                   <Input
                     placeholder="Title"
                     {...field}
-                    className="h-11"
                     disabled={mode === "view"}
                   />
                 </FormControl>
@@ -360,7 +359,6 @@ export function CreateAdvanceForm({
                   <Input
                     placeholder="Purpose"
                     {...field}
-                    className="h-11"
                     disabled={mode === "view"}
                   />
                 </FormControl>
@@ -382,7 +380,7 @@ export function CreateAdvanceForm({
                     disabled={mode === "view"}
                   >
                     <FormControl>
-                      <SelectTrigger className="h-11">
+                      <SelectTrigger>
                         <div className="flex items-center">
                           <span className="text-lg mr-2 min-w-[24px]">
                             {selectedCurrency.symbol}
@@ -427,7 +425,7 @@ export function CreateAdvanceForm({
                       </span>
                       <Input
                         placeholder="0.00"
-                        className="pl-12 h-11"
+                        className="pl-12"
                         type="number"
                         step="0.01"
                         min="0"
@@ -546,7 +544,7 @@ export function CreateAdvanceForm({
                       disabled={mode === "view"}
                     >
                       <FormControl>
-                        <SelectTrigger className="h-11">
+                        <SelectTrigger>
                           <SelectValue placeholder="Select a policy">
                             {field.value && selectedPolicy
                               ? selectedPolicy.name

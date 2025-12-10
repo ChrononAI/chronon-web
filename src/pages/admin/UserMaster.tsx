@@ -394,7 +394,7 @@ const UserMasterPage = () => {
                       value={fieldSettings[label]}
                       onValueChange={(v) => handleSelectChange(label, v)}
                     >
-                      <SelectTrigger className="w-full h-10">
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select mandatory status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -467,7 +467,7 @@ const UserMasterPage = () => {
                             }
                             disabled={entitiesLoading}
                           >
-                            <SelectTrigger className="w-full h-10">
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select entity" />
                             </SelectTrigger>
                             <SelectContent>
@@ -494,7 +494,7 @@ const UserMasterPage = () => {
                             updateCustomField(idx, { mandatory: v as any })
                           }
                         >
-                          <SelectTrigger className="w-full h-10">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Mandatory" />
                           </SelectTrigger>
                           <SelectContent>

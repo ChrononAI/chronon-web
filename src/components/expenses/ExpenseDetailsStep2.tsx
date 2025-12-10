@@ -739,9 +739,9 @@ export function ExpenseDetailsStep2({
   const isLoadingReceipt =
     replaceRecLoading || duplicateReceiptLoading || receiptLoading;
   const inputFieldClass =
-    "h-11 border border-gray-200 bg-white px-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+    "border border-gray-200 bg-white px-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
   const selectTriggerClass =
-    "h-11 border border-gray-200 bg-white px-4 text-sm shadow-none focus:outline-none focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+    "border border-gray-200 bg-white px-4 text-sm shadow-none focus:outline-none focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
   const textareaClass =
     "border border-gray-200 bg-white px-4 py-3 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
 

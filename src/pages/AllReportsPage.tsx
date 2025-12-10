@@ -384,7 +384,7 @@ export function AllReportsPage() {
                     }
                     disabled={isGenerating}
                   >
-                    <SelectTrigger className="bg-white h-10 w-full">
+                    <SelectTrigger className="bg-white w-full">
                       <SelectValue placeholder="Select report" />
                     </SelectTrigger>
                     <SelectContent>
@@ -408,7 +408,7 @@ export function AllReportsPage() {
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full justify-start text-left font-normal bg-white h-10",
+                            "w-full h-11 justify-start text-left font-normal bg-white",
                             !fromDate && "text-muted-foreground"
                           )}
                           disabled={isGenerating}
@@ -448,7 +448,7 @@ export function AllReportsPage() {
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full justify-start text-left font-normal bg-white h-10",
+                            "w-full justify-start text-left font-normal bg-white h-11",
                             !toDate && "text-muted-foreground"
                           )}
                           disabled={isGenerating}
@@ -491,7 +491,7 @@ export function AllReportsPage() {
                         !fromDate ||
                         !toDate
                       }
-                      className="w-full sm:w-auto bg-white h-10 text-gray-900 border border-gray-300 hover:bg-gray-50"
+                      className="w-full h-11 sm:w-auto bg-white text-gray-900 border border-gray-300 hover:bg-gray-50"
                     >
                       {isGenerating ? (
                         <>

@@ -350,7 +350,6 @@ export function CreateStoreForm({
                   <Input
                     {...field}
                     placeholder="Name"
-                    className="h-11"
                     disabled={mode === "view"}
                   />
                 </FormControl>
@@ -370,7 +369,6 @@ export function CreateStoreForm({
                   <Input
                     placeholder="Description"
                     {...field}
-                    className="h-11"
                     disabled={mode === "view"}
                   />
                 </FormControl>
@@ -389,7 +387,6 @@ export function CreateStoreForm({
                   <Input
                     placeholder="Address"
                     {...field}
-                    className="h-11"
                     disabled={mode === "view"}
                   />
                 </FormControl>
@@ -408,7 +405,6 @@ export function CreateStoreForm({
                     <Input
                       placeholder="City"
                       {...field}
-                      className="h-11"
                       disabled={mode === "view"}
                     />
                   </FormControl>
@@ -469,7 +465,6 @@ export function CreateStoreForm({
                   <Input
                     placeholder="Store code"
                     {...field}
-                    className="h-11"
                     disabled={mode === "view"}
                   />
                 </FormControl>
@@ -680,7 +675,6 @@ export function CreateStoreForm({
                             {...field}
                             placeholder={`Enter ${fieldName}`}
                             disabled={mode === "view"}
-                            className="h-11"
                           />
                         </FormControl>
                       )}

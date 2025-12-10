@@ -573,7 +573,7 @@ const WorkFlowPage = () => {
       placeholder: string
     ) => (
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="w-full h-10">
+        <SelectTrigger className="w-full">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -611,7 +611,7 @@ const WorkFlowPage = () => {
 
       return (
         <Select value={value} onValueChange={onValueChange}>
-          <SelectTrigger className="w-full h-10">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
           <SelectContent>
@@ -647,7 +647,7 @@ const WorkFlowPage = () => {
         value={value || ""}
         onValueChange={(nextValue) => onValueChange(nextValue as Operator)}
       >
-        <SelectTrigger className="w-full h-10">
+        <SelectTrigger className="w-full">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -672,7 +672,7 @@ const WorkFlowPage = () => {
         value={value || ""}
         onValueChange={(nextValue) => onValueChange(nextValue as WorkflowEvent)}
       >
-        <SelectTrigger className="w-full h-10">
+        <SelectTrigger className="w-full">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -697,7 +697,7 @@ const WorkFlowPage = () => {
 
       return (
         <Select value={value} onValueChange={onValueChange}>
-          <SelectTrigger className="w-full h-10">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
           <SelectContent>
@@ -756,7 +756,6 @@ const WorkFlowPage = () => {
                   <Input
                     id="name"
                     placeholder="Enter workflow name"
-                    className="h-10"
                     {...register("name")}
                   />
                 </div>
@@ -795,7 +794,6 @@ const WorkFlowPage = () => {
                           <Input
                             id={`step${step.id}Name`}
                             placeholder="Enter step name"
-                            className="h-10"
                             value={step.stepName}
                             onChange={(e) =>
                               updateStep(step.id, "stepName", e.target.value)
@@ -819,7 +817,7 @@ const WorkFlowPage = () => {
                             >
                               <SelectTrigger
                                 id={`step${step.id}Type`}
-                                className="w-full h-10"
+                                className="w-full"
                               >
                                 <SelectValue placeholder="Select type" />
                               </SelectTrigger>
@@ -856,7 +854,7 @@ const WorkFlowPage = () => {
                               >
                                 <SelectTrigger
                                   id={`step${step.id}ApproveIdentifier`}
-                                  className="w-full h-10"
+                                  className="w-full"
                                 >
                                   <SelectValue placeholder="Select approve identifier" />
                                 </SelectTrigger>
@@ -965,7 +963,6 @@ const WorkFlowPage = () => {
                   <Input
                     id="ruleName"
                     placeholder="Enter rule name"
-                    className="h-10"
                     value={ruleForm.name}
                     onChange={(e) =>
                       setRuleForm((prev) => ({ ...prev, name: e.target.value }))
@@ -1015,7 +1012,6 @@ const WorkFlowPage = () => {
                 <Input
                   id="ruleDescription"
                   placeholder="Enter rule description"
-                  className="h-10"
                   value={ruleForm.description}
                   onChange={(e) =>
                     setRuleForm((prev) => ({

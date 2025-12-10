@@ -545,7 +545,7 @@ const CreateUserForm = ({
                                 disabled={
                                   loadingManagers || loadingEntityFields
                                 }
-                                className="w-full justify-between"
+                                className="w-full h-11 justify-between"
                               >
                                 {selectedManager
                                   ? `${selectedManager.firstName} ${selectedManager.lastName} (${selectedManager.email})`

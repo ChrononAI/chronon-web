@@ -407,7 +407,7 @@ const StoreMaster = () => {
                       value={fieldSettings[label]}
                       onValueChange={(v) => handleSelectChange(label, v)}
                     >
-                      <SelectTrigger className="w-full h-10">
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select mandatory status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -480,7 +480,7 @@ const StoreMaster = () => {
                             }
                             disabled={entitiesLoading}
                           >
-                            <SelectTrigger className="w-full h-10">
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select entity" />
                             </SelectTrigger>
                             <SelectContent>
@@ -507,7 +507,7 @@ const StoreMaster = () => {
                             updateCustomField(idx, { mandatory: v })
                           }
                         >
-                          <SelectTrigger className="w-full h-10">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Mandatory" />
                           </SelectTrigger>
                           <SelectContent>

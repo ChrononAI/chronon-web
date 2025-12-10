@@ -175,7 +175,7 @@ const ExpenseRequestMasterPage = () => {
                     value={fieldSettings[label]}
                     onValueChange={(v) => handleSelectChange(label, v)}
                   >
-                    <SelectTrigger className="w-full h-10">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select mandatory status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -225,7 +225,7 @@ const ExpenseRequestMasterPage = () => {
                         }
                         disabled={entitiesLoading}
                       >
-                        <SelectTrigger className="w-full h-10">
+                        <SelectTrigger className="w-full">
                           <SelectValue
                             placeholder={
                               entitiesLoading
@@ -259,7 +259,7 @@ const ExpenseRequestMasterPage = () => {
                           updateCustomField(idx, { mandatory: v })
                         }
                       >
-                        <SelectTrigger className="w-full h-10">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Mandatory" />
                         </SelectTrigger>
                         <SelectContent>
