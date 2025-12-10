@@ -193,16 +193,14 @@ function ProcessPreApprovalPage() {
       } else {
         toast.success("Pre approval rejected successfully");
       }
-      setTimeout(() => {
-        navigate("/approvals/pre-approvals");
-      }, 100);
+      navigate("/approvals/pre-approvals");
     } catch (error: any) {
       console.log(error);
       toast.error(
         error?.response?.data?.message || "Failed to process pre approval"
       );
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
   const handleAction = async (action: string) => {
@@ -248,9 +246,25 @@ function ProcessPreApprovalPage() {
                 <Button
                   onClick={() => handleAction("approve")}
                   className="bg-green-600 hover:bg-green-700"
+                  disabled={
+                    loading &&
+                    approvalWorkflow?.current_step !==
+                      approvalWorkflow?.total_steps
+                  }
                 >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Approve
+                  {loading &&
+                  approvalWorkflow?.current_step !==
+                    approvalWorkflow?.total_steps ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Approving...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Approve
+                    </>
+                  )}
                 </Button>
                 <Button
                   onClick={() => handleAction("reject")}

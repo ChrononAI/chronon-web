@@ -7,7 +7,7 @@ import {
   FileX,
 } from "lucide-react";
 import { ApprovalWorkflow } from "@/types/expense";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getStatusColor } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -15,12 +15,15 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import { Badge } from "../ui/badge";
+import { useAuthStore } from "@/store/authStore";
 
 interface WorkflowTimelineProps {
   approvalWorkflow: ApprovalWorkflow;
 }
 
 export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
+  const { user } = useAuthStore();
+
   const getStatusIcon = (status: string) => {
     switch (status.toUpperCase()) {
       case "APPROVED":
@@ -68,18 +71,19 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
       {approvalWorkflow?.approval_steps?.length > 0 ? (
         approvalWorkflow.approval_steps.map((step, index) => {
           const approvers = step.approvers || [];
-          const primaryApprover = approvers[0] || {};
+          const primaryApprover = approvers.find((u) => +u.user_id === user?.id) || approvers[0] || {};
 
-          // Step-level approved time OR approver-level approved time
           const approvedAt = step.approved_at || step.approved_at || null;
 
-          // Approver note (first available)
           const note =
             step.approver_note?.[0]?.notes ||
             step.approver_note?.[0]?.notes ||
             "";
-
+ 
           const isMulti = approvers.length > 1;
+            
+          let normalView = !isMulti || approvalWorkflow.workflow_status === "COMPLETED";
+          let multiView = isMulti && approvalWorkflow.workflow_status === "RUNNING";
 
           return (
             <div key={index} className="flex items-start space-x-4">
@@ -95,14 +99,21 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
               {/* Step Content */}
               <div className="flex-1">
                 {/* ----------- SINGLE APPROVER UI (same as original) ----------- */}
-                {!isMulti && (
+                {(normalView) && (
                   <>
-                    <div className="flex items-center justify-between text-sm">
-                      {getText({
-                        status: step.status,
-                        firstName: primaryApprover.first_name || "",
-                        lastName: primaryApprover.last_name || "",
-                      })}
+                    <div className="flex items-center gap-2 justify-between">
+                      <div className="flex items-center justify-between text-sm">
+                        {getText({
+                          status: step.status,
+                          firstName: primaryApprover.first_name || "",
+                          lastName: primaryApprover.last_name || "",
+                        })}
+                      </div>
+                      {approvedAt && (
+                        <span className="text-[12px]">
+                          {formatDate(approvedAt)}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -110,12 +121,6 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                         <div className="text-[12px] text-muted-foreground mt-1">
                           {primaryApprover.email}
                         </div>
-                      )}
-
-                      {approvedAt && (
-                        <span className="text-[12px]">
-                          {formatDate(approvedAt)}
-                        </span>
                       )}
                     </div>
 
@@ -139,34 +144,31 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                     )}
                   </>
                 )}
-
                 {/* ----------- MULTI APPROVER UI (new) ----------- */}
-                {isMulti && (
-                  <div className="space-y-1">
-                    <div className="space-y-0.5 text-sm flex items-center gap-2">
-                      {approvers.map((a, idx) => (
-                        <div
-                          key={a.user_id}
-                          className="flex items-center justify-between"
-                        >
-                          <span>
-                            {a.first_name} {a.last_name}
-                          </span>
-                          {idx !== approvers.length - 1 && <span>,</span>}
-                        </div>
-                      ))}
-                    </div>
-                    <div>
-                      <div>
-                        <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
-                          {step.status.replace("_", " ")}
-                        </Badge>
+                {multiView && (
+                  <div className="space-y-2">
+                    <div className="text-sm flex items-center gap-2 justify-between">
+                      <div className="text-sm flex items-center gap-2">
+                        <span>PARALLEL APPROVAL</span>
+                        <span>
+                          <Badge className={getStatusColor(step.status)}>
+                            {step.status.replace("_", " ")}
+                          </Badge>
+                        </span>
                       </div>
                       {approvedAt && (
-                        <div className="text-[12px] text-gray-600 mt-1">
-                          Approved: {formatDate(approvedAt)}
+                        <div className="text-[12px]">
+                          {formatDate(approvedAt)}
                         </div>
                       )}
+                    </div>
+                    <div className="text-left text-[14px] space-y-1">
+                      {approvers.map((a) => (
+                        <div key={a.user_id}>
+                          <span>{`${a.first_name} ${a.last_name} `}</span>
+                          <span className="text-[12px] text-muted-foreground">{`(${a.email})`}</span>
+                        </div>
+                      ))}
                     </div>
                     {note && (
                       <TooltipProvider>

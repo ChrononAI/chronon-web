@@ -106,8 +106,7 @@ function App() {
               <Route path="/requests/advances/:id" element={<AdvanceDetailsPage />} />
               <Route path="/advance_accounts" element={<AdvanceAccounts />} />
 
-              <Route path="/requests/users" element={<UserPage />} />
-              <Route path="/requests/users/create" element={<CreateUserPage />} />
+              <Route path="/requests/users" element={<CreateUserPage />} />
 
               {/* APPROVALS */}
               <Route path="/approvals/reports" element={<ApprovalsReportsPage />} />
@@ -119,7 +118,7 @@ function App() {
               <Route path="/approvals/pre-approvals/:id" element={<ProcessPreApprovalPage />} />
               <Route path="/approvals/stores/:id" element={<ProcessStorePage />} />
 
-              {/* STOER */}
+              {/* STORE */}
               <Route path="/requests/stores" element={<Stores />} />
               <Route path="/requests/stores/create" element={<CreateStorePage />} />
               <Route path="/requests/stores/:id" element={<StoreDetailsPage />} />
