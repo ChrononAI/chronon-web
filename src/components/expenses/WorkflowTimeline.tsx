@@ -7,14 +7,13 @@ import {
   FileX,
 } from "lucide-react";
 import { ApprovalWorkflow } from "@/types/expense";
-import { formatDate, getStatusColor } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
-import { Badge } from "../ui/badge";
 import { useAuthStore } from "@/store/authStore";
 
 interface WorkflowTimelineProps {
@@ -79,10 +78,8 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
             step.approver_note?.[0]?.notes ||
             step.approver_note?.[0]?.notes ||
             "";
- 
           const isMulti = approvers.length > 1;
-            
-          let normalView = !isMulti || approvalWorkflow.workflow_status === "COMPLETED";
+          let normalView = (!isMulti || approvalWorkflow.workflow_status === "COMPLETED") || (isMulti && approvalWorkflow.workflow_status === "COMPLETED");
           let multiView = isMulti && approvalWorkflow.workflow_status === "RUNNING";
 
           return (
@@ -149,12 +146,7 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                   <div className="space-y-2">
                     <div className="text-sm flex items-center gap-2 justify-between">
                       <div className="text-sm flex items-center gap-2">
-                        <span>PARALLEL APPROVAL</span>
-                        <span>
-                          <Badge className={getStatusColor(step.status)}>
-                            {step.status.replace("_", " ")}
-                          </Badge>
-                        </span>
+                        <span>Under Review</span>
                       </div>
                       {approvedAt && (
                         <div className="text-[12px]">

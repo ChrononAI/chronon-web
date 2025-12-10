@@ -88,12 +88,13 @@ function App() {
               {/* EXPENSES */}
               <Route path="/expenses" element={<MyExpensesPage />} />
               <Route path="/expenses/create" element={<UnifiedExpensesPage />} />
-              <Route path="/expenses/:id" element={<ExpenseDetailPage />} />
+              <Route path="/expenses/:expenseId" element={<ExpenseDetailPage />} />
 
               {/* REPORTS */}
               <Route path="/reports" element={<MyReportsPage />} />
               <Route path="/reports/create" element={<CreateReportPage />} />
               <Route path="/reports/:id" element={<ReportDetailPage2 />} />
+              <Route path="/reports/:id/:expenseId" element={<ExpenseDetailPage />} />
 
               {/* PRE APPROVALS */}
               <Route path="/requests/pre-approvals" element={<PreApprovalPage />} />
@@ -111,6 +112,7 @@ function App() {
               {/* APPROVALS */}
               <Route path="/approvals/reports" element={<ApprovalsReportsPage />} />
               <Route path="/approvals/reports/:id" element={<ReportDetailPage2 />} />
+              <Route path="/approvals/reports/:id/:expenseId" element={<ExpenseDetailPage />} />
               <Route path="/approvals/advances" element={<ApprovalsAdvancesPage />} />
               <Route path="/approvals/stores" element={<ApprovalsStoresPage />} />
               <Route path="/approvals/advances/:id" element={<ProcessAdvancePage />} />

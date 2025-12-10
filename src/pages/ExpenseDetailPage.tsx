@@ -78,7 +78,7 @@ const isPerDiemExpense = (expense: Expense): boolean => {
 
 export function ExpenseDetailPage() {
   const { parsedData, setParsedData } = useExpenseStore();
-  const { id } = useParams<{ id: string }>();
+  const { expenseId } = useParams<{ expenseId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const [expense, setExpense] = useState<Expense | null>(null);
@@ -118,10 +118,10 @@ export function ExpenseDetailPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!id) return;
+      if (!expenseId) return;
       try {
         const [expenseData] = await Promise.all([
-          expenseService.getExpenseById(id),
+          expenseService.getExpenseById(expenseId),
           expenseService.getAllPoliciesWithCategories(),
         ]);
         setExpense(expenseData);
@@ -151,7 +151,7 @@ export function ExpenseDetailPage() {
 
     fetchData();
     loadTemplateEntities();
-  }, [id]);
+  }, [expenseId]);
 
   const fetchReceipt = async (receiptId: string, orgId: string) => {
     try {
@@ -170,7 +170,7 @@ export function ExpenseDetailPage() {
   };
 
   const handleExpenseSubmit = async (formData: any) => {
-    if (!expense || !id) return;
+    if (!expense || !expenseId) return;
     setSaving(true);
     if (!formData.custom_attributes) {
       formData.custom_attributes = {};
@@ -222,8 +222,8 @@ export function ExpenseDetailPage() {
           filteredData.custom_attributes.advance_account_id =
             formData.advance_account_id;
         }
-        await expenseService.updateExpense(id, filteredData);
-        await expenseService.validateExpense(id);
+        await expenseService.updateExpense(expenseId, filteredData);
+        await expenseService.validateExpense(expenseId);
       } else if (formData.start_location) {
         const expenseData: UpdateExpenseData = {
           amount: parseFloat(formData.amount),
@@ -246,7 +246,7 @@ export function ExpenseDetailPage() {
           custom_attributes: {},
           currency: baseCurrency,
         };
-        await expenseService.updateExpense(id, expenseData);
+        await expenseService.updateExpense(expenseId, expenseData);
       }
       toast.success("Expense updated successfully");
       navigate("/expenses");
@@ -259,11 +259,11 @@ export function ExpenseDetailPage() {
   };
 
   const handleDeleteExpense = async () => {
-    if (!expense || !id) return;
+    if (!expense || !expenseId) return;
 
     setIsDeleting(true);
     try {
-      await expenseService.deleteExpense(id);
+      await expenseService.deleteExpense(expenseId);
       toast.success("Expense deleted successfully");
       navigate("/expenses");
     } catch (error: any) {
@@ -419,11 +419,7 @@ export function ExpenseDetailPage() {
         ) : (
           <ExpenseDetailsStep2
             onBack={() => {
-              if (returnTo === "create") {
-                window.location.href = "/expenses/create";
-              } else {
-                window.history.back();
-              }
+              navigate(-1)
             }}
             onSubmit={handleExpenseSubmit}
             receiptLoading={receiptLoading}
