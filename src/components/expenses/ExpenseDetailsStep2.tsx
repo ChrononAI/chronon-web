@@ -72,7 +72,6 @@ import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { getTemplates, type Template } from "@/services/admin/templates";
 import { getEntities, type Entity } from "@/services/admin/entities";
-import { AdvanceService } from "@/services/advanceService";
 import { FormFooter } from "../layout/FormFooter";
 import ReceiptViewer from "./ReceiptViewer";
 
@@ -159,9 +158,9 @@ export function ExpenseDetailsStep2({
   const [shouldGetConversion, setShouldGetConversion] = useState(
     !Boolean(expense)
   );
-  const [advanceAccounts, setAdvanceAccounts] = useState([]);
-  const [selectedAdvanceAccount, setSelectedAdvanceAccount] =
-    useState<any>(null);
+  // const [advanceAccounts, setAdvanceAccounts] = useState([]);
+  // const [selectedAdvanceAccount, setSelectedAdvanceAccount] =
+  //   useState<any>(null);
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string[]>([]);
   const [showConversion, setShowConversion] = useState(false);
   const [templateEntities, setTemplateEntities] = useState<TemplateEntity[]>(
@@ -340,14 +339,14 @@ export function ExpenseDetailsStep2({
     }
   };
 
-  const getAccounts = async () => {
-    try {
-      const res = await AdvanceService.getAccounts();
-      setAdvanceAccounts(res.data.data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  // const getAccounts = async () => {
+  //   try {
+  //     const res = await AdvanceService.getAccounts();
+  //     setAdvanceAccounts(res.data.data);
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // };
 
   useEffect(() => {
     if (form.watch("currency") !== baseCurrency) {
@@ -387,7 +386,7 @@ export function ExpenseDetailsStep2({
 
   useEffect(() => {
     loadPoliciesWithCategories();
-    getAccounts();
+    // getAccounts();
   }, []);
 
   useEffect(() => {
@@ -451,21 +450,21 @@ export function ExpenseDetailsStep2({
     loadTemplates();
   }, []);
 
-  useEffect(() => {
-    if (
-      expense?.custom_attributes?.advance_account_id &&
-      advanceAccounts?.length > 0
-    ) {
-      form.setValue(
-        "advance_account_id",
-        expense?.custom_attributes?.advance_account_id
-      );
-      const selAdv = advanceAccounts.find(
-        (adv: any) => adv.id === expense?.custom_attributes?.advance_account_id
-      );
-      if (selAdv) setSelectedAdvanceAccount(selAdv);
-    }
-  }, [expense, advanceAccounts]);
+  // useEffect(() => {
+  //   if (
+  //     expense?.custom_attributes?.advance_account_id &&
+  //     advanceAccounts?.length > 0
+  //   ) {
+  //     form.setValue(
+  //       "advance_account_id",
+  //       expense?.custom_attributes?.advance_account_id
+  //     );
+  //     const selAdv = advanceAccounts.find(
+  //       (adv: any) => adv.id === expense?.custom_attributes?.advance_account_id
+  //     );
+  //     if (selAdv) setSelectedAdvanceAccount(selAdv);
+  //   }
+  // }, [expense, advanceAccounts]);
 
   // Update form values when expense changes
   useEffect(() => {
@@ -1427,7 +1426,7 @@ export function ExpenseDetailsStep2({
                         )}
                       />
 
-                      {orgSettings?.advance_settings?.enabled && (
+                      {/* {orgSettings?.advance_settings?.enabled && (
                         <FormField
                           control={form.control}
                           name="advance_account_id"
@@ -1466,7 +1465,7 @@ export function ExpenseDetailsStep2({
                             </FormItem>
                           )}
                         />
-                      )}
+                      )} */}
 
                       {templateEntities?.map((entity) => {
                         const entityId = getEntityId(entity);
