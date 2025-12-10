@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +29,6 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
-import { ViewExpenseWindow } from "@/components/expenses/ViewExpenseWindow";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import {
   Tooltip,
@@ -156,6 +155,7 @@ const columns: GridColDef[] = [
 
 export function ReportDetailPage2() {
   const { id } = useParams<{ id: string }>();
+  const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isFromApprovals = searchParams.get("from") === "approvals";
@@ -171,8 +171,6 @@ export function ReportDetailPage2() {
   >(null);
   const [comments, setComments] = useState("");
   const [showActionDialog, setShowActionDialog] = useState(false);
-  const [showViewExpense, setShowViewExpense] = useState(false);
-  const [expenseToView, setExpenseToView] = useState<Expense | null>(null);
   const [activeTab, setActiveTab] = useState<"expenses" | "history">(
     "expenses"
   );
@@ -203,7 +201,7 @@ export function ReportDetailPage2() {
         );
         toast.error(reportResponse.message || "Failed to fetch report details");
       }
-
+      console.log(workflowResponse);
       if (workflowResponse.success && workflowResponse.data) {
         const getAllApprovalSteps = (data: any) => {
           return data
@@ -223,6 +221,7 @@ export function ReportDetailPage2() {
           approval_steps: newSteps,
           total_steps: newSteps.length,
           current_step: currentStepIdx !== -1 ? currentStepIdx + 1 : 0,
+          ...workflowResponse.data[0]
         });
       } else {
         console.warn(
@@ -363,8 +362,11 @@ export function ReportDetailPage2() {
   ).length;
 
   const handleViewExpense = async (expense: Expense) => {
-    setShowViewExpense(true);
-    setExpenseToView(expense);
+    if (pathname.includes('/approvals/')) {
+      navigate(`/approvals/reports/${report.id}/${expense.id}`)
+    } else {
+      navigate(`/reports/${report.id}/${expense.id}`)
+    }
   };
 
   return (
@@ -661,11 +663,6 @@ export function ReportDetailPage2() {
           )}
         </DialogContent>
       </Dialog>
-      <ViewExpenseWindow
-        open={showViewExpense}
-        onOpenChange={setShowViewExpense}
-        data={expenseToView}
-      />
     </>
   );
 }

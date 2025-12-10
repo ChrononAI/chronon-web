@@ -5,16 +5,17 @@ import {
   FileOutput,
   FileClock,
   FileX,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { ApprovalWorkflow } from "@/types/expense";
-import { formatDate, getStatusColor } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
-import { Badge } from "../ui/badge";
 import { useAuthStore } from "@/store/authStore";
 
 interface WorkflowTimelineProps {
@@ -79,11 +80,9 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
             step.approver_note?.[0]?.notes ||
             step.approver_note?.[0]?.notes ||
             "";
- 
           const isMulti = approvers.length > 1;
-            
-          let normalView = !isMulti || approvalWorkflow.workflow_status === "COMPLETED";
-          let multiView = isMulti && approvalWorkflow.workflow_status === "RUNNING";
+          // let normalView = (!isMulti || approvalWorkflow.workflow_status === "COMPLETED") || (isMulti && approvalWorkflow.workflow_status === "COMPLETED");
+          // let multiView = isMulti && approvalWorkflow.workflow_status === "RUNNING";
 
           return (
             <div key={index} className="flex items-start space-x-4">
@@ -99,7 +98,7 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
               {/* Step Content */}
               <div className="flex-1">
                 {/* ----------- SINGLE APPROVER UI (same as original) ----------- */}
-                {(normalView) && (
+                {(!isMulti) && (
                   <>
                     <div className="flex items-center gap-2 justify-between">
                       <div className="flex items-center justify-between text-sm">
@@ -145,16 +144,11 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                   </>
                 )}
                 {/* ----------- MULTI APPROVER UI (new) ----------- */}
-                {multiView && (
+                {isMulti && (
                   <div className="space-y-2">
                     <div className="text-sm flex items-center gap-2 justify-between">
                       <div className="text-sm flex items-center gap-2">
-                        <span>PARALLEL APPROVAL</span>
-                        <span>
-                          <Badge className={getStatusColor(step.status)}>
-                            {step.status.replace("_", " ")}
-                          </Badge>
-                        </span>
+                        <span>Under Review</span>
                       </div>
                       {approvedAt && (
                         <div className="text-[12px]">
@@ -163,12 +157,35 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                       )}
                     </div>
                     <div className="text-left text-[14px] space-y-1">
-                      {approvers.map((a) => (
-                        <div key={a.user_id}>
-                          <span>{`${a.first_name} ${a.last_name} `}</span>
-                          <span className="text-[12px] text-muted-foreground">{`(${a.email})`}</span>
-                        </div>
-                      ))}
+                      {approvers.map((a) => {
+                        // Find the approver note for this specific user
+                        const approverNote = step.approver_note?.find(
+                          (note) =>
+                            note.approver_id?.toString() === a.user_id?.toString()
+                        );
+                        
+                        const status = approverNote?.status?.toUpperCase();
+                        
+                        return (
+                          <div key={a.user_id} className="flex items-center gap-2">
+                            <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
+                              {status === "APPROVED" && (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              )}
+                              {status === "REJECTED" && (
+                                <XCircle className="h-4 w-4 text-red-600" />
+                              )}
+                              {status === "SENT_BACK" && (
+                                <FileOutput className="h-4 w-4 text-orange-600" />
+                              )}
+                            </div>
+                            <div>
+                              <span>{`${a.first_name} ${a.last_name} `}</span>
+                              <span className="text-[12px] text-muted-foreground">{`(${a.email})`}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                     {note && (
                       <TooltipProvider>
