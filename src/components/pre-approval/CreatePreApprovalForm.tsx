@@ -131,10 +131,8 @@ function CreatePreApprovalForm({
       }
     } else {
       const newFd = JSON.parse(JSON.stringify(formData));
-      if (!newFd.amount || !newFd.currency) {
         delete newFd.amount;
         delete newFd.currency;
-      }
       if (!newFd.policy_id) {
         newFd.policy_id = null;
       }
@@ -206,7 +204,7 @@ function CreatePreApprovalForm({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>Title *</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -226,7 +224,7 @@ function CreatePreApprovalForm({
               name="start_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>From</FormLabel>
+                  <FormLabel>From *</FormLabel>
                   <FormControl>
                     <DateField
                       id="from"
@@ -247,7 +245,7 @@ function CreatePreApprovalForm({
               name="end_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>To</FormLabel>
+                  <FormLabel>To *</FormLabel>
                   <FormControl>
                     <DateField
                       id="to"
@@ -401,7 +399,7 @@ function CreatePreApprovalForm({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Purpose</FormLabel>
+                  <FormLabel>Purpose *</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
