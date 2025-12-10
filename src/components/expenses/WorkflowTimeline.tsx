@@ -5,6 +5,7 @@ import {
   FileOutput,
   FileClock,
   FileX,
+  CheckCircle,
 } from "lucide-react";
 import { ApprovalWorkflow } from "@/types/expense";
 import { formatDate } from "@/lib/utils";
@@ -96,7 +97,7 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
               {/* Step Content */}
               <div className="flex-1">
                 {/* ----------- SINGLE APPROVER UI (same as original) ----------- */}
-                {(normalView) && (
+                {(!isMulti) && (
                   <>
                     <div className="flex items-center gap-2 justify-between">
                       <div className="flex items-center justify-between text-sm">
@@ -142,7 +143,7 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                   </>
                 )}
                 {/* ----------- MULTI APPROVER UI (new) ----------- */}
-                {multiView && (
+                {isMulti && (
                   <div className="space-y-2">
                     <div className="text-sm flex items-center gap-2 justify-between">
                       <div className="text-sm flex items-center gap-2">
@@ -155,12 +156,27 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                       )}
                     </div>
                     <div className="text-left text-[14px] space-y-1">
-                      {approvers.map((a) => (
-                        <div key={a.user_id}>
-                          <span>{`${a.first_name} ${a.last_name} `}</span>
-                          <span className="text-[12px] text-muted-foreground">{`(${a.email})`}</span>
-                        </div>
-                      ))}
+                      {approvers.map((a) => {
+                        const hasApproved = step.approver_note?.some(
+                          (note) =>
+                            note.status === "APPROVED" &&
+                            note.approver_id?.toString() === a.user_id?.toString()
+                        );
+                        
+                        return (
+                          <div key={a.user_id} className="flex items-center gap-2">
+                            <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
+                              {hasApproved && (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              )}
+                            </div>
+                            <div>
+                              <span>{`${a.first_name} ${a.last_name} `}</span>
+                              <span className="text-[12px] text-muted-foreground">{`(${a.email})`}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                     {note && (
                       <TooltipProvider>
