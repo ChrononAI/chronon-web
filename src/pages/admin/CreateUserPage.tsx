@@ -242,6 +242,7 @@ const CreateUserForm = ({
       const orgId = getOrgIdFromToken();
       if (!orgId) {
         console.error("Organization ID not found");
+        setManagersLoaded(true);
         return;
       }
 
@@ -263,6 +264,7 @@ const CreateUserForm = ({
     } catch (error) {
       if (!isMounted.current) return;
       console.error("Failed to load reporting managers:", error);
+      setManagersLoaded(true);
     } finally {
       if (isMounted.current) {
         setLoadingManagers(false);
@@ -270,29 +272,28 @@ const CreateUserForm = ({
     }
   }, [loadingManagers, managersLoaded]);
 
+  useEffect(() => {
+    loadReportingManagers();
+  }, []);
+
   const handleReportingManagerOpen = useCallback(
     (open: boolean) => {
       setReportingManagerOpen(open);
-      if (open) {
-        loadReportingManagers();
-      }
     },
-    [loadReportingManagers]
+    []
   );
 
   const onSubmit = useCallback(
     async (values: UserFormValues) => {
-      const entityAssignments: { entity_id: string; value: string }[] = [];
+      const entityAssignmentsObj: Record<string, string> = {};
       templates.forEach((entity) => {
         const entityId = getEntityId(entity);
         const value = values[entityId];
         if (entityId && typeof value === "string" && value.trim().length > 0) {
-          entityAssignments.push({
-            entity_id: `user.${entityId}`,
-            value: value.trim(),
-          });
+          entityAssignmentsObj[entityId] = value.trim();
         }
       });
+      const entityAssignments = Object.keys(entityAssignmentsObj).length > 0 ? [entityAssignmentsObj] : [];
 
       const employeeCode = values.employeeCode?.trim();
       const reportingManager = values.reportingManager?.trim();

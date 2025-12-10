@@ -30,7 +30,7 @@ import { FormFooter } from "@/components/layout/FormFooter";
 type TabKey = "config" | "rules" | "all";
 type StepType = "direct" | "parallel";
 type ApproverIdentifier = "REPORTING_MANAGER" | "SKIP_LEVEL_MANAGER";
-type WorkflowEvent = "ADVANCE" | "REPORT" | "PRE_APPROVAL";
+type WorkflowEvent = "ADVANCE" | "REPORT" | "PREAPPROVAL" | "STORE";
 type Operator =
   | "EQUALS"
   | "NOT_EQUAL"
@@ -70,7 +70,7 @@ const STEP_TYPE_OPTIONS: { value: StepType; label: string }[] = [
 ];
 
 const APPROVER_OPTIONS: { value: ApproverIdentifier; label: string }[] = [
-  { value: "REPORTING_MANAGER", label: "Report manager" },
+  { value: "REPORTING_MANAGER", label: "Reporting manager" },
   { value: "SKIP_LEVEL_MANAGER", label: "Skip level manager" },
 ];
 
@@ -86,7 +86,8 @@ const OPERATOR_OPTIONS: { value: Operator; label: string }[] = [
 const WORKFLOW_EVENT_OPTIONS: { value: WorkflowEvent; label: string }[] = [
   { value: "ADVANCE", label: "Advance" },
   { value: "REPORT", label: "Report" },
-  { value: "PRE_APPROVAL", label: "Pre Approval" },
+  { value: "PREAPPROVAL", label: "Pre Approval" },
+  { value: "STORE", label: "Store" },
 ];
 
 const HARDCODED_VALUES = {
@@ -538,6 +539,7 @@ const WorkFlowPage = () => {
         description: ruleForm.description || "",
         policy_type: HARDCODED_VALUES.POLICY_TYPE,
         workflow_config_id: ruleForm.workflow,
+        approval_type: ruleForm.workflowEvent,
         conditions: {
           rules: [
             {
@@ -840,7 +842,7 @@ const WorkFlowPage = () => {
                                 htmlFor={`step${step.id}ApproveIdentifier`}
                                 className="text-sm font-medium"
                               >
-                                Approve Identifier
+                                Approver Identifier
                               </Label>
                               <Select
                                 value={step.approveIdentifier || ""}
