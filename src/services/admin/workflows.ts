@@ -111,6 +111,7 @@ export interface CreatePolicyPayload {
   description: string
   policy_type: string
   workflow_config_id: string
+  approval_type?: string
   conditions: {
     rules: Array<{
       field: string
