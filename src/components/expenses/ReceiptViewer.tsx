@@ -143,12 +143,12 @@ function ReceiptViewer({
                   </div>
                 </div>
               ) : hasReceipt ? (
-                <div className="flex items-center justify-center p-4">
+                <div className={`flex items-center justify-center p-4 ${isPdfReceipt && "h-full"}`}>
                   {isPdfReceipt ? (
                     <embed
                       src={`${activeReceiptUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                       type="application/pdf"
-                      className="w-[70%] rounded-xl border border-gray-200 bg-white"
+                      className="w-full h-full block rounded-xl border border-gray-200 bg-white"
                       style={{
                         transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
                         transformOrigin: "center",

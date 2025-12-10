@@ -279,7 +279,7 @@ export function CreateExpenseForm() {
       }
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error?.message);
-      navigate('/expenses');
+      navigate("/expenses");
     } finally {
       setLoading(false);
       setShowDuplicateDialog(false);
@@ -309,29 +309,16 @@ export function CreateExpenseForm() {
           type="upload"
         />
       ) : (
-        <>
-          {/* <ExpenseDetailsStep
-            onBack={handleStep2Back}
-            mode="create"
-            onSubmit={handleStep2Submit}
-            loading={loading}
-            uploadedFile={uploadedFile}
-            previewUrl={previewUrl}
-            fetchReceipt={fetchReceipt}
-            isReceiptReplaced={isReceiptReplaced}
-            setIsReceiptReplaced={setIsReceiptReplaced}
-          /> */}
-          <ExpenseDetailsStep2
-            onBack={handleStep2Back}
-            onSubmit={handleStep2Submit}
-            mode="create"
-            loading={loading}
-            isReceiptReplaced={isReceiptReplaced}
-            setIsReceiptReplaced={setIsReceiptReplaced}
-            uploadedFile={null}
-            previewUrl={previewUrl}
-          />
-        </>
+        <ExpenseDetailsStep2
+          onBack={handleStep2Back}
+          onSubmit={handleStep2Submit}
+          mode="create"
+          loading={loading}
+          isReceiptReplaced={isReceiptReplaced}
+          setIsReceiptReplaced={setIsReceiptReplaced}
+          uploadedFile={uploadedFile}
+          previewUrl={previewUrl}
+        />
       )}
 
       <AlertDialog
