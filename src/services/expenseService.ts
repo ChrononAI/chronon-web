@@ -326,6 +326,7 @@ export const expenseService = {
           error.response?.data?.message ||
           error.message ||
           "Failed to create expense",
+        validation_details: error.response?.data?.validation_details,
       };
     }
   },
