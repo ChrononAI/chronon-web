@@ -151,20 +151,22 @@ const createUserSchema = (templateEntities: TemplateEntity[]) => {
   };
 
   const dynamicFields: Record<string, z.ZodTypeAny> = {};
-  templateEntities.forEach((entity) => {
-    const entityId = getEntityId(entity);
-    if (entityId) {
-      const fieldName = getFieldName(entity);
-      if (entity.is_mandatory) {
-        dynamicFields[entityId] = z
-          .string()
-          .trim()
-          .min(1, `${fieldName} is required`);
-      } else {
-        dynamicFields[entityId] = z.string().trim().optional();
+  templateEntities
+    .filter((entity) => entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT)
+    .forEach((entity) => {
+      const entityId = getEntityId(entity);
+      if (entityId) {
+        const fieldName = getFieldName(entity);
+        if (entity.is_mandatory) {
+          dynamicFields[entityId] = z
+            .string()
+            .trim()
+            .min(1, `${fieldName} is required`);
+        } else {
+          dynamicFields[entityId] = z.string().trim().optional();
+        }
       }
-    }
-  });
+    });
 
   return z.object({ ...baseSchema, ...dynamicFields });
 };
@@ -182,12 +184,14 @@ const createDefaultValues = (
     reportingManager: "",
   };
 
-  templateEntities.forEach((entity) => {
-    const entityId = getEntityId(entity);
-    if (entityId) {
-      defaults[entityId] = "";
-    }
-  });
+  templateEntities
+    .filter((entity) => entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT)
+    .forEach((entity) => {
+      const entityId = getEntityId(entity);
+      if (entityId) {
+        defaults[entityId] = "";
+      }
+    });
 
   return defaults;
 };
@@ -318,13 +322,15 @@ const CreateUserForm = ({
       }
 
       const entityAssignmentsObj: Record<string, string> = {};
-      templates.forEach((entity) => {
-        const entityId = getEntityId(entity);
-        const value = values[entityId];
-        if (entityId && typeof value === "string" && value.trim().length > 0) {
-          entityAssignmentsObj[entityId] = value.trim();
-        }
-      });
+      templates
+        .filter((entity) => entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT)
+        .forEach((entity) => {
+          const entityId = getEntityId(entity);
+          const value = values[entityId];
+          if (entityId && typeof value === "string" && value.trim().length > 0) {
+            entityAssignmentsObj[entityId] = value.trim();
+          }
+        });
 
       const payload: any = {
         first_name: values.firstName,
@@ -413,6 +419,8 @@ const CreateUserForm = ({
                           type="email"
                           placeholder="user@example.com"
                           required
+                          readOnly={isEditMode}
+                          className={isEditMode ? "bg-muted cursor-not-allowed" : ""}
                           {...field}
                         />
                       </FormControl>
@@ -682,7 +690,9 @@ const CreateUserForm = ({
                 <>
                   <Separator className="my-6" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {templates.map((entity) => {
+                    {templates
+                      .filter((entity) => entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT)
+                      .map((entity) => {
                       const entityId = getEntityId(entity);
                       const fieldName = getFieldName(entity);
                       return (
@@ -996,7 +1006,8 @@ export const CreateUserPage = () => {
       Object.entries(rawAssignments).forEach(([key, value]) => {
         const trimmedKey = key.trim();
         const templateEntity = templates.find(
-          (t) => getFieldName(t).trim() === trimmedKey || getEntityId(t) === trimmedKey
+          (t) => (getFieldName(t).trim() === trimmedKey || getEntityId(t) === trimmedKey) &&
+                 t.field_type?.toUpperCase() === FIELD_TYPE_SELECT
         );
         if (templateEntity) {
           const entityId = getEntityId(templateEntity);

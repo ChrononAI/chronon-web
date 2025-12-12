@@ -194,7 +194,7 @@ export const CreateEntityPage = () => {
           display_name: data.entityName,
           status: data.type,
           is_active: true,
-          ...(attrs.length > 0 ? { attributes: attrs } : {}),
+          attributes: attrs,
         };
 
         await updateEntity(entityId, payload);
@@ -234,7 +234,7 @@ export const CreateEntityPage = () => {
           display_name: data.entityName,
           status: data.type,
           is_active: true,
-          ...(attrs.length > 0 ? { attributes: attrs } : {}),
+          attributes: attrs,
         };
 
         await createEntity(payload);
@@ -300,9 +300,13 @@ export const CreateEntityPage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Type *</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select 
+                      value={field.value} 
+                      onValueChange={field.onChange}
+                      disabled={isEditMode}
+                    >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className={isEditMode ? "bg-muted cursor-not-allowed" : ""}>
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
