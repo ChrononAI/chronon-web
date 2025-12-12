@@ -4,10 +4,11 @@ import {
   GridOverlay,
   GridPaginationModel,
   GridRowSelectionModel,
+  GridRowParams,
 } from "@mui/x-data-grid";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Plus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getEntities } from "@/services/admin/entities";
 import { Box } from "@mui/material";
@@ -63,6 +64,7 @@ const columns: GridColDef<EntityRow>[] = [
 ];
 
 export const EntityPage = () => {
+  const navigate = useNavigate();
   const [rows, setRows] = useState<EntityRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
@@ -105,6 +107,13 @@ export const EntityPage = () => {
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
+
+  const handleRowClick = (params: GridRowParams) => {
+    const entityId = params.id as string;
+    if (!entityId) return;
+    navigate(`/admin-settings/entities/${entityId}`);
+  };
+
   return (
     <>
       <div className="flex justify-between items-center mb-6">
@@ -186,6 +195,7 @@ export const EntityPage = () => {
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick
+          onRowClick={handleRowClick}
           showCellVerticalBorder
         />
       </Box>

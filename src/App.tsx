@@ -132,6 +132,7 @@ function App() {
               <Route element={<AdminLayout />}>
                 <Route path="/admin-settings/entities" element={<EntityPage />} />
                 <Route path="/admin-settings/entities/create" element={<CreateEntityPage />} />
+                <Route path="/admin-settings/entities/:id" element={<CreateEntityPage />} />
                 <Route path="/admin-settings/expense-masters" element={<ExpenseMasterPage />} />
                 <Route path="/admin-settings/masters/expense-reports-masters" element={<ExpenseReportMaster />} />
                 <Route path="/admin-settings/masters/advance-masters" element={<AdvanceMaster />} />
@@ -140,6 +141,7 @@ function App() {
                 <Route path="/admin-settings/masters/store-masters" element={<StoreMaster />} />
                 <Route path="/admin-settings/users" element={<UserPage />} />
                 <Route path="/admin-settings/users/create" element={<CreateUserPage />} />
+                <Route path="/admin-settings/users/:id" element={<CreateUserPage />} />
                 <Route path="/admin-settings/product-config/workflow" element={<WorkFlowPage />} />
                 <Route path="/admin-settings/product-config/expense-categories" element={<AdminExpenseCategories />} />
                 <Route path="/admin-settings/product-config/expense-categories/create" element={<CreateExpenseCategoryPage />} />
