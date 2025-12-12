@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { createEntity, createAttributes } from "@/services/admin/entities";
+import { createEntity, getEntityById, updateEntity, EntityAttribute } from "@/services/admin/entities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,10 +33,12 @@ const entitySchema = z.object({
 });
 
 type EntityFormValues = z.infer<typeof entitySchema>;
-type ValueRow = Record<string, string>;
+type ValueRow = Record<string, string> & { _attributeId?: string };
 
 export const CreateEntityPage = () => {
   const navigate = useNavigate();
+  const { id: entityId } = useParams<{ id?: string }>();
+  const isEditMode = Boolean(entityId);
   const [valueRows, setValueRows] = useState<ValueRow[]>([
     { value: "", accountCode: "" },
     { value: "", accountCode: "" },
@@ -45,6 +47,7 @@ export const CreateEntityPage = () => {
   const [popupIndex, setPopupIndex] = useState<number | null>(null);
   const [newTag, setNewTag] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingEntity, setLoadingEntity] = useState(false);
   const popupRef = useRef<HTMLDivElement | null>(null);
 
   const form = useForm<EntityFormValues>({
@@ -84,87 +87,186 @@ export const CreateEntityPage = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Load entity data when in edit mode
+  useEffect(() => {
+    if (!isEditMode || !entityId) return;
+
+    const loadEntity = async () => {
+      setLoadingEntity(true);
+      try {
+        const entity = await getEntityById(entityId);
+        if (entity) {
+          // Prefill form fields
+          form.setValue("entityName", entity.name || "");
+          form.setValue("description", entity.description || "");
+          form.setValue("type", entity.type || entity.status || "");
+
+          // If type is SELECT, load attributes
+          if ((entity.type || entity.status) === "SELECT" && entity.attributes) {
+            let extractedTags: string[] = [];
+            const rows: ValueRow[] = entity.attributes
+              .filter((attr) => attr.is_active !== false)
+              .map((attr) => {
+                const row: ValueRow = {
+                  value: attr.display_value || attr.value || "",
+                  accountCode: "",
+                  _attributeId: attr.id,
+                };
+
+                // Extract metadata tags and values
+                const attrWithMetadata = attr as EntityAttribute & { metadata?: Record<string, unknown>; account_code?: string };
+                if (attrWithMetadata.metadata && typeof attrWithMetadata.metadata === "object") {
+                  const metadata = attrWithMetadata.metadata;
+                  const metadataKeys = Object.keys(metadata);
+                  
+                  // Collect tags from first attribute's metadata
+                  if (extractedTags.length === 0 && metadataKeys.length > 0) {
+                    extractedTags = metadataKeys;
+                  }
+
+                  // Add metadata values to row
+                  metadataKeys.forEach((key) => {
+                    const val = metadata[key];
+                    if (typeof val === "string") {
+                      row[key] = val;
+                    }
+                  });
+                }
+
+                // Try to get account_code from attribute if available
+                if (attrWithMetadata.account_code) {
+                  row.accountCode = attrWithMetadata.account_code;
+                }
+
+                return row;
+              });
+            
+            // Set tags once after processing all attributes
+            if (extractedTags.length > 0) {
+              setTags(extractedTags);
+            }
+
+            if (rows.length > 0) {
+              setValueRows(rows);
+            } else {
+              setValueRows([{ value: "", accountCode: "" }]);
+            }
+          }
+        } else {
+          toast.error("Entity not found");
+          navigate("/admin-settings/entities");
+        }
+      } catch (error) {
+        console.error("Failed to load entity:", error);
+        toast.error("Failed to load entity data");
+        navigate("/admin-settings/entities");
+      } finally {
+        setLoadingEntity(false);
+      }
+    };
+
+    loadEntity();
+  }, [entityId, isEditMode, form, navigate]);
+
   const onSubmit = async (data: EntityFormValues) => {
     setLoading(true);
-    const payload = {
-      name: data.entityName,
-      description: data.description || "",
-      display_name: data.entityName,
-      status: data.type,
-      is_active: true,
-    };
     try {
-      const res = await createEntity(payload);
-      if (res?.status === "success") {
-        const entityId = res.data?.id;
-        if (entityId && data.type === "SELECT" && valueRows.length > 0) {
-          const attrs = valueRows
+      if (isEditMode && entityId) {
+        const attrs = data.type === "SELECT" && valueRows.length > 0
+          ? valueRows
+              .filter((v) => v.value.trim().length > 0)
+              .map((v) => {
+                const { value, _attributeId } = v;
+                const trimmedValue = value.trim();
+                const attr: any = {
+                  value: trimmedValue,
+                  is_active: true,
+                  display_value: trimmedValue,
+                };
+                if (_attributeId) attr.id = _attributeId;
+                return attr;
+              })
+          : [];
+
+        const payload = {
+          name: data.entityName,
+          description: data.description || "",
+          display_name: data.entityName,
+          status: data.type,
+          is_active: true,
+          attributes: attrs,
+        };
+
+        await updateEntity(entityId, payload);
+        toast.success("Entity updated successfully");
+        setTimeout(() => {
+          navigate("/admin-settings/entities");
+        }, 100);
+      } else {
+        let attrs: any[] = [];
+        if (data.type === "SELECT" && valueRows.length > 0) {
+          attrs = valueRows
             .filter((v) => v.value.trim().length > 0)
             .map((v) => {
               const { value, accountCode = "", ...extra } = v;
               const trimmedValue = value.trim();
               const trimmedAccountCode = accountCode.trim();
-
-              const metadata = Object.entries(extra).reduce<
-                Record<string, string>
-              >((acc, [key, val]) => {
+              const metadata = Object.entries(extra).reduce<Record<string, string>>((acc, [key, val]) => {
                 if (tags.includes(key)) {
                   const trimmed = val.trim();
-                  if (trimmed.length > 0) {
-                    acc[key] = trimmed;
-                  }
+                  if (trimmed.length > 0) acc[key] = trimmed;
                 }
                 return acc;
               }, {});
-
               return {
                 value: trimmedValue,
                 is_active: true,
                 display_value: trimmedValue,
-                ...(trimmedAccountCode
-                  ? { account_code: trimmedAccountCode }
-                  : {}),
+                ...(trimmedAccountCode ? { account_code: trimmedAccountCode } : {}),
                 ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
               };
             });
-
-          if (attrs.length > 0) {
-            try {
-              const attrRes = await createAttributes({
-                entity_id: entityId,
-                attributes: attrs,
-              });
-
-              if (attrRes?.status !== "success") {
-                toast.error(
-                  attrRes?.message || "Failed to create entity attributes"
-                );
-                return;
-              }
-            } catch (error) {
-              toast.error("Failed to create entity attributes");
-              return;
-            }
-          }
         }
-        toast.success("Entity created");
-        navigate("/admin-settings/entities");
-      } else {
-        toast.error(res?.message || "Failed to create entity");
+
+        const payload = {
+          name: data.entityName,
+          description: data.description || "",
+          display_name: data.entityName,
+          status: data.type,
+          is_active: true,
+          attributes: attrs,
+        };
+
+        await createEntity(payload);
+        toast.success("Entity created successfully");
+        setTimeout(() => {
+          navigate("/admin-settings/entities");
+        }, 100);
       }
     } catch (e) {
-      toast.error("Failed to create entity");
+      toast.error(isEditMode ? "Failed to update entity" : "Failed to create entity");
     } finally {
       setLoading(false);
     }
   };
 
+  if (isEditMode && loadingEntity) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="text-muted-foreground">Loading entity details...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl">
-      <h1 className="text-2xl font-bold mb-6">Entities</h1>
+      <h1 className="text-2xl font-bold mb-6">{isEditMode ? "Edit Entity" : "Create Entity"}</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="bg-white border rounded-lg shadow-sm p-6">
+          <fieldset disabled={loadingEntity || loading} className="bg-white border rounded-lg shadow-sm p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
               <FormField
                 control={form.control}
@@ -198,9 +300,13 @@ export const CreateEntityPage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Type *</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select 
+                      value={field.value} 
+                      onValueChange={field.onChange}
+                      disabled={isEditMode}
+                    >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className={isEditMode ? "bg-muted cursor-not-allowed" : ""}>
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
@@ -321,20 +427,27 @@ export const CreateEntityPage = () => {
               </div>
             )}
 
-          </div>
+          </fieldset>
             <FormFooter>
               <Button
                 variant="outline"
                 type="button"
                 className="px-6 py-2"
                 onClick={() => navigate("/admin-settings/entities")}
+                disabled={loading}
               >
                 Back
               </Button>
-              <Button type="submit" disabled={loading}>{ loading ? <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </> : "SUBMIT"}</Button>
+              <Button type="submit" disabled={loading || loadingEntity}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isEditMode ? "Updating..." : "Submitting..."}
+                  </>
+                ) : (
+                  isEditMode ? "UPDATE" : "SUBMIT"
+                )}
+              </Button>
               </FormFooter>
         </form>
       </Form>

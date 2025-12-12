@@ -53,7 +53,7 @@ import { Loader2, ChevronDown, Check } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { bulkUploadService } from "@/services/admin/bulkUploadService";
 import { FormFooter } from "@/components/layout/FormFooter";
@@ -105,6 +105,13 @@ interface ApiReportingUser {
   last_name?: string;
 }
 
+interface UserOption {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
 type UserFormValues = {
   email: string;
   firstName: string;
@@ -144,20 +151,22 @@ const createUserSchema = (templateEntities: TemplateEntity[]) => {
   };
 
   const dynamicFields: Record<string, z.ZodTypeAny> = {};
-  templateEntities.forEach((entity) => {
-    const entityId = getEntityId(entity);
-    if (entityId) {
-      const fieldName = getFieldName(entity);
-      if (entity.is_mandatory) {
-        dynamicFields[entityId] = z
-          .string()
-          .trim()
-          .min(1, `${fieldName} is required`);
-      } else {
-        dynamicFields[entityId] = z.string().trim().optional();
+  templateEntities
+    .filter((entity) => entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT)
+    .forEach((entity) => {
+      const entityId = getEntityId(entity);
+      if (entityId) {
+        const fieldName = getFieldName(entity);
+        if (entity.is_mandatory) {
+          dynamicFields[entityId] = z
+            .string()
+            .trim()
+            .min(1, `${fieldName} is required`);
+        } else {
+          dynamicFields[entityId] = z.string().trim().optional();
+        }
       }
-    }
-  });
+    });
 
   return z.object({ ...baseSchema, ...dynamicFields });
 };
@@ -175,33 +184,79 @@ const createDefaultValues = (
     reportingManager: "",
   };
 
-  templateEntities.forEach((entity) => {
-    const entityId = getEntityId(entity);
-    if (entityId) {
-      defaults[entityId] = "";
-    }
-  });
+  templateEntities
+    .filter((entity) => entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT)
+    .forEach((entity) => {
+      const entityId = getEntityId(entity);
+      if (entityId) {
+        defaults[entityId] = "";
+      }
+    });
 
   return defaults;
+};
+
+const parseEntityAssignments = (rawAssignments: unknown): Record<string, string> => {
+  const assignments: Record<string, string> = {};
+
+  if (Array.isArray(rawAssignments)) {
+    rawAssignments.forEach((item) => {
+      if (item && typeof item === "object") {
+        const maybeEntityId = (item as Record<string, unknown>).entity_id;
+        const maybeValue = (item as Record<string, unknown>).value;
+        if (typeof maybeEntityId === "string" && typeof maybeValue === "string") {
+          assignments[maybeEntityId] = maybeValue;
+        }
+
+        Object.entries(item as Record<string, unknown>).forEach(([key, val]) => {
+          if (typeof val === "string") {
+            assignments[key] = val;
+          }
+        });
+      }
+    });
+    return assignments;
+  }
+
+  if (rawAssignments && typeof rawAssignments === "object") {
+    Object.entries(rawAssignments as Record<string, unknown>).forEach(([key, val]) => {
+      if (typeof val === "string") {
+        assignments[key] = val;
+      }
+    });
+  }
+
+  return assignments;
 };
 
 interface CreateUserFormProps {
   templates: TemplateEntity[];
   entityOptions: Record<string, EntityOption[]>;
   loadingEntityFields: boolean;
+  mode: "create" | "edit";
+  initialValues?: Partial<UserFormValues> | null;
+  userId?: string;
+  loadingUser?: boolean;
+  reportingManagers?: UserOption[];
+  loadingManagers?: boolean;
 }
 
 const CreateUserForm = ({
   templates,
   entityOptions,
   loadingEntityFields,
+  mode,
+  initialValues,
+  userId,
+  loadingUser,
+  reportingManagers = [],
+  loadingManagers = false,
 }: CreateUserFormProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isRequests = location.pathname.includes("/requests/users");
-  const [reportingManagers, setReportingManagers] = useState<UserOption[]>([]);
-  const [loadingManagers, setLoadingManagers] = useState(false);
-  const [managersLoaded, setManagersLoaded] = useState(false);
+  const isEditMode = mode === "edit";
+  const basePath = isRequests ? "/requests/users" : "/admin-settings/users";
   const [submitting, setSubmitting] = useState(false);
   const [reportingManagerOpen, setReportingManagerOpen] = useState(false);
   const isMounted = useRef(true);
@@ -221,6 +276,10 @@ const CreateUserForm = ({
     () => createDefaultValues(templates),
     [templates]
   );
+  const mergedInitialValues = useMemo(
+    () => ({ ...defaultValues, ...(initialValues || {}) }),
+    [defaultValues, initialValues]
+  );
   const knownEntityIds = useMemo(
     () =>
       new Set(templates.map((entity) => getEntityId(entity)).filter(Boolean)),
@@ -229,52 +288,24 @@ const CreateUserForm = ({
 
   const form = useForm<UserFormValues>({
     resolver,
-    defaultValues,
+    defaultValues: mergedInitialValues,
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
 
-  const loadReportingManagers = useCallback(async () => {
-    if (loadingManagers || managersLoaded) return;
-
-    setLoadingManagers(true);
-    try {
-      const orgId = getOrgIdFromToken();
-      if (!orgId) {
-        console.error("Organization ID not found");
-        setManagersLoaded(true);
-        return;
-      }
-
-      const response = await api.get(`/auth/em/users?org_id=${orgId}`);
-      const users: ApiReportingUser[] = response.data?.data || [];
-      const managers: UserOption[] = users
-        .map((user) => ({
-          id: user.id !== undefined && user.id !== null ? String(user.id) : "",
-          email: user.email || "",
-          firstName: user.first_name || "",
-          lastName: user.last_name || "",
-        }))
-        .filter((user) => user.id);
-
-      if (!isMounted.current) return;
-
-      setReportingManagers(managers);
-      setManagersLoaded(true);
-    } catch (error) {
-      if (!isMounted.current) return;
-      console.error("Failed to load reporting managers:", error);
-      setManagersLoaded(true);
-    } finally {
-      if (isMounted.current) {
-        setLoadingManagers(false);
+  useEffect(() => {
+    if (isEditMode && initialValues) {
+      const values = { ...createDefaultValues(templates), ...initialValues };
+      form.reset(values);
+      if (initialValues.reportingManager && reportingManagers.length > 0) {
+        const manager = reportingManagers.find(m => m.id === initialValues.reportingManager);
+        if (!manager) {
+          console.warn("Reporting manager not found in list:", initialValues.reportingManager);
+        }
       }
     }
-  }, [loadingManagers, managersLoaded]);
+  }, [form, initialValues, isEditMode, templates, reportingManagers]);
 
-  useEffect(() => {
-    loadReportingManagers();
-  }, []);
 
   const handleReportingManagerOpen = useCallback(
     (open: boolean) => {
@@ -285,121 +316,92 @@ const CreateUserForm = ({
 
   const onSubmit = useCallback(
     async (values: UserFormValues) => {
+      if (isEditMode && !userId) {
+        toast.error("User ID not found");
+        return;
+      }
+
       const entityAssignmentsObj: Record<string, string> = {};
-      templates.forEach((entity) => {
-        const entityId = getEntityId(entity);
-        const value = values[entityId];
-        if (entityId && typeof value === "string" && value.trim().length > 0) {
-          entityAssignmentsObj[entityId] = value.trim();
-        }
-      });
-      const entityAssignments = Object.keys(entityAssignmentsObj).length > 0 ? [entityAssignmentsObj] : [];
+      templates
+        .filter((entity) => entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT)
+        .forEach((entity) => {
+          const entityId = getEntityId(entity);
+          const value = values[entityId];
+          if (entityId && typeof value === "string" && value.trim().length > 0) {
+            entityAssignmentsObj[entityId] = value.trim();
+          }
+        });
 
-      const employeeCode = values.employeeCode?.trim();
-      const reportingManager = values.reportingManager?.trim();
-
-      const payload = {
-        email: values.email,
+      const payload: any = {
         first_name: values.firstName,
         last_name: values.lastName,
         phone_number: values.phoneNumber,
         role: values.role,
-        employee_code: employeeCode ? employeeCode : undefined,
-        reporting_manager: reportingManager ? reportingManager : undefined,
-        entity_assignments: entityAssignments,
+        entity_assignments: Object.keys(entityAssignmentsObj).length > 0 ? [entityAssignmentsObj] : [],
       };
+
+      if (values.employeeCode?.trim()) payload.employee_code = values.employeeCode.trim();
+      if (values.reportingManager?.trim()) payload.reporting_manager = values.reportingManager.trim();
+      if (!isEditMode) payload.email = values.email;
 
       setSubmitting(true);
       try {
-        const response = await api.post(`/auth/em/users`, payload);
-        toast.success(response.data.message || "User created successfully");
-
+        const response = isEditMode
+          ? await api.put(`/auth/em/users/${userId}`, payload)
+          : await api.post(`/auth/em/users`, payload);
+        toast.success(response.data?.message || (isEditMode ? "User updated successfully" : "User created successfully"));
         if (isMounted.current) {
-          form.reset(createDefaultValues(templates));
+          if (isEditMode) navigate(basePath);
+          else { form.reset(createDefaultValues(templates)); navigate(basePath); }
         }
-        navigate(isRequests ? "/requests/users" : "/admin-settings/users");
       } catch (error: any) {
-        console.error("Failed to create user:", error);
-
-        const fieldNameMap: Record<string, string> = {
-          last_name: "lastName",
-          first_name: "firstName",
-          phone_number: "phoneNumber",
-          employee_code: "employeeCode",
-          email: "email",
-          role: "role",
-          reporting_manager: "reportingManager",
-        };
-
         const errorData = error?.response?.data;
         const errors = errorData?.errors;
-
+        const fieldMap: Record<string, string> = {
+          last_name: "lastName", first_name: "firstName", phone_number: "phoneNumber",
+          employee_code: "employeeCode", email: "email", role: "role", reporting_manager: "reportingManager",
+        };
         if (errors && typeof errors === "object" && !Array.isArray(errors)) {
-          const allErrorMessages: string[] = [];
-
-          Object.keys(errors).forEach((apiFieldName) => {
-            const errorMessages = errors[apiFieldName];
-            if (errorMessages) {
-              const errorMessage = Array.isArray(errorMessages)
-                ? errorMessages[0]
-                : typeof errorMessages === "string"
-                ? errorMessages
-                : String(errorMessages);
-
-              if (errorMessage) {
-                allErrorMessages.push(errorMessage);
-
-                const formFieldName =
-                  fieldNameMap[apiFieldName] ||
-                  (knownEntityIds.has(apiFieldName) ? apiFieldName : undefined);
-
-                if (formFieldName) {
-                  form.setError(formFieldName as never, {
-                    type: "server",
-                    message: errorMessage,
-                  });
-                }
-              }
+          const msgs: string[] = [];
+          Object.keys(errors).forEach((key) => {
+            const msg = Array.isArray(errors[key]) ? errors[key][0] : typeof errors[key] === "string" ? errors[key] : String(errors[key]);
+            if (msg) {
+              msgs.push(msg);
+              const field = fieldMap[key] || (knownEntityIds.has(key) ? key : undefined);
+              if (field) form.setError(field as never, { type: "server", message: msg });
             }
           });
-
-          if (allErrorMessages.length > 0) {
-            const firstError = allErrorMessages[0];
-            toast.error(
-              allErrorMessages.length > 1
-                ? `${firstError} (and ${allErrorMessages.length - 1} more)`
-                : firstError
-            );
-          } else if (errorData?.message) {
-            toast.error(errorData.message);
-          } else {
-            toast.error("Please fix the errors in the form");
-          }
+          toast.error(msgs.length > 1 ? `${msgs[0]} (and ${msgs.length - 1} more)` : msgs[0] || errorData?.message || "Please fix the errors");
         } else {
-          const errorMessage = errorData?.message || "Failed to create user";
-          toast.error(errorMessage);
+          toast.error(errorData?.message || (isEditMode ? "Failed to update user" : "Failed to create user"));
         }
       } finally {
-        if (isMounted.current) {
-          setSubmitting(false);
-        }
+        if (isMounted.current) setSubmitting(false);
       }
     },
-    [form, knownEntityIds, navigate, templates]
+    [basePath, form, isEditMode, knownEntityIds, navigate, templates, userId]
   );
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} id="create-user-form">
         <fieldset
-          disabled={loadingEntityFields || submitting}
+          disabled={loadingEntityFields || submitting || loadingUser}
           className="space-y-6"
         >
+          {loadingUser && isEditMode && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading user details...</span>
+            </div>
+          )}
           <Card>
             <CardHeader>
               <CardTitle>User Information</CardTitle>
               <CardDescription>
-                Enter the basic information for the new user.
+                {isEditMode
+                  ? "Update the user information below."
+                  : "Enter the basic information for the new user."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -417,6 +419,8 @@ const CreateUserForm = ({
                           type="email"
                           placeholder="user@example.com"
                           required
+                          readOnly={isEditMode}
+                          className={isEditMode ? "bg-muted cursor-not-allowed" : ""}
                           {...field}
                         />
                       </FormControl>
@@ -686,7 +690,9 @@ const CreateUserForm = ({
                 <>
                   <Separator className="my-6" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {templates.map((entity) => {
+                    {templates
+                      .filter((entity) => entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT)
+                      .map((entity) => {
                       const entityId = getEntityId(entity);
                       const fieldName = getFieldName(entity);
                       return (
@@ -756,20 +762,25 @@ const CreateUserForm = ({
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(isRequests ? "/requests/users" : "/admin-settings/users")}
+            onClick={() => navigate(basePath)}
             className="px-6 py-2"
             disabled={submitting}
           >
             Back
           </Button>
-          <Button type="submit" form="create-user-form" className="min-w-[140px]" disabled={submitting}>
+          <Button
+            type="submit"
+            form="create-user-form"
+            className="min-w-[140px]"
+            disabled={submitting}
+          >
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
+                {isEditMode ? "Updating..." : "Creating..."}
               </>
             ) : (
-              "Create"
+              isEditMode ? "Update" : "Create"
             )}
           </Button>
         </FormFooter>
@@ -779,18 +790,26 @@ const CreateUserForm = ({
 };
 
 export const CreateUserPage = () => {
+  const { id: userId } = useParams<{ id?: string }>();
   const location = useLocation();
   const isAdminSettings = location.pathname.includes("/admin-settings/users");
+  const isEditMode = Boolean(userId);
   const [templates, setTemplates] = useState<TemplateEntity[]>([]);
   const [entityOptions, setEntityOptions] = useState<
     Record<string, EntityOption[]>
   >({});
   const [loading, setLoading] = useState(false);
+  const [loadingUser, setLoadingUser] = useState(false);
+  const [initialValues, setInitialValues] =
+    useState<Partial<UserFormValues> | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [uploadingBulk, setUploadingBulk] = useState(false);
   const [bulkInputKey, setBulkInputKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [reportingManagers, setReportingManagers] = useState<UserOption[]>([]);
+  const [loadingManagers, setLoadingManagers] = useState(false);
+  const managersLoadedRef = useRef(false);
 
   const handleBulkDialogChange = useCallback((open: boolean) => {
     setShowBulkUpload(open);
@@ -938,6 +957,152 @@ export const CreateUserPage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (managersLoadedRef.current) return;
+    if (loadingManagers) return;
+
+    const loadReportingManagers = async () => {
+      managersLoadedRef.current = true;
+      setLoadingManagers(true);
+      try {
+        const orgId = getOrgIdFromToken();
+        if (!orgId) {
+          console.error("Organization ID not found");
+          setLoadingManagers(false);
+          managersLoadedRef.current = false;
+          return;
+        }
+
+        const response = await api.get(`/auth/em/users?org_id=${orgId}`);
+        const users: ApiReportingUser[] = response.data?.data || [];
+        const managers: UserOption[] = users
+          .map((user) => ({
+            id: user.id !== undefined && user.id !== null ? String(user.id) : "",
+            email: user.email || "",
+            firstName: user.first_name || "",
+            lastName: user.last_name || "",
+          }))
+          .filter((user) => user.id);
+
+        setReportingManagers(managers);
+      } catch (error) {
+        console.error("Failed to load reporting managers:", error);
+        managersLoadedRef.current = false;
+      } finally {
+        setLoadingManagers(false);
+      }
+    };
+
+    loadReportingManagers();
+  }, []);
+
+  const [rawUserData, setRawUserData] = useState<any>(null);
+
+  const processUserData = useCallback((data: any) => {
+    const rawAssignments = parseEntityAssignments(data.entity_assignments);
+    const mappedAssignments: Record<string, string> = {};
+    
+    if (templates.length > 0 && Object.keys(entityOptions).length > 0) {
+      Object.entries(rawAssignments).forEach(([key, value]) => {
+        const trimmedKey = key.trim();
+        const templateEntity = templates.find(
+          (t) => (getFieldName(t).trim() === trimmedKey || getEntityId(t) === trimmedKey) &&
+                 t.field_type?.toUpperCase() === FIELD_TYPE_SELECT
+        );
+        if (templateEntity) {
+          const entityId = getEntityId(templateEntity);
+          const options = entityOptions[entityId] || [];
+          const matchedOption = options.find(
+            (opt) => opt.label === value || opt.id === value
+          );
+          if (matchedOption) {
+            mappedAssignments[entityId] = matchedOption.id;
+          }
+        }
+      });
+    }
+
+    let reportingManagerId: string | undefined;
+    if (data.reporting_manager) {
+      reportingManagerId = String(data.reporting_manager);
+    } else if (data.reporting_manager_id) {
+      reportingManagerId = String(data.reporting_manager_id);
+    } else if (data.reporting_manager_email && reportingManagers.length > 0) {
+      const managerEmail = (data.reporting_manager_email || "").trim().toLowerCase();
+      const manager = reportingManagers.find(
+        (m) => (m.email || "").trim().toLowerCase() === managerEmail
+      );
+      if (manager) {
+        reportingManagerId = manager.id;
+      }
+    } else if (data.reporting_manager_name && reportingManagers.length > 0) {
+      const managerName = (data.reporting_manager_name || "").trim().toLowerCase();
+      const manager = reportingManagers.find((m) => {
+        const fullName = `${m.firstName || ""} ${m.lastName || ""}`.trim().toLowerCase();
+        return fullName === managerName;
+      });
+      if (manager) {
+        reportingManagerId = manager.id;
+      }
+    }
+
+    return {
+      email: data.email || "",
+      firstName: data.first_name || "",
+      lastName: data.last_name || "",
+      phoneNumber: data.phone_number || "",
+      role: data.role || "",
+      employeeCode: data.employee_code || "",
+      reportingManager: reportingManagerId,
+      ...mappedAssignments,
+    };
+  }, [templates, entityOptions, reportingManagers]);
+
+  useEffect(() => {
+    if (!userId) {
+      setInitialValues(null);
+      setRawUserData(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadUserDetails = async () => {
+      setLoadingUser(true);
+      try {
+        const response = await api.get(`/auth/em/users/${userId}`);
+        const data = response.data?.data;
+        if (!data || cancelled) return;
+
+        if (!cancelled) {
+          setRawUserData(data);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load user details:", error);
+          toast.error("Failed to load user details");
+        }
+      } finally {
+        if (!cancelled) setLoadingUser(false);
+      }
+    };
+
+    loadUserDetails();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!rawUserData) {
+      return;
+    }
+
+    const mappedValues = processUserData(rawUserData);
+    setInitialValues(mappedValues);
+  }, [rawUserData, templates, entityOptions, reportingManagers]);
+
   const templateKey = useMemo(
     () =>
       templates
@@ -947,15 +1112,32 @@ export const CreateUserPage = () => {
         .join("|"),
     [templates]
   );
+  const formKey = useMemo(
+    () => `${userId || "new"}|${templateKey}`,
+    [templateKey, userId]
+  );
+  const pageTitle = isEditMode ? "Update User" : "Create User";
+  const isLoading = isEditMode && (loading || loadingUser || loadingManagers || (userId && !initialValues));
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="text-muted-foreground">Loading user details...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="space-y-0">
         <div className="flex gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold">Create User</h1>
+            <h1 className="text-2xl font-bold">{pageTitle}</h1>
           </div>
-          {isAdminSettings && (
+          {isAdminSettings && !isEditMode && (
             <Button
               type="button"
               className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-base"
@@ -967,13 +1149,19 @@ export const CreateUserPage = () => {
         </div>
 
         <CreateUserForm
-          key={templateKey}
+          key={formKey}
           templates={templates}
           entityOptions={entityOptions}
           loadingEntityFields={loading}
+          mode={isEditMode ? "edit" : "create"}
+          initialValues={initialValues}
+          userId={userId}
+          loadingUser={loadingUser}
+          reportingManagers={reportingManagers}
+          loadingManagers={loadingManagers}
         />
       </div>
-      {isAdminSettings && (
+      {isAdminSettings && !isEditMode && (
         <Dialog open={showBulkUpload} onOpenChange={handleBulkDialogChange}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>

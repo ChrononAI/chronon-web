@@ -226,7 +226,9 @@ export function CreateExpenseForm() {
         }
 
         result = await expenseService.createExpense(expensePayload);
-        await expenseService.validateExpense(result.data.id);
+        if (result?.success && result.data?.id) {
+          await expenseService.validateExpense(result.data.id);
+        }
       } else if (formData.start_location) {
         // Mileage expense
         const expenseData: any = {
@@ -269,13 +271,7 @@ export function CreateExpenseForm() {
         navigate("/expenses");
         setParsedData(null);
       } else {
-        if (result?.validation_details) {
-          toast.error(
-            `Daily limit exceeded. Current: ${result.validation_details.current_daily_total}, New: ${result.validation_details.new_amount}, Limit: ${result.validation_details.daily_limit}`
-          );
-        } else {
-          toast.error(result?.message);
-        }
+        toast.error(result?.message || "Failed to create expense");
       }
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error?.message);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DataGrid,
@@ -6,9 +6,10 @@ import {
   GridOverlay,
   GridPaginationModel,
   GridRowSelectionModel,
+  GridRowParams,
 } from "@mui/x-data-grid";
 import { CheckCircle, Download, Plus } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
@@ -54,8 +55,7 @@ function CustomNoRows() {
 }
 
 const UserPage = () => {
-  const location = useLocation();
-  const isRequests = location.pathname.includes("/requests/users");
+  const navigate = useNavigate();
   const [rows, setRows] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [paginationModel, setPaginationModel] =
@@ -78,8 +78,12 @@ const UserPage = () => {
     []
   );
 
+  const templatesLoadedRef = useRef(false);
+
   const getTemps = async () => {
+    if (templatesLoadedRef.current) return;
     try {
+      templatesLoadedRef.current = true;
       const res = await getTemplates();
       const selectedEntities = res.find(
         (p) => p.module_type === "user"
@@ -100,6 +104,7 @@ const UserPage = () => {
       }
     } catch (error) {
       console.log(error);
+      templatesLoadedRef.current = false;
     }
   };
 
@@ -173,6 +178,12 @@ const UserPage = () => {
     setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
 
+  const handleRowClick = (params: GridRowParams) => {
+    const userId = params.id as string | number | undefined;
+    if (!userId) return;
+    navigate(`/admin-settings/users/${userId}`);
+  };
+
   return (
     <>
       <div className="flex justify-between items-center mb-6">
@@ -184,7 +195,7 @@ const UserPage = () => {
         </div>
         <div className="flex items-center gap-2">
           <Button asChild>
-            <Link to={isRequests ? "/requests/users/create" : "/admin-settings/users/create"}>
+            <Link to="/admin-settings/users/create">
               <Plus className="mr-2 h-4 w-4" />
               CREATE
             </Link>
@@ -269,6 +280,7 @@ const UserPage = () => {
           pageSizeOptions={[10, 25, 50, 100]}
           rowCount={rowCount}
           disableRowSelectionOnClick
+          onRowClick={handleRowClick}
           showCellVerticalBorder
         />
       </Box>
