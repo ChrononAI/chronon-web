@@ -986,9 +986,71 @@ export const CreateUserPage = () => {
     loadReportingManagers();
   }, []);
 
+  const [rawUserData, setRawUserData] = useState<any>(null);
+
+  const processUserData = useCallback((data: any) => {
+    const rawAssignments = parseEntityAssignments(data.entity_assignments);
+    const mappedAssignments: Record<string, string> = {};
+    
+    if (templates.length > 0 && Object.keys(entityOptions).length > 0) {
+      Object.entries(rawAssignments).forEach(([key, value]) => {
+        const trimmedKey = key.trim();
+        const templateEntity = templates.find(
+          (t) => getFieldName(t).trim() === trimmedKey || getEntityId(t) === trimmedKey
+        );
+        if (templateEntity) {
+          const entityId = getEntityId(templateEntity);
+          const options = entityOptions[entityId] || [];
+          const matchedOption = options.find(
+            (opt) => opt.label === value || opt.id === value
+          );
+          if (matchedOption) {
+            mappedAssignments[entityId] = matchedOption.id;
+          }
+        }
+      });
+    }
+
+    let reportingManagerId: string | undefined;
+    if (data.reporting_manager) {
+      reportingManagerId = String(data.reporting_manager);
+    } else if (data.reporting_manager_id) {
+      reportingManagerId = String(data.reporting_manager_id);
+    } else if (data.reporting_manager_email && reportingManagers.length > 0) {
+      const managerEmail = (data.reporting_manager_email || "").trim().toLowerCase();
+      const manager = reportingManagers.find(
+        (m) => (m.email || "").trim().toLowerCase() === managerEmail
+      );
+      if (manager) {
+        reportingManagerId = manager.id;
+      }
+    } else if (data.reporting_manager_name && reportingManagers.length > 0) {
+      const managerName = (data.reporting_manager_name || "").trim().toLowerCase();
+      const manager = reportingManagers.find((m) => {
+        const fullName = `${m.firstName || ""} ${m.lastName || ""}`.trim().toLowerCase();
+        return fullName === managerName;
+      });
+      if (manager) {
+        reportingManagerId = manager.id;
+      }
+    }
+
+    return {
+      email: data.email || "",
+      firstName: data.first_name || "",
+      lastName: data.last_name || "",
+      phoneNumber: data.phone_number || "",
+      role: data.role || "",
+      employeeCode: data.employee_code || "",
+      reportingManager: reportingManagerId,
+      ...mappedAssignments,
+    };
+  }, [templates, entityOptions, reportingManagers]);
+
   useEffect(() => {
-    if (!userId || loading || templates.length === 0 || Object.keys(entityOptions).length === 0) {
-      if (!userId) setInitialValues(null);
+    if (!userId) {
+      setInitialValues(null);
+      setRawUserData(null);
       return;
     }
 
@@ -1001,63 +1063,8 @@ export const CreateUserPage = () => {
         const data = response.data?.data;
         if (!data || cancelled) return;
 
-        const rawAssignments = parseEntityAssignments(data.entity_assignments);
-        const mappedAssignments: Record<string, string> = {};
-        
-        Object.entries(rawAssignments).forEach(([key, value]) => {
-          const trimmedKey = key.trim();
-          const templateEntity = templates.find(
-            (t) => getFieldName(t).trim() === trimmedKey || getEntityId(t) === trimmedKey
-          );
-          if (templateEntity) {
-            const entityId = getEntityId(templateEntity);
-            const options = entityOptions[entityId] || [];
-            const matchedOption = options.find(
-              (opt) => opt.label === value || opt.id === value
-            );
-            if (matchedOption) {
-              mappedAssignments[entityId] = matchedOption.id;
-            }
-          }
-        });
-
-        let reportingManagerId: string | undefined;
-        if (data.reporting_manager) {
-          reportingManagerId = String(data.reporting_manager);
-        } else if (data.reporting_manager_id) {
-          reportingManagerId = String(data.reporting_manager_id);
-        } else if (data.reporting_manager_email && reportingManagers.length > 0) {
-          const managerEmail = (data.reporting_manager_email || "").trim().toLowerCase();
-          const manager = reportingManagers.find(
-            (m) => (m.email || "").trim().toLowerCase() === managerEmail
-          );
-          if (manager) {
-            reportingManagerId = manager.id;
-          }
-        } else if (data.reporting_manager_name && reportingManagers.length > 0) {
-          const managerName = (data.reporting_manager_name || "").trim().toLowerCase();
-          const manager = reportingManagers.find((m) => {
-            const fullName = `${m.firstName || ""} ${m.lastName || ""}`.trim().toLowerCase();
-            return fullName === managerName;
-          });
-          if (manager) {
-            reportingManagerId = manager.id;
-          }
-        }
-
-        const mappedValues: Partial<UserFormValues> = {
-          email: data.email || "",
-          firstName: data.first_name || "",
-          lastName: data.last_name || "",
-          phoneNumber: data.phone_number || "",
-          role: data.role || "",
-          employeeCode: data.employee_code || "",
-          reportingManager: reportingManagerId,
-          ...mappedAssignments,
-        };
         if (!cancelled) {
-          setInitialValues(mappedValues);
-          console.log("Mapped user values:", mappedValues);
+          setRawUserData(data);
         }
       } catch (error) {
         if (!cancelled) {
@@ -1074,7 +1081,16 @@ export const CreateUserPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [userId, loading, templates, entityOptions, reportingManagers]);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!rawUserData) {
+      return;
+    }
+
+    const mappedValues = processUserData(rawUserData);
+    setInitialValues(mappedValues);
+  }, [rawUserData, templates, entityOptions, reportingManagers]);
 
   const templateKey = useMemo(
     () =>

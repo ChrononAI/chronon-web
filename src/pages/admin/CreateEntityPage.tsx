@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { createEntity, createAttributes, getEntityById, updateEntity, EntityAttribute } from "@/services/admin/entities";
+import { createEntity, getEntityById, updateEntity, EntityAttribute } from "@/services/admin/entities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -203,60 +203,45 @@ export const CreateEntityPage = () => {
           navigate("/admin-settings/entities");
         }, 100);
       } else {
+        let attrs: any[] = [];
+        if (data.type === "SELECT" && valueRows.length > 0) {
+          attrs = valueRows
+            .filter((v) => v.value.trim().length > 0)
+            .map((v) => {
+              const { value, accountCode = "", ...extra } = v;
+              const trimmedValue = value.trim();
+              const trimmedAccountCode = accountCode.trim();
+              const metadata = Object.entries(extra).reduce<Record<string, string>>((acc, [key, val]) => {
+                if (tags.includes(key)) {
+                  const trimmed = val.trim();
+                  if (trimmed.length > 0) acc[key] = trimmed;
+                }
+                return acc;
+              }, {});
+              return {
+                value: trimmedValue,
+                is_active: true,
+                display_value: trimmedValue,
+                ...(trimmedAccountCode ? { account_code: trimmedAccountCode } : {}),
+                ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+              };
+            });
+        }
+
         const payload = {
           name: data.entityName,
           description: data.description || "",
           display_name: data.entityName,
           status: data.type,
           is_active: true,
+          ...(attrs.length > 0 ? { attributes: attrs } : {}),
         };
 
-        const res = await createEntity(payload);
-        if (res?.status === "success") {
-          const currentEntityId = res.data?.id;
-          if (currentEntityId && data.type === "SELECT" && valueRows.length > 0) {
-            const attrs = valueRows
-              .filter((v) => v.value.trim().length > 0)
-              .map((v) => {
-                const { value, accountCode = "", ...extra } = v;
-                const trimmedValue = value.trim();
-                const trimmedAccountCode = accountCode.trim();
-                const metadata = Object.entries(extra).reduce<Record<string, string>>((acc, [key, val]) => {
-                  if (tags.includes(key)) {
-                    const trimmed = val.trim();
-                    if (trimmed.length > 0) acc[key] = trimmed;
-                  }
-                  return acc;
-                }, {});
-                return {
-                  value: trimmedValue,
-                  is_active: true,
-                  display_value: trimmedValue,
-                  ...(trimmedAccountCode ? { account_code: trimmedAccountCode } : {}),
-                  ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
-                };
-              });
-
-            if (attrs.length > 0) {
-              try {
-                const attrRes = await createAttributes({ entity_id: currentEntityId, attributes: attrs });
-                if (attrRes?.status !== "success") {
-                  toast.error(attrRes?.message || "Failed to create entity attributes");
-                  setLoading(false);
-                  return;
-                }
-              } catch (error) {
-                toast.error("Failed to create entity attributes");
-                setLoading(false);
-                return;
-              }
-            }
-          }
-          toast.success("Entity created successfully");
+        await createEntity(payload);
+        toast.success("Entity created successfully");
+        setTimeout(() => {
           navigate("/admin-settings/entities");
-        } else {
-          toast.error(res?.message || "Failed to create entity");
-        }
+        }, 100);
       }
     } catch (e) {
       toast.error(isEditMode ? "Failed to update entity" : "Failed to create entity");

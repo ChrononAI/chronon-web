@@ -1,11 +1,21 @@
 import api from '@/lib/api'
 
+export interface UpdateEntityAttribute {
+  id?: string
+  value: string
+  is_active: boolean
+  display_value: string
+  account_code?: string
+  metadata?: Record<string, string>
+}
+
 export interface CreateEntityPayload {
   name: string
   description?: string
   display_name?: string
   status: string
   is_active: boolean
+  attributes?: UpdateEntityAttribute[]
 }
 
 export async function createEntity(payload: CreateEntityPayload) {
@@ -77,15 +87,6 @@ export async function getEntityById(entityId: string): Promise<Entity | null> {
     console.error('Failed to get entity by ID:', error)
     return null
   }
-}
-
-export interface UpdateEntityAttribute {
-  id?: string
-  value: string
-  is_active: boolean
-  display_value: string
-  account_code?: string
-  metadata?: Record<string, string>
 }
 
 export interface UpdateEntityPayload {
