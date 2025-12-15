@@ -29,11 +29,13 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { reportService } from "@/services/reportService";
-import { Expense } from "@/types/expense";
+import { Expense, ApprovalWorkflow } from "@/types/expense";
 import { AdditionalFieldMeta, CustomAttribute } from "@/types/report";
 import { useAuthStore } from "@/store/authStore";
 import { formatDate, formatCurrency, getStatusColor } from "@/lib/utils";
 import { DynamicCustomField } from "./DynamicCustomField";
+import { ReportTabs } from "./ReportTabs";
+import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
 import {
   DataGrid,
   ExportCsv,
@@ -153,6 +155,10 @@ function CustomToolbar({
   categories,
   selectedCategory,
   setSelectedCategory,
+  dateFrom,
+  dateTo,
+  setDateFrom,
+  setDateTo,
 }: any) {
   return (
     <Toolbar
@@ -166,25 +172,38 @@ function CustomToolbar({
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        {/* <Input value={searchValue} onChange={onSearchChange} placeholder="Search..." /> */}
         <SearchableSelect
           categories={categories}
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
+        />
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="w-36"
+          placeholder="From"
+        />
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="w-36"
+          placeholder="To"
         />
       </Box>
 
       <Box className="flex items-center gap-2">
         <FilterPanelTrigger
           size="small"
-          startIcon={<GridFilterListIcon className="text-gray-500" />} // 👈 custom icon
+          startIcon={<GridFilterListIcon className="text-gray-500" />}
         >
           <span className="text-gray-500">Filter</span>
         </FilterPanelTrigger>
 
         <ExportCsv
           size="small"
-          startIcon={<GridExpandMoreIcon className="text-gray-500" />} // 👈 custom icon
+          startIcon={<GridExpandMoreIcon className="text-gray-500" />}
         >
           <span className="text-gray-500">Export CSV</span>
         </ExportCsv>
@@ -220,12 +239,34 @@ export function CreateReportForm2({
   });
   const [selectedIds, setSelectedIds] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<any>();
+  const [reportStatus, setReportStatus] = useState<string | null>(null);
+  const [approvalWorkflow, setApprovalWorkflow] =
+    useState<ApprovalWorkflow | null>(null);
+  const [activeTab, setActiveTab] = useState<"expenses" | "history">("expenses");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
-  const filteredExpenses = selectedCategory
-    ? allExpenses.filter((exp) => exp.category_id === selectedCategory.id)
-    : allExpenses;
+  const filteredExpenses = allExpenses
+    .filter((exp) =>
+      selectedCategory ? exp.category_id === selectedCategory.id : true
+    )
+    .filter((exp) => {
+      if (!dateFrom && !dateTo) return true;
+      const expDate = exp.expense_date ? new Date(exp.expense_date) : null;
+      if (!expDate || isNaN(expDate.getTime())) return false;
+      const fromOk = dateFrom ? expDate >= new Date(dateFrom) : true;
+      const toOk = dateTo ? expDate <= new Date(dateTo) : true;
+      return fromOk && toOk;
+    });
 
   const [categories, setCategories] = useState([]);
+
+  const showTabs =
+    editMode &&
+    reportData &&
+    ["SENT_BACK", "APPROVED", "REJECTED"].includes(
+      (reportStatus || "").toUpperCase()
+    );
 
   const getAllCategories = async () => {
     try {
@@ -341,6 +382,41 @@ export function CreateReportForm2({
           : reportData.expenses || [];
         setMarkedExpenses([...reportExpenses]);
         setSelectedIds(reportExpenses.map((exp: any) => exp.id));
+
+        if (fullReportResponse.success && fullReportResponse.data) {
+          const currentStatus = (fullReportResponse.data.status || "").toUpperCase();
+          setReportStatus(currentStatus);
+          
+          if (["SENT_BACK", "APPROVED", "REJECTED"].includes(currentStatus)) {
+            try {
+              const workflowResponse = await reportService.getReportApprovalWorkflow(reportData.id);
+              if (workflowResponse.success && workflowResponse.data) {
+                const getAllApprovalSteps = (data: any) => {
+                  return data
+                    .reverse()
+                    .flatMap((item: any) =>
+                      item.approval_steps.filter(
+                        (step: any) => step.status !== "ABORTED"
+                      )
+                    );
+                };
+                const newSteps = getAllApprovalSteps(workflowResponse.data);
+                const currentStepIdx = newSteps.findIndex(
+                  (step: any) => step.status === "IN_PROGRESS"
+                );
+                setApprovalWorkflow({
+                  report_id: reportData.id,
+                  approval_steps: newSteps,
+                  total_steps: newSteps.length,
+                  current_step: currentStepIdx !== -1 ? currentStepIdx + 1 : 0,
+                  ...workflowResponse.data[0]
+                });
+              }
+            } catch (error) {
+              console.error("Error fetching approval workflow:", error);
+            }
+          }
+        }
 
         // Fetch all available expenses (unassigned)
         const unassignedExpenses = await reportService.getUnassignedExpenses();
@@ -672,7 +748,6 @@ export function CreateReportForm2({
             {/* Dynamic Custom Fields */}
             {customAttributes.length > 0 && (
               <div className="space-y-4 lg:col-span-2">
-                <h3 className="text-lg font-semibold">Custom Fields</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   {customAttributes.map((attribute) => (
                     <DynamicCustomField
@@ -690,21 +765,39 @@ export function CreateReportForm2({
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold">Add Expenses</h3>
-        <DataGrid
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          rows={loadingExpenses ? [] : filteredExpenses}
-          columns={columns}
-          loading={loadingExpenses}
-          slots={{
-            toolbar: () => (
-              <CustomToolbar
-                categories={categories}
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-              />
-            ),
-          }}
+        {showTabs ? (
+          <>
+            <ReportTabs
+              activeTab={activeTab}
+              onTabChange={(tabId) =>
+                setActiveTab(tabId as "expenses" | "history")
+              }
+              tabs={[
+                { key: "expenses", label: "Expenses", count: markedExpenses.length },
+                { key: "history", label: "Audit History", count: 0 },
+              ]}
+              className="mb-2"
+            />
+            {activeTab === "expenses" && (
+              <div className="space-y-6">
+                <DataGrid
+                  className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+                  rows={loadingExpenses ? [] : filteredExpenses}
+                  columns={columns}
+                  loading={loadingExpenses}
+                  slots={{
+                    toolbar: () => (
+                      <CustomToolbar
+                        categories={categories}
+                        selectedCategory={selectedCategory}
+                        setSelectedCategory={setSelectedCategory}
+                        dateFrom={dateFrom}
+                        dateTo={dateTo}
+                        setDateFrom={setDateFrom}
+                        setDateTo={setDateTo}
+                      />
+                    ),
+                  }}
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {
@@ -769,17 +862,124 @@ export function CreateReportForm2({
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           pageSizeOptions={[10, 15, 20]}
-        />
-      </div>
-
-      {/* Total Amount Display */}
-      <div className="flex">
-        <div className="bg-gray-50 rounded-lg px-8 py-3 w-full flex items-center justify-end gap-6">
-          <span className="text-gray-600">Total Amount:</span>
-          <span className="text-lg font-bold text-primary">
-            {formatCurrency(totalAmount || 0)}
-          </span>
-        </div>
+                />
+                <div className="flex">
+                  <div className="bg-gray-50 rounded-lg px-8 py-3 w-full flex items-center justify-end gap-6">
+                    <span className="text-gray-600">Total Amount:</span>
+                    <span className="text-lg font-bold text-primary">
+                      {formatCurrency(totalAmount || 0)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            {activeTab === "history" && (
+              <div className="mt-6">
+                {approvalWorkflow && approvalWorkflow.approval_steps ? (
+                  <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No audit history available
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <DataGrid
+              className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+              rows={loadingExpenses ? [] : filteredExpenses}
+              columns={columns}
+              loading={loadingExpenses}
+              slots={{
+                toolbar: () => (
+                  <CustomToolbar
+                    categories={categories}
+                    selectedCategory={selectedCategory}
+                    setSelectedCategory={setSelectedCategory}
+                    dateFrom={dateFrom}
+                    dateTo={dateTo}
+                    setDateFrom={setDateFrom}
+                    setDateTo={setDateTo}
+                  />
+                ),
+              }}
+              sx={{
+                border: 0,
+                "& .MuiDataGrid-columnHeaderTitle": {
+                  color: "#9AA0A6",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                },
+                "& .MuiDataGrid-panel .MuiSelect-select": {
+                  fontSize: "12px",
+                },
+                "& .MuiToolbar-root": {
+                  paddingX: 0,
+                },
+                "& .MuiDataGrid-main": {
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-columnHeader": {
+                  backgroundColor: "#f3f4f6",
+                  border: "none",
+                },
+                "& .MuiDataGrid-columnHeaders": {
+                  border: "none",
+                },
+                "& .MuiDataGrid-row:hover": {
+                  cursor: "pointer",
+                  backgroundColor: "#f5f5f5",
+                },
+                "& .MuiDataGrid-cell": {
+                  color: "#2E2E2E",
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
+                  outline: "none",
+                },
+                "& .MuiDataGrid-cell:focus-within": {
+                  outline: "none",
+                },
+                "& .MuiDataGrid-columnSeparator": {
+                  color: "#f3f4f6",
+                },
+              }}
+              showToolbar
+              density="compact"
+              getRowClassName={(params) =>
+                params.row.original_expense_id ? "bg-yellow-50" : ""
+              }
+              checkboxSelection
+              rowSelectionModel={rowSelection}
+              onRowSelectionModelChange={(newSelection) => {
+                if (
+                  newSelection.type !== "exclude" &&
+                  newSelection.ids.size === 0 &&
+                  rowSelection.ids.size > 0
+                )
+                  return;
+                setRowSelection(newSelection);
+              }}
+              disableRowSelectionOnClick
+              showCellVerticalBorder
+              pagination
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
+              pageSizeOptions={[10, 15, 20]}
+            />
+            {/* Total Amount Display */}
+            <div className="flex mt-6">
+              <div className="bg-gray-50 rounded-lg px-8 py-3 w-full flex items-center justify-end gap-6">
+                <span className="text-gray-600">Total Amount:</span>
+                <span className="text-lg font-bold text-primary">
+                  {formatCurrency(totalAmount || 0)}
+                </span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Action Buttons - At the very bottom of the page */}
