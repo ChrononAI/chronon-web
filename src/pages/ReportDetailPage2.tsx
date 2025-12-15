@@ -221,7 +221,7 @@ export function ReportDetailPage2() {
           approval_steps: newSteps,
           total_steps: newSteps.length,
           current_step: currentStepIdx !== -1 ? currentStepIdx + 1 : 0,
-          ...workflowResponse.data[0]
+          // ...workflowResponse.data[0]
         });
       } else {
         console.warn(
