@@ -199,7 +199,7 @@ function CustomToolbar({
             <Button
               variant="outline"
               className={cn(
-                "h-11 w-36 justify-between gap-3 pl-3 text-left font-normal",
+                "h-11 w-full justify-between gap-3 pl-3 text-left font-normal",
                 !dateFrom && "text-muted-foreground"
               )}
             >
@@ -226,7 +226,7 @@ function CustomToolbar({
             <Button
               variant="outline"
               className={cn(
-                "h-11 w-36 justify-between gap-3 pl-3 text-left font-normal",
+                "h-11 w-full justify-between gap-3 pl-3 text-left font-normal",
                 !dateTo && "text-muted-foreground"
               )}
             >
