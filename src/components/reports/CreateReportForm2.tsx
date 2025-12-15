@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Trash2 } from "lucide-react";
+import { Calendar, Loader2, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,12 +27,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 import { reportService } from "@/services/reportService";
 import { Expense, ApprovalWorkflow } from "@/types/expense";
 import { AdditionalFieldMeta, CustomAttribute } from "@/types/report";
 import { useAuthStore } from "@/store/authStore";
-import { formatDate, formatCurrency, getStatusColor } from "@/lib/utils";
+import { formatDate, formatCurrency, getStatusColor, cn } from "@/lib/utils";
 import { DynamicCustomField } from "./DynamicCustomField";
 import { ReportTabs } from "./ReportTabs";
 import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
@@ -52,6 +53,8 @@ import { categoryService } from "@/services/admin/categoryService";
 import { SearchableSelect } from "./SearchableSelect";
 import { trackEvent } from "@/mixpanel";
 import { FormFooter } from "../layout/FormFooter";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { format } from "date-fns";
 
 // Dynamic form schema creation function
 const createReportSchema = (customAttributes: CustomAttribute[]) => {
@@ -177,7 +180,7 @@ function CustomToolbar({
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
         />
-        <Input
+        {/* <Input
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
@@ -190,7 +193,61 @@ function CustomToolbar({
           onChange={(e) => setDateTo(e.target.value)}
           className="w-36"
           placeholder="To"
-        />
+        /> */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "h-11 w-full justify-between gap-3 pl-3 text-left font-normal",
+                !dateFrom && "text-muted-foreground"
+              )}
+            >
+              {dateFrom ? format(new Date(dateFrom), "PPP") : <span>From</span>}
+              <span className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 opacity-50" />
+                <X
+                  className="h-4 w-4 opacity-50"
+                  onClick={() => setDateFrom("")}
+                />
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <CalendarComponent
+              mode="single"
+              selected={new Date(dateFrom)}
+              onSelect={(date: any) => setDateFrom(date)}
+            />
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "h-11 w-full justify-between gap-3 pl-3 text-left font-normal",
+                !dateTo && "text-muted-foreground"
+              )}
+            >
+              {dateTo ? format(new Date(dateTo), "PPP") : <span>To</span>}
+              <span className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 opacity-50" />
+                <X
+                  className="h-4 w-4 opacity-50"
+                  onClick={() => setDateTo("")}
+                />
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <CalendarComponent
+              mode="single"
+              selected={new Date(dateTo)}
+              onSelect={(date: any) => setDateTo(date)}
+            />
+          </PopoverContent>
+        </Popover>
       </Box>
 
       <Box className="flex items-center gap-2">
@@ -242,7 +299,9 @@ export function CreateReportForm2({
   const [reportStatus, setReportStatus] = useState<string | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<ApprovalWorkflow | null>(null);
-  const [activeTab, setActiveTab] = useState<"expenses" | "history">("expenses");
+  const [activeTab, setActiveTab] = useState<"expenses" | "history">(
+    "expenses"
+  );
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
 
@@ -384,12 +443,15 @@ export function CreateReportForm2({
         setSelectedIds(reportExpenses.map((exp: any) => exp.id));
 
         if (fullReportResponse.success && fullReportResponse.data) {
-          const currentStatus = (fullReportResponse.data.status || "").toUpperCase();
+          const currentStatus = (
+            fullReportResponse.data.status || ""
+          ).toUpperCase();
           setReportStatus(currentStatus);
-          
+
           if (["SENT_BACK", "APPROVED", "REJECTED"].includes(currentStatus)) {
             try {
-              const workflowResponse = await reportService.getReportApprovalWorkflow(reportData.id);
+              const workflowResponse =
+                await reportService.getReportApprovalWorkflow(reportData.id);
               if (workflowResponse.success && workflowResponse.data) {
                 const getAllApprovalSteps = (data: any) => {
                   return data
@@ -409,7 +471,6 @@ export function CreateReportForm2({
                   approval_steps: newSteps,
                   total_steps: newSteps.length,
                   current_step: currentStepIdx !== -1 ? currentStepIdx + 1 : 0,
-                  ...workflowResponse.data[0]
                 });
               }
             } catch (error) {
@@ -773,7 +834,11 @@ export function CreateReportForm2({
                 setActiveTab(tabId as "expenses" | "history")
               }
               tabs={[
-                { key: "expenses", label: "Expenses", count: markedExpenses.length },
+                {
+                  key: "expenses",
+                  label: "Expenses",
+                  count: markedExpenses.length,
+                },
                 { key: "history", label: "Audit History", count: 0 },
               ]}
               className="mb-2"
@@ -798,70 +863,71 @@ export function CreateReportForm2({
                       />
                     ),
                   }}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-panel .MuiSelect-select": {
-              fontSize: "12px",
-            },
-            "& .MuiToolbar-root": {
-              paddingX: 0,
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          showToolbar
-          density="compact"
-          getRowClassName={(params) =>
-            params.row.original_expense_id ? "bg-yellow-50" : ""
-          }
-          // disableRowSelectionExcludeModel
-          checkboxSelection
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={(newSelection) => {
-            if (
-              newSelection.type !== "exclude" &&
-              newSelection.ids.size === 0 &&
-              rowSelection.ids.size > 0
-            )
-              return;
-            setRowSelection(newSelection);
-          }}
-          disableRowSelectionOnClick
-          showCellVerticalBorder
-          pagination
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[10, 15, 20]}
+                  sx={{
+                    border: 0,
+                    "& .MuiDataGrid-columnHeaderTitle": {
+                      color: "#9AA0A6",
+                      fontWeight: "bold",
+                      fontSize: "12px",
+                    },
+                    "& .MuiDataGrid-panel .MuiSelect-select": {
+                      fontSize: "12px",
+                    },
+                    "& .MuiToolbar-root": {
+                      paddingX: 0,
+                    },
+                    "& .MuiDataGrid-main": {
+                      border: "0.2px solid #f3f4f6",
+                    },
+                    "& .MuiDataGrid-columnHeader": {
+                      backgroundColor: "#f3f4f6",
+                      border: "none",
+                    },
+                    "& .MuiDataGrid-columnHeaders": {
+                      border: "none",
+                    },
+                    "& .MuiDataGrid-row:hover": {
+                      cursor: "pointer",
+                      backgroundColor: "#f5f5f5",
+                    },
+                    "& .MuiDataGrid-cell": {
+                      color: "#2E2E2E",
+                      border: "0.2px solid #f3f4f6",
+                    },
+                    "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
+                      {
+                        outline: "none",
+                      },
+                    "& .MuiDataGrid-cell:focus-within": {
+                      outline: "none",
+                    },
+                    "& .MuiDataGrid-columnSeparator": {
+                      color: "#f3f4f6",
+                    },
+                  }}
+                  showToolbar
+                  density="compact"
+                  getRowClassName={(params) =>
+                    params.row.original_expense_id ? "bg-yellow-50" : ""
+                  }
+                  // disableRowSelectionExcludeModel
+                  checkboxSelection
+                  rowSelectionModel={rowSelection}
+                  onRowSelectionModelChange={(newSelection) => {
+                    if (
+                      newSelection.type !== "exclude" &&
+                      newSelection.ids.size === 0 &&
+                      rowSelection.ids.size > 0
+                    )
+                      return;
+                    setRowSelection(newSelection);
+                  }}
+                  disableRowSelectionOnClick
+                  showCellVerticalBorder
+                  pagination
+                  paginationModel={paginationModel}
+                  onPaginationModelChange={setPaginationModel}
+                  pageSizeOptions={[10, 15, 20]}
                 />
                 <div className="flex">
                   <div className="bg-gray-50 rounded-lg px-8 py-3 w-full flex items-center justify-end gap-6">
@@ -936,9 +1002,10 @@ export function CreateReportForm2({
                   color: "#2E2E2E",
                   border: "0.2px solid #f3f4f6",
                 },
-                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-                  outline: "none",
-                },
+                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
+                  {
+                    outline: "none",
+                  },
                 "& .MuiDataGrid-cell:focus-within": {
                   outline: "none",
                 },

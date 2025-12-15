@@ -148,7 +148,7 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                   <div className="space-y-2">
                     <div className="text-sm flex items-center gap-2 justify-between">
                       <div className="text-sm flex items-center gap-2">
-                        <span>Under Review</span>
+                        <span className="capitalize">{step.status.replace("_", " ").toLowerCase()}</span>
                       </div>
                       {approvedAt && (
                         <div className="text-[12px]">
