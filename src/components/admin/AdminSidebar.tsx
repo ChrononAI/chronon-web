@@ -15,7 +15,6 @@ import {
   FileCheck,
   CreditCard,
   UserCog,
-  Lock,
   FolderKanban,
   FileBarChart,
   DollarSign,
@@ -48,12 +47,6 @@ const navigation: NavigationItem[] = [
         name: "Entities",
         href: "/admin-settings/entities",
         icon: FolderTree,
-      },
-      {
-        name: "Org",
-        href: "/admin-settings/org",
-        icon: Building2,
-        disabled: true,
       },
       {
         name: "Users",
@@ -102,12 +95,6 @@ const navigation: NavigationItem[] = [
     name: "Product Config",
     icon: Shield,
     children: [
-      {
-        name: "Roles & Access",
-        href: "/admin-settings/product-config/roles-and-access",
-        icon: Lock,
-        disabled: true,
-      },
       {
         name: "Expense Categories",
         href: "/admin-settings/product-config/expense-categories",
