@@ -180,20 +180,6 @@ function CustomToolbar({
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
         />
-        {/* <Input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          className="w-36"
-          placeholder="From"
-        />
-        <Input
-          type="date"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          className="w-36"
-          placeholder="To"
-        /> */}
         <Popover>
           <PopoverTrigger asChild>
             <Button

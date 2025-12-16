@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { UploadReceiptStep } from "./UploadReceiptStep";
 import { useExpenseStore } from "@/store/expenseStore";
-import { getOrgCurrency } from "@/lib/utils";
+import { formatCurrency, getOrgCurrency } from "@/lib/utils";
 import { ExpenseDetailsStep2 } from "./ExpenseDetailsStep2";
 import { getTemplates, type Template } from "@/services/admin/templates";
 import { trackEvent } from "@/mixpanel";
@@ -351,9 +351,10 @@ export function CreateExpenseForm() {
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-gray-900">
-                      ₹
-                      {parsedData?.extracted_amount ||
-                        parsedData?.ocr_result?.amount}
+                      {formatCurrency(
+                        +(parsedData?.extracted_amount || 0) ||
+                          +parsedData?.ocr_result?.amount
+                      )}
                     </div>
                     <div className="text-sm text-gray-600">
                       {parsedData?.extracted_date
@@ -374,38 +375,10 @@ export function CreateExpenseForm() {
               {parsedData?.original_expense_id && (
                 <div
                   className="flex items-center text-blue-600 text-sm cursor-pointer hover:text-blue-700"
-                  onClick={async () => {
-                    try {
-                      const base64Url = uploadedFile
-                        ? await fileToBase64(uploadedFile)
-                        : previewUrl;
-                      localStorage.setItem("showDuplicateDialog", "true");
-                      localStorage.setItem(
-                        "duplicateParsedData",
-                        JSON.stringify(parsedData)
-                      );
-                      localStorage.setItem(
-                        "duplicatePreviewUrl",
-                        base64Url || ""
-                      );
-                      navigate(
-                        `/expenses/${parsedData.original_expense_id}?returnTo=create`
-                      );
-                    } catch (error) {
-                      console.error("Error converting file to base64:", error);
-                      localStorage.setItem("showDuplicateDialog", "true");
-                      localStorage.setItem(
-                        "duplicateParsedData",
-                        JSON.stringify(parsedData)
-                      );
-                      localStorage.setItem(
-                        "duplicatePreviewUrl",
-                        previewUrl || ""
-                      );
-                      navigate(
-                        `/expenses/${parsedData.original_expense_id}?returnTo=create`
-                      );
-                    }
+                  onClick={() => {
+                    navigate(
+                      `/expenses/${parsedData.original_expense_id}?returnTo=create`
+                    );
                   }}
                 >
                   <svg
