@@ -337,7 +337,9 @@ const CreateUserForm = ({
         last_name: values.lastName,
         phone_number: values.phoneNumber,
         role: values.role,
-        entity_assignments: Object.keys(entityAssignmentsObj).length > 0 ? [entityAssignmentsObj] : [],
+        entity_assignments: Object.keys(entityAssignmentsObj).length > 0 
+          ? Object.entries(entityAssignmentsObj).map(([key, value]) => ({ [key]: value }))
+          : [],
       };
 
       if (values.employeeCode?.trim()) payload.employee_code = values.employeeCode.trim();
