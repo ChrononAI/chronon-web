@@ -17,6 +17,7 @@ import {
   getAllWorkflows,
   createPolicy,
   type WorkflowConfig,
+  getWorkflowRules,
 } from "@/services/admin/workflows";
 import { getEntities, type Entity } from "@/services/admin/entities";
 import { toast } from "sonner";
@@ -27,7 +28,7 @@ import { Box } from "@mui/material";
 import { GridPaginationModel } from "@mui/x-data-grid";
 import { FormFooter } from "@/components/layout/FormFooter";
 
-type TabKey = "config" | "rules" | "all";
+type TabKey = "config" | "rules" | "all_workflows" | "all_rules";
 type StepType = "direct" | "parallel";
 type ApproverIdentifier = "REPORTING_MANAGER" | "SKIP_LEVEL_MANAGER";
 type WorkflowEvent = "ADVANCE" | "REPORT" | "PREAPPROVAL" | "STORE";
@@ -153,6 +154,71 @@ const getWorkflowColumns = (): GridColDef[] => [
   },
 ];
 
+const rulesColumns: GridColDef[] = [
+  {
+    field: "name",
+    headerName: "NAME",
+    flex: 1,
+    minWidth: 150,
+  },
+  {
+    field: "approval_type",
+    headerName: "APPROVAL TYPE",
+    flex: 1,
+    minWidth: 150,
+  },
+  {
+    field: "policy_type",
+    headerName: "POLICY TYPE",
+    flex: 1,
+    minWidth: 150,
+  },
+  {
+    field: "is_active",
+    headerName: "STATUS",
+    flex: 1,
+    minWidth: 120,
+    renderCell: ({ value }) => (
+      <Badge
+        className={
+          value
+            ? "bg-green-100 text-green-800 hover:bg-green-100"
+            : "bg-gray-100 hover:bg-gray-100 text-gray-800"
+        }
+      >
+        {value ? "Active" : "Inactive"}
+      </Badge>
+    ),
+  },
+  {
+    field: "created_by",
+    headerName: "CREATED BY",
+    flex: 1,
+    minWidth: 150,
+    renderCell: ({ value }) => {
+      return <span>{value.email}</span>;
+    },
+  },
+  {
+    field: "created_at",
+    headerName: "CREATED AT",
+    flex: 1,
+    minWidth: 160,
+    renderCell: (params) => (
+      <span className="text-sm text-gray-500">{formatDate(params.value)}</span>
+    ),
+  },
+  {
+    field: "updated_at",
+    headerName: "UPDATED AT",
+    flex: 1,
+    minWidth: 160,
+    renderCell: (params) => (
+      <span className="text-sm text-gray-500">{formatDate(params.value)}</span>
+    ),
+  },
+];
+
 function CustomNoRows() {
   return (
     <GridOverlay>
@@ -195,6 +261,7 @@ const WorkFlowPage = () => {
   const [entitiesLoading, setEntitiesLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [workflows, setWorkflows] = useState<WorkflowConfig[]>([]);
+  const [rules, setRules] = useState([]);
   const [workflowsLoading, setWorkflowsLoading] = useState(false);
   const [creatingRule, setCreatingRule] = useState(false);
   const isFetchingWorkflowsRef = useRef(false);
@@ -240,7 +307,7 @@ const WorkFlowPage = () => {
     [activeTab, hasParallelStep]
   );
   const needsWorkflows = useMemo(
-    () => activeTab === "all" || activeTab === "rules",
+    () => activeTab === "all_workflows" || activeTab === "rules",
     [activeTab]
   );
 
@@ -280,6 +347,16 @@ const WorkFlowPage = () => {
     }
   }, []);
 
+  const fetchRules = async () => {
+    try {
+      const res = await getWorkflowRules();
+      console.log(res);
+      setRules(res.data.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     if (needsEntities) {
       fetchEntities();
@@ -293,9 +370,12 @@ const WorkFlowPage = () => {
   }, [needsWorkflows, fetchWorkflows]);
 
   useEffect(() => {
-    if (activeTab === "all") {
+    if (activeTab === "all_workflows") {
       workflowsFetchedRef.current = false;
       fetchWorkflows(true);
+    }
+    if (activeTab === "all_rules") {
+      fetchRules();
     }
   }, [activeTab, fetchWorkflows]);
 
@@ -728,9 +808,7 @@ const WorkFlowPage = () => {
   return (
     <>
       <div className="flex flex-col gap-3 max-w-full">
-          <h1 className="text-2xl font-bold mb-3">
-            New Workflow
-          </h1>
+        <h1 className="text-2xl font-bold mb-3">New Workflow</h1>
 
         <ReportTabs
           activeTab={activeTab}
@@ -738,7 +816,12 @@ const WorkFlowPage = () => {
           tabs={[
             { key: "config", label: "Workflow Config", count: 0 },
             { key: "rules", label: "Rules", count: 0 },
-            { key: "all", label: "All Workflows", count: workflows.length },
+            {
+              key: "all_workflows",
+              label: "All Workflows",
+              count: workflows.length,
+            },
+            { key: "all_rules", label: "All Rules", count: rules.length },
           ]}
           className="mb-2"
         />
@@ -753,7 +836,7 @@ const WorkFlowPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-sm font-medium">
-                    NAME
+                    Name
                   </Label>
                   <Input
                     id="name"
@@ -1081,7 +1164,7 @@ const WorkFlowPage = () => {
           </>
         )}
 
-        {activeTab === "all" && (
+        {activeTab === "all_workflows" && (
           <Box
             sx={{
               height: "calc(100vh - 180px)",
@@ -1092,6 +1175,77 @@ const WorkFlowPage = () => {
             <DataGrid
               rows={workflows}
               columns={getWorkflowColumns()}
+              disableRowSelectionOnClick
+              loading={workflowsLoading}
+              slots={{
+                noRowsOverlay: CustomNoRows,
+              }}
+              sx={{
+                border: 0,
+                "& .MuiDataGrid-columnHeaderTitle": {
+                  color: "#9AA0A6",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                },
+                "& .MuiDataGrid-panel .MuiSelect-select": {
+                  fontSize: "12px",
+                },
+                "& .MuiDataGrid-main": {
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-columnHeader": {
+                  backgroundColor: "#f3f4f6",
+                  border: "none",
+                },
+                "& .MuiDataGrid-columnHeaders": {
+                  border: "none",
+                },
+                "& .MuiDataGrid-row:hover": {
+                  cursor: "pointer",
+                  backgroundColor: "#f5f5f5",
+                },
+                "& .MuiDataGrid-cell": {
+                  color: "#2E2E2E",
+                  border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
+                  {
+                    outline: "none",
+                  },
+                "& .MuiDataGrid-cell:focus-within": {
+                  outline: "none",
+                },
+                "& .MuiDataGrid-columnSeparator": {
+                  color: "#f3f4f6",
+                },
+              }}
+              showToolbar
+              density="compact"
+              getRowClassName={(params) =>
+                params.row.original_expense_id ? "bg-yellow-50" : ""
+              }
+              checkboxSelection
+              showCellVerticalBorder
+              rowSelectionModel={rowSelection}
+              onRowSelectionModelChange={setRowSelection}
+              pagination
+              paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+              onPaginationModelChange={setPaginationModel}
+            />
+          </Box>
+        )}
+
+        {activeTab === "all_rules" && (
+          <Box
+            sx={{
+              height: "calc(100vh - 180px)",
+              width: "100%",
+              marginTop: "-20px",
+            }}
+          >
+            <DataGrid
+              rows={rules}
+              columns={rulesColumns}
               disableRowSelectionOnClick
               loading={workflowsLoading}
               slots={{

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import {
   Select,
@@ -13,6 +13,7 @@ import { getTemplates, assignEntity } from "@/services/admin/templates";
 import { getEntities } from "@/services/admin/entities";
 import { toast } from "sonner";
 import { FormFooter } from "@/components/layout/FormFooter";
+import { AssignedEntitiesList } from "./ExpenseMasterPage";
 
 const CORE_FIELDS = ["Report ID"];
 
@@ -30,6 +31,11 @@ type Entity = {
   is_active?: boolean;
 };
 
+const getEntityId = (e: any): string | undefined => {
+  return e?.entity_id ?? e?.id;
+};
+
+
 const ExpenseReportMasterPage = () => {
   const [activeTab, setActiveTab] = useState<"core" | "custom">("core");
   const [fieldSettings, setFieldSettings] = useState<Record<string, string>>(
@@ -46,6 +52,35 @@ const ExpenseReportMasterPage = () => {
   const handleSelectChange = (field: string, value: string) => {
     setFieldSettings((prev) => ({ ...prev, [field]: value }));
   };
+
+  const expenseTemplate = useMemo(() => {
+    return templates.find((t) => t.module_type === "report");
+  }, [templates]);
+
+  const assignedEntities = useMemo(() => {
+    if (
+      !expenseTemplate?.entities ||
+      !Array.isArray(expenseTemplate.entities)
+    ) {
+      return [];
+    }
+    return expenseTemplate.entities;
+  }, [expenseTemplate]);
+
+  const assignedEntityIds = useMemo(() => {
+    return assignedEntities
+      .map((e: any) => getEntityId(e))
+      .filter((id: string): id is string => Boolean(id));
+  }, [assignedEntities]);
+
+  const availableEntities = useMemo(() => {
+    if (!Array.isArray(entities) || entities.length === 0) {
+      return [];
+    }
+    return entities.filter(
+      (entity) => entity?.id && !assignedEntityIds.includes(entity.id)
+    );
+  }, [entities, assignedEntityIds]);
 
   useEffect(() => {
     const load = async () => {
@@ -235,8 +270,8 @@ const ExpenseReportMasterPage = () => {
                           />
                         </SelectTrigger>
                         <SelectContent>
-                          {entities.length > 0 ? (
-                            entities.map((entity) => (
+                          {availableEntities.length > 0 ? (
+                            availableEntities.map((entity) => (
                               <SelectItem key={entity.id} value={entity.id}>
                                 {entity.display_name || entity.name}
                               </SelectItem>
@@ -305,6 +340,10 @@ const ExpenseReportMasterPage = () => {
                 >
                   Add
                 </a>
+                <AssignedEntitiesList
+                  assignedEntities={assignedEntities}
+                  entities={entities}
+                />
               </div>
             </div>
           </Card>

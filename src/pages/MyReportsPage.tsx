@@ -10,26 +10,98 @@ import { Badge } from "@/components/ui/badge";
 import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
 import { Report } from "@/types/expense";
 import { GridPaginationModel } from "@mui/x-data-grid";
-import { Box, CircularProgress } from "@mui/material";
+import { Box, Skeleton } from "@mui/material";
 import { GridOverlay } from "@mui/x-data-grid";
 
-export function CustomLoader() {
+function ExpensesSkeletonOverlay({ rowCount = 8 }) {
   return (
     <GridOverlay>
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "rgba(255,255,255,0.6)",
-        }}
-      >
-        <CircularProgress size={28} thickness={4} />
-      </Box>
+      <div className="w-full py-3 space-y-0">
+        {Array.from({ length: rowCount-1 }).map((_, rowIndex) => (
+          <div
+            key={rowIndex}
+            className="flex items-center gap-4 w-full py-4 px-2 border-[0.5px] border-gray"
+          >
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="2%"
+              className="rounded-full"
+            />
+            {/* EXPENSE ID */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="10%"
+              className="rounded-full"
+            />
+
+            {/* TYPE */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="8%"
+              className="rounded-full"
+            />
+
+            {/* POLICY */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="10%"
+              className="rounded-full"
+            />
+
+            {/* CATEGORY */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="10%"
+              className="rounded-full"
+            />
+
+            {/* VENDOR */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="16%"
+              className="rounded-full"
+            />
+
+            {/* DATE */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="8%"
+              className="rounded-full"
+            />
+
+            {/* AMOUNT */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="8%"
+              className="rounded-full"
+            />
+
+            {/* CURRENCY */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="6%"
+              className="rounded-full"
+            />
+
+            {/* STATUS */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="12%"
+              className="rounded-full"
+            />
+          </div>
+        ))}
+      </div>
     </GridOverlay>
   );
 }
@@ -125,6 +197,7 @@ export function MyReportsPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [paginationModel, setPaginationModel] =
     useState<GridPaginationModel | null>(null);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
@@ -201,6 +274,7 @@ export function MyReportsPage() {
         fetchUnsubmittedReports(),
         fetchSubmittedReports(),
       ]);
+      setIsInitialLoad(false);
     } catch (error) {
       console.log(error);
     } finally {
@@ -289,6 +363,14 @@ export function MyReportsPage() {
           }}
           slots={{
             noRowsOverlay: CustomNoRows,
+            loadingOverlay:
+              loading && isInitialLoad
+                ? () => (
+                    <ExpensesSkeletonOverlay
+                      rowCount={paginationModel?.pageSize}
+                    />
+                  )
+                : undefined,
           }}
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           sx={{

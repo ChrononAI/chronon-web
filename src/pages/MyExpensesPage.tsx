@@ -2,8 +2,13 @@ import { useEffect, useState } from "react";
 import { expenseService } from "@/services/expenseService";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { useExpenseStore } from "@/store/expenseStore";
-import { Box } from "@mui/material";
-import { DataGrid, GridColDef, GridPaginationModel, GridRowSelectionModel } from "@mui/x-data-grid";
+import { Box, Skeleton } from "@mui/material";
+import {
+  DataGrid,
+  GridColDef,
+  GridPaginationModel,
+  GridRowSelectionModel,
+} from "@mui/x-data-grid";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 import {
   Tooltip,
@@ -20,13 +25,105 @@ import {
 } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { GridOverlay } from "@mui/x-data-grid";
-// import { CustomLoader } from "./MyReportsPage";
 
 export function getExpenseType(type: string) {
   if (type === "RECEIPT_BASED") return "Expense";
   if (type === "MILEAGE_BASED") return "Mileage";
   if (type === "PER_DIEM") return "Per Diem";
   return type;
+}
+
+function ExpensesSkeletonOverlay({ rowCount = 8 }) {
+  return (
+    <GridOverlay>
+      <div className="w-full py-3 space-y-0">
+        {Array.from({ length: rowCount-1 }).map((_, rowIndex) => (
+          <div
+            key={rowIndex}
+            className="flex items-center gap-4 w-full py-3 px-2 border-[0.5px] border-gray"
+          >
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="2%"
+              className="rounded-full"
+            />
+            {/* EXPENSE ID */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="10%"
+              className="rounded-full"
+            />
+
+            {/* TYPE */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="8%"
+              className="rounded-full"
+            />
+
+            {/* POLICY */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="10%"
+              className="rounded-full"
+            />
+
+            {/* CATEGORY */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="10%"
+              className="rounded-full"
+            />
+
+            {/* VENDOR */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="16%"
+              className="rounded-full"
+            />
+
+            {/* DATE */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="8%"
+              className="rounded-full"
+            />
+
+            {/* AMOUNT */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="8%"
+              className="rounded-full"
+            />
+
+            {/* CURRENCY */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="6%"
+              className="rounded-full"
+            />
+
+            {/* STATUS */}
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="12%"
+              className="rounded-full"
+            />
+          </div>
+        ))}
+      </div>
+    </GridOverlay>
+  );
 }
 
 function CustomNoRows() {
@@ -181,10 +278,12 @@ export function MyExpensesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
+  const [rowsCalculated, setRowsCalculated] = useState(false);
 
   const rows =
     activeTab === "all"
@@ -194,12 +293,16 @@ export function MyExpensesPage() {
       : reportedExpenses;
 
   const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
+    useState<GridPaginationModel | null>({
+      page: 0,
+      pageSize: 10,
+    });
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+    setRowsCalculated(true);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, [activeTab]);
 
@@ -252,6 +355,7 @@ export function MyExpensesPage() {
         fetchDraftExpenses(),
         fetchCompletedExpenses(),
       ]);
+      setIsInitialLoad(false);
     } catch (error) {
       console.log(error);
     } finally {
@@ -259,11 +363,11 @@ export function MyExpensesPage() {
     }
   };
   useEffect(() => {
-    if (paginationModel) {
+    if (paginationModel && rowsCalculated) {
       fetchData();
     }
     setRowSelection({ type: "include", ids: new Set() });
-  }, [paginationModel?.page, paginationModel?.pageSize]);
+  }, [paginationModel?.page, paginationModel?.pageSize, rowsCalculated]);
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
@@ -324,6 +428,14 @@ export function MyExpensesPage() {
           loading={loading}
           slots={{
             noRowsOverlay: CustomNoRows,
+            loadingOverlay:
+              loading && isInitialLoad
+                ? () => (
+                    <ExpensesSkeletonOverlay
+                      rowCount={paginationModel?.pageSize}
+                    />
+                  )
+                : undefined,
           }}
           sx={{
             border: 0,

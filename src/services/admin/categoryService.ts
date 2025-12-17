@@ -4,6 +4,7 @@ interface CategoryItem {
   name: string;
   description: string;
   category_type: string;
+  receipt_required: boolean;
 }
 
 export interface CreateCategoriesPayloadType {

@@ -138,3 +138,11 @@ export async function createPolicy(
   return res.data
 }
 
+export async function getWorkflowRules() {
+  try {
+    const res = await api.get('/api/v1/policies')
+    return res.data
+  } catch (error) {
+    throw error;
+  }
+}

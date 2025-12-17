@@ -1,9 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { CardContent } from "@mui/material";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -28,6 +26,7 @@ function CreateExpensePolicyPage() {
 
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState<CreatePolicyForm>({
     name: "",
     description: "",
@@ -69,6 +68,13 @@ function CreateExpensePolicyPage() {
     }
   };
 
+  const filteredCategories = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return categories;
+
+    return categories.filter((c) => c.name.toLowerCase().includes(q));
+  }, [categories, searchTerm]);
+
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({
       ...prev,
@@ -80,6 +86,16 @@ function CreateExpensePolicyPage() {
     setSelectedCategories((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
+  };
+
+  const handleSelectAllFiltered = () => {
+    const ids = filteredCategories.map((c) => c.id);
+    setSelectedCategories((prev) => Array.from(new Set([...prev, ...ids])));
+  };
+
+  const handleDeselectAllFiltered = () => {
+    const filteredIds = new Set(filteredCategories.map((c) => c.id));
+    setSelectedCategories((prev) => prev.filter((id) => !filteredIds.has(id)));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -97,12 +113,12 @@ function CreateExpensePolicyPage() {
         <div className="flex items-center mb-6">
           <h1 className="text-2xl font-bold">Create Expense Policy</h1>
         </div>
-        <Card className="max-w-4xl">
-          <CardContent>
+        <div className="max-w-full">
+          <div>
             <form
               id="create-policy-form"
               onSubmit={handleSubmit}
-              className="space-y-4 p-3 w-full"
+              className="space-y-4 w-full"
             >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-3">
@@ -141,11 +157,34 @@ function CreateExpensePolicyPage() {
               </div>
               {
                 <div className="space-y-3">
-                  <div>
+                  <div className="flex items-center gap-4">
                     <Label>Select Categories</Label>
+                    <div className="relative flex-1 flex items-center gap-4 max-w-full">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder="Search"
+                        className="pl-9 bg-white max-w-60"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                      {selectedCategories.length !== filteredCategories.length && <Button
+                        type="button"
+                        className="w-32"
+                        onClick={handleSelectAllFiltered}
+                      >
+                        Select all
+                      </Button>}
+                      {selectedCategories.length === filteredCategories.length && <Button
+                        type="button"
+                        className="w-32"
+                        onClick={handleDeselectAllFiltered}
+                      >
+                        Deselect all
+                      </Button>}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-                    {categories.map((cat) => {
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {filteredCategories.map((cat) => {
                       return (
                         <div key={cat.id} className="flex items-center gap-3">
                           <Checkbox
@@ -160,8 +199,8 @@ function CreateExpensePolicyPage() {
                 </div>
               }
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
       <FormFooter>
         <Button
