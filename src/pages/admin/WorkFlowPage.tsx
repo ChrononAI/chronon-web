@@ -119,18 +119,14 @@ const rulesColumns: GridColDef[] = [
     headerName: "CREATED AT",
     flex: 1,
     minWidth: 160,
-    renderCell: (params) => (
-      <span>{formatDate(params.value)}</span>
-    ),
+    renderCell: (params) => <span>{formatDate(params.value)}</span>,
   },
   {
     field: "updated_at",
     headerName: "UPDATED AT",
     flex: 1,
     minWidth: 160,
-    renderCell: (params) => (
-      <span>{formatDate(params.value)}</span>
-    ),
+    renderCell: (params) => <span>{formatDate(params.value)}</span>,
   },
 ];
 
@@ -155,9 +151,11 @@ const WorkFlowPage = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("workflow");
   const [workflows, setWorkflows] = useState<WorkflowConfig[]>([]);
   const [rules, setRules] = useState([]);
-  const [workflowsLoading, setWorkflowsLoading] = useState(false);
+  const [workflowsLoading, setWorkflowsLoading] = useState(true);
   const isFetchingWorkflowsRef = useRef(false);
   const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel | null>(null);
+  const [workflowPaginationModel, setWorkflowPaginationModel] =
     useState<GridPaginationModel | null>(null);
   const workflowsFetchedRef = useRef(false);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
@@ -165,11 +163,16 @@ const WorkFlowPage = () => {
     ids: new Set(),
   });
 
+  const [rulePaginationInfo, setRulePaginationInfo] =
+    useState<any>();
+
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
+    setWorkflowPaginationModel({ page: 0, pageSize: calculatedPageSize });
+
     setRowSelection({ type: "include", ids: new Set() });
   }, [activeTab]);
 
@@ -183,7 +186,7 @@ const WorkFlowPage = () => {
 
     try {
       const workflowsData = await getAllWorkflows();
-      setWorkflows(workflowsData);
+      setWorkflows(workflowsData.data.data);
     } catch (error) {
       console.error("Error fetching workflows:", error);
       toast.error("Failed to fetch workflows");
@@ -195,44 +198,91 @@ const WorkFlowPage = () => {
   }, []);
 
   const fetchRules = async () => {
-    try {
-      const res = await getWorkflowRules();
-      console.log(res);
-      setRules(res.data.data);
-    } catch (error) {
-      console.log(error);
+    if (paginationModel) {
+
+      try {
+              const limit = paginationModel?.pageSize || 10;
+      const offset = (paginationModel?.page || 0) * limit;
+        const res = await getWorkflowRules({ limit, offset });
+        console.log(res);
+        setRules(res.data);
+        setRulePaginationInfo({ total: res.count });
+      } catch (error) {
+        console.log(error);
+      }
     }
   };
 
+  const handleWorkflowClick = ({ row }: any) => {
+    navigate(
+      `/admin-settings/product-config/workflow/create-workflow/${row.id}`,
+      { state: row }
+    );
+  };
+
+  const handleRuleClick = ({ row }: any) => {
+    navigate(`/admin-settings/product-config/workflow/create-rule/${row.id}`, {
+      state: row,
+    });
+  };
+
+  const fetchData = async () => {
+    try {
+      setWorkflowsLoading(true);
+      await Promise.all([fetchWorkflows(), fetchRules()])
+    } catch (error) {
+      toast.error("Error fetching data");
+    } finally {
+      setWorkflowsLoading(false);
+    }
+  }
+
   useEffect(() => {
-    if (activeTab === "all_workflows" || activeTab === "workflow") {
-      workflowsFetchedRef.current = false;
-      fetchWorkflows(true);
-    }
-    if (activeTab === "all_rules" || activeTab === "rules") {
-      fetchRules();
-    }
-  }, [activeTab, fetchWorkflows]);
+    fetchData();
+  }, [paginationModel?.page, paginationModel?.pageSize]);
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
-  }, [paginationModel?.page, paginationModel?.pageSize]);
+  }, [
+    paginationModel?.page,
+    paginationModel?.pageSize,
+    workflowPaginationModel?.page,
+    workflowPaginationModel?.pageSize,
+  ]);
 
   return (
     <>
       <div className="flex flex-col gap-3 max-w-full">
         <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold mb-3">New Workflow</h1>
-        {activeTab === "workflow" && <Button onClick={() => navigate("/admin-settings/product-config/workflow/create-workflow")}>Create Workflow</Button>}
-        {activeTab === "rules" && <Button onClick={() => navigate("/admin-settings/product-config/workflow/create-rule")}>Create Rule</Button>}
+          <h1 className="text-2xl font-bold mb-3">New Workflow</h1>
+          {activeTab === "workflow" && (
+            <Button
+              onClick={() =>
+                navigate(
+                  "/admin-settings/product-config/workflow/create-workflow"
+                )
+              }
+            >
+              Create Workflow
+            </Button>
+          )}
+          {activeTab === "rules" && (
+            <Button
+              onClick={() =>
+                navigate("/admin-settings/product-config/workflow/create-rule")
+              }
+            >
+              Create Rule
+            </Button>
+          )}
         </div>
 
         <ReportTabs
           activeTab={activeTab}
           onTabChange={(t) => setActiveTab(t as TabKey)}
           tabs={[
-            { key: "workflow", label: "Workflows", count: workflows.length },
-            { key: "rules", label: "Rules", count: rules.length },
+            { key: "workflow", label: "Workflows", count: workflows?.length },
+            { key: "rules", label: "Rules", count: rules?.length },
           ]}
           className="mb-2"
         />
@@ -300,10 +350,13 @@ const WorkFlowPage = () => {
               checkboxSelection
               showCellVerticalBorder
               rowSelectionModel={rowSelection}
+              onRowClick={handleWorkflowClick}
               onRowSelectionModelChange={setRowSelection}
               pagination
-              paginationModel={paginationModel || { page: 0, pageSize: 0 }}
-              onPaginationModelChange={setPaginationModel}
+              paginationModel={
+                workflowPaginationModel || { page: 0, pageSize: 0 }
+              }
+              onPaginationModelChange={setWorkflowPaginationModel}
             />
           </Box>
         )}
@@ -370,9 +423,12 @@ const WorkFlowPage = () => {
               }
               checkboxSelection
               showCellVerticalBorder
+              onRowClick={handleRuleClick}
               rowSelectionModel={rowSelection}
               onRowSelectionModelChange={setRowSelection}
               pagination
+              paginationMode="server"
+              rowCount={rulePaginationInfo?.total}
               paginationModel={paginationModel || { page: 0, pageSize: 0 }}
               onPaginationModelChange={setPaginationModel}
             />

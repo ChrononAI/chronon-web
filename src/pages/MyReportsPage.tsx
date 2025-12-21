@@ -28,75 +28,40 @@ function ExpensesSkeletonOverlay({ rowCount = 8 }) {
               width="2%"
               className="rounded-full"
             />
-            {/* EXPENSE ID */}
             <Skeleton
               variant="rectangular"
               height={10}
-              width="10%"
+              width="15%"
               className="rounded-full"
             />
-
-            {/* TYPE */}
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="8%"
-              className="rounded-full"
-            />
-
-            {/* POLICY */}
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="10%"
-              className="rounded-full"
-            />
-
-            {/* CATEGORY */}
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="10%"
-              className="rounded-full"
-            />
-
-            {/* VENDOR */}
             <Skeleton
               variant="rectangular"
               height={10}
               width="16%"
               className="rounded-full"
             />
-
-            {/* DATE */}
             <Skeleton
               variant="rectangular"
               height={10}
-              width="8%"
+              width="16%"
               className="rounded-full"
             />
-
-            {/* AMOUNT */}
             <Skeleton
               variant="rectangular"
               height={10}
-              width="8%"
+              width="14%"
               className="rounded-full"
             />
-
-            {/* CURRENCY */}
             <Skeleton
               variant="rectangular"
               height={10}
-              width="6%"
+              width="16%"
               className="rounded-full"
             />
-
-            {/* STATUS */}
             <Skeleton
               variant="rectangular"
               height={10}
-              width="12%"
+              width="16%"
               className="rounded-full"
             />
           </div>

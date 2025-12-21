@@ -1,20 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { PolicyCategory } from "@/types/expense";
 import { categoryService } from "@/services/admin/categoryService";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
   CreatePolicyPayload,
   policyService,
 } from "@/services/admin/policyService";
 import { FormFooter } from "@/components/layout/FormFooter";
-
+import SearchableMultiSelect from "@/components/admin/SearchableMultiSelect";
 export interface CreatePolicyForm {
   name: string;
   description: string;
@@ -23,16 +22,24 @@ export interface CreatePolicyForm {
 
 function CreateExpensePolicyPage() {
   const navigate = useNavigate();
-
+  const location = useLocation();
+  const row = location.state;
+  const mode = row ? "edit" : "create";
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CreatePolicyForm>({
     name: "",
     description: "",
     is_pre_approval_required: false,
   });
-  const [loading, setLoading] = useState(false);
+
+  const toggleCategory = (id: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  };
 
   const getAllCategories = async () => {
     try {
@@ -82,12 +89,6 @@ function CreateExpensePolicyPage() {
     }));
   };
 
-  const handleCheckboxChange = (id: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
   const handleSelectAllFiltered = () => {
     const ids = filteredCategories.map((c) => c.id);
     setSelectedCategories((prev) => Array.from(new Set([...prev, ...ids])));
@@ -100,18 +101,33 @@ function CreateExpensePolicyPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = { ...formData, category_ids: selectedCategories };
-    createPolicy(payload);
+    if (mode === "create") {
+      const payload = { ...formData, category_ids: selectedCategories };
+      createPolicy(payload);
+    } else {
+      console.log(formData);
+      console.log(selectedCategories);
+    }
   };
 
   useEffect(() => {
     getAllCategories();
+
+    if (row) {
+      console.log(row);
+      setSelectedCategories(row.categories.map((cat: PolicyCategory) => cat.id));
+      setFormData({
+        name: row.name,
+        description: row.description,
+        is_pre_approval_required: row.is_pre_approval_required,
+      });
+    }
   }, []);
   return (
     <>
       <div className="space-y-6">
         <div className="flex items-center mb-6">
-          <h1 className="text-2xl font-bold">Create Expense Policy</h1>
+          <h1 className="text-2xl font-bold">{mode === "create" ? "Create Expense Policy" : "View Expense Policy"}</h1>
         </div>
         <div className="max-w-full">
           <div>
@@ -126,6 +142,7 @@ function CreateExpensePolicyPage() {
                   <Input
                     type="text"
                     value={formData.name}
+                    disabled={mode !== "create"}
                     onChange={(e) => handleChange("name", e.target.value)}
                     placeholder="Enter name"
                   />
@@ -135,6 +152,7 @@ function CreateExpensePolicyPage() {
                   <Input
                     type="text"
                     value={formData.description}
+                    disabled={mode !== "create"}
                     onChange={(e) =>
                       handleChange("description", e.target.value)
                     }
@@ -142,12 +160,25 @@ function CreateExpensePolicyPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Select Categories</Label>
+
+                  <SearchableMultiSelect
+                    selectedCategories={selectedCategories}
+                    setSearchTerm={setSearchTerm}
+                    filteredCategories={filteredCategories}
+                    handleDeselectAllFiltered={handleDeselectAllFiltered}
+                    handleSelectAllFiltered={handleSelectAllFiltered}
+                    toggleCategory={toggleCategory}
+                  />
+                </div>
                 <div className="flex flex-col gap-3 my-2">
                   <Label>Pre Approval Required</Label>
-                  <div>
+                  <div className="my-2">
                     <Switch
                       checked={formData.is_pre_approval_required}
+                      disabled={mode !== "create"}
                       onCheckedChange={(checked) => {
                         handleChange("is_pre_approval_required", checked);
                       }}
@@ -155,49 +186,8 @@ function CreateExpensePolicyPage() {
                   </div>
                 </div>
               </div>
-              {
-                <div className="space-y-3">
-                  <div className="flex items-center gap-4">
-                    <Label>Select Categories</Label>
-                    <div className="relative flex-1 flex items-center gap-4 max-w-full">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        placeholder="Search"
-                        className="pl-9 bg-white max-w-60"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                      {selectedCategories.length !== filteredCategories.length && <Button
-                        type="button"
-                        className="w-32"
-                        onClick={handleSelectAllFiltered}
-                      >
-                        Select all
-                      </Button>}
-                      {selectedCategories.length === filteredCategories.length && <Button
-                        type="button"
-                        className="w-32"
-                        onClick={handleDeselectAllFiltered}
-                      >
-                        Deselect all
-                      </Button>}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                    {filteredCategories.map((cat) => {
-                      return (
-                        <div key={cat.id} className="flex items-center gap-3">
-                          <Checkbox
-                            checked={selectedCategories.includes(cat.id)}
-                            onCheckedChange={() => handleCheckboxChange(cat.id)}
-                          />
-                          <span className="text-[14px]">{cat.name}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              }
+              {/* {mode === "create" && ( */}
+              {/* )} */}
             </form>
           </div>
         </div>
@@ -213,16 +203,15 @@ function CreateExpensePolicyPage() {
         >
           Back
         </Button>
-        <Button form="create-policy-form" type="submit" disabled={loading}>
+        {mode === "create" && <Button form="create-policy-form" type="submit" disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Submitting...
             </>
-          ) : (
-            "Submit"
-          )}
-        </Button>
+          ) : 
+            "Submit"}
+        </Button>}
       </FormFooter>
     </>
   );

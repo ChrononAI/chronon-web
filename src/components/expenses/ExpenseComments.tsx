@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Send } from "lucide-react";
 import { expenseService } from "@/services/expenseService";
@@ -33,6 +33,11 @@ interface ExpenseCommentsProps {
   className?: string;
   onCommentPosted?: () => void;
   autoFetch?: boolean; // Whether to automatically fetch comments when expenseId changes
+  comments: ExpenseComment[];
+  setComments: (data: ExpenseComment[]) => void;
+  commentError: string | null;
+  setCommentError: (data: string | null) => void;
+  loadingComments: boolean;
 }
 
 export function ExpenseComments({
@@ -40,45 +45,49 @@ export function ExpenseComments({
   readOnly = false,
   className,
   onCommentPosted,
-  autoFetch = true,
+  comments,
+  setComments,
+  commentError,
+  setCommentError,
+  loadingComments
 }: ExpenseCommentsProps) {
   const { user } = useAuthStore();
-  const [comments, setComments] = useState<ExpenseComment[]>([]);
-  const [loadingComments, setLoadingComments] = useState(false);
+  // const [comments, setComments] = useState<ExpenseComment[]>([]);
+  // const [loadingComments, setLoadingComments] = useState(false);
   const [postingComment, setPostingComment] = useState(false);
-  const [commentError, setCommentError] = useState<string | null>(null);
+  // const [commentError, setCommentError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
 
   // Fetch comments when expenseId is available
-  useEffect(() => {
-    const fetchComments = async () => {
-      if (autoFetch && expenseId) {
-        setLoadingComments(true);
-        setCommentError(null);
-        try {
-          const fetchedComments = await expenseService.getExpenseComments(
-            expenseId
-          );
-          // Sort comments by created_at timestamp (oldest first)
-          const sortedComments = [...fetchedComments].sort((a, b) => {
-            const dateA = new Date(a.created_at).getTime();
-            const dateB = new Date(b.created_at).getTime();
-            return dateA - dateB;
-          });
-          setComments(sortedComments);
-        } catch (error: any) {
-          console.error("Error fetching comments:", error);
-          setCommentError(
-            error.response?.data?.message || "Failed to load comments"
-          );
-        } finally {
-          setLoadingComments(false);
-        }
-      }
-    };
+  // useEffect(() => {
+  //   const fetchComments = async () => {
+  //     if (autoFetch && expenseId) {
+  //       setLoadingComments(true);
+  //       setCommentError(null);
+  //       try {
+  //         const fetchedComments = await expenseService.getExpenseComments(
+  //           expenseId
+  //         );
+  //         // Sort comments by created_at timestamp (oldest first)
+  //         const sortedComments = [...fetchedComments.filter((c) => !c.action  )].sort((a, b) => {
+  //           const dateA = new Date(a.created_at).getTime();
+  //           const dateB = new Date(b.created_at).getTime();
+  //           return dateA - dateB;
+  //         });
+  //         setComments(sortedComments);
+  //       } catch (error: any) {
+  //         console.error("Error fetching comments:", error);
+  //         setCommentError(
+  //           error.response?.data?.message || "Failed to load comments"
+  //         );
+  //       } finally {
+  //         setLoadingComments(false);
+  //       }
+  //     }
+  //   };
 
-    fetchComments();
-  }, [expenseId, autoFetch]);
+  //   fetchComments();
+  // }, [expenseId, autoFetch]);
 
   // Auto-scroll to bottom when new comments are added
 
@@ -100,7 +109,7 @@ export function ExpenseComments({
         expenseId
       );
       // Sort comments by created_at timestamp (oldest first)
-      const sortedComments = [...fetchedComments].sort((a, b) => {
+      const sortedComments = [...fetchedComments.filter(c => !c.action)].sort((a, b) => {
         const dateA = new Date(a.created_at).getTime();
         const dateB = new Date(b.created_at).getTime();
         return dateA - dateB;
@@ -189,7 +198,7 @@ export function ExpenseComments({
               placeholder="Type a message..."
               disabled={readOnly || postingComment}
               rows={1}
-              className="flex-1 resize-none rounded-md border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary max-h-32"
+              className="flex-1 resize-none overflow-hidden rounded-md border border-gray-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary max-h-32"
               onInput={(e) => {
                 const t = e.target as HTMLTextAreaElement;
                 t.style.height = "auto";

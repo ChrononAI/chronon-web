@@ -13,10 +13,12 @@ import { Entity, getEntities } from "@/services/admin/entities";
 import {
   createPolicy,
   getAllWorkflows,
+  updatePolicy,
   WorkflowConfig,
 } from "@/services/admin/workflows";
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 type WorkflowEvent = "ADVANCE" | "REPORT" | "PREAPPROVAL" | "STORE";
@@ -79,11 +81,18 @@ const getErrorMessage = (error: unknown, defaultMessage: string): string => {
 };
 
 function CreateRulePage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const ruleToEdit = location.state ?? null;
+  const isEditMode = Boolean(ruleToEdit);
+  const [hydrated, setHydrated] = useState(false);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [entitiesLoading, setEntitiesLoading] = useState(false);
   const [workflows, setWorkflows] = useState<WorkflowConfig[]>([]);
   const [workflowsLoading, setWorkflowsLoading] = useState(false);
   const [creatingRule, setCreatingRule] = useState(false);
+  const [selectedEntity, setSelectedEntity] = useState<string>("");
   const isFetchingWorkflowsRef = useRef(false);
   const workflowsFetchedRef = useRef(false);
 
@@ -98,6 +107,21 @@ function CreateRulePage() {
       value: "",
     },
   });
+
+  const mapRuleToForm = (rule: any): RuleForm => {
+    const condition = rule.conditions?.rules?.[0];
+    return {
+      name: rule.name ?? "",
+      description: rule.description ?? "",
+      workflowEvent: rule.approval_type,
+      workflow: rule.workflow_config_id,
+      rule: {
+        ifField: condition?.field?.replace(PREFIXES.USER, "") ?? "",
+        operator: condition?.operator,
+        value: condition?.value ?? "",
+      },
+    };
+  };
 
   const resetRuleForm = useCallback(() => {
     setRuleForm({
@@ -138,7 +162,8 @@ function CreateRulePage() {
 
     try {
       const workflowsData = await getAllWorkflows();
-      setWorkflows(workflowsData);
+      console.log(workflowsData);
+      setWorkflows(workflowsData.data.data);
     } catch (error) {
       console.error("Error fetching workflows:", error);
       toast.error("Failed to fetch workflows");
@@ -192,11 +217,16 @@ function CreateRulePage() {
         },
         is_active: true,
       };
-
-      const response = await createPolicy(payload);
-      toast.success(response.message || "Policy created successfully");
+      if (isEditMode) {
+        await updatePolicy({id: ruleToEdit?.id, payload});
+        toast.success("Policy updated successfully");
+      } else {
+        const response = await createPolicy(payload);
+        toast.success(response.message || "Policy created successfully");
+      }
 
       resetRuleForm();
+      navigate("/admin-settings/product-config/workflow");
     } catch (error) {
       console.error("Error creating policy:", error);
       const errorMessage = getErrorMessage(error, "Failed to create policy");
@@ -211,30 +241,44 @@ function CreateRulePage() {
       value: string,
       onValueChange: (value: string) => void,
       placeholder: string
-    ) => (
-      <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {entitiesLoading ? (
-            <div className="flex items-center justify-center p-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-            </div>
-          ) : entities.length > 0 ? (
-            entities.map((entity) => (
-              <SelectItem key={entity.id} value={entity.id}>
-                {entity.display_name || entity.name}
+    ) => {
+      const selectedEntityObj = entities.find((e) => e.id === value);
+      return (
+        <Select
+          value={value}
+          onValueChange={(val) => {
+            onValueChange(val);
+            setSelectedEntity(val);
+          }}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={placeholder}>
+              {value && selectedEntityObj
+                ? selectedEntityObj.display_name || selectedEntityObj.name
+                : placeholder}
+            </SelectValue>
+          </SelectTrigger>
+
+          <SelectContent>
+            {entitiesLoading ? (
+              <div className="flex items-center justify-center p-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            ) : entities.length > 0 ? (
+              entities.map((entity) => (
+                <SelectItem key={entity.id} value={entity.id}>
+                  {entity.display_name || entity.name}
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem value="no-entities" disabled>
+                No entities found
               </SelectItem>
-            ))
-          ) : (
-            <SelectItem value="no-entities" disabled>
-              No entities found
-            </SelectItem>
-          )}
-        </SelectContent>
-      </Select>
-    ),
+            )}
+          </SelectContent>
+        </Select>
+      );
+    },
     [entities, entitiesLoading]
   );
 
@@ -365,12 +409,46 @@ function CreateRulePage() {
 
   useEffect(() => {
     fetchEntities();
-    fetchWorkflows()
-  }, [])
+    fetchWorkflows();
+  }, []);
+
+  useEffect(() => {
+    if (
+      !isEditMode ||
+      !ruleToEdit ||
+      hydrated ||
+      entities.length === 0 ||
+      workflows.length === 0
+    ) {
+      return;
+    }
+
+    setRuleForm(mapRuleToForm(ruleToEdit));
+    console.log(mapRuleToForm(ruleToEdit));
+    setHydrated(true);
+  }, [isEditMode, ruleToEdit, entities, workflows, hydrated]);
+
+  useEffect(() => {
+    if (!isEditMode || !ruleToEdit) return;
+    if (entities.length === 0) return;
+
+    const condition = ruleToEdit.conditions?.rules?.[0];
+    if (!condition?.field) return;
+    const attributeId = condition.value.replace(PREFIXES.USER, "");
+    const entity = entities.find((ent) =>
+      ent.attributes?.some((attr: any) => attr.id === attributeId)
+    );
+
+    if (entity) {
+      setSelectedEntity(entity.id);
+    }
+  }, [isEditMode, ruleToEdit, entities]);
 
   return (
     <div className="flex flex-col gap-3 max-w-full">
-      <h1 className="text-2xl font-bold mb-3">Create Rule</h1>
+      <h1 className="text-2xl font-bold mb-3">
+        {isEditMode ? "Rule Details" : "Create Rule"}
+      </h1>
       <>
         <form id="create-rule-form" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -441,7 +519,7 @@ function CreateRulePage() {
             <Label className="text-sm font-medium">Rules</Label>
             <div className="flex items-center gap-4">
               {renderEntitySelect(
-                ruleForm.rule.ifField,
+                selectedEntity,
                 (value) =>
                   setRuleForm((prev) => ({
                     ...prev,
@@ -462,7 +540,7 @@ function CreateRulePage() {
 
               {renderAttributeSelect(
                 ruleForm.rule.ifField,
-                ruleForm.rule.value,
+                ruleForm.rule.value || mapRuleToForm(ruleToEdit).rule.value,
                 (value) =>
                   setRuleForm((prev) => ({
                     ...prev,
@@ -474,6 +552,9 @@ function CreateRulePage() {
           </div>
         </form>
         <FormFooter>
+          <Button variant="outline" onClick={() => navigate(-1)}>
+            Back
+          </Button>
           <Button
             type="button"
             className="min-w-[150px]"
@@ -484,8 +565,10 @@ function CreateRulePage() {
             {creatingRule ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
+                {isEditMode ? "Updating..." : "Creating..."}
               </>
+            ) : isEditMode ? (
+              "Update"
             ) : (
               "Create"
             )}

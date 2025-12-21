@@ -146,11 +146,15 @@ function App() {
                 <Route path="/admin-settings/users/:id" element={<CreateUserPage />} />
                 <Route path="/admin-settings/product-config/workflow" element={<WorkFlowPage />} />
                 <Route path="/admin-settings/product-config/workflow/create-workflow" element={<CreateWorkflowPage />} />
+                <Route path="/admin-settings/product-config/workflow/create-workflow/:id" element={<CreateWorkflowPage />} />
                 <Route path="/admin-settings/product-config/workflow/create-rule" element={<CreateRulePage />} />
+                <Route path="/admin-settings/product-config/workflow/create-rule/:id" element={<CreateRulePage />} />
                 <Route path="/admin-settings/product-config/expense-categories" element={<AdminExpenseCategories />} />
                 <Route path="/admin-settings/product-config/expense-categories/create" element={<CreateExpenseCategoryPage />} />
+                <Route path="/admin-settings/product-config/expense-categories/create/:id" element={<CreateExpenseCategoryPage />} />
                 <Route path="/admin-settings/product-config/expense-policies" element={<AdminExpensePolicies />} />
                 <Route path="/admin-settings/product-config/expense-policies/create" element={<CreateExpensePolicyPage />} />
+                <Route path="/admin-settings/product-config/expense-policies/create/:id" element={<CreateExpensePolicyPage />} />
                 <Route path="/admin-settings/product-config/category-limits" element={<CategoryLimitPage />} />
                 <Route path="/admin-settings/product-config/category-limits/create" element={<CreateCategoryLimitPage />} />
                 <Route path="/admin-settings/product-config/category-limits/:id" element={<EditCategoryLimitPage />} />

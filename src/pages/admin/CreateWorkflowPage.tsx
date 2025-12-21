@@ -12,10 +12,10 @@ import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { FormFooter } from "@/components/layout/FormFooter";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { createWorkflowConfig } from "@/services/admin/workflows";
+import { createWorkflowConfig, updateWorkflowConfig } from "@/services/admin/workflows";
 import { toast } from "sonner";
 import { Entity, getEntities } from "@/services/admin/entities";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const STEP_TYPE_OPTIONS: { value: StepType; label: string }[] = [
   { value: "direct", label: "Direct" },
@@ -87,7 +87,12 @@ const getErrorMessage = (error: unknown, defaultMessage: string): string => {
 };
 
 function CreateWorkflowPage() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const workflowToEdit = location.state ?? null;
+  const isEditMode = Boolean(workflowToEdit);
+
   const [steps, setSteps] = useState<Step[]>([]);
   const [openSteps, setOpenSteps] = useState<Set<number>>(new Set());
   const [entities, setEntities] = useState<Entity[]>([]);
@@ -99,6 +104,33 @@ function CreateWorkflowPage() {
       name: "",
     },
   });
+
+  const mapSequenceToStep = (sequence: any, index: number): Step => {
+    const isDirect = sequence.relationship_type === "DIRECT_RELATIONSHIP";
+
+    const isParallel = sequence.relationship_type === "PARALLEL_RELATIONSHIP";
+
+    let conditionEntityId = "";
+    let conditionOperator: Operator | undefined;
+    let conditionAttributeId = "";
+
+    if (isParallel && sequence.entity_criteria?.length) {
+      const criteria = sequence.entity_criteria[0];
+      conditionEntityId = criteria.field.replace(PREFIXES.USER, "");
+      conditionOperator = criteria.operator;
+      conditionAttributeId = criteria.value;
+    }
+
+    return {
+      id: index + 1,
+      stepName: sequence.step_name,
+      type: isDirect ? "direct" : "parallel",
+      approveIdentifier: isDirect ? sequence.approver_identifier : undefined,
+      conditionEntityId,
+      conditionOperator,
+      conditionAttributeId,
+    };
+  };
 
   const createEmptyStep = useCallback(
     (): Step => ({
@@ -267,10 +299,16 @@ function CreateWorkflowPage() {
           sequences,
         };
 
-        const response = await createWorkflowConfig(payload);
-        toast.success(
-          response.message || "Workflow configuration created successfully"
-        );
+        if (isEditMode) {
+          await updateWorkflowConfig({ id: workflowToEdit.id, payload });
+          toast.success("Workflow updated successfully");
+        } else {
+          const response = await createWorkflowConfig(payload);
+  
+          toast.success(
+            response.message || "Workflow configuration created successfully"
+          );
+        }
 
         resetWorkflowForm();
         navigate("/admin-settings/product-config/workflow");
@@ -282,7 +320,7 @@ function CreateWorkflowPage() {
         );
         toast.error(errorMessage);
       } finally {
-        setSubmitting(false);
+        // setSubmitting(false);
       }
     },
     [steps, validateSteps, buildWorkflowSequence, resetWorkflowForm]
@@ -403,9 +441,23 @@ function CreateWorkflowPage() {
     fetchEntities();
   }, []);
 
+  useEffect(() => {
+    if (!isEditMode || !workflowToEdit) return;
+
+    reset({
+      name: workflowToEdit.name,
+    });
+
+    const mappedSteps: Step[] = workflowToEdit.sequences.map(mapSequenceToStep);
+
+    setSteps(mappedSteps);
+
+    setOpenSteps(new Set(mappedSteps.map((s) => s.id)));
+  }, [isEditMode, workflowToEdit, reset]);
+
   return (
     <div className="flex flex-col gap-3 max-w-full">
-      <h1 className="text-2xl font-bold mb-3">Create Workflow</h1>
+      <h1 className="text-2xl font-bold mb-3">{isEditMode ? "Update Workflow" : "Create Workflow"}</h1>
       <>
         <form
           id="workflow-config-form"
@@ -589,6 +641,9 @@ function CreateWorkflowPage() {
           </div>
         </form>
         <FormFooter>
+          <Button onClick={() => navigate(-1)} variant="outline">
+            Back
+          </Button>
           <Button
             type="submit"
             form="workflow-config-form"
@@ -598,10 +653,10 @@ function CreateWorkflowPage() {
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
+                {isEditMode ? "Updating..." : "Submitting..."}
               </>
             ) : (
-              "Submit"
+              isEditMode ? "Update" : "Submit"
             )}
           </Button>
         </FormFooter>

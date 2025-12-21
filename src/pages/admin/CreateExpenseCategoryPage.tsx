@@ -8,28 +8,37 @@ import {
   CreateCategoriesPayloadType,
 } from "@/services/admin/categoryService";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 interface CategoryItem {
   id: number;
   name: string;
   description: string;
-  receipt_required: boolean;
+  is_receipt_required: boolean;
 }
 
 function CreateExpenseCategoryPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const row = location.state;
+  const mode = row ? "edit" : "create";
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<CategoryItem[]>([
-    { id: Date.now(), name: "", description: "", receipt_required: false },
+    { id: Date.now(), name: "", description: "", is_receipt_required: false },
   ]);
+
+  useEffect(() => {
+    if (row) {
+      setItems([row]);
+    }
+  }, []);
 
   const handleAdd = () => {
     setItems((prev) => [
       ...prev,
-      { id: Date.now(), name: "", description: "", receipt_required: false },
+      { id: Date.now(), name: "", description: "", is_receipt_required: false },
     ]);
   };
 
@@ -48,7 +57,6 @@ function CreateExpenseCategoryPage() {
   };
 
   const createCategories = async (payload: CreateCategoriesPayloadType) => {
-    console.log(payload);
     setLoading(true);
     try {
       await categoryService.createCategories(payload);
@@ -68,22 +76,26 @@ function CreateExpenseCategoryPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload: CreateCategoriesPayloadType = {
-      categories: items.map((item) => {
-        return {
-          name: item.name,
-          description: item.description,
-          category_type: "EXPENSE",
-          receipt_required: item.receipt_required,
-        };
-      }),
-    };
-    createCategories(payload);
+    if (mode === "create") {
+      const payload: CreateCategoriesPayloadType = {
+        categories: items.map((item) => {
+          return {
+            name: item.name,
+            description: item.description,
+            category_type: "EXPENSE",
+            receipt_required: item.is_receipt_required,
+          };
+        }),
+      };
+      createCategories(payload);
+    } else {
+      console.log(items);
+    }
   };
   return (
     <>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Create Expense Categories</h1>
+        <h1 className="text-2xl font-bold">{mode === "create" ? "Create Expense Categories" : "View Expense Category"}</h1>
         <div>
           <div className="w-full">
             <form
@@ -101,6 +113,7 @@ function CreateExpenseCategoryPage() {
                       onChange={(e) =>
                         handleChange(item.id, "name", e.target.value)
                       }
+                      disabled={mode !== "create"}
                       className="w-80"
                       placeholder="Enter category"
                     />
@@ -113,6 +126,7 @@ function CreateExpenseCategoryPage() {
                       onChange={(e) =>
                         handleChange(item.id, "description", e.target.value)
                       }
+                      disabled={mode !== "create"}
                       className="w-80"
                       placeholder="Enter description"
                     />
@@ -120,10 +134,11 @@ function CreateExpenseCategoryPage() {
                   <div className="flex flex-col gap-2">
                     <Label>Receipt Required</Label>
                     <Switch
-                      checked={item.receipt_required}
+                      checked={item.is_receipt_required}
                       className="my-[14px]"
+                      disabled={mode !== "create"}
                       onCheckedChange={(checked) => {
-                        handleChange(item.id, "receipt_required", checked);
+                        handleChange(item.id, "is_receipt_required", checked);
                       }}
                     />
                   </div>
@@ -139,14 +154,16 @@ function CreateExpenseCategoryPage() {
                   )}
                 </div>
               ))}
-              <Button
-                type="button"
-                className="my-2"
-                variant="outline"
-                onClick={handleAdd}
-              >
-                + Add Another
-              </Button>
+              {!row && (
+                <Button
+                  type="button"
+                  className="my-2"
+                  variant="outline"
+                  onClick={handleAdd}
+                >
+                  + Add Another
+                </Button>
+              )}
             </form>
           </div>
         </div>
@@ -162,7 +179,7 @@ function CreateExpenseCategoryPage() {
         >
           Back
         </Button>
-        <Button
+        {mode === "create" && <Button
           type="submit"
           form="create-category-form"
           disabled={loading}
@@ -173,10 +190,10 @@ function CreateExpenseCategoryPage() {
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Submitting...
             </>
-          ) : (
+          ) : 
             "Submit All"
-          )}
-        </Button>
+          }
+        </Button>}
       </FormFooter>
     </>
   );

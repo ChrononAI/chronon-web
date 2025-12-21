@@ -83,6 +83,7 @@ export interface ExpenseComment {
   expense_id: string;
   comment: string;
   creator_user_id: string;
+  action?: string | null,
   creator_user: {
     id: string;
     email: string;
