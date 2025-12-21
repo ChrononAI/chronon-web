@@ -31,7 +31,12 @@ import { LocationAutocomplete } from "@/components/ui/location-autocomplete";
 import { placesService, PlaceSuggestion } from "@/services/placesService";
 import { expenseService } from "@/services/expenseService";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
-import { Expense, Policy, PolicyCategory } from "@/types/expense";
+import {
+  Expense,
+  ExpenseComment,
+  Policy,
+  PolicyCategory,
+} from "@/types/expense";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { DateField } from "@/components/ui/date-field";
@@ -53,6 +58,7 @@ import {
 } from "@/components/ui/form";
 import { useAuthStore } from "@/store/authStore";
 import { trackEvent } from "@/mixpanel";
+import ExpenseLogs from "@/components/expenses/ExpenseLogs";
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -160,6 +166,11 @@ const MileagePage = ({
   const today = new Date().toISOString().split("T")[0];
   const stopRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [mileageRates, setMileageRates] = useState([]);
+  const [expenseLogs, setExpenseLogs] = useState<ExpenseComment[]>([]);
+  const [commentError, setCommentError] = useState<string | null>(null);
+
+  const [comments, setComments] = useState<ExpenseComment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -751,6 +762,46 @@ const MileagePage = ({
   }, [expenseData, policies, form, mileageRates]);
 
   useEffect(() => {
+    const fetchComments = async () => {
+      if (expenseData?.id) {
+        setLoadingComments(true);
+        setCommentError(null);
+        try {
+          const fetchedComments = await expenseService.getExpenseComments(
+            expenseData?.id
+          );
+          // Sort comments by created_at timestamp (oldest first)
+          const sortedComments = [
+            ...fetchedComments.filter((c) => !c.action),
+          ].sort((a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateA - dateB;
+          });
+          setComments(sortedComments);
+          const sortedLogs = [...fetchedComments.filter((c) => c.action)].sort(
+            (a, b) => {
+              const dateA = new Date(a.created_at).getTime();
+              const dateB = new Date(b.created_at).getTime();
+              return dateA - dateB;
+            }
+          );
+          setExpenseLogs(sortedLogs);
+        } catch (error: any) {
+          console.error("Error fetching comments:", error);
+          setCommentError(
+            error.response?.data?.message || "Failed to load comments"
+          );
+        } finally {
+          setLoadingComments(false);
+        }
+      }
+    };
+
+    fetchComments();
+  }, [expenseData?.id]);
+
+  useEffect(() => {
     let isMounted = true;
 
     const preloadDefaultLocations = async () => {
@@ -900,6 +951,7 @@ const MileagePage = ({
                 {[
                   { key: "map", label: "Map" },
                   { key: "comments", label: "Comments" },
+                  { key: "logs", label: "Logs" },
                 ].map((tab) => (
                   <button
                     key={tab.key}
@@ -984,222 +1036,264 @@ const MileagePage = ({
                     </div>
                   )}
                 </div>
-              ) : (
+              ) : activeMapTab === "comments" ? (
                 <ExpenseComments
                   expenseId={expenseData?.id}
                   readOnly={false}
-                  autoFetch={activeMapTab === "comments"}
+                  comments={comments}
+                  setCommentError={setCommentError}
+                  setComments={setComments}
+                  commentError={commentError}
+                  loadingComments={loadingComments}
+                />
+              ) : (
+                <ExpenseLogs
+                  logs={expenseLogs}
+                  loading={loadingComments}
+                  error={commentError || ""}
                 />
               )}
             </div>
           </div>
         </div>
-
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
-              <div
-                className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
-                  pathname.includes("create")
-                    ? "md:h-[calc(100vh-18rem)]"
-                    : "md:h-[calc(100vh-13rem)]"
-                } md:overflow-y-auto`}
-              >
-                <div className="px-6 py-4 space-y-6">
-                  {/* 🚗 Route Section */}
-                  <div className="space-y-2">
-                    <FormField
-                      control={form.control}
-                      name="startLocation"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <LocationAutocomplete
-                              value={formData.startLocation}
-                              onChange={(v) => {
-                                handleStartLocationChange(v);
-                                handleInputChange("startLocation", v);
-                                field.onChange(v);
-                              }}
-                              onSelect={handleStartLocationSelect}
-                              disabled={isStartEndLocationLocked}
-                              placeholder="Start Location"
-                              customIcon={
-                                formData.startLocation ? (
-                                  <span className="text-gray-400 font-bold text-xs">
-                                    A
-                                  </span>
-                                ) : null
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Add Stop button after start location - always available */}
-                    <div className="flex justify-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => handleAddStop(0)}
-                        disabled={mode === "view" && !editMode}
-                        className="text-blue-600 border-blue-300 hover:bg-blue-50 px-2 py-0.5 text-xs h-7"
-                      >
-                        + ADD
-                      </Button>
-                    </div>
-
-                    {/* Stops */}
-                    {formData.stops.map((stop, index) => (
-                      <div
-                        key={stop.id}
-                        ref={(el) => {
-                          stopRefs.current[stop.id] = el;
-                        }}
-                        className="space-y-2"
-                      >
-                        <LocationAutocomplete
-                          value={stop.location}
-                          onChange={(v) => handleStopLocationChange(stop.id, v)}
-                          onSelect={(place) =>
-                            handleStopLocationSelect(stop.id, place)
-                          }
-                          disabled={mode === "view" && !editMode}
-                          placeholder={`Stop ${index + 1}`}
-                          customIcon={
-                            stop.location ? (
-                              <span className="text-gray-400 font-bold text-xs">
-                                {String.fromCharCode(66 + index)}
-                              </span>
-                            ) : null
-                          }
-                        />
-                        <div className="flex items-center gap-2 justify-end">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleAddStop(index + 1)}
-                            disabled={mode === "view" && !editMode}
-                            className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 px-2 py-0.5 h-7"
-                          >
-                            + ADD
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRemoveStop(stop.id)}
-                            disabled={mode === "view" && !editMode}
-                            className="text-xs text-red-600 border-red-300 hover:bg-red-50 px-2 py-0.5 h-7"
-                          >
-                            X REMOVE
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-
-                    <FormField
-                      control={form.control}
-                      name="endLocation"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <LocationAutocomplete
-                              value={formData.endLocation}
-                              onChange={(v) => {
-                                handleEndLocationChange(v);
-                                handleInputChange("endLocation", v);
-                                field.onChange(v);
-                              }}
-                              onSelect={handleEndLocationSelect}
-                              disabled={isStartEndLocationLocked}
-                              placeholder="End Location"
-                              customIcon={
-                                formData.endLocation ? (
-                                  <span className="text-gray-400 font-bold text-xs">
-                                    {String.fromCharCode(
-                                      65 + formData.stops.length + 1
-                                    )}
-                                  </span>
-                                ) : null
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Round Trip Toggle */}
-                    <div className="flex items-center justify-end gap-3 my-2">
-                      <Label
-                        className={`text-sm font-medium ${
-                          formData.stops.length > 0
-                            ? "text-gray-400"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        Round Trip
-                      </Label>
-                      <Switch
-                        checked={formData.isRoundTrip}
-                        onCheckedChange={(checked) => {
-                          handleInputChange("isRoundTrip", checked);
-                          form.setValue("isRoundTrip", checked);
-                        }}
-                        disabled={
-                          (mode === "view" && !editMode) ||
-                          formData.stops.length > 0
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  {/* Vehicle and Distance Section */}
+            <div
+              className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
+                pathname.includes("create")
+                  ? "md:h-[calc(100vh-18rem)]"
+                  : "md:h-[calc(100vh-13rem)]"
+              } md:overflow-y-auto`}
+            >
+              <div className="px-6 py-4 space-y-6">
+                {/* 🚗 Route Section */}
+                <div className="space-y-2">
                   <FormField
                     control={form.control}
-                    name="vehiclesType"
+                    name="startLocation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Vehicle *</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={(v) => {
-                            handleInputChange("vehiclesType", v);
-                            // const sel = mileageRates.find(
-                            //   (rate: any) => rate.id === +v
-                            // );
-                            // setSelectedVehicle(sel);
-                            field.onChange(v);
-                          }}
-                          disabled={mode === "view" && !editMode}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select vehicle type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {mileageRates?.map((v: any) => (
-                              <SelectItem key={v.id} value={String(v.id)}>
-                                {v.vehicle_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <LocationAutocomplete
+                            value={formData.startLocation}
+                            onChange={(v) => {
+                              handleStartLocationChange(v);
+                              handleInputChange("startLocation", v);
+                              field.onChange(v);
+                            }}
+                            onSelect={handleStartLocationSelect}
+                            disabled={isStartEndLocationLocked}
+                            placeholder="Start Location"
+                            customIcon={
+                              formData.startLocation ? (
+                                <span className="text-gray-400 font-bold text-xs">
+                                  A
+                                </span>
+                              ) : null
+                            }
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
+                  {/* Add Stop button after start location - always available */}
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleAddStop(0)}
+                      disabled={mode === "view" && !editMode}
+                      className="text-blue-600 border-blue-300 hover:bg-blue-50 px-2 py-0.5 text-xs h-7"
+                    >
+                      + ADD
+                    </Button>
+                  </div>
+
+                  {/* Stops */}
+                  {formData.stops.map((stop, index) => (
+                    <div
+                      key={stop.id}
+                      ref={(el) => {
+                        stopRefs.current[stop.id] = el;
+                      }}
+                      className="space-y-2"
+                    >
+                      <LocationAutocomplete
+                        value={stop.location}
+                        onChange={(v) => handleStopLocationChange(stop.id, v)}
+                        onSelect={(place) =>
+                          handleStopLocationSelect(stop.id, place)
+                        }
+                        disabled={mode === "view" && !editMode}
+                        placeholder={`Stop ${index + 1}`}
+                        customIcon={
+                          stop.location ? (
+                            <span className="text-gray-400 font-bold text-xs">
+                              {String.fromCharCode(66 + index)}
+                            </span>
+                          ) : null
+                        }
+                      />
+                      <div className="flex items-center gap-2 justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAddStop(index + 1)}
+                          disabled={mode === "view" && !editMode}
+                          className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 px-2 py-0.5 h-7"
+                        >
+                          + ADD
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveStop(stop.id)}
+                          disabled={mode === "view" && !editMode}
+                          className="text-xs text-red-600 border-red-300 hover:bg-red-50 px-2 py-0.5 h-7"
+                        >
+                          X REMOVE
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
                   <FormField
                     control={form.control}
-                    name="distance"
+                    name="endLocation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Distance *</FormLabel>
+                        <FormControl>
+                          <LocationAutocomplete
+                            value={formData.endLocation}
+                            onChange={(v) => {
+                              handleEndLocationChange(v);
+                              handleInputChange("endLocation", v);
+                              field.onChange(v);
+                            }}
+                            onSelect={handleEndLocationSelect}
+                            disabled={isStartEndLocationLocked}
+                            placeholder="End Location"
+                            customIcon={
+                              formData.endLocation ? (
+                                <span className="text-gray-400 font-bold text-xs">
+                                  {String.fromCharCode(
+                                    65 + formData.stops.length + 1
+                                  )}
+                                </span>
+                              ) : null
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Round Trip Toggle */}
+                  <div className="flex items-center justify-end gap-3 my-2">
+                    <Label
+                      className={`text-sm font-medium ${
+                        formData.stops.length > 0
+                          ? "text-gray-400"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      Round Trip
+                    </Label>
+                    <Switch
+                      checked={formData.isRoundTrip}
+                      onCheckedChange={(checked) => {
+                        handleInputChange("isRoundTrip", checked);
+                        form.setValue("isRoundTrip", checked);
+                      }}
+                      disabled={
+                        (mode === "view" && !editMode) ||
+                        formData.stops.length > 0
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Vehicle and Distance Section */}
+                <FormField
+                  control={form.control}
+                  name="vehiclesType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vehicle *</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={(v) => {
+                          handleInputChange("vehiclesType", v);
+                          // const sel = mileageRates.find(
+                          //   (rate: any) => rate.id === +v
+                          // );
+                          // setSelectedVehicle(sel);
+                          field.onChange(v);
+                        }}
+                        disabled={mode === "view" && !editMode}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select vehicle type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {mileageRates?.map((v: any) => (
+                            <SelectItem key={v.id} value={String(v.id)}>
+                              {v.vehicle_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="distance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Distance *</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            type="text"
+                            value={
+                              isCalculating
+                                ? "Calculating..."
+                                : formData.distance || "Auto-calculated"
+                            }
+                            onChange={(e) => {
+                              handleInputChange("distance", e.target.value);
+                              field.onChange(e.target.value);
+                            }}
+                            className="bg-gray-50 text-gray-500"
+                            disabled={true}
+                          />
+                        </FormControl>
+                        {isCalculating && (
+                          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
+                        )}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {!usesMetricSystem() && mode === "create" && (
+                  <FormField
+                    control={form.control}
+                    name="chargeableDistance"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Chargeable Distance</FormLabel>
                         <div className="relative">
                           <FormControl>
                             <Input
@@ -1207,10 +1301,14 @@ const MileagePage = ({
                               value={
                                 isCalculating
                                   ? "Calculating..."
-                                  : formData.distance || "Auto-calculated"
+                                  : formData.chargeableDistance ||
+                                    "Auto-calculated"
                               }
                               onChange={(e) => {
-                                handleInputChange("distance", e.target.value);
+                                handleInputChange(
+                                  "chargeableDistance",
+                                  e.target.value
+                                );
                                 field.onChange(e.target.value);
                               }}
                               className="bg-gray-50 text-gray-500"
@@ -1225,138 +1323,101 @@ const MileagePage = ({
                       </FormItem>
                     )}
                   />
+                )}
 
-                  {!usesMetricSystem() && mode === "create" && (
-                    <FormField
-                      control={form.control}
-                      name="chargeableDistance"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Chargeable Distance</FormLabel>
-                          <div className="relative">
-                            <FormControl>
-                              <Input
-                                type="text"
-                                value={
-                                  isCalculating
-                                    ? "Calculating..."
-                                    : formData.chargeableDistance ||
-                                      "Auto-calculated"
-                                }
-                                onChange={(e) => {
-                                  handleInputChange(
-                                    "chargeableDistance",
-                                    e.target.value
-                                  );
-                                  field.onChange(e.target.value);
-                                }}
-                                className="bg-gray-50 text-gray-500"
-                                disabled={true}
-                              />
-                            </FormControl>
-                            {isCalculating && (
-                              <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
-                            )}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <FormLabel>Policy</FormLabel>
-                      <Input
-                        type="text"
-                        value={selectedPolicy?.name || ""}
-                        className="bg-gray-50 text-gray-500"
-                        disabled
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="categoryId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Category *</FormLabel>
-                          <Select
-                            value={field.value}
-                            onValueChange={(v) => {
-                              handleInputChange("categoryId", v);
-                              field.onChange(v);
-                            }}
-                            disabled={
-                              loadingPolicies || (mode === "view" && !editMode)
-                            }
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Category" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categories?.map((c) => (
-                                <SelectItem key={c.id} value={c.id}>
-                                  {c.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <FormLabel>Policy</FormLabel>
+                    <Input
+                      type="text"
+                      value={selectedPolicy?.name || ""}
+                      className="bg-gray-50 text-gray-500"
+                      disabled
                     />
                   </div>
 
                   <FormField
                     control={form.control}
-                    name="expenseDate"
+                    name="categoryId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Date *</FormLabel>
-                        <FormControl>
-                          <DateField
-                            id="startDate"
-                            value={field.value}
-                            onChange={(value) => {
-                              handleInputChange("expenseDate", value);
-                              field.onChange(value);
-                            }}
-                            disabled={mode === "view"}
-                            maxDate={today}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Purpose of Travel *</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            value={field.value}
-                            onChange={(e) => {
-                              handleInputChange("description", e.target.value);
-                              field.onChange(e.target.value);
-                            }}
-                            disabled={mode === "view" && !editMode}
-                            className="resize-none"
-                            placeholder="Enter purpose of travel"
-                          />
-                        </FormControl>
+                        <FormLabel>Category *</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={(v) => {
+                            handleInputChange("categoryId", v);
+                            field.onChange(v);
+                          }}
+                          disabled={
+                            loadingPolicies || (mode === "view" && !editMode)
+                          }
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories?.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="expenseDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date *</FormLabel>
+                      <FormControl>
+                        <DateField
+                          id="startDate"
+                          value={field.value}
+                          onChange={(value) => {
+                            handleInputChange("expenseDate", value);
+                            field.onChange(value);
+                          }}
+                          disabled={mode === "view"}
+                          maxDate={today}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Purpose of Travel *</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          value={field.value}
+                          onChange={(e) => {
+                            handleInputChange("description", e.target.value);
+                            field.onChange(e.target.value);
+                          }}
+                          disabled={mode === "view" && !editMode}
+                          className="resize-none"
+                          placeholder="Enter purpose of travel"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
+            </div>
 
             <>
               <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
@@ -1465,94 +1526,94 @@ const MileagePage = ({
               </div>
             </>
           </form>
-        </Form>\          {/* Fullscreen Map Modal */}
-          {isMapFullscreen && mapUrl && (
-            <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
-              <div className="relative w-full h-full flex flex-col">
-                {/* Fullscreen Header */}
-                <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-                  <div className="flex items-center gap-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Route Map
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleMapZoomOut}
-                      disabled={mapZoom <= 0.5}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ZoomOut className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm text-gray-600 min-w-[3rem] text-center">
-                      {Math.round(mapZoom * 100)}%
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleMapZoomIn}
-                      disabled={mapZoom >= 3}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ZoomIn className="h-4 w-4" />
-                    </Button>
-                    <div className="w-px h-6 bg-gray-300 mx-2" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleMapRotate}
-                      className="h-8 w-8 p-0"
-                    >
-                      <RotateCw className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleMapReset}
-                      className="h-8 w-8 p-0"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                    <div className="w-px h-6 bg-gray-300 mx-2" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleMapDownload}
-                      className="h-8 px-3 text-xs"
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Download
-                    </Button>
-                  </div>
+        </Form>
+        \ {/* Fullscreen Map Modal */}
+        {isMapFullscreen && mapUrl && (
+          <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
+            <div className="relative w-full h-full flex flex-col">
+              {/* Fullscreen Header */}
+              <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+                <div className="flex items-center gap-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Route Map
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setIsMapFullscreen(false)}
+                    onClick={handleMapZoomOut}
+                    disabled={mapZoom <= 0.5}
                     className="h-8 w-8 p-0"
                   >
-                    <X className="h-4 w-4" />
+                    <ZoomOut className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-gray-600 min-w-[3rem] text-center">
+                    {Math.round(mapZoom * 100)}%
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMapZoomIn}
+                    disabled={mapZoom >= 3}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
+                  <div className="w-px h-6 bg-gray-300 mx-2" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMapRotate}
+                    className="h-8 w-8 p-0"
+                  >
+                    <RotateCw className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMapReset}
+                    className="h-8 w-8 p-0"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <div className="w-px h-6 bg-gray-300 mx-2" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMapDownload}
+                    className="h-8 px-3 text-xs"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Download
                   </Button>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsMapFullscreen(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
 
-                {/* Fullscreen Content */}
-                <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
-                  <img
-                    src={mapUrl}
-                    alt="Route Map Fullscreen"
-                    className="max-w-full max-h-full object-contain"
-                    style={{
-                      transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
-                      transformOrigin: "center",
-                    }}
-                  />
-                </div>
+              {/* Fullscreen Content */}
+              <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
+                <img
+                  src={mapUrl}
+                  alt="Route Map Fullscreen"
+                  className="max-w-full max-h-full object-contain"
+                  style={{
+                    transform: `scale(${mapZoom}) rotate(${mapRotation}deg)`,
+                    transformOrigin: "center",
+                  }}
+                />
               </div>
             </div>
-          )}
+          </div>
+        )}
       </div>
-
     </>
   );
 };

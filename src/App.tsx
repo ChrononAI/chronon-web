@@ -129,6 +129,8 @@ function App() {
 
               {/* SETTLEMENTS */}
               <Route path="/admin/settlements" element={<Settlements />} />
+              <Route path="/admin/settlements/:expenseId" element={<ExpenseDetailPage />} />
+
 
               {/* ADMIN (No Padding Layout) */}
               <Route element={<AdminLayout />}>

@@ -100,7 +100,6 @@ export function ExpenseDetailPage() {
   const searchParams = new URLSearchParams(location.search);
   const isFromReport = searchParams.get("from") === "report";
   const isFromApprovals = searchParams.get("from") === "approvals";
-  const returnTo = searchParams.get("returnTo");
 
   const loadTemplateEntities = async () => {
     try {
@@ -395,11 +394,7 @@ export function ExpenseDetailPage() {
               expense.status.toUpperCase()
             )}
             onCancel={() => {
-              if (returnTo === "create") {
-                window.location.href = "/expenses/create";
-              } else {
-                window.history.back();
-              }
+              navigate(-1)
             }}
             onUpdate={handleExpenseSubmit}
             isEditing={isEditing}
