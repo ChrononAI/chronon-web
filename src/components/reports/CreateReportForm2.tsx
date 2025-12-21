@@ -67,15 +67,10 @@ const createReportSchema = (customAttributes: CustomAttribute[]) => {
   const dynamicFields: Record<string, z.ZodTypeAny> = {};
   customAttributes.forEach((attr) => {
     const fieldName = attr.name;
-    if (attr.is_required) {
-      dynamicFields[fieldName] = z
-        .string()
-        .min(1, `${attr.display_name} is required`);
-    } else {
-      dynamicFields[fieldName] = z.string().optional();
-    }
+    dynamicFields[fieldName] = z
+      .string()
+      .min(1, `${attr.display_name} is required`);
   });
-
   return z.object({ ...baseSchema, ...dynamicFields });
 };
 
