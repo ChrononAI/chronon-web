@@ -145,6 +145,7 @@ export function ExpenseDetailsStep2({
   const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(
     null
   );
+  console.log(expense);
   const readOnly = mode === "view";
   const [duplicateReceiptLoading, setDuplicateReceiptLoading] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
@@ -843,7 +844,7 @@ export function ExpenseDetailsStep2({
                                 setSelectedCategory(null);
                                 form.setValue("category_id", "");
                               }}
-                              disabled={readOnly}
+                              disabled={readOnly || expense.transaction_id}
                             >
                               <FormControl>
                                 <SelectTrigger className={selectTriggerClass}>
@@ -893,7 +894,7 @@ export function ExpenseDetailsStep2({
                                     role="combobox"
                                     aria-expanded={categoryDropdownOpen}
                                     className="h-11 w-full justify-between"
-                                    disabled={!selectedPolicy || readOnly}
+                                    disabled={!selectedPolicy || readOnly || expense.transaction_id}
                                   >
                                     <>
                                       <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
@@ -964,7 +965,7 @@ export function ExpenseDetailsStep2({
                                       "h-11 w-full justify-between pl-3 text-left font-normal",
                                       !field.value && "text-muted-foreground"
                                     )}
-                                    disabled={readOnly}
+                                    disabled={readOnly || expense.transaction_id}
                                   >
                                     {field.value ? (
                                       format(new Date(field.value), "PPP")
@@ -1054,7 +1055,7 @@ export function ExpenseDetailsStep2({
                                       form.watch("amount") ?? expense?.amount
                                     }
                                     readOnly={showConversion}
-                                    disabled={readOnly}
+                                    disabled={readOnly || expense.transaction_id}
                                     className={inputFieldClass}
                                   />
                                 </FormControl>
