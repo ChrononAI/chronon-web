@@ -65,6 +65,8 @@ import ApprovalsStoresPage from "./pages/ApprovalsStoresPage";
 import ProcessStorePage from "./pages/ProcessStorePage";
 import Settlements from "./pages/settlements/Settlements";
 import StoreMaster from "./pages/admin/StoreMaster";
+import CreateWorkflowPage from "./pages/admin/CreateWorkflowPage";
+import CreateRulePage from "./pages/admin/CreateRulePage";
 
 function App() {
   return (
@@ -127,6 +129,8 @@ function App() {
 
               {/* SETTLEMENTS */}
               <Route path="/admin/settlements" element={<Settlements />} />
+              <Route path="/admin/settlements/:expenseId" element={<ExpenseDetailPage />} />
+
 
               {/* ADMIN (No Padding Layout) */}
               <Route element={<AdminLayout />}>
@@ -143,10 +147,16 @@ function App() {
                 <Route path="/admin-settings/users/create" element={<CreateUserPage />} />
                 <Route path="/admin-settings/users/:id" element={<CreateUserPage />} />
                 <Route path="/admin-settings/product-config/workflow" element={<WorkFlowPage />} />
+                <Route path="/admin-settings/product-config/workflow/create-workflow" element={<CreateWorkflowPage />} />
+                <Route path="/admin-settings/product-config/workflow/create-workflow/:id" element={<CreateWorkflowPage />} />
+                <Route path="/admin-settings/product-config/workflow/create-rule" element={<CreateRulePage />} />
+                <Route path="/admin-settings/product-config/workflow/create-rule/:id" element={<CreateRulePage />} />
                 <Route path="/admin-settings/product-config/expense-categories" element={<AdminExpenseCategories />} />
                 <Route path="/admin-settings/product-config/expense-categories/create" element={<CreateExpenseCategoryPage />} />
+                <Route path="/admin-settings/product-config/expense-categories/create/:id" element={<CreateExpenseCategoryPage />} />
                 <Route path="/admin-settings/product-config/expense-policies" element={<AdminExpensePolicies />} />
                 <Route path="/admin-settings/product-config/expense-policies/create" element={<CreateExpensePolicyPage />} />
+                <Route path="/admin-settings/product-config/expense-policies/create/:id" element={<CreateExpensePolicyPage />} />
                 <Route path="/admin-settings/product-config/category-limits" element={<CategoryLimitPage />} />
                 <Route path="/admin-settings/product-config/category-limits/create" element={<CreateCategoryLimitPage />} />
                 <Route path="/admin-settings/product-config/category-limits/:id" element={<EditCategoryLimitPage />} />

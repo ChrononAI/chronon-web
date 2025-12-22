@@ -59,8 +59,11 @@ function AdminExpensePolicies() {
       page: 0,
       pageSize: 10,
     });
-    const [loading, setLoading] = useState(true);
-    const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
+  const [loading, setLoading] = useState(true);
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: "include",
+    ids: new Set(),
+  });
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -72,6 +75,13 @@ function AdminExpensePolicies() {
   const [paginationInfo, setPaginationInfo] = useState<PaginationInfo>();
 
   const [rows, setRows] = useState([]);
+
+  const handleRowClick = ({ row }: any) => {
+    navigate(
+      `/admin-settings/product-config/expense-policies/create/${row.id}`,
+      { state: row }
+    );
+  };
 
   const getPolicies = async ({
     page,
@@ -102,7 +112,7 @@ function AdminExpensePolicies() {
       page: (paginationModel?.page || 0) + 1,
       perPage: paginationModel?.pageSize || 0,
     });
-    setRowSelection({ type: "include", ids: new Set() })
+    setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
   return (
     <div>
@@ -171,6 +181,7 @@ function AdminExpensePolicies() {
           disableRowSelectionOnClick
           showCellVerticalBorder
           rowSelectionModel={rowSelection}
+          onRowClick={handleRowClick}
           onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"

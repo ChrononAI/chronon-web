@@ -9,7 +9,6 @@ import {
 import { policyRulesService } from "@/services/admin/policyRulesService";
 import { expenseService } from "@/services/expenseService";
 import { Policy } from "@/types/expense";
-import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,9 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useCategoryLimitStore } from "@/store/admin/categoryLimitStore";
 import { Rule } from "./CreateCategoryLimitPage";
+import { FormFooter } from "@/components/layout/FormFooter";
+import { Trash2 } from "lucide-react";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 
 const operators = [
   { name: "Equals", value: "EQUALS" },
@@ -137,6 +139,7 @@ export default function EditCategoryLimitPage() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [rules, setRules] = useState<any>(cleanedPolicy);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const getData = async () => {
     try {
@@ -265,6 +268,7 @@ export default function EditCategoryLimitPage() {
 
   const handleSave = async () => {
     try {
+      setSaving(true);
       const newRules = removeLimitValuesForPerDiem(rules, policies);
       setRules(newRules);
       const payload = {
@@ -280,12 +284,19 @@ export default function EditCategoryLimitPage() {
       const newPayload = removeSystemFields(payload);
       await policyRulesService.updatePolicyRule(rules.id, newPayload);
       toast.success("Policy rule updated successfully");
-      setTimeout(() => {
-        navigate("/admin-settings/product-config/category-limits");
-      }, 100);
+      navigate("/admin-settings/product-config/category-limits");
     } catch (error: any) {
       console.error(error);
       toast.error(error?.response?.data?.message || "Update failed");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await policyRulesService.deletePolicyRule(id);
+      navigate("/admin-settings/product-config/category-limits");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message);
     }
   };
 
@@ -300,16 +311,26 @@ export default function EditCategoryLimitPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(-1)}
-          className="mr-4"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
         <h1 className="text-2xl font-bold flex-1">Edit Policy Rule</h1>
-        <Button onClick={handleSave}>Save</Button>
+
+        <DeleteConfirmDialog
+          trigger={
+            <Button
+              variant="outline"
+              className="px-6 py-2 border-red-500 text-red-600 hover:bg-red-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                // setShowDeleteDialog(true);
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          }
+          title="Delete Category Limit"
+          description="Are you sure you want to delete this category limit? This cannot be undone."
+          onConfirm={() => handleDelete(rules.id)}
+        />
       </div>
 
       {/* === Rule name & description === */}
@@ -426,6 +447,14 @@ export default function EditCategoryLimitPage() {
           </Card>
         );
       })}
+      <FormFooter>
+        <Button variant="outline" onClick={() => navigate(-1)}>
+          Back
+        </Button>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Updating" : "Update"}
+        </Button>
+      </FormFooter>
     </div>
   );
 }

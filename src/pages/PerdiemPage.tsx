@@ -11,7 +11,12 @@ import { Calendar, Copy, ExternalLink, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { placesService } from "@/services/placesService";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
-import { Expense, Policy, PolicyCategory } from "@/types/expense";
+import {
+  Expense,
+  ExpenseComment,
+  Policy,
+  PolicyCategory,
+} from "@/types/expense";
 import { toast } from "sonner";
 import { expenseService } from "@/services/expenseService";
 import { ExpenseComments } from "@/components/expenses/ExpenseComments";
@@ -34,6 +39,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { trackEvent } from "@/mixpanel";
+import ExpenseLogs from "@/components/expenses/ExpenseLogs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface PerdiemPageProps {
   mode?: "create" | "view" | "edit";
@@ -70,7 +77,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const { pathname } = useLocation();
-
   const form = useForm<PerdiemFormValues>({
     resolver: zodResolver(perdiemSchema),
     defaultValues: {
@@ -104,14 +110,30 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     categoryId: "",
   });
   const [days, setDays] = useState<number>(0);
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
   const [activePerdiemTab, setActivePerdiemTab] = useState<"info" | "comments">(
     "info"
   );
+  const [expenseLogs, setExpenseLogs] = useState<ExpenseComment[]>([]);
+  const [commentError, setCommentError] = useState<string | null>(null);
+
+  const [comments, setComments] = useState<ExpenseComment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
   const today = new Date().toISOString().split("T")[0];
   const [loading, setLoading] = useState(false);
+
+    const [adminEditReason, setAdminEditReason] = useState("");
+      const [showAdminEditConfirm, setShowAdminEditConfirm] = useState(false);
+      const [pendingFormData, setPendingFormData] = useState<any>(null);
+
+  const isAdminUpdatingExpense =
+    isAdmin &&
+    location.pathname.includes("/approvals") &&
+    expenseData?.status !== "APPROVED" &&
+    expenseData?.status !== "REJECTED";
 
   useEffect(() => {
     const { startDate, endDate } = formData;
@@ -128,7 +150,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
           return new Date().toISOString().split("T")[0];
         }
       };
-
+console.log(expenseData);
       const data = {
         startDate: formatDate(
           expenseData.start_date ||
@@ -250,20 +272,23 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
           button_name: "Create Per Diem",
         });
         await placesService.createPerDiemExpense(submitData, orgId);
+      } else if (mode === "edit" && isAdminUpdatingExpense) {
+        setPendingFormData(submitData);
+        setShowAdminEditConfirm(true);
+        setLoading(false);
+        return;
       } else if (mode === "edit" && id) {
         trackEvent("Edit Per Diem Button Clicked", {
           button_name: "Edit Per Diem",
         });
-        await expenseService.updateExpense(id, submitData);
+          await expenseService.updateExpense(id, submitData);
       }
       if (mode === "create") {
         toast.success("Per diem expense created successfully!");
       } else if (mode === "edit") {
         toast.success("Per diem expense edited successfully!");
       }
-      setTimeout(() => {
-        navigate("/expenses");
-      }, 500);
+      navigate(-1);
     } catch (error: any) {
       console.error("Error creating per diem expense:", error);
       const errorMessage =
@@ -271,10 +296,29 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         error.message ||
         "Failed to create per diem expense";
       toast.error(`Error: ${errorMessage}`);
-    } finally {
       setLoading(false);
+    } finally {
+      // setLoading(false);
     }
   };
+
+    const handleEditExpenseAsAdmin = async () => {
+      try {
+        if (expenseData?.id) {
+          const newPayload = { ...pendingFormData, reason: adminEditReason };
+          await expenseService.adminUpdateExpense({
+            id: expenseData?.id,
+            payload: newPayload,
+          });
+        }
+        toast.success("Exopense uodated successfuylly");
+        setShowAdminEditConfirm(false);
+        navigate(-1);
+      } catch (error: any) {
+        console.log(error);
+        toast.error(error?.response?.data?.message || error?.message);
+      }
+    };
 
   const calculatePerDiemAmount = async ({
     startDate,
@@ -322,6 +366,46 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     formData.policyId,
   ]);
 
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (expenseData?.id) {
+        setLoadingComments(true);
+        setCommentError(null);
+        try {
+          const fetchedComments = await expenseService.getExpenseComments(
+            expenseData?.id
+          );
+          // Sort comments by created_at timestamp (oldest first)
+          const sortedComments = [
+            ...fetchedComments.filter((c) => !c.action),
+          ].sort((a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateA - dateB;
+          });
+          setComments(sortedComments);
+          const sortedLogs = [...fetchedComments.filter((c) => c.action)].sort(
+            (a, b) => {
+              const dateA = new Date(a.created_at).getTime();
+              const dateB = new Date(b.created_at).getTime();
+              return dateA - dateB;
+            }
+          );
+          setExpenseLogs(sortedLogs);
+        } catch (error: any) {
+          console.error("Error fetching comments:", error);
+          setCommentError(
+            error.response?.data?.message || "Failed to load comments"
+          );
+        } finally {
+          setLoadingComments(false);
+        }
+      }
+    };
+
+    fetchComments();
+  }, [expenseData?.id]);
+
   return (
     <>
       {/* Duplicate Expense Indicator */}
@@ -360,6 +444,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                 {[
                   { key: "info", label: "Info" },
                   { key: "comments", label: "Comments" },
+                  { key: "logs", label: "Logs" },
                 ].map((tab) => (
                   <button
                     key={tab.key}
@@ -395,11 +480,21 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                     </div>
                   </div>
                 </div>
-              ) : (
+              ) : activePerdiemTab === "comments" ? (
                 <ExpenseComments
                   expenseId={expenseData?.id}
                   readOnly={false}
-                  autoFetch={activePerdiemTab === "comments"}
+                  comments={comments}
+                  setCommentError={setCommentError}
+                  setComments={setComments}
+                  commentError={commentError}
+                  loadingComments={loadingComments}
+                />
+              ) : (
+                <ExpenseLogs
+                  logs={expenseLogs}
+                  loading={loadingComments}
+                  error={commentError || ""}
                 />
               )}
             </div>
@@ -415,54 +510,54 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                   : "md:h-[calc(100vh-13rem)]"
               } md:overflow-y-auto`}
             >
-                <div className="overflow-y-auto pr-1 md:pr-2">
-                  <div className="px-6 py-6 space-y-6 pb-40 md:pb-48">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="startDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Date *</FormLabel>
-                            <FormControl>
-                              <DateField
-                                id="startDate"
-                                value={formData.startDate}
-                                onChange={(value) => {
-                                  handleInputChange("startDate", value);
-                                  field.onChange(value);
-                                  handleInputChange("endDate", value);
-                                }}
-                                disabled={mode === "view"}
-                                maxDate={today}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+              <div className="overflow-y-auto pr-1 md:pr-2">
+                <div className="px-6 py-6 space-y-6 pb-40 md:pb-48">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="startDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date *</FormLabel>
+                          <FormControl>
+                            <DateField
+                              id="startDate"
+                              value={formData.startDate}
+                              onChange={(value) => {
+                                handleInputChange("startDate", value);
+                                field.onChange(value);
+                                handleInputChange("endDate", value);
+                              }}
+                              disabled={mode === "view"}
+                              maxDate={today}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="days"
-                          className="text-sm font-medium text-gray-700"
-                        >
-                          Number of Days
-                        </Label>
-                        <div className="relative">
-                          <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-                          <Input
-                            id="days"
-                            type="text"
-                            value={days}
-                            readOnly
-                            className="bg-gray-50 pl-10"
-                            disabled={mode === "view"}
-                          />
-                        </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="days"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Number of Days
+                      </Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+                        <Input
+                          id="days"
+                          type="text"
+                          value={days}
+                          readOnly
+                          className="bg-gray-50 pl-10"
+                          disabled={mode === "view"}
+                        />
                       </div>
+                    </div>
 
-                      {/* <FormField
+                    {/* <FormField
                       control={form.control}
                       name="endDate"
                       render={({ field }) => (
@@ -485,9 +580,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         </FormItem>
                       )}
                     /> */}
-                    </div>
+                  </div>
 
-                    {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label
                         htmlFor="days"
@@ -508,119 +603,119 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                     </div>
                   </div> */}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="policy"
-                          className="text-sm font-medium text-gray-700"
-                        >
-                          Policy
-                        </Label>
-                        <Input
-                          id="policy"
-                          type="text"
-                          value={selectedPolicy?.name}
-                          className="bg-gray-50 text-gray-500"
-                          disabled
-                        />
-                      </div>
-                      <FormField
-                        control={form.control}
-                        name="categoryId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Category *</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={(value) => {
-                                handleInputChange("categoryId", value);
-                                field.onChange(value);
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="policy"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Policy
+                      </Label>
+                      <Input
+                        id="policy"
+                        type="text"
+                        value={selectedPolicy?.name}
+                        className="bg-gray-50 text-gray-500"
+                        disabled
+                      />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="categoryId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category *</FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={(value) => {
+                              handleInputChange("categoryId", value);
+                              field.onChange(value);
+                            }}
+                            disabled={
+                              mode === "view" ||
+                              !selectedPolicy ||
+                              loadingPolicies
+                            }
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue
+                                  placeholder={
+                                    !selectedPolicy
+                                      ? "Select policy first"
+                                      : "Select category"
+                                  }
+                                />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categories.map((category) => (
+                                <SelectItem
+                                  key={category.id}
+                                  value={category.id}
+                                >
+                                  {category.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="location"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Location *</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="e.g., Mumbai, Delhi, Bangalore"
+                              value={formData.location}
+                              onChange={(e) => {
+                                handleInputChange("location", e.target.value);
+                                field.onChange(e.target.value);
                               }}
-                              disabled={
-                                mode === "view" ||
-                                !selectedPolicy ||
-                                loadingPolicies
-                              }
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue
-                                    placeholder={
-                                      !selectedPolicy
-                                        ? "Select policy first"
-                                        : "Select category"
-                                    }
-                                  />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {categories.map((category) => (
-                                  <SelectItem
-                                    key={category.id}
-                                    value={category.id}
-                                  >
-                                    {category.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                              disabled={mode === "view"}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="location"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Location *</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="text"
-                                placeholder="e.g., Mumbai, Delhi, Bangalore"
-                                value={formData.location}
-                                onChange={(e) => {
-                                  handleInputChange("location", e.target.value);
-                                  field.onChange(e.target.value);
-                                }}
-                                disabled={mode === "view"}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="purpose"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Purpose *</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                value={formData.purpose}
-                                placeholder="e.g. Annual Sales Conference"
-                                onChange={(e) => {
-                                  handleInputChange("purpose", e.target.value);
-                                  field.onChange(e.target.value);
-                                }}
-                                className="resize-none"
-                                disabled={mode === "view"}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="purpose"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Purpose *</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              value={formData.purpose}
+                              placeholder="e.g. Annual Sales Conference"
+                              onChange={(e) => {
+                                handleInputChange("purpose", e.target.value);
+                                field.onChange(e.target.value);
+                              }}
+                              className="resize-none"
+                              disabled={mode === "view"}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </div>
+              </div>
 
               <>
                 <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
@@ -663,7 +758,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         type="button"
                         variant="outline"
                         className="px-6 py-2"
-                        onClick={() => navigate("/expenses")}
+                        onClick={() => navigate(-1)}
                       >
                         Back
                       </Button>
@@ -694,6 +789,47 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
           </Form>
         </div>
       </div>
+      <AlertDialog
+        open={showAdminEditConfirm}
+        onOpenChange={setShowAdminEditConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit expense?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to edit this expense as an admin. This will
+              overwrite the existing data. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Reason for editing</Label>
+            <Textarea
+              placeholder="Enter reason for editing this expense"
+              value={adminEditReason}
+              onChange={(e) => setAdminEditReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowAdminEditConfirm(false);
+              setPendingFormData(null);
+              setLoading(false);
+            }}>Cancel</AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={() => {
+                handleEditExpenseAsAdmin();
+                setShowAdminEditConfirm(false);
+              }}
+            >
+              Yes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

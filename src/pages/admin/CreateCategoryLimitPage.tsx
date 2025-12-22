@@ -9,7 +9,7 @@ import {
 import { policyRulesService } from "@/services/admin/policyRulesService";
 import { expenseService } from "@/services/expenseService";
 import { Policy } from "@/types/expense";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -336,14 +336,6 @@ function CreateCategoryLimitPage() {
     <>
       <div className="space-y-6">
         <div className="flex items-center mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-            className="mr-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
           <h1 className="text-2xl font-bold">Create Policy Rules</h1>
         </div>
         <h2 className="text-xl font-medium">Description</h2>

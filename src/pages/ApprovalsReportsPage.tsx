@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
 import { approvalService } from "@/services/approvalService";
@@ -10,6 +10,7 @@ import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
 import { GridOverlay } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
 import { GridPaginationModel } from "@mui/x-data-grid";
+import { useAuthStore } from "@/store/authStore";
 
 function CustomNoRows() {
   return (
@@ -82,6 +83,8 @@ const columns: GridColDef[] = [
 
 export function ApprovalsReportsPage() {
   const navigate = useNavigate();
+  const { orgSettings } = useAuthStore();
+  const customIdEnabled = orgSettings.custom_report_id_settings ?? false;
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<
@@ -113,6 +116,22 @@ export function ApprovalsReportsPage() {
     ids: new Set(),
   });
 
+  const newCols = useMemo<GridColDef[]>(() => {
+    return [
+      ...columns,
+      ...(customIdEnabled
+        ? [
+            {
+              field: "custom_report_id",
+              headerName: "CUSTOM REPORT ID",
+              minWidth: 140,
+              flex: 1,
+            } as GridColDef,
+          ]
+        : []),
+    ];
+  }, [columns, customIdEnabled]);
+
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
@@ -128,7 +147,11 @@ export function ApprovalsReportsPage() {
     try {
       const limit = paginationModel?.pageSize || 10;
       const offset = (paginationModel?.page || 0) * limit;
-      const response = await approvalService.getAllReports(limit, offset);
+      const response = await approvalService.getReportsByStatus(
+        limit,
+        offset,
+        "IN_PROGRESS,APPROVED,REJECTED"
+      );
       setAllReports(response?.data.data);
       setAllReportsPagination({
         count: response?.data.count,
@@ -254,7 +277,7 @@ export function ApprovalsReportsPage() {
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           rows={rows}
-          columns={columns}
+          columns={newCols}
           loading={loading}
           slots={{
             noRowsOverlay: CustomNoRows,

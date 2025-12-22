@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import { expenseService } from "@/services/expenseService";
@@ -10,26 +10,64 @@ import { Badge } from "@/components/ui/badge";
 import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
 import { Report } from "@/types/expense";
 import { GridPaginationModel } from "@mui/x-data-grid";
-import { Box, CircularProgress } from "@mui/material";
+import { Box, Skeleton } from "@mui/material";
 import { GridOverlay } from "@mui/x-data-grid";
+import { useAuthStore } from "@/store/authStore";
 
-export function CustomLoader() {
+function ExpensesSkeletonOverlay({ rowCount = 8 }) {
   return (
     <GridOverlay>
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "rgba(255,255,255,0.6)",
-        }}
-      >
-        <CircularProgress size={28} thickness={4} />
-      </Box>
+      <div className="w-full py-3 space-y-0">
+        {Array.from({ length: rowCount - 1 }).map((_, rowIndex) => (
+          <div
+            key={rowIndex}
+            className="flex items-center gap-4 w-full py-4 px-2 border-[0.5px] border-gray"
+          >
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="2%"
+              className="rounded-full"
+            />
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="15%"
+              className="rounded-full"
+            />
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="16%"
+              className="rounded-full"
+            />
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="16%"
+              className="rounded-full"
+            />
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="14%"
+              className="rounded-full"
+            />
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="16%"
+              className="rounded-full"
+            />
+            <Skeleton
+              variant="rectangular"
+              height={10}
+              width="16%"
+              className="rounded-full"
+            />
+          </div>
+        ))}
+      </div>
     </GridOverlay>
   );
 }
@@ -123,14 +161,33 @@ export function MyReportsPage() {
     submittedReportsPagination,
   } = useReportsStore();
   const navigate = useNavigate();
+  const { orgSettings } = useAuthStore();
+  const customIdEnabled = orgSettings?.custom_report_id_settings.enabled ?? false;
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [paginationModel, setPaginationModel] =
     useState<GridPaginationModel | null>(null);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
+
+  const newCols = useMemo<GridColDef[]>(() => {
+    return [
+      ...columns,
+      ...(customIdEnabled
+        ? [
+            {
+              field: "custom_report_id",
+              headerName: "CUSTOM REPORT ID",
+              minWidth: 140,
+              flex: 1,
+            } as GridColDef,
+          ]
+        : []),
+    ];
+  }, [columns, customIdEnabled]);
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -201,6 +258,7 @@ export function MyReportsPage() {
         fetchUnsubmittedReports(),
         fetchSubmittedReports(),
       ]);
+      setIsInitialLoad(false);
     } catch (error) {
       console.log(error);
     } finally {
@@ -276,7 +334,7 @@ export function MyReportsPage() {
       >
         <DataGrid
           rows={loading ? [] : reportsArr}
-          columns={columns}
+          columns={newCols}
           loading={loading}
           onRowClick={(params, event) => {
             event.stopPropagation();
@@ -289,6 +347,14 @@ export function MyReportsPage() {
           }}
           slots={{
             noRowsOverlay: CustomNoRows,
+            loadingOverlay:
+              loading && isInitialLoad
+                ? () => (
+                    <ExpensesSkeletonOverlay
+                      rowCount={paginationModel?.pageSize}
+                    />
+                  )
+                : undefined,
           }}
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           sx={{

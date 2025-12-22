@@ -14,6 +14,8 @@ import { ExpenseComments } from "./ExpenseComments";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { expenseService } from "@/services/expenseService";
+import ExpenseLogs from "./ExpenseLogs";
+import { ExpenseComment } from "@/types/expense";
 
 function ReceiptViewer({
   activeReceiptTab,
@@ -43,6 +45,11 @@ function ReceiptViewer({
   const [validations, setValidations] = useState<ValidationItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [validationLoading, setValidationLoading] = useState(false);
+  const [expenseLogs, setExpenseLogs] = useState<ExpenseComment[]>([]);
+  const [commentError, setCommentError] = useState<string | null>(null);
+
+  const [comments, setComments] = useState<ExpenseComment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
   const validationCount = validations?.length ?? 0;
 
   // Fetch comments when expenseId is available
@@ -68,14 +75,55 @@ function ReceiptViewer({
     fetchValidation();
   }, [expense?.id]);
 
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (expense?.id) {
+        setLoadingComments(true);
+        setCommentError(null);
+        try {
+          const fetchedComments = await expenseService.getExpenseComments(
+            expense?.id
+          );
+          // Sort comments by created_at timestamp (oldest first)
+          const sortedComments = [
+            ...fetchedComments.filter((c) => !c.action),
+          ].sort((a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateA - dateB;
+          });
+          setComments(sortedComments);
+                    const sortedLogs = [
+            ...fetchedComments.filter((c) => c.action),
+          ].sort((a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateA - dateB;
+          });
+          setExpenseLogs(sortedLogs);
+        } catch (error: any) {
+          console.error("Error fetching comments:", error);
+          setCommentError(
+            error.response?.data?.message || "Failed to load comments"
+          );
+        } finally {
+          setLoadingComments(false);
+        }
+      }
+    };
+
+    fetchComments();
+  }, [expense?.id]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {[
             { key: "receipt", label: "Receipt" },
             { key: "comments", label: "Comments" },
             { key: "validation", label: "Validation" },
+            { key: "logs", label: "Logs" },
           ].map((tab) => {
             const isActive = activeReceiptTab === tab.key;
             const isValidation = tab.key === "validation";
@@ -92,13 +140,11 @@ function ReceiptViewer({
                     ? "bg-primary/10 text-primary"
                     : "text-gray-500 hover:text-gray-900",
 
-                  // 🔥 Light brown background for validation tab if errors exist
                   hasErrors && !isActive && "bg-amber-50 text-amber-700"
                 )}
               >
                 {tab.label}
 
-                {/* 🔥 Show badge only for validation */}
                 {hasErrors && (
                   <span className="text-xs bg-amber-600 text-white px-2 py-0.5 rounded-full">
                     {validationCount}
@@ -143,7 +189,11 @@ function ReceiptViewer({
                   </div>
                 </div>
               ) : hasReceipt ? (
-                <div className={`flex items-center justify-center p-4 ${isPdfReceipt && "h-full"}`}>
+                <div
+                  className={`flex items-center justify-center p-4 ${
+                    isPdfReceipt && "h-full"
+                  }`}
+                >
                   {isPdfReceipt ? (
                     <embed
                       src={`${activeReceiptUrl}#toolbar=0&navpanes=0&scrollbar=0`}
@@ -267,13 +317,23 @@ function ReceiptViewer({
           <ExpenseComments
             expenseId={expense?.id}
             readOnly={false}
-            autoFetch={activeReceiptTab === "comments"}
+            comments={comments}
+            setCommentError={setCommentError}
+            setComments={setComments}
+            commentError={commentError}
+            loadingComments={loadingComments}
           />
-        ) : (
+        ) : activeReceiptTab === "validation" ? (
           <ExpenseValidation
             error={error}
             validations={validations}
             loading={validationLoading}
+          />
+        ) : (
+          <ExpenseLogs
+            logs={expenseLogs}
+            loading={loadingComments}
+            error={commentError || ""}
           />
         )}
       </div>

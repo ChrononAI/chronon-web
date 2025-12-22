@@ -83,6 +83,7 @@ export interface ExpenseComment {
   expense_id: string;
   comment: string;
   creator_user_id: string;
+  action?: string | null,
   creator_user: {
     id: string;
     email: string;
@@ -141,6 +142,7 @@ export interface Report {
   status: string;
   created_at: string;
   updated_at: string;
+  custom_report_id?: string | null;
   submitted_at: string | null;
   created_by: {
     email: string;

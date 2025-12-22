@@ -53,6 +53,7 @@ const columns: GridColDef[] = [
 
 function AdminExpenseCategories() {
   const navigate = useNavigate();
+  const [rows, setRows] = useState([]);
   const [paginationModel, setPaginationModel] =
     useState<GridPaginationModel | null>({
       page: 0,
@@ -62,6 +63,11 @@ function AdminExpenseCategories() {
   const [loading, setLoading] = useState(true);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
+    const handleRowClick = ({ row }: any) => {
+      console.log(row);
+      navigate(`/admin-settings/product-config/expense-categories/create/${row.id}`, { state: row });
+    }
+
   useEffect(() => {
     const gridHeight = window.innerHeight - 260;
     const rowHeight = 36;
@@ -69,7 +75,6 @@ function AdminExpenseCategories() {
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, []);
 
-  const [rows, setRows] = useState([]);
 
   const getCategories = async ({
     page,
@@ -167,6 +172,7 @@ function AdminExpenseCategories() {
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick
+          onRowClick={handleRowClick}
           showCellVerticalBorder
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={setRowSelection}

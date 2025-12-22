@@ -541,7 +541,7 @@ const UserMasterPage = () => {
                     onClick={addCustomField}
                     className="text-sm text-blue-600"
                   >
-                    Add Custom Field
+                    Add
                   </Button>
                 </div>
 

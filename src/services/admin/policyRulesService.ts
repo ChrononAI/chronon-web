@@ -28,6 +28,14 @@ export const policyRulesService = {
         }
     },
 
+    async deletePolicyRule(id: string) {
+        try {
+            return await api.delete(`/api/v1/expense_policy_rules/${id}`)
+        } catch (error) {
+            throw error;
+        }
+    },
+
     async getEntities() {
         try {
             const res = await api.get('/api/v1/entities');

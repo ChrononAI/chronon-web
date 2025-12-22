@@ -1,140 +1,177 @@
-import api from '@/lib/api'
+import api from "@/lib/api";
 
 export interface WorkflowSequencePayload {
-  step_order: number
-  step_name: string
-  relationship_type: 'DIRECT_RELATIONSHIP' | 'PARALLEL_RELATIONSHIP'
-  approver_identifier?: string | null
-  approval_strategy: string
-  min_approvals_required: number
-  timeout_hours: number
+  step_order: number;
+  step_name: string;
+  relationship_type: "DIRECT_RELATIONSHIP" | "PARALLEL_RELATIONSHIP";
+  approver_identifier?: string | null;
+  approval_strategy: string;
+  min_approvals_required: number;
+  timeout_hours: number;
   entity_criteria?: Array<{
-    field: string
-    operator: string
-    value: string
-  }> | null
+    field: string;
+    operator: string;
+    value: string;
+  }> | null;
 }
 
 export interface WorkflowSequence {
-  id: string
-  workflow_config_id: string
-  step_order: number
-  step_name: string
-  relationship_type: string
-  approver_identifier: string | null
-  approval_strategy: string
-  min_approvals_required: number
-  timeout_hours: number
+  id: string;
+  workflow_config_id: string;
+  step_order: number;
+  step_name: string;
+  relationship_type: string;
+  approver_identifier: string | null;
+  approval_strategy: string;
+  min_approvals_required: number;
+  timeout_hours: number;
   entity_criteria: Array<{
-    field: string
-    operator: string
-    value: string
-  }> | null
-  is_active: boolean
-  created_at: string
-  updated_at: string
+    field: string;
+    operator: string;
+    value: string;
+  }> | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateWorkflowConfigPayload {
-  name: string
-  entity_type: string
-  is_active: boolean
-  sequences: WorkflowSequencePayload[]
+  name: string;
+  entity_type: string;
+  is_active: boolean;
+  sequences: WorkflowSequencePayload[];
 }
 
 export interface CreateWorkflowConfigResponse {
   data: {
     workflow_config: {
-      id: string
-      name: string
-      entity_type: string
-      is_active: boolean
-      org_id: string
-      created_by: string
-      created_at: string
-      updated_at: string
-      config_data: any
-    }
-      sequences: WorkflowSequence[]
-  }
-  message: string
-  status: string
+      id: string;
+      name: string;
+      entity_type: string;
+      is_active: boolean;
+      org_id: string;
+      created_by: string;
+      created_at: string;
+      updated_at: string;
+      config_data: any;
+    };
+    sequences: WorkflowSequence[];
+  };
+  message: string;
+  status: string;
 }
 
 export async function createWorkflowConfig(
   payload: CreateWorkflowConfigPayload
 ): Promise<CreateWorkflowConfigResponse> {
-  const res = await api.post('/api/v1/workflows/configs', payload)
-  return res.data
+  const res = await api.post("/api/v1/workflows/configs", payload);
+  return res.data;
+}
+
+export async function updateWorkflowConfig({ id, payload }: any) {
+  try {
+    return await api.put(`/api/v1/workflows/configs/${id}`, payload);
+  } catch (error) {
+    throw error;
+  }
 }
 
 export interface WorkflowConfig {
-  id: string
-  name: string
-  entity_type: string
-  is_active: boolean
-  org_id: string
-  created_by: string
-  created_at: string
-  updated_at: string
-  config_data: any
-  sequences?: WorkflowSequence[]
+  id: string;
+  name: string;
+  entity_type: string;
+  is_active: boolean;
+  org_id: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  config_data: any;
+  sequences?: WorkflowSequence[];
 }
 
 export interface GetWorkflowsResponse {
-  data: WorkflowConfig[]
-  status: string
-  message?: string
+  data: WorkflowConfig[];
+  status: string;
+  message?: string;
 }
 
-export async function getAllWorkflows(): Promise<WorkflowConfig[]> {
-  const res = await api.get('/api/v1/workflows/configs')
-  const data = res.data
-  
-  if (data?.status === 'success' && Array.isArray(data?.data)) {
-    return data.data
+export async function getAllWorkflows(): Promise<any> {
+  try {
+    return await api.get("/api/v1/workflows/configs");
+  } catch (error) {
+    throw error;
   }
-  
-  if (Array.isArray(data?.data)) {
-    return data.data
+}
+
+export async function deleteWorkflow(id: string) {
+  try {
+    return await api.delete(`/api/v1/workflows/configs/${id}`);
+  } catch (error) {
+    throw error;
   }
-  
-  if (Array.isArray(data)) {
-    return data
-  }
-  
-  return []
 }
 
 export interface CreatePolicyPayload {
-  name: string
-  description: string
-  policy_type: string
-  workflow_config_id: string
-  approval_type?: string
+  name: string;
+  description: string;
+  policy_type: string;
+  workflow_config_id: string;
+  approval_type?: string;
   conditions: {
     rules: Array<{
-      field: string
-      operator: string
-      value: string
-    }>
+      field: string;
+      operator: string;
+      value: string;
+    }>;
     action: {
-      type: string
-    }
-  }
-  is_active: boolean
+      type: string;
+    };
+  };
+  is_active: boolean;
 }
 
 export interface CreatePolicyResponse {
-  data?: any
-  message?: string
-  status?: string
+  data?: any;
+  message?: string;
+  status?: string;
 }
 
-export async function createPolicy(
+export async function createPolicyRule(
   payload: CreatePolicyPayload
 ): Promise<CreatePolicyResponse> {
-  const res = await api.post('/api/v1/policies', payload)
-  return res.data
+  const res = await api.post("/api/v1/policies", payload);
+  return res.data;
 }
 
+export async function updatePolicyRule({ id, payload }: any) {
+  try {
+    return await api.put(`/api/v1/policies/${id}`, payload);
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function deletePolicyRule(id: string) {
+  try {
+    return await api.delete(`/api/v1/policies/${id}`);
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function getWorkflowRules({
+  limit,
+  offset,
+}: {
+  limit: number;
+  offset: number;
+}) {
+  try {
+    const res = await api.get(
+      `/api/v1/policies?limit=${limit}&offset=${offset}`
+    );
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+}

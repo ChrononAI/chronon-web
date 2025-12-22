@@ -23,6 +23,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { ExpenseDetailsStep2 } from "@/components/expenses/ExpenseDetailsStep2";
 import { getTemplates, Template } from "@/services/admin/templates";
+import { useAuthStore } from "@/store/authStore";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE", "SENT_BACK"];
 
@@ -79,14 +82,16 @@ const isPerDiemExpense = (expense: Expense): boolean => {
 export function ExpenseDetailPage() {
   const { parsedData, setParsedData } = useExpenseStore();
   const { expenseId } = useParams<{ expenseId: string }>();
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   const location = useLocation();
   const navigate = useNavigate();
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
   const [isReceiptReplaced, setIsReceiptReplaced] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(false);
-  // const [policies, setPolicies] = useState<Policy[]>([]);
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string | null>(null);
+  const [adminEditReason, setAdminEditReason] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -94,13 +99,18 @@ export function ExpenseDetailPage() {
   const [templateEntities, setTemplateEntities] = useState<
     Template["entities"]
   >([]);
-  // const [conversionRate, setConversionRate] = useState();
-
+  const [showAdminEditConfirm, setShowAdminEditConfirm] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
   const baseCurrency = getOrgCurrency();
   const searchParams = new URLSearchParams(location.search);
   const isFromReport = searchParams.get("from") === "report";
   const isFromApprovals = searchParams.get("from") === "approvals";
-  const returnTo = searchParams.get("returnTo");
+
+  const isAdminUpdatingExpense =
+    isAdmin &&
+    location.pathname.includes("/approvals") &&
+    expense?.status !== "APPROVED" &&
+    expense?.status !== "REJECTED";
 
   const loadTemplateEntities = async () => {
     try {
@@ -222,7 +232,13 @@ export function ExpenseDetailPage() {
           filteredData.custom_attributes.advance_account_id =
             formData.advance_account_id;
         }
-        await expenseService.updateExpense(expenseId, filteredData);
+        if (isAdminUpdatingExpense) {
+          setShowAdminEditConfirm(true);
+          setPendingFormData(filteredData);
+          return;
+        } else {
+          await expenseService.updateExpense(expenseId, filteredData);
+        }
         await expenseService.validateExpense(expenseId);
       } else if (formData.start_location) {
         const expenseData: UpdateExpenseData = {
@@ -246,15 +262,39 @@ export function ExpenseDetailPage() {
           custom_attributes: {},
           currency: baseCurrency,
         };
-        await expenseService.updateExpense(expenseId, expenseData);
+        if (isAdminUpdatingExpense) {
+          setPendingFormData(expenseData);
+          setShowAdminEditConfirm(true);
+          setLoading(false);
+          return;
+        } else {
+          await expenseService.updateExpense(expenseId, expenseData);
+        }
       }
       toast.success("Expense updated successfully");
-      navigate("/expenses");
+      navigate(-1);
     } catch (error: any) {
       console.error("Failed to update expense:", error);
       toast.error(error?.response?.data?.message || error.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleEditExpenseAsAdmin = async () => {
+    try {
+      if (expenseId) {
+        const newPayload = { ...pendingFormData, reason: adminEditReason }
+        await expenseService.adminUpdateExpense({
+          id: expenseId,
+          payload: newPayload,
+        });
+      }
+      setShowAdminEditConfirm(false);
+      navigate(-1);
+    } catch (error: any) {
+      console.log(error);
+      toast.error(error?.response?.data?.message || error?.message);
     }
   };
 
@@ -384,9 +424,13 @@ export function ExpenseDetailPage() {
         {isMileageExpense(expense) ? (
           <MileagePage
             mode={
-              expense.status === "INCOMPLETE" ||
               expense.status === "COMPLETE" ||
-              expense.status === "SENT_BACK"
+              expense.status === "INCOMPLETE" ||
+              expense.status === "SENT_BACK" ||
+              (isAdmin &&
+                location.pathname.includes("/approvals") &&
+                expense.status !== "APPROVED" &&
+                expense.status !== "REJECTED")
                 ? "edit"
                 : "view"
             }
@@ -395,11 +439,7 @@ export function ExpenseDetailPage() {
               expense.status.toUpperCase()
             )}
             onCancel={() => {
-              if (returnTo === "create") {
-                window.location.href = "/expenses/create";
-              } else {
-                window.history.back();
-              }
+              navigate(-1);
             }}
             onUpdate={handleExpenseSubmit}
             isEditing={isEditing}
@@ -408,9 +448,13 @@ export function ExpenseDetailPage() {
         ) : isPerDiemExpense(expense) ? (
           <PerdiemPage
             mode={
-              expense.status === "INCOMPLETE" ||
               expense.status === "COMPLETE" ||
-              expense.status === "SENT_BACK"
+              expense.status === "INCOMPLETE" ||
+              expense.status === "SENT_BACK" ||
+              (isAdmin &&
+                location.pathname.includes("/approvals") &&
+                expense.status !== "APPROVED" &&
+                expense.status !== "REJECTED")
                 ? "edit"
                 : "view"
             }
@@ -419,14 +463,18 @@ export function ExpenseDetailPage() {
         ) : (
           <ExpenseDetailsStep2
             onBack={() => {
-              navigate(-1)
+              navigate(-1);
             }}
             onSubmit={handleExpenseSubmit}
             receiptLoading={receiptLoading}
             mode={
               expense.status === "COMPLETE" ||
               expense.status === "INCOMPLETE" ||
-              expense.status === "SENT_BACK"
+              expense.status === "SENT_BACK" ||
+              (isAdmin &&
+                location.pathname.includes("/approvals") &&
+                expense.status !== "APPROVED" &&
+                expense.status !== "REJECTED")
                 ? "edit"
                 : "view"
             }
@@ -439,6 +487,43 @@ export function ExpenseDetailPage() {
           />
         )}
       </div>
+      <AlertDialog
+        open={showAdminEditConfirm}
+        onOpenChange={setShowAdminEditConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit expense?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to edit this expense as an admin. This will
+              overwrite the existing data. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Reason for editing</Label>
+            <Textarea
+              placeholder="Enter reason for editing this expense"
+              value={adminEditReason}
+              onChange={(e) => setAdminEditReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={() => {
+                handleEditExpenseAsAdmin();
+                setShowAdminEditConfirm(false);
+              }}
+            >
+              Yes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

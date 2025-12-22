@@ -159,8 +159,8 @@ export function ReportDetailPage2() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isFromApprovals = searchParams.get("from") === "approvals";
-  const { user } = useAuthStore();
-
+  const { user, orgSettings } = useAuthStore();
+  const customIdEnabled = orgSettings?.custom_report_id_settings ?? false;
   const [report, setReport] = useState<ReportWithExpenses | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<ApprovalWorkflow | null>(null);
@@ -406,16 +406,20 @@ export function ReportDetailPage2() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 lg:col-span-2 gap-4">
           {/* Report Name */}
-          <div className="space-y-1">
+          <div className="space-y-2">
             <label className="text-sm font-medium">Report Name</label>
             <Input value={report.title} disabled />
           </div>
 
           {/* Description */}
-          <div className="space-y-1">
+          <div className="space-y-2">
             <label className="text-sm font-medium">Description</label>
             <Input value={report.description} disabled />
           </div>
+          {customIdEnabled && report?.custom_report_id && <div className="space-y-2">
+            <label className="text-sm font-medium">Custom Report ID</label>
+            <Input value={report?.custom_report_id ?? ""} disabled />
+          </div>}
         </div>
         {report.custom_attributes &&
           Object.keys(report.custom_attributes).length > 0 && (

@@ -39,6 +39,7 @@ export interface Entity {
   is_active?: boolean
   type?: string
   attributes?: EntityAttribute[]
+  category_ids?: string[]
 }
 
 export async function getEntities(): Promise<Entity[]> {

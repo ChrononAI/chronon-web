@@ -31,7 +31,6 @@ import { toast } from "sonner";
 import { settlementsService } from "@/services/settlementsService";
 import { ExportCsv } from "@mui/x-data-grid";
 import { Button } from "@/components/ui/button";
-import { ViewExpenseWindow } from "@/components/expenses/ViewExpenseWindow";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +40,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ReportTabs } from "@/components/reports/ReportTabs";
+import { useNavigate } from "react-router-dom";
 
 function CustomNoRows() {
   return (
@@ -207,7 +207,7 @@ const columns: GridColDef[] = [
     headerName: "PAYMENT STATE",
     minWidth: 180,
     flex: 1,
-        renderCell: (params: any) => (
+    renderCell: (params: any) => (
       <Badge className={getStatusColor(params.value)}>
         {params.value.replace("_", " ")}
       </Badge>
@@ -229,17 +229,16 @@ const columns: GridColDef[] = [
     minWidth: 80,
     flex: 1,
     renderCell: () => getOrgCurrency(),
-  }
+  },
 ];
 
 function Settlements() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"paid" | "unpaid">("unpaid");
   const [paidExpenseCount, setPaidExpenseCount] = useState(0);
   const [unpaidExpenseCount, setUnpaidExpenseCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState<any>(null);
   const tabs = [
     {
       key: "unpaid",
@@ -347,14 +346,14 @@ function Settlements() {
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
-    const rowHeight = 36;
+    const rowHeight = 38;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, []);
 
-  const handleRowClick = ({ row }: GridRowParams) => {
-    setSelectedExpense(row);
-    setOpen(true);
+  const handleRowClick = ({ id }: GridRowParams) => {
+    console.log(id);
+    navigate(`/admin/settlements/${id}`);
   };
 
   const fetchPaidExpenses = async ({
@@ -464,7 +463,7 @@ function Settlements() {
         </div>
         <Button
           type="button"
-          className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-base"
+          className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-[14px]"
           onClick={() => handleBulkDialogChange(true)}
         >
           Bulk Mark Paid
@@ -561,18 +560,13 @@ function Settlements() {
           }
         />
       </Box>
-      <ViewExpenseWindow
-        open={open}
-        onOpenChange={setOpen}
-        data={selectedExpense}
-      />
       <Dialog open={showBulkUpload} onOpenChange={handleBulkDialogChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Bulk Upload Settlement Expenses</DialogTitle>
             <DialogDescription>
-              Upload an Excel file to settle expenses in bulk. Use the template for
-              the required format.
+              Upload an Excel file to settle expenses in bulk. Use the template
+              for the required format.
             </DialogDescription>
           </DialogHeader>
           <form className="space-y-6" onSubmit={handleBulkUpload}>
