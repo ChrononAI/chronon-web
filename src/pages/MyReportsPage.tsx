@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import { expenseService } from "@/services/expenseService";
@@ -12,12 +12,13 @@ import { Report } from "@/types/expense";
 import { GridPaginationModel } from "@mui/x-data-grid";
 import { Box, Skeleton } from "@mui/material";
 import { GridOverlay } from "@mui/x-data-grid";
+import { useAuthStore } from "@/store/authStore";
 
 function ExpensesSkeletonOverlay({ rowCount = 8 }) {
   return (
     <GridOverlay>
       <div className="w-full py-3 space-y-0">
-        {Array.from({ length: rowCount-1 }).map((_, rowIndex) => (
+        {Array.from({ length: rowCount - 1 }).map((_, rowIndex) => (
           <div
             key={rowIndex}
             className="flex items-center gap-4 w-full py-4 px-2 border-[0.5px] border-gray"
@@ -160,6 +161,8 @@ export function MyReportsPage() {
     submittedReportsPagination,
   } = useReportsStore();
   const navigate = useNavigate();
+  const { orgSettings } = useAuthStore();
+  const customIdEnabled = orgSettings?.custom_report_id_settings.enabled ?? false;
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -169,6 +172,22 @@ export function MyReportsPage() {
     type: "include",
     ids: new Set(),
   });
+
+  const newCols = useMemo<GridColDef[]>(() => {
+    return [
+      ...columns,
+      ...(customIdEnabled
+        ? [
+            {
+              field: "custom_report_id",
+              headerName: "CUSTOM REPORT ID",
+              minWidth: 140,
+              flex: 1,
+            } as GridColDef,
+          ]
+        : []),
+    ];
+  }, [columns, customIdEnabled]);
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -315,7 +334,7 @@ export function MyReportsPage() {
       >
         <DataGrid
           rows={loading ? [] : reportsArr}
-          columns={columns}
+          columns={newCols}
           loading={loading}
           onRowClick={(params, event) => {
             event.stopPropagation();

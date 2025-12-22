@@ -163,8 +163,7 @@ const WorkFlowPage = () => {
     ids: new Set(),
   });
 
-  const [rulePaginationInfo, setRulePaginationInfo] =
-    useState<any>();
+  const [rulePaginationInfo, setRulePaginationInfo] = useState<any>();
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 300;
@@ -199,12 +198,10 @@ const WorkFlowPage = () => {
 
   const fetchRules = async () => {
     if (paginationModel) {
-
       try {
-              const limit = paginationModel?.pageSize || 10;
-      const offset = (paginationModel?.page || 0) * limit;
+        const limit = paginationModel?.pageSize || 10;
+        const offset = (paginationModel?.page || 0) * limit;
         const res = await getWorkflowRules({ limit, offset });
-        console.log(res);
         setRules(res.data);
         setRulePaginationInfo({ total: res.count });
       } catch (error) {
@@ -229,13 +226,13 @@ const WorkFlowPage = () => {
   const fetchData = async () => {
     try {
       setWorkflowsLoading(true);
-      await Promise.all([fetchWorkflows(), fetchRules()])
+      await Promise.all([fetchWorkflows(), fetchRules()]);
     } catch (error) {
       toast.error("Error fetching data");
     } finally {
       setWorkflowsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     fetchData();
@@ -282,7 +279,7 @@ const WorkFlowPage = () => {
           onTabChange={(t) => setActiveTab(t as TabKey)}
           tabs={[
             { key: "workflow", label: "Workflows", count: workflows?.length },
-            { key: "rules", label: "Rules", count: rules?.length },
+            { key: "rules", label: "Rules", count: rulePaginationInfo?.total },
           ]}
           className="mb-2"
         />

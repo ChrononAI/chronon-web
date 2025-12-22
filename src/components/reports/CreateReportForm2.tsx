@@ -735,7 +735,7 @@ export function CreateReportForm2({
       toast.error("Failed to create report");
       setLoading(false);
     } finally {
-      // setLoading(false);
+      setLoading(false);
     }
   };
 

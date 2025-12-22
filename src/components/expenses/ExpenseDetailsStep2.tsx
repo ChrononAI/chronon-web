@@ -708,11 +708,9 @@ export function ExpenseDetailsStep2({
   };
 
   const activeReceiptUrl =
-    previewUrl ||
-    duplicateReceiptUrl ||
     (receiptSignedUrl && receiptSignedUrl.length > 0
       ? receiptSignedUrl[0]
-      : null);
+      : null) || previewUrl || duplicateReceiptUrl
 
   const receiptDisplayName =
     uploadedFile?.name ||
@@ -1027,8 +1025,7 @@ export function ExpenseDetailsStep2({
                                   }}
                                   disabled={
                                     readOnly ||
-                                    !orgSettings.currency_conversion_settings
-                                      .enabled
+                                    (!orgSettings?.currency_conversion_settings?.enabled)
                                   }
                                 >
                                   <SelectTrigger className={selectTriggerClass}>
