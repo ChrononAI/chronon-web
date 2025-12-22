@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/form";
 import { trackEvent } from "@/mixpanel";
 import ExpenseLogs from "@/components/expenses/ExpenseLogs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface PerdiemPageProps {
   mode?: "create" | "view" | "edit";
@@ -76,7 +77,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const { pathname } = useLocation();
-
   const form = useForm<PerdiemFormValues>({
     resolver: zodResolver(perdiemSchema),
     defaultValues: {
@@ -110,6 +110,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     categoryId: "",
   });
   const [days, setDays] = useState<number>(0);
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
@@ -123,6 +124,16 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const [loadingComments, setLoadingComments] = useState(false);
   const today = new Date().toISOString().split("T")[0];
   const [loading, setLoading] = useState(false);
+
+    const [adminEditReason, setAdminEditReason] = useState("");
+      const [showAdminEditConfirm, setShowAdminEditConfirm] = useState(false);
+      const [pendingFormData, setPendingFormData] = useState<any>(null);
+
+  const isAdminUpdatingExpense =
+    isAdmin &&
+    location.pathname.includes("/approvals") &&
+    expenseData?.status !== "APPROVED" &&
+    expenseData?.status !== "REJECTED";
 
   useEffect(() => {
     const { startDate, endDate } = formData;
@@ -139,7 +150,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
           return new Date().toISOString().split("T")[0];
         }
       };
-
+console.log(expenseData);
       const data = {
         startDate: formatDate(
           expenseData.start_date ||
@@ -261,20 +272,23 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
           button_name: "Create Per Diem",
         });
         await placesService.createPerDiemExpense(submitData, orgId);
+      } else if (mode === "edit" && isAdminUpdatingExpense) {
+        setPendingFormData(submitData);
+        setShowAdminEditConfirm(true);
+        setLoading(false);
+        return;
       } else if (mode === "edit" && id) {
         trackEvent("Edit Per Diem Button Clicked", {
           button_name: "Edit Per Diem",
         });
-        await expenseService.updateExpense(id, submitData);
+          await expenseService.updateExpense(id, submitData);
       }
       if (mode === "create") {
         toast.success("Per diem expense created successfully!");
       } else if (mode === "edit") {
         toast.success("Per diem expense edited successfully!");
       }
-      setTimeout(() => {
-        navigate("/expenses");
-      }, 500);
+      navigate(-1);
     } catch (error: any) {
       console.error("Error creating per diem expense:", error);
       const errorMessage =
@@ -282,10 +296,29 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         error.message ||
         "Failed to create per diem expense";
       toast.error(`Error: ${errorMessage}`);
-    } finally {
       setLoading(false);
+    } finally {
+      // setLoading(false);
     }
   };
+
+    const handleEditExpenseAsAdmin = async () => {
+      try {
+        if (expenseData?.id) {
+          const newPayload = { ...pendingFormData, reason: adminEditReason };
+          await expenseService.adminUpdateExpense({
+            id: expenseData?.id,
+            payload: newPayload,
+          });
+        }
+        toast.success("Exopense uodated successfuylly");
+        setShowAdminEditConfirm(false);
+        navigate(-1);
+      } catch (error: any) {
+        console.log(error);
+        toast.error(error?.response?.data?.message || error?.message);
+      }
+    };
 
   const calculatePerDiemAmount = async ({
     startDate,
@@ -333,7 +366,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     formData.policyId,
   ]);
 
-    useEffect(() => {
+  useEffect(() => {
     const fetchComments = async () => {
       if (expenseData?.id) {
         setLoadingComments(true);
@@ -756,6 +789,47 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
           </Form>
         </div>
       </div>
+      <AlertDialog
+        open={showAdminEditConfirm}
+        onOpenChange={setShowAdminEditConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit expense?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to edit this expense as an admin. This will
+              overwrite the existing data. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Reason for editing</Label>
+            <Textarea
+              placeholder="Enter reason for editing this expense"
+              value={adminEditReason}
+              onChange={(e) => setAdminEditReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowAdminEditConfirm(false);
+              setPendingFormData(null);
+              setLoading(false);
+            }}>Cancel</AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={() => {
+                handleEditExpenseAsAdmin();
+                setShowAdminEditConfirm(false);
+              }}
+            >
+              Yes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

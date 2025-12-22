@@ -1,4 +1,5 @@
 import { FormFooter } from "@/components/layout/FormFooter";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,12 +12,13 @@ import {
 } from "@/components/ui/select";
 import { Entity, getEntities } from "@/services/admin/entities";
 import {
-  createPolicy,
+  createPolicyRule,
+  deletePolicyRule,
   getAllWorkflows,
-  updatePolicy,
+  updatePolicyRule,
   WorkflowConfig,
 } from "@/services/admin/workflows";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -109,12 +111,12 @@ function CreateRulePage() {
   });
 
   const mapRuleToForm = (rule: any): RuleForm => {
-    const condition = rule.conditions?.rules?.[0];
+    const condition = rule?.conditions?.rules?.[0];
     return {
-      name: rule.name ?? "",
-      description: rule.description ?? "",
-      workflowEvent: rule.approval_type,
-      workflow: rule.workflow_config_id,
+      name: rule?.name ?? "",
+      description: rule?.description ?? "",
+      workflowEvent: rule?.approval_type,
+      workflow: rule?.workflow_config_id,
       rule: {
         ifField: condition?.field?.replace(PREFIXES.USER, "") ?? "",
         operator: condition?.operator,
@@ -162,7 +164,6 @@ function CreateRulePage() {
 
     try {
       const workflowsData = await getAllWorkflows();
-      console.log(workflowsData);
       setWorkflows(workflowsData.data.data);
     } catch (error) {
       console.error("Error fetching workflows:", error);
@@ -218,10 +219,10 @@ function CreateRulePage() {
         is_active: true,
       };
       if (isEditMode) {
-        await updatePolicy({id: ruleToEdit?.id, payload});
+        await updatePolicyRule({ id: ruleToEdit?.id, payload });
         toast.success("Policy updated successfully");
       } else {
-        const response = await createPolicy(payload);
+        const response = await createPolicyRule(payload);
         toast.success(response.message || "Policy created successfully");
       }
 
@@ -232,7 +233,7 @@ function CreateRulePage() {
       const errorMessage = getErrorMessage(error, "Failed to create policy");
       toast.error(errorMessage);
     } finally {
-      setCreatingRule(false);
+      // setCreatingRule(false);
     }
   }, [ruleForm, validateRule, resetRuleForm]);
 
@@ -407,6 +408,15 @@ function CreateRulePage() {
     [workflows, workflowsLoading]
   );
 
+  const handleDelete = async (id: string) => {
+    try {
+      await deletePolicyRule(id);
+      navigate("/admin-settings/product-config/workflow");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message);
+    }
+  };
+
   useEffect(() => {
     fetchEntities();
     fetchWorkflows();
@@ -446,9 +456,31 @@ function CreateRulePage() {
 
   return (
     <div className="flex flex-col gap-3 max-w-full">
-      <h1 className="text-2xl font-bold mb-3">
-        {isEditMode ? "Rule Details" : "Create Rule"}
-      </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">
+          {isEditMode ? "Rule Details" : "Create Rule"}
+        </h1>
+        {isEditMode && (
+          <DeleteConfirmDialog
+            trigger={
+              <Button
+                variant="outline"
+                className="px-6 py-2 border-red-500 text-red-600 hover:bg-red-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // setShowDeleteDialog(true);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            }
+            title="Delete Rule"
+            description="Are you sure you want to delete this rule? This cannot be undone."
+            onConfirm={() => handleDelete(ruleToEdit?.id)}
+          />
+        )}
+      </div>
       <>
         <form id="create-rule-form" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

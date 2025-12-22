@@ -118,6 +118,20 @@ export const expenseService = {
     return response.data.data;
   },
 
+  async adminUpdateExpense({
+    id,
+    payload,
+  }: {
+    id: string;
+    payload: UpdateExpenseData;
+  }) {
+    try {
+      return await api.post(`/em/expenses/admin/update/${id}`, payload);
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async getMyReports(
     limit: number = 1,
     offset: number = 20
@@ -360,15 +374,15 @@ export const expenseService = {
     }
   },
 
-  async validateExpense (expense_id: string) {
+  async validateExpense(expense_id: string) {
     try {
-      return await api.post('/api/v1/validate_expense', { expense_id });
+      return await api.post("/api/v1/validate_expense", { expense_id });
     } catch (error) {
       throw error;
     }
   },
 
-  async getExpenseValidation (expense_id: string) {
+  async getExpenseValidation(expense_id: string) {
     try {
       return await api.get(`/api/v1/validation_messages/expense/${expense_id}`);
     } catch (error) {

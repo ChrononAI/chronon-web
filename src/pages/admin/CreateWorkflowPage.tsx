@@ -8,14 +8,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { FormFooter } from "@/components/layout/FormFooter";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { createWorkflowConfig, updateWorkflowConfig } from "@/services/admin/workflows";
+import {
+  createWorkflowConfig,
+  deleteWorkflow,
+  updateWorkflowConfig,
+} from "@/services/admin/workflows";
 import { toast } from "sonner";
 import { Entity, getEntities } from "@/services/admin/entities";
 import { useLocation, useNavigate } from "react-router-dom";
+import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 
 const STEP_TYPE_OPTIONS: { value: StepType; label: string }[] = [
   { value: "direct", label: "Direct" },
@@ -98,7 +110,6 @@ function CreateWorkflowPage() {
   const [entities, setEntities] = useState<Entity[]>([]);
   const [entitiesLoading, setEntitiesLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
   const { register, handleSubmit, reset } = useForm<FormValues>({
     defaultValues: {
       name: "",
@@ -193,6 +204,27 @@ function CreateWorkflowPage() {
       return next;
     });
   }, []);
+
+const removeStep = useCallback((id: number) => {
+  setSteps((prev) => {
+    const filtered = prev.filter((step) => step.id !== id)
+
+    return filtered.map((step, index) => ({
+      ...step,
+      id: index + 1,
+    }))
+  })
+
+  setOpenSteps((prev) => {
+    const next = new Set<number>()
+    Array.from(prev)
+      .filter((stepId) => stepId !== id)
+      .forEach((_, index) => {
+        next.add(index + 1)
+      })
+    return next
+  })
+}, [])
 
   const validateSteps = useCallback((): string | null => {
     if (steps.length === 0) {
@@ -304,7 +336,7 @@ function CreateWorkflowPage() {
           toast.success("Workflow updated successfully");
         } else {
           const response = await createWorkflowConfig(payload);
-  
+
           toast.success(
             response.message || "Workflow configuration created successfully"
           );
@@ -437,6 +469,15 @@ function CreateWorkflowPage() {
     }
   }, []);
 
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteWorkflow(id);
+      navigate("/admin-settings/product-config/workflow");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message);
+    }
+  };
+
   useEffect(() => {
     fetchEntities();
   }, []);
@@ -457,7 +498,31 @@ function CreateWorkflowPage() {
 
   return (
     <div className="flex flex-col gap-3 max-w-full">
-      <h1 className="text-2xl font-bold mb-3">{isEditMode ? "Update Workflow" : "Create Workflow"}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">
+          {isEditMode ? "Update Workflow" : "Create Workflow"}
+        </h1>
+        {isEditMode && (
+          <DeleteConfirmDialog
+            trigger={
+              <Button
+                variant="outline"
+                className="px-6 py-2 border-red-500 text-red-600 hover:bg-red-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // setShowDeleteDialog(true);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            }
+            title="Delete Workflow"
+            description="Are you sure you want to delete this workflow? This cannot be undone."
+            onConfirm={() => handleDelete(workflowToEdit?.id)}
+          />
+        )}
+      </div>
       <>
         <form
           id="workflow-config-form"
@@ -484,18 +549,28 @@ function CreateWorkflowPage() {
                   <h3 className="text-sm font-medium underline decoration-2 underline-offset-4 text-foreground">
                     Step {step.id}
                   </h3>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => toggleStep(step.id)}
-                    className="h-auto p-0 hover:bg-transparent"
-                  >
-                    {openSteps.has(step.id) ? (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </Button>
+                  <span className="flex items-center gap-4">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-auto p-0 hover:bg-transparent"
+                      onClick={() => removeStep(step.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => toggleStep(step.id)}
+                      className="h-auto p-0 hover:bg-transparent"
+                    >
+                      {openSteps.has(step.id) ? (
+                        <ChevronDown className="h-5 w-5" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5" />
+                      )}
+                    </Button>
+                  </span>
                 </div>
 
                 {openSteps.has(step.id) && (
@@ -628,15 +703,9 @@ function CreateWorkflowPage() {
               </div>
             ))}
 
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={addStep}
-              className="w-auto justify-start p-0 h-auto hover:bg-transparent -ml-2"
-            >
-              <span className="text-sm font-medium underline decoration-2 underline-offset-4 cursor-pointer text-foreground hover:text-primary transition-colors">
-                Add Step {steps.length + 1}
-              </span>
+            <Button type="button" variant="outline" onClick={addStep}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Step
             </Button>
           </div>
         </form>
@@ -655,8 +724,10 @@ function CreateWorkflowPage() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 {isEditMode ? "Updating..." : "Submitting..."}
               </>
+            ) : isEditMode ? (
+              "Update"
             ) : (
-              isEditMode ? "Update" : "Submit"
+              "Submit"
             )}
           </Button>
         </FormFooter>

@@ -294,10 +294,11 @@ export default function EditCategoryLimitPage() {
   const handleDelete = async (id: string) => {
     try {
       await policyRulesService.deletePolicyRule(id);
+      navigate("/admin-settings/product-config/category-limits");
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || error.message)
+      toast.error(error?.response?.data?.message || error.message);
     }
-  }
+  };
 
   if (loading || !rules) {
     return (

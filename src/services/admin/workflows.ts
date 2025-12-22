@@ -103,6 +103,14 @@ export async function getAllWorkflows(): Promise<any> {
   }
 }
 
+export async function deleteWorkflow(id: string) {
+  try {
+    return await api.delete(`/api/v1/workflows/configs/${id}`);
+  } catch (error) {
+    throw error;
+  }
+}
+
 export interface CreatePolicyPayload {
   name: string;
   description: string;
@@ -128,18 +136,26 @@ export interface CreatePolicyResponse {
   status?: string;
 }
 
-export async function createPolicy(
+export async function createPolicyRule(
   payload: CreatePolicyPayload
 ): Promise<CreatePolicyResponse> {
   const res = await api.post("/api/v1/policies", payload);
   return res.data;
 }
 
-export async function updatePolicy({ id, payload }: any) {
+export async function updatePolicyRule({ id, payload }: any) {
   try {
     return await api.put(`/api/v1/policies/${id}`, payload);
   } catch (error) {
-   throw error; 
+    throw error;
+  }
+}
+
+export async function deletePolicyRule(id: string) {
+  try {
+    return await api.delete(`/api/v1/policies/${id}`);
+  } catch (error) {
+    throw error;
   }
 }
 

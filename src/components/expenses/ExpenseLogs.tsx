@@ -1,8 +1,10 @@
 import { Loader2 } from "lucide-react";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 
 const UI_DISPLAY_KEYS = [
   "category",
+  "category id",
+  "amount",
   "description",
   "expense date",
   "invoice number",
@@ -74,18 +76,18 @@ function ExpenseLogs({
                     <p className="text-sm text-gray-700 leading-snug whitespace-pre-wrap break-words mt-0.5">
                       {log.comment}
                     </p>
-                    <p className="text-sm font-medium text-gray-800 mt-2">
+                    {log.action_data && <p className="text-sm font-medium text-gray-800 mt-2">
                       Details:
-                    </p>
+                    </p>}
                     <div className="text-sm text-gray-800 ml-2">
-                      {Object.entries(pickUiFields(log.action_data)).map(
+                      {Object.entries(pickUiFields(log.action_data || {})).map(
                         ([key, value]) => (
                           <div className="my-1 flex items-center gap-1">
                             <div className="h-1 w-1 rounded-full bg-gray-800" />
                             <div>
                             <span className="w-1/2 capitalize">{key}</span>
                             {": "}
-                            <span className="w-1/2">{value}</span>
+                            <span className="w-1/2">{key === "amount" ? formatCurrency(value) : value}</span>
                             </div>
                           </div>
                         )

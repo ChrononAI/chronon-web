@@ -171,6 +171,7 @@ export function ExpenseDetailsStep2({
     Record<string, Array<{ id: string; label: string }>>
   >({});
   const [isReceiptReuploaded, setIsReceiptReuploaded] = useState(false);
+
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: expense
@@ -843,7 +844,7 @@ export function ExpenseDetailsStep2({
                                 setSelectedCategory(null);
                                 form.setValue("category_id", "");
                               }}
-                              disabled={readOnly || expense.transaction_id}
+                              disabled={readOnly || expense?.transaction_id}
                             >
                               <FormControl>
                                 <SelectTrigger className={selectTriggerClass}>
@@ -893,7 +894,11 @@ export function ExpenseDetailsStep2({
                                     role="combobox"
                                     aria-expanded={categoryDropdownOpen}
                                     className="h-11 w-full justify-between"
-                                    disabled={!selectedPolicy || readOnly || expense.transaction_id}
+                                    disabled={
+                                      !selectedPolicy ||
+                                      readOnly ||
+                                      expense?.transaction_id
+                                    }
                                   >
                                     <>
                                       <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
@@ -964,7 +969,9 @@ export function ExpenseDetailsStep2({
                                       "h-11 w-full justify-between pl-3 text-left font-normal",
                                       !field.value && "text-muted-foreground"
                                     )}
-                                    disabled={readOnly || expense.transaction_id}
+                                    disabled={
+                                      readOnly || expense?.transaction_id
+                                    }
                                   >
                                     {field.value ? (
                                       format(new Date(field.value), "PPP")
@@ -1054,7 +1061,9 @@ export function ExpenseDetailsStep2({
                                       form.watch("amount") ?? expense?.amount
                                     }
                                     readOnly={showConversion}
-                                    disabled={readOnly || expense.transaction_id}
+                                    disabled={
+                                      readOnly || expense?.transaction_id
+                                    }
                                     className={inputFieldClass}
                                   />
                                 </FormControl>
@@ -1240,46 +1249,49 @@ export function ExpenseDetailsStep2({
                         )}
                       />
 
-                      {orgSettings?.advance_settings?.enabled && advanceAccounts.length > 0 && (
-                        <FormField
-                          control={form.control}
-                          name="advance_account_id"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Advance Account</FormLabel>
-                              <Select
-                                value={field.value || ""}
-                                onValueChange={(value) => {
-                                  field.onChange(value);
-                                  const acc = advanceAccounts.find(
-                                    (p: any) => p.id === value
-                                  );
-                                  setSelectedAdvanceAccount(acc || null);
-                                }}
-                                disabled={readOnly}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className={selectTriggerClass}>
-                                    <SelectValue placeholder="Select an advance">
-                                      {field.value && selectedAdvanceAccount
-                                        ? selectedAdvanceAccount.account_name
-                                        : "Select an advance"}
-                                    </SelectValue>
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {advanceAccounts.map((adv: any) => (
-                                    <SelectItem key={adv.id} value={adv.id}>
-                                      <div>{adv.account_name}</div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
+                      {orgSettings?.advance_settings?.enabled &&
+                        advanceAccounts.length > 0 && (
+                          <FormField
+                            control={form.control}
+                            name="advance_account_id"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Advance Account</FormLabel>
+                                <Select
+                                  value={field.value || ""}
+                                  onValueChange={(value) => {
+                                    field.onChange(value);
+                                    const acc = advanceAccounts.find(
+                                      (p: any) => p.id === value
+                                    );
+                                    setSelectedAdvanceAccount(acc || null);
+                                  }}
+                                  disabled={readOnly}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger
+                                      className={selectTriggerClass}
+                                    >
+                                      <SelectValue placeholder="Select an advance">
+                                        {field.value && selectedAdvanceAccount
+                                          ? selectedAdvanceAccount.account_name
+                                          : "Select an advance"}
+                                      </SelectValue>
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {advanceAccounts.map((adv: any) => (
+                                      <SelectItem key={adv.id} value={adv.id}>
+                                        <div>{adv.account_name}</div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
 
                       {templateEntities?.map((entity) => {
                         const entityId = getEntityId(entity);

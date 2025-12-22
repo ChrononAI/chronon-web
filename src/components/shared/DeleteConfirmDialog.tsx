@@ -11,7 +11,6 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog"
 import { Loader2 } from "lucide-react"
-import { useNavigate } from "react-router-dom"
 
 type DeleteConfirmDialogProps = {
   trigger: ReactNode
@@ -30,7 +29,6 @@ export function DeleteConfirmDialog({
   confirmText = "Delete",
   cancelText = "Cancel",
 }: DeleteConfirmDialogProps) {
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -39,9 +37,8 @@ export function DeleteConfirmDialog({
       setIsDeleting(true)
       await onConfirm()
       setOpen(false)
-      navigate('/admin-settings/product-config/category-limits');
-    } finally {
-      setIsDeleting(false)
+    } catch(error) {
+      console.log(error);
     }
   }
 

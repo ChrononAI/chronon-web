@@ -733,8 +733,9 @@ export function CreateReportForm2({
     } catch (error) {
       console.error("Failed to create report", error);
       toast.error("Failed to create report");
-    } finally {
       setLoading(false);
+    } finally {
+      // setLoading(false);
     }
   };
 
