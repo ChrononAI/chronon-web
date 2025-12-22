@@ -160,7 +160,7 @@ export function ReportDetailPage2() {
   const navigate = useNavigate();
   const isFromApprovals = searchParams.get("from") === "approvals";
   const { user, orgSettings } = useAuthStore();
-  const customIdEnabled = orgSettings?.custom_report_id_settings ?? false;
+  const customIdEnabled = orgSettings?.custom_report_id_settings?.enabled ?? false;
   const [report, setReport] = useState<ReportWithExpenses | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<ApprovalWorkflow | null>(null);
@@ -201,7 +201,6 @@ export function ReportDetailPage2() {
         );
         toast.error(reportResponse.message || "Failed to fetch report details");
       }
-      console.log(workflowResponse);
       if (workflowResponse.success && workflowResponse.data) {
         const getAllApprovalSteps = (data: any) => {
           return data

@@ -162,7 +162,7 @@ export function MyReportsPage() {
   } = useReportsStore();
   const navigate = useNavigate();
   const { orgSettings } = useAuthStore();
-  const customIdEnabled = orgSettings?.custom_report_id_settings.enabled ?? false;
+  const customIdEnabled = orgSettings?.custom_report_id_settings?.enabled ?? false;
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [isInitialLoad, setIsInitialLoad] = useState(true);
