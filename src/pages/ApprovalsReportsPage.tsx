@@ -188,7 +188,7 @@ export function ApprovalsReportsPage() {
       const response = await approvalService.getReportsByStatus(
         limit,
         offset,
-        "APPROVED,REJECTED,SENT_BACK"
+        "APPROVED,REJECTED"
       );
       setProcessedReports(response.data.data);
       setProcessedReportsPagination({
