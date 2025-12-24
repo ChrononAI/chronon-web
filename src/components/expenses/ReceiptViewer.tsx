@@ -93,13 +93,13 @@ function ReceiptViewer({
             return dateA - dateB;
           });
           setComments(sortedComments);
-          const sortedLogs = [...fetchedComments.filter((c) => c.creator_type === "SYSTEM")].sort(
-            (a, b) => {
-              const dateA = new Date(a.created_at).getTime();
-              const dateB = new Date(b.created_at).getTime();
-              return dateA - dateB;
-            }
-          );
+          const sortedLogs = [
+            ...fetchedComments.filter((c) => c.creator_type === "SYSTEM"),
+          ].sort((a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateA - dateB;
+          });
           setExpenseLogs(sortedLogs);
         } catch (error: any) {
           console.error("Error fetching comments:", error);
@@ -190,9 +190,10 @@ function ReceiptViewer({
                 </div>
               ) : hasReceipt ? (
                 <div
-                  className={`flex items-center justify-center p-4 ${
+                  className={cn(
+                    "flex items-center justify-center p-4",
                     isPdfReceipt && "h-full"
-                  }`}
+                  )}
                 >
                   {isPdfReceipt ? (
                     <embed
