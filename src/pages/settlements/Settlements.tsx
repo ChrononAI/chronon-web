@@ -508,6 +508,7 @@ function Settlements() {
             },
             "& .MuiToolbar-root": {
               paddingX: 0,
+              minHeight: "52px"
             },
             "& .MuiDataGrid-panel .MuiSelect-select": {
               fontSize: "12px",

@@ -86,20 +86,20 @@ function ReceiptViewer({
           );
           // Sort comments by created_at timestamp (oldest first)
           const sortedComments = [
-            ...fetchedComments.filter((c) => !c.action),
+            ...fetchedComments.filter((c) => c.creator_type === "USER"),
           ].sort((a, b) => {
             const dateA = new Date(a.created_at).getTime();
             const dateB = new Date(b.created_at).getTime();
             return dateA - dateB;
           });
           setComments(sortedComments);
-                    const sortedLogs = [
-            ...fetchedComments.filter((c) => c.action),
-          ].sort((a, b) => {
-            const dateA = new Date(a.created_at).getTime();
-            const dateB = new Date(b.created_at).getTime();
-            return dateA - dateB;
-          });
+          const sortedLogs = [...fetchedComments.filter((c) => c.creator_type === "SYSTEM")].sort(
+            (a, b) => {
+              const dateA = new Date(a.created_at).getTime();
+              const dateB = new Date(b.created_at).getTime();
+              return dateA - dateB;
+            }
+          );
           setExpenseLogs(sortedLogs);
         } catch (error: any) {
           console.error("Error fetching comments:", error);

@@ -857,6 +857,7 @@ export function CreateReportForm2({
                     },
                     "& .MuiToolbar-root": {
                       paddingX: 0,
+                      minHeight: "52px"
                     },
                     "& .MuiDataGrid-main": {
                       border: "0.2px solid #f3f4f6",
@@ -965,6 +966,7 @@ export function CreateReportForm2({
                 },
                 "& .MuiToolbar-root": {
                   paddingX: 0,
+                  minHeight: "52px"
                 },
                 "& .MuiDataGrid-main": {
                   border: "0.2px solid #f3f4f6",
