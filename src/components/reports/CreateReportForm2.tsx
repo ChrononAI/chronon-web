@@ -164,6 +164,7 @@ function CustomToolbar({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
+        height: "52px",
         p: 1,
         gap: 2,
         backgroundColor: "background.paper",
