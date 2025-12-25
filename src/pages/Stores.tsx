@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { Box } from "@mui/material";
-import { DataGrid, GridColDef, GridPaginationModel, GridRowSelectionModel } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridPaginationModel,
+  GridRowSelectionModel,
+} from "@mui/x-data-grid";
 import { CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { getStatusColor } from "@/lib/utils";
+import { formatDate, getStatusColor } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { GridOverlay } from "@mui/x-data-grid";
 import { storesService } from "@/services/storeService";
@@ -63,6 +68,15 @@ const columns: GridColDef[] = [
       </Badge>
     ),
   },
+  {
+    field: "created_at",
+    headerName: "CREATED AT",
+    minWidth: 150,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return formatDate(value);
+    },
+  },
 ];
 
 export default function Stores() {
@@ -81,9 +95,12 @@ export default function Stores() {
   const [allCount, setAllCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [processedCount, setProcessedCount] = useState(0);
-  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
+  const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
+    type: "include",
+    ids: new Set(),
+  });
 
-    const rows =
+  const rows =
     activeTab === "all"
       ? allRows
       : activeTab === "pending"
@@ -177,7 +194,7 @@ export default function Stores() {
     if (paginationModel) {
       fetchStores();
     }
-    setRowSelection({type: "include", ids: new Set()});
+    setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
 
   const tabs = [
@@ -188,7 +205,7 @@ export default function Stores() {
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
-  }, [activeTab])
+  }, [activeTab]);
 
   return (
     <ReportsPageWrapper

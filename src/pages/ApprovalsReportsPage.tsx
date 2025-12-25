@@ -29,55 +29,59 @@ function CustomNoRows() {
 }
 
 const columns: GridColDef[] = [
-  {
+    {
     field: "title",
-    headerName: "REPORT NAME",
+    headerName: "TITLE",
     minWidth: 200,
     flex: 1,
-  },
-  {
-    field: "created_by",
-    headerName: "SUBMITTER",
-    minWidth: 160,
-    flex: 1,
-    renderCell: (params) => <p>{params.row.created_by?.email || "-"}</p>,
-  },
-  {
-    field: "total_amount",
-    headerName: "AMOUNT",
-    minWidth: 120,
-    flex: 1,
-    align: "right",
-    headerAlign: "right",
-    valueFormatter: (val) => formatCurrency(val),
-  },
-  {
-    field: "submitted_at",
-    headerName: "SUBMITTED ON",
-    minWidth: 120,
-    flex: 1,
     renderCell: (params) => (
-      <p className="text-gray-900 whitespace-nowrap">
-        {params.value ? formatDate(params.value) : "Not submitted"}
-      </p>
+      <span className="font-medium hover:underline whitespace-nowrap">
+        {params.value}
+      </span>
     ),
   },
   {
-    field: "expense_count",
-    headerName: "EXPENSES",
-    minWidth: 60,
+    field: "description",
+    headerName: "DESCRIPTION",
+    minWidth: 180,
     flex: 1,
-    align: "center",
-    renderCell: (params) => <p className="text-gray-900">{params.value}</p>,
+    renderCell: (params) => (
+      <span className="whitespace-nowrap">{params.value}</span>
+    ),
   },
   {
     field: "status",
     headerName: "STATUS",
-    minWidth: 180,
     flex: 1,
+    minWidth: 180,
     renderCell: (params) => (
       <Badge className={getStatusColor(params.value)}>{params.value}</Badge>
     ),
+  },
+  {
+    field: "total_amount",
+    headerName: "TOTAL AMOUNT",
+    minWidth: 120,
+    flex: 1,
+    align: "right",
+    headerAlign: "right",
+    valueFormatter: (params) => formatCurrency(params),
+  },
+  {
+    field: "created_by",
+    headerName: "CREATED BY",
+    minWidth: 140,
+    flex: 1,
+    renderCell: (params) => (
+      <span className="whitespace-nowrap">{params.row.created_by?.email}</span>
+    ),
+  },
+  {
+    field: "created_at",
+    headerName: "CREATED DATE",
+    minWidth: 120,
+    flex: 1,
+    valueFormatter: (params) => formatDate(params),
   },
 ];
 

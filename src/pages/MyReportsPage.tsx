@@ -127,15 +127,15 @@ const columns: GridColDef[] = [
     headerAlign: "right",
     valueFormatter: (params) => formatCurrency(params),
   },
-  {
-    field: "created_by",
-    headerName: "CREATED BY",
-    minWidth: 140,
-    flex: 1,
-    renderCell: (params) => (
-      <span className="whitespace-nowrap">{params.row.created_by?.email}</span>
-    ),
-  },
+  // {
+  //   field: "created_by",
+  //   headerName: "CREATED BY",
+  //   minWidth: 140,
+  //   flex: 1,
+  //   renderCell: (params) => (
+  //     <span className="whitespace-nowrap">{params.row.created_by?.email}</span>
+  //   ),
+  // },
   {
     field: "created_at",
     headerName: "CREATED DATE",
