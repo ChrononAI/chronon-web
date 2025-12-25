@@ -275,7 +275,7 @@ export function ApprovalsReportsPage() {
         sx={{
           height: "calc(100vh - 160px)",
           width: "100%",
-          marginTop: "-32px",
+          marginTop: "-30px",
         }}
       >
         <DataGrid
@@ -321,7 +321,6 @@ export function ApprovalsReportsPage() {
               color: "#f3f4f6",
             },
           }}
-          showToolbar
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick

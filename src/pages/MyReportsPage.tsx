@@ -127,15 +127,6 @@ const columns: GridColDef[] = [
     headerAlign: "right",
     valueFormatter: (params) => formatCurrency(params),
   },
-  // {
-  //   field: "created_by",
-  //   headerName: "CREATED BY",
-  //   minWidth: 140,
-  //   flex: 1,
-  //   renderCell: (params) => (
-  //     <span className="whitespace-nowrap">{params.row.created_by?.email}</span>
-  //   ),
-  // },
   {
     field: "created_at",
     headerName: "CREATED DATE",
@@ -329,7 +320,7 @@ export function MyReportsPage() {
         sx={{
           height: "calc(100vh - 160px)",
           width: "100%",
-          marginTop: "-32px",
+          marginTop: "-30px",
         }}
       >
         <DataGrid
@@ -393,7 +384,6 @@ export function MyReportsPage() {
             },
           }}
           checkboxSelection
-          showToolbar
           rowCount={
             activeTab === "all"
               ? allReportsPagination.count

@@ -223,7 +223,7 @@ export default function Stores() {
         sx={{
           height: "calc(100vh - 160px)",
           width: "100%",
-          marginTop: "-32px",
+          marginTop: "-30px",
         }}
       >
         <DataGrid
@@ -272,7 +272,6 @@ export default function Stores() {
               color: "#f3f4f6",
             },
           }}
-          showToolbar
           density="compact"
           getRowClassName={(params) =>
             params.row.original_expense_id ? "bg-yellow-50" : ""

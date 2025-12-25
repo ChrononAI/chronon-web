@@ -219,7 +219,6 @@ const UserPage = () => {
         sx={{
           height: "calc(100vh - 140px)",
           width: "100%",
-          marginTop: "-20px",
         }}
       >
         <DataGrid
@@ -270,7 +269,6 @@ const UserPage = () => {
           }}
           density="compact"
           checkboxSelection
-          showToolbar
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={setRowSelection}
           pagination

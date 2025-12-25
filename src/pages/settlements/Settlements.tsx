@@ -7,10 +7,7 @@ import {
 import { Box, Toolbar } from "@mui/material";
 import {
   DataGrid,
-  FilterPanelTrigger,
   GridColDef,
-  GridExpandMoreIcon,
-  GridFilterListIcon,
   GridPaginationModel,
   GridRowId,
   GridRowParams,
@@ -29,7 +26,6 @@ import { Badge } from "@/components/ui/badge";
 import { GridOverlay } from "@mui/x-data-grid";
 import { toast } from "sonner";
 import { settlementsService } from "@/services/settlementsService";
-import { ExportCsv } from "@mui/x-data-grid";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -102,7 +98,7 @@ function CustomToolbar({
         )}
       </Box>
 
-      <Box className="flex items-center gap-2">
+      {/* <Box className="flex items-center gap-2">
         <FilterPanelTrigger
           size="small"
           startIcon={<GridFilterListIcon className="text-gray-500" />} // 👈 custom icon
@@ -116,7 +112,7 @@ function CustomToolbar({
         >
           <span className="text-gray-500">Export CSV</span>
         </ExportCsv>
-      </Box>
+      </Box> */}
     </Toolbar>
   );
 }
