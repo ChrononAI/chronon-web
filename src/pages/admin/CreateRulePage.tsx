@@ -628,7 +628,7 @@ function CreateRulePage() {
 
                   {renderAttributeSelect(
                     rule.ifField,
-                    rule.value || rule.value,
+                    rule.value,
                     (value) => updateRule(index, { value }),
                     rule.ifField === "amount" ? "Enter value" : "Select value"
                   )}
