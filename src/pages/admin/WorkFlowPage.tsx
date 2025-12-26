@@ -289,7 +289,7 @@ const WorkFlowPage = () => {
             sx={{
               height: "calc(100vh - 180px)",
               width: "100%",
-              marginTop: "-20px",
+              marginTop: "-18px",
             }}
           >
             <DataGrid
@@ -339,7 +339,6 @@ const WorkFlowPage = () => {
                   color: "#f3f4f6",
                 },
               }}
-              showToolbar
               density="compact"
               getRowClassName={(params) =>
                 params.row.original_expense_id ? "bg-yellow-50" : ""
@@ -363,7 +362,7 @@ const WorkFlowPage = () => {
             sx={{
               height: "calc(100vh - 180px)",
               width: "100%",
-              marginTop: "-20px",
+              marginTop: "-18px",
             }}
           >
             <DataGrid
@@ -413,7 +412,6 @@ const WorkFlowPage = () => {
                   color: "#f3f4f6",
                 },
               }}
-              showToolbar
               density="compact"
               getRowClassName={(params) =>
                 params.row.original_expense_id ? "bg-yellow-50" : ""

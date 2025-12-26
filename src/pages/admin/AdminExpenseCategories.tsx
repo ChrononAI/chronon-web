@@ -110,7 +110,7 @@ function AdminExpenseCategories() {
   return (
     <div>
       {/* HEADER */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Categories</h1>
         <Button
           onClick={() =>
@@ -168,7 +168,6 @@ function AdminExpenseCategories() {
               color: "#f3f4f6",
             },
           }}
-          showToolbar
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick

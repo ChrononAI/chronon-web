@@ -39,6 +39,12 @@ const columns: GridColDef[] = [
     flex: 1,
   },
   {
+    field: "description",
+    headerName: "DESCRIPTION",
+    minWidth: 140,
+    flex: 1,
+  },
+  {
     field: "address",
     headerName: "ADDRESS",
     minWidth: 140,
@@ -53,24 +59,13 @@ const columns: GridColDef[] = [
   {
     field: "status",
     headerName: "STATUS",
+    flex: 1,
     minWidth: 180,
-    flex: 1,
-    renderCell: ({ value }) => {
-      return (
-        <Badge className={getStatusColor(value)}>
-          {value.replace("_", " ")}
-        </Badge>
-      );
-    },
-  },
-  {
-    field: "created_by",
-    headerName: "CREATED BY",
-    minWidth: 150,
-    flex: 1,
-    renderCell: ({ value }) => {
-      return value.email;
-    },
+    renderCell: (params) => (
+      <Badge className={getStatusColor(params.value)}>
+        {params.value.replace("_", " ")}
+      </Badge>
+    ),
   },
   {
     field: "created_at",
@@ -82,10 +77,13 @@ const columns: GridColDef[] = [
     },
   },
   {
-    field: "description",
-    headerName: "DESCRIPTION",
-    flex: 1,
+    field: "created_by",
+    headerName: "CREATED BY",
     minWidth: 150,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return value.email;
+    },
   },
 ];
 
@@ -251,7 +249,7 @@ function ApprovalsStoresPage() {
         sx={{
           height: "calc(100vh - 160px)",
           width: "100%",
-          marginTop: "-32px",
+          marginTop: "-30px",
         }}
       >
         <DataGrid
@@ -300,7 +298,6 @@ function ApprovalsStoresPage() {
               color: "#f3f4f6",
             },
           }}
-          showToolbar
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick

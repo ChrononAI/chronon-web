@@ -281,7 +281,6 @@ export const AutoReportPage = () => {
         sx={{
           height: "calc(100vh - 160px)",
           width: "100%",
-          marginTop: "-20px",
         }}
       >
         <DataGrid
@@ -330,7 +329,6 @@ export const AutoReportPage = () => {
               color: "#f3f4f6",
             },
           }}
-          showToolbar
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick

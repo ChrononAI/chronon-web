@@ -167,7 +167,7 @@ export function Sidebar() {
     return [];
   });
   const [newNavItems, setNewNavItems] = useState<NavigationItem[]>([]);
-  const isAdminActive = location.pathname.startsWith("/admin");
+  const isAdminActive = location.pathname.startsWith("/admin-settings");
 
   const mergePermissions = (items: any[], permissions: any): any[] => {
     return items.map((item) => {
@@ -403,7 +403,7 @@ export function Sidebar() {
           key={item.name}
           to={item.href}
           className={({ isActive }) => {
-            const active = isActive || (item.name === "Admin" && isAdminActive);
+            const active = isActive || (item.name === "Admin Settings" && isAdminActive);
 
             return cn(
               "flex items-center py-2 text-sm rounded-md transition-colors",

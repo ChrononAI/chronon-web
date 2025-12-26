@@ -295,7 +295,7 @@ export function MyAdvancesPage() {
         sx={{
           height: "calc(100vh - 160px)",
           width: "100%",
-          marginTop: "-32px",
+          marginTop: "-30px",
           color: "#2E2E2E",
         }}
       >
@@ -345,7 +345,6 @@ export function MyAdvancesPage() {
               color: "#f3f4f6",
             },
           }}
-          showToolbar
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick
