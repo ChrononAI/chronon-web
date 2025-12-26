@@ -309,13 +309,13 @@ export function ReportDetailPage2() {
           return dateA - dateB;
         });
         setReportComments(sortedComments);
-        const sortedLogs = [...fetchedComments.filter((c) => c.creator_type === "SYSTEM")].sort(
-          (a, b) => {
-            const dateA = new Date(a.created_at).getTime();
-            const dateB = new Date(b.created_at).getTime();
-            return dateA - dateB;
-          }
-        );
+        const sortedLogs = [
+          ...fetchedComments.filter((c) => c.creator_type === "SYSTEM"),
+        ].sort((a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateA - dateB;
+        });
         setReportLogs(sortedLogs);
       } catch (error: any) {
         console.error("Error fetching comments:", error);
@@ -543,7 +543,9 @@ export function ReportDetailPage2() {
           <ReportTabs
             activeTab={activeTab}
             onTabChange={(tabId) =>
-              setActiveTab(tabId as "expenses" | "history")
+              setActiveTab(
+                tabId as "expenses" | "history" | "comments" | "logs"
+              )
             }
             tabs={tabs}
             className="mb-0"
@@ -638,12 +640,14 @@ export function ReportDetailPage2() {
           )}
 
           {activeTab === "logs" && (
-            <ExpenseLogs
-              logs={reportLogs}
-              loading={loadingReportComments}
-              error={commentError || ""}
-              className="px-0"
-            />
+            <div className="flex flex-col h-full overflow-hidden">
+              <ExpenseLogs
+                logs={reportLogs}
+                loading={loadingReportComments}
+                error={commentError || ""}
+                className="px-0"
+              />
+            </div>
           )}
         </div>
         <FormFooter>
