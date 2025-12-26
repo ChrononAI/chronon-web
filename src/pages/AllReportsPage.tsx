@@ -358,7 +358,7 @@ export function AllReportsPage() {
         <h1 className="text-2xl font-bold">Report</h1>
       </div>
 
-      <div className="space-y-0">
+      <div className="space-y-6">
         <Card className="shadow-none">
           <CardContent className="p-6">
             {templatesLoading ? (
@@ -512,9 +512,9 @@ export function AllReportsPage() {
         {templates.length > 0 && (
           <Box
             sx={{
-              height: "calc(100vh - 240px)",
+              height: "calc(100vh - 272px)",
               width: "100%",
-              marginTop: "-32px",
+              marginTop: "-30px",
             }}
           >
             <DataGrid
@@ -564,7 +564,6 @@ export function AllReportsPage() {
                   color: "#f3f4f6",
                 },
               }}
-              showToolbar
               density="compact"
               rowSelectionModel={rowSelection}
               onRowSelectionModelChange={setRowSelection}

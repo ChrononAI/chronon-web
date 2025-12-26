@@ -137,7 +137,6 @@ export const EntityPage = () => {
         sx={{
           height: "calc(100vh - 120px)",
           width: "100%",
-          marginTop: "-20px"
         }}
       >
         <DataGrid
@@ -189,7 +188,6 @@ export const EntityPage = () => {
           }}
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={setRowSelection}
-          showToolbar
           paginationModel={paginationModel || { page: 0, pageSize: 0 }}
           onPaginationModelChange={setPaginationModel}
           density="compact"

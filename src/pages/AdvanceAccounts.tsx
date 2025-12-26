@@ -330,7 +330,6 @@ function AdvanceAccounts() {
                 color: "#f3f4f6",
               },
             }}
-            showToolbar
             density="compact"
             checkboxSelection
             disableRowSelectionOnClick

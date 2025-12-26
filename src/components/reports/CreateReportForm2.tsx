@@ -164,6 +164,7 @@ function CustomToolbar({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
+        height: "52px",
         p: 1,
         gap: 2,
         backgroundColor: "background.paper",
@@ -857,6 +858,7 @@ export function CreateReportForm2({
                     },
                     "& .MuiToolbar-root": {
                       paddingX: 0,
+                      minHeight: "52px"
                     },
                     "& .MuiDataGrid-main": {
                       border: "0.2px solid #f3f4f6",
@@ -965,6 +967,7 @@ export function CreateReportForm2({
                 },
                 "& .MuiToolbar-root": {
                   paddingX: 0,
+                  minHeight: "52px"
                 },
                 "& .MuiDataGrid-main": {
                   border: "0.2px solid #f3f4f6",

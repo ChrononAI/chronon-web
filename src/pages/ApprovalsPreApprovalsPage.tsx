@@ -275,7 +275,7 @@ function ApprovalsPreApprovalsPage() {
         sx={{
           height: "calc(100vh - 160px)",
           width: "100%",
-          marginTop: "-32px",
+          marginTop: "-30px",
         }}
       >
         <DataGrid
@@ -324,7 +324,6 @@ function ApprovalsPreApprovalsPage() {
               color: "#f3f4f6",
             },
           }}
-          showToolbar
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick

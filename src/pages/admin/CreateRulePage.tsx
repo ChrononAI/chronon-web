@@ -19,7 +19,7 @@ import {
   WorkflowConfig,
 } from "@/services/admin/workflows";
 import { Loader2, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -29,19 +29,20 @@ type Operator =
   | "NOT_EQUAL"
   | "IN"
   | "NOT_IN"
-  | "GREATER_THEN"
-  | "LESS_THEN";
-
+  | "GREATER_THAN"
+  | "LESS_THAN";
+interface RuleCondition {
+  id: string;
+  ifField: string;
+  operator?: Operator;
+  value: string;
+}
 interface RuleForm {
   name: string;
   description: string;
   workflowEvent?: WorkflowEvent;
   workflow: string;
-  rule: {
-    ifField: string;
-    operator?: Operator;
-    value: string;
-  };
+  rules: RuleCondition[];
 }
 
 const OPERATOR_OPTIONS: { value: Operator; label: string }[] = [
@@ -49,8 +50,8 @@ const OPERATOR_OPTIONS: { value: Operator; label: string }[] = [
   { value: "NOT_EQUAL", label: "NOT_EQUAL" },
   { value: "IN", label: "IN" },
   { value: "NOT_IN", label: "NOT_IN" },
-  { value: "GREATER_THEN", label: "GREATER_THEN" },
-  { value: "LESS_THEN", label: "LESS_THEN" },
+  { value: "GREATER_THAN", label: "GREATER_THAN" },
+  { value: "LESS_THAN", label: "LESS_THAN" },
 ];
 
 const WORKFLOW_EVENT_OPTIONS: { value: WorkflowEvent; label: string }[] = [
@@ -68,9 +69,10 @@ const HARDCODED_VALUES = {
   ACTION_TYPE: "require_approval",
 } as const;
 
-const PREFIXES = {
-  USER: "user.",
-} as const;
+// const PREFIXES = {
+//   USER: "user.",
+//   REPORT: "report.",
+// } as const;
 
 const getErrorMessage = (error: unknown, defaultMessage: string): string => {
   if (error instanceof Error) return error.message;
@@ -81,6 +83,58 @@ const getErrorMessage = (error: unknown, defaultMessage: string): string => {
   }
   return defaultMessage;
 };
+
+const AttributeValueField = React.memo(
+  ({
+    entityId,
+    value,
+    onValueChange,
+    placeholder,
+    attributes,
+  }: {
+    entityId: string;
+    value: string;
+    onValueChange: (v: string) => void;
+    placeholder: string;
+    attributes: any[];
+  }) => {
+    if (entityId === "amount") {
+      return (
+        <Input
+          type="number"
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => onValueChange(e.target.value)}
+        />
+      );
+    }
+
+    return (
+      <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {!entityId ? (
+            <SelectItem value="no-entity-selected" disabled>
+              Select entity first
+            </SelectItem>
+          ) : attributes.length === 0 ? (
+            <SelectItem value="no-attributes" disabled>
+              No attributes found
+            </SelectItem>
+          ) : (
+            attributes.map((attr) => (
+              <SelectItem key={attr.id} value={attr.id}>
+                {attr.display_value}
+              </SelectItem>
+            ))
+          )}
+        </SelectContent>
+      </Select>
+    );
+  }
+);
 
 function CreateRulePage() {
   const location = useLocation();
@@ -94,36 +148,49 @@ function CreateRulePage() {
   const [workflows, setWorkflows] = useState<WorkflowConfig[]>([]);
   const [workflowsLoading, setWorkflowsLoading] = useState(false);
   const [creatingRule, setCreatingRule] = useState(false);
-  const [selectedEntity, setSelectedEntity] = useState<string>("");
   const isFetchingWorkflowsRef = useRef(false);
   const workflowsFetchedRef = useRef(false);
+
+  const createEmptyRule = (): RuleCondition => ({
+    id: crypto.randomUUID(), // ✅ browser-native
+    ifField: "",
+    operator: undefined,
+    value: "",
+  });
+
+  // const emptyRule: RuleCondition = {
+  //   id: crypto.randomUUID(),
+  //   ifField: "",
+  //   operator: undefined,
+  //   value: "",
+  // };
 
   const [ruleForm, setRuleForm] = useState<RuleForm>({
     name: "",
     description: "",
     workflowEvent: undefined,
     workflow: "",
-    rule: {
-      ifField: "",
-      operator: undefined,
-      value: "",
-    },
+    rules: [createEmptyRule()],
   });
 
-  const mapRuleToForm = (rule: any): RuleForm => {
-    const condition = rule?.conditions?.rules?.[0];
-    return {
-      name: rule?.name ?? "",
-      description: rule?.description ?? "",
-      workflowEvent: rule?.approval_type,
-      workflow: rule?.workflow_config_id,
-      rule: {
-        ifField: condition?.field?.replace(PREFIXES.USER, "") ?? "",
-        operator: condition?.operator,
-        value: condition?.value ?? "",
-      },
-    };
+  console.log(ruleForm);
+  const extractId = (value: string) => {
+    if (!value.includes(".")) return value;
+    return value.split(".")[1];
   };
+
+  const mapRuleToForm = (rule: any): RuleForm => ({
+    name: rule?.name ?? "",
+    description: rule?.description ?? "",
+    workflowEvent: rule?.approval_type,
+    workflow: rule?.workflow_config_id,
+    rules: rule?.conditions?.rules?.map((r: any) => ({
+      id: crypto.randomUUID(), // ✅ generate once
+      ifField: extractId(r.field),
+      operator: r.operator,
+      value: r.value,
+    })) ?? [createEmptyRule()],
+  });
 
   const resetRuleForm = useCallback(() => {
     setRuleForm({
@@ -131,11 +198,7 @@ function CreateRulePage() {
       description: "",
       workflowEvent: undefined,
       workflow: "",
-      rule: {
-        ifField: "",
-        operator: undefined,
-        value: "",
-      },
+      rules: [createEmptyRule()],
     });
   }, []);
 
@@ -145,7 +208,11 @@ function CreateRulePage() {
     setEntitiesLoading(true);
     try {
       const entitiesData = await getEntities();
-      setEntities(entitiesData);
+      const newEntities = [
+        ...entitiesData,
+        { id: "amount", display_name: "Report Amount", name: "Report Amount" },
+      ];
+      setEntities(newEntities);
     } catch (error) {
       console.error("Error fetching entities:", error);
       toast.error("Failed to fetch entities");
@@ -175,19 +242,18 @@ function CreateRulePage() {
     }
   }, []);
 
-  const validateRule = useCallback((): string | null => {
+  const validateRule = (): string | null => {
     if (!ruleForm.name) return "Please enter rule name";
     if (!ruleForm.workflowEvent) return "Please select a workflow event";
     if (!ruleForm.workflow) return "Please select a workflow";
-    if (
-      !ruleForm.rule.ifField ||
-      !ruleForm.rule.operator ||
-      !ruleForm.rule.value
-    ) {
-      return "Please fill in all rule fields";
-    }
+
+    const invalid = ruleForm.rules.some(
+      (r) => !r.ifField || !r.operator || !r.value
+    );
+
+    if (invalid) return "Please fill in all rule fields";
     return null;
-  }, [ruleForm]);
+  };
 
   const handleCreateRule = useCallback(async () => {
     const validationError = validateRule();
@@ -205,13 +271,11 @@ function CreateRulePage() {
         workflow_config_id: ruleForm.workflow,
         approval_type: ruleForm.workflowEvent,
         conditions: {
-          rules: [
-            {
-              field: `${PREFIXES.USER}${ruleForm.rule.ifField}`,
-              operator: ruleForm.rule.operator!,
-              value: ruleForm.rule.value,
-            },
-          ],
+          rules: ruleForm.rules.map((r) => ({
+            field: extractId(r.ifField),
+            operator: r.operator!,
+            value: r.value,
+          })),
           action: {
             type: HARDCODED_VALUES.ACTION_TYPE,
           },
@@ -233,7 +297,7 @@ function CreateRulePage() {
       const errorMessage = getErrorMessage(error, "Failed to create policy");
       toast.error(errorMessage);
     } finally {
-      // setCreatingRule(false);
+      setCreatingRule(false);
     }
   }, [ruleForm, validateRule, resetRuleForm]);
 
@@ -249,7 +313,6 @@ function CreateRulePage() {
           value={value}
           onValueChange={(val) => {
             onValueChange(val);
-            setSelectedEntity(val);
           }}
         >
           <SelectTrigger className="w-full">
@@ -292,31 +355,16 @@ function CreateRulePage() {
     ) => {
       const selectedEntity = entities.find((e) => e.id === entityId);
       const attributes =
-        selectedEntity?.attributes?.filter((attr: any) => attr.is_active) || [];
+        selectedEntity?.attributes?.filter((a: any) => a.is_active) || [];
 
       return (
-        <Select value={value} onValueChange={onValueChange}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder={placeholder} />
-          </SelectTrigger>
-          <SelectContent>
-            {!entityId ? (
-              <SelectItem value="no-entity-selected" disabled>
-                Select entity first
-              </SelectItem>
-            ) : attributes.length === 0 ? (
-              <SelectItem value="no-attributes" disabled>
-                No attributes found
-              </SelectItem>
-            ) : (
-              attributes.map((attr: any) => (
-                <SelectItem key={attr.id} value={attr.id}>
-                  {attr.display_value}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
+        <AttributeValueField
+          entityId={entityId}
+          value={value}
+          onValueChange={onValueChange}
+          placeholder={placeholder}
+          attributes={attributes}
+        />
       );
     },
     [entities]
@@ -417,6 +465,27 @@ function CreateRulePage() {
     }
   };
 
+  const addRule = () => {
+    setRuleForm((prev) => ({
+      ...prev,
+      rules: [...prev.rules, createEmptyRule()],
+    }));
+  };
+
+  const removeRule = (id: number) => {
+    setRuleForm((prev) => ({
+      ...prev,
+      rules: prev.rules.filter((r) => r.id.toString() !== id.toString()),
+    }));
+  };
+
+  const updateRule = (index: number, patch: Partial<RuleCondition>) => {
+    setRuleForm((prev) => ({
+      ...prev,
+      rules: prev.rules.map((r, i) => (i === index ? { ...r, ...patch } : r)),
+    }));
+  };
+
   useEffect(() => {
     fetchEntities();
     fetchWorkflows();
@@ -434,25 +503,16 @@ function CreateRulePage() {
     }
 
     setRuleForm(mapRuleToForm(ruleToEdit));
-    console.log(mapRuleToForm(ruleToEdit));
     setHydrated(true);
   }, [isEditMode, ruleToEdit, entities, workflows, hydrated]);
 
-  useEffect(() => {
-    if (!isEditMode || !ruleToEdit) return;
-    if (entities.length === 0) return;
+  // useEffect(() => {
+  //   if (!isEditMode || !ruleToEdit) return;
+  //   if (entities.length === 0) return;
 
-    const condition = ruleToEdit.conditions?.rules?.[0];
-    if (!condition?.field) return;
-    const attributeId = condition.value.replace(PREFIXES.USER, "");
-    const entity = entities.find((ent) =>
-      ent.attributes?.some((attr: any) => attr.id === attributeId)
-    );
-
-    if (entity) {
-      setSelectedEntity(entity.id);
-    }
-  }, [isEditMode, ruleToEdit, entities]);
+  //   const condition = ruleToEdit.conditions?.rules?.[0];
+  //   if (!condition?.field) return;
+  // }, [isEditMode, ruleToEdit, entities]);
 
   return (
     <div className="flex flex-col gap-3 max-w-full">
@@ -546,41 +606,46 @@ function CreateRulePage() {
               }
             />
           </div>
-
           <div className="space-y-4">
-            <Label className="text-sm font-medium">Rules</Label>
-            <div className="flex items-center gap-4">
-              {renderEntitySelect(
-                selectedEntity,
-                (value) =>
-                  setRuleForm((prev) => ({
-                    ...prev,
-                    rule: { ...prev.rule, ifField: value, value: "" },
-                  })),
-                "Select field"
-              )}
+            <Label className="text-sm font-medium">New Rules</Label>
+            {ruleForm.rules.map((rule: any, index: number) => {
+              return (
+                <div
+                  className="flex items-center gap-6"
+                  key={rule.id}
+                >
+                  {renderEntitySelect(
+                    rule.ifField,
+                    (value) => updateRule(index, { ifField: value, value: "" }),
+                    "Select field"
+                  )}
 
-              {renderOperatorSelect(
-                ruleForm.rule.operator,
-                (value) =>
-                  setRuleForm((prev) => ({
-                    ...prev,
-                    rule: { ...prev.rule, operator: value },
-                  })),
-                "Select operator"
-              )}
+                  {renderOperatorSelect(
+                    rule.operator,
+                    (value) => updateRule(index, { operator: value }),
+                    "Select operator"
+                  )}
 
-              {renderAttributeSelect(
-                ruleForm.rule.ifField,
-                ruleForm.rule.value || mapRuleToForm(ruleToEdit).rule.value,
-                (value) =>
-                  setRuleForm((prev) => ({
-                    ...prev,
-                    rule: { ...prev.rule, value },
-                  })),
-                "Select value"
-              )}
-            </div>
+                  {renderAttributeSelect(
+                    rule.ifField,
+                    rule.value,
+                    (value) => updateRule(index, { value }),
+                    rule.ifField === "amount" ? "Enter value" : "Select value"
+                  )}
+                  <Button onClick={() => removeRule(rule.id)} variant="destructive">Remove</Button>
+                </div>
+              );
+            })}
+          </div>
+          <div>
+            <Button
+              type="button"
+              className="my-2"
+              variant="outline"
+              onClick={addRule}
+            >
+              + Add Another
+            </Button>
           </div>
         </form>
         <FormFooter>
