@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { expenseService } from "@/services/expenseService";
 import ExpenseLogs from "./ExpenseLogs";
 import { ExpenseComment } from "@/types/expense";
+import { toast } from "sonner";
 
 function ReceiptViewer({
   activeReceiptTab,
@@ -51,6 +52,47 @@ function ReceiptViewer({
   const [comments, setComments] = useState<ExpenseComment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const validationCount = validations?.length ?? 0;
+
+  const [newComment, setNewComment] = useState<string>();
+  const [postingComment, setPostingComment] = useState(false);
+
+  const handlePostComment = async () => {
+    if (!expense?.id || !newComment?.trim() || postingComment) return;
+
+    setPostingComment(true);
+    setCommentError(null);
+
+    try {
+      await expenseService.postExpenseComment(
+        expense?.id,
+        newComment.trim(),
+        false
+      );
+      // Refetch comments to get the updated list with the new comment
+      const fetchedComments = await expenseService.getExpenseComments(
+        expense?.id
+      );
+      // Sort comments by created_at timestamp (oldest first)
+      const sortedComments = [...fetchedComments.filter((c) => !c.action)].sort(
+        (a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateA - dateB;
+        }
+      );
+      setComments(sortedComments);
+      setNewComment("");
+      toast.success("Comment posted successfully");
+    } catch (error: any) {
+      console.error("Error posting comment:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to post comment";
+      setCommentError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setPostingComment(false);
+    }
+  };
 
   // Fetch comments when expenseId is available
   useEffect(() => {
@@ -93,13 +135,13 @@ function ReceiptViewer({
             return dateA - dateB;
           });
           setComments(sortedComments);
-                    const sortedLogs = [
-            ...fetchedComments.filter((c) => c.action),
-          ].sort((a, b) => {
-            const dateA = new Date(a.created_at).getTime();
-            const dateB = new Date(b.created_at).getTime();
-            return dateA - dateB;
-          });
+          const sortedLogs = [...fetchedComments.filter((c) => c.action)].sort(
+            (a, b) => {
+              const dateA = new Date(a.created_at).getTime();
+              const dateB = new Date(b.created_at).getTime();
+              return dateA - dateB;
+            }
+          );
           setExpenseLogs(sortedLogs);
         } catch (error: any) {
           console.error("Error fetching comments:", error);
@@ -318,10 +360,12 @@ function ReceiptViewer({
             expenseId={expense?.id}
             readOnly={false}
             comments={comments}
-            setCommentError={setCommentError}
-            setComments={setComments}
             commentError={commentError}
             loadingComments={loadingComments}
+            postComment={handlePostComment}
+            postingComment={postingComment}
+            newComment={newComment || ""}
+            setNewComment={setNewComment}
           />
         ) : activeReceiptTab === "validation" ? (
           <ExpenseValidation
