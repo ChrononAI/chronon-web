@@ -30,7 +30,7 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 import { reportService } from "@/services/reportService";
-import { Expense, ApprovalWorkflow } from "@/types/expense";
+import { Expense, ApprovalWorkflow, ExpenseComment } from "@/types/expense";
 import { AdditionalFieldMeta, CustomAttribute } from "@/types/report";
 import { useAuthStore } from "@/store/authStore";
 import { formatDate, formatCurrency, getStatusColor, cn } from "@/lib/utils";
@@ -55,6 +55,8 @@ import { trackEvent } from "@/mixpanel";
 import { FormFooter } from "../layout/FormFooter";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { format } from "date-fns";
+import { ExpenseComments } from "../expenses/ExpenseComments";
+import ExpenseLogs from "../expenses/ExpenseLogs";
 
 // Dynamic form schema creation function
 const createReportSchema = (customAttributes: CustomAttribute[]) => {
@@ -281,11 +283,18 @@ export function CreateReportForm2({
   const [reportStatus, setReportStatus] = useState<string | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<ApprovalWorkflow | null>(null);
-  const [activeTab, setActiveTab] = useState<"expenses" | "history">(
-    "expenses"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "expenses" | "history" | "comments" | "logs"
+  >("expenses");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+
+  const [loadingReportComments, setLoadingReportComments] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>();
+  const [reportComments, setReportComments] = useState<ExpenseComment[]>([]);
+  const [reportLogs, setReportLogs] = useState<ExpenseComment[]>([]);
+  const [postingComment, setPostingComment] = useState(false);
+  const [newComment, setNewComment] = useState<string>();
 
   const filteredExpenses = allExpenses
     .filter((exp) =>
@@ -401,6 +410,79 @@ export function CreateReportForm2({
     }
   }, [customAttributes, form]);
 
+
+    const fetchComments = async (id: string) => {
+      if (id) {
+        setLoadingReportComments(true);
+        setCommentError(null);
+        try {
+          const fetchedComments = await reportService.getReportComments(id);
+          // Sort comments by created_at timestamp (oldest first)
+          const sortedComments = [
+            ...fetchedComments.filter((c) => c.creator_type === "USER"),
+          ].sort((a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateA - dateB;
+          });
+          setReportComments(sortedComments);
+          const sortedLogs = [
+            ...fetchedComments.filter((c) => c.creator_type === "SYSTEM"),
+          ].sort((a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateA - dateB;
+          });
+          setReportLogs(sortedLogs);
+        } catch (error: any) {
+          console.error("Error fetching comments:", error);
+          setCommentError(
+            error.response?.data?.message || "Failed to load comments"
+          );
+        } finally {
+          setLoadingReportComments(false);
+        }
+      }
+    };
+
+  const handlePostComment = async () => {
+    if (!reportData?.id || !newComment?.trim() || postingComment) return;
+
+    setPostingComment(true);
+    setCommentError(null);
+
+    try {
+      await reportService.postReportComment(
+        reportData?.id,
+        newComment.trim(),
+        false // notify: false
+      );
+
+      const fetchedComments = await reportService.getReportComments(
+        reportData?.id
+      );
+
+      const sortedComments = [...fetchedComments.filter((c) => !c.action)].sort(
+        (a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateA - dateB;
+        }
+      );
+      setReportComments(sortedComments);
+      setNewComment("");
+      toast.success("Comment posted successfully");
+    } catch (error: any) {
+      console.error("Error posting comment:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to post comment";
+      setCommentError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setPostingComment(false);
+    }
+  };
+
   useEffect(() => {
     const amt = allExpenses
       .filter((exp) => selectedIds.includes(exp.id))
@@ -497,6 +579,9 @@ export function CreateReportForm2({
 
   useEffect(() => {
     fetchData();
+    if (reportData && reportData.id) {
+      fetchComments(reportData.id);
+    }
   }, []);
 
   const getFieldMeta = (fieldName: string) => {
@@ -741,7 +826,7 @@ export function CreateReportForm2({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-[calc(100vh-24px)] space-y-6">
       <h1 className="text-2xl font-bold">
         {editMode ? "Edit Report" : "Create Report"}
       </h1>
@@ -808,7 +893,7 @@ export function CreateReportForm2({
         </Form>
       </div>
 
-      <div>
+      <div className="flex flex-col flex-1 min-h-0">
         {showTabs ? (
           <>
             <ReportTabs
@@ -823,13 +908,15 @@ export function CreateReportForm2({
                   count: markedExpenses.length,
                 },
                 { key: "history", label: "Audit History", count: 0 },
+                { key: "comments", label: "Comments", count: 0 },
+                { key: "logs", label: "Logs", count: 0 },
               ]}
               className="mb-2"
             />
             {activeTab === "expenses" && (
-              <div className="space-y-6">
+              <div className="space-y-0">
                 <DataGrid
-                  className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+                  className="rounded border-[0.2px] border-[#f3f4f6]"
                   rows={loadingExpenses ? [] : filteredExpenses}
                   columns={columns}
                   loading={loadingExpenses}
@@ -858,7 +945,7 @@ export function CreateReportForm2({
                     },
                     "& .MuiToolbar-root": {
                       paddingX: 0,
-                      minHeight: "52px"
+                      minHeight: "52px",
                     },
                     "& .MuiDataGrid-main": {
                       border: "0.2px solid #f3f4f6",
@@ -894,7 +981,6 @@ export function CreateReportForm2({
                   getRowClassName={(params) =>
                     params.row.original_expense_id ? "bg-yellow-50" : ""
                   }
-                  // disableRowSelectionExcludeModel
                   checkboxSelection
                   rowSelectionModel={rowSelection}
                   onRowSelectionModelChange={(newSelection) => {
@@ -934,6 +1020,31 @@ export function CreateReportForm2({
                 )}
               </div>
             )}
+            {activeTab === "comments" && (
+              <div className="flex flex-col h-full overflow-hidden">
+                <ExpenseComments
+                  expenseId={reportData.id}
+                  loadingComments={loadingReportComments}
+                  comments={reportComments}
+                  commentError={commentError || ""}
+                  postComment={handlePostComment}
+                  postingComment={postingComment}
+                  newComment={newComment || ""}
+                  setNewComment={setNewComment}
+                />
+              </div>
+            )}
+
+            {activeTab === "logs" && (
+              <div className="flex flex-col h-full overflow-hidden">
+                <ExpenseLogs
+                  logs={reportLogs}
+                  loading={loadingReportComments}
+                  error={commentError || ""}
+                  className="px-0"
+                />
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -967,7 +1078,7 @@ export function CreateReportForm2({
                 },
                 "& .MuiToolbar-root": {
                   paddingX: 0,
-                  minHeight: "52px"
+                  minHeight: "52px",
                 },
                 "& .MuiDataGrid-main": {
                   border: "0.2px solid #f3f4f6",

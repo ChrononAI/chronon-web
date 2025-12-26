@@ -175,6 +175,48 @@ const MileagePage = ({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const isUpdateFlow = mode === "edit" || editMode;
+
+    const [newComment, setNewComment] = useState<string>();
+    const [postingComment, setPostingComment] = useState(false);
+  
+    const handlePostComment = async () => {
+      if (!expenseData?.id || !newComment?.trim() || postingComment) return;
+  
+      setPostingComment(true);
+      setCommentError(null);
+  
+      try {
+        await expenseService.postExpenseComment(
+          expenseData?.id,
+          newComment.trim(),
+          false
+        );
+        // Refetch comments to get the updated list with the new comment
+        const fetchedComments = await expenseService.getExpenseComments(
+          expenseData?.id
+        );
+        // Sort comments by created_at timestamp (oldest first)
+        const sortedComments = [...fetchedComments.filter((c) => !c.action)].sort(
+          (a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateA - dateB;
+          }
+        );
+        setComments(sortedComments);
+        setNewComment("");
+        toast.success("Comment posted successfully");
+      } catch (error: any) {
+        console.error("Error posting comment:", error);
+        const errorMessage =
+          error.response?.data?.message || "Failed to post comment";
+        setCommentError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setPostingComment(false);
+      }
+    };
+
   const isStartEndLocationLocked =
     (mode === "view" && !editMode) || hasPrefilledLocations;
   const renderPrimaryButtonContent = () => {
@@ -1042,10 +1084,12 @@ const MileagePage = ({
                   expenseId={expenseData?.id}
                   readOnly={false}
                   comments={comments}
-                  setCommentError={setCommentError}
-                  setComments={setComments}
                   commentError={commentError}
                   loadingComments={loadingComments}
+                  postComment={handlePostComment}
+                  postingComment={postingComment}
+                  newComment={newComment || ""}
+                  setNewComment={setNewComment}
                 />
               ) : (
                 <ExpenseLogs

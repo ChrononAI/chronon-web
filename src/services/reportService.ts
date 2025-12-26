@@ -1,5 +1,5 @@
 import api, { baseAPI } from "@/lib/api";
-import { Expense } from "@/types/expense";
+import { Expense, ExpenseComment } from "@/types/expense";
 import { OrganizationMeta, CustomAttribute } from "@/types/report";
 
 export interface ReportTemplate {
@@ -409,6 +409,57 @@ class ReportService {
         success: false,
         message: error.response?.data?.message || "Failed to submit report",
       };
+    }
+  }
+
+  async getReportComments(id: string): Promise<ExpenseComment[]> {
+    try {
+      const res = await api.get(`/api/v1/report_comments/${id}`);
+      console.log(res);
+      return res.data.data || [];
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async postReportComment(
+    id: string,
+    comment: string,
+    notify: boolean = false
+  ): Promise<ExpenseComment> {
+    try {
+      const orgId = getOrgIdFromToken();
+      if (!orgId) {
+        throw new Error("Organization ID not found in token");
+      }
+      const response = await api.post(
+        `/api/v1/report_comments`,
+        JSON.stringify({
+          report_id: id,
+          comment: comment.trim(),
+          notify: notify,
+        })
+      );
+
+      return (
+        response.data.data || {
+          id: "",
+          expense_id: id,
+          comment: comment.trim(),
+          creator_user_id: "",
+          creator_user: {
+            id: "",
+            email: "",
+            full_name: "",
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          org_id: orgId,
+        }
+      );
+    } catch (error: any) {
+      console.error("Error posting expense comment:", error);
+      throw error;
     }
   }
 
