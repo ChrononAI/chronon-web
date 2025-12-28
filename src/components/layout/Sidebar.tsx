@@ -142,6 +142,7 @@ const navigation: NavigationItem[] = [
 const permissionMap: any = {
   "Pre Approval": "pre_approval_settings",
   Advances: "advance_settings",
+  Transactions: "mobile_payment_settings",
   Admin: "admin_dashboard_settings",
   Stores: "store_settings",
 };
@@ -252,6 +253,7 @@ export function Sidebar() {
           children,
         };
       } else {
+        console.log(item)
         const key = permissionMap[item.name];
         const permission = key && permissions ? permissions[key] : undefined;
 

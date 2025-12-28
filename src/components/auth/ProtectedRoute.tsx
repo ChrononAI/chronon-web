@@ -13,6 +13,8 @@ export function ProtectedRoute() {
     enabled = orgSettings?.pre_approval_settings?.enabled || false;
   } else if (location.pathname.includes("advances") || location.pathname.includes('/advance_accounts')) {
     enabled = orgSettings?.advance_settings?.enabled || false;
+  } else if (location.pathname.includes("transactions")) {
+    enabled = orgSettings.mobile_payment_settings.enabled;
   } else if (location.pathname.includes("admin-settings")) {
     enabled = (orgSettings.admin_dashboard_settings?.enabled && user?.role === "SUPER_ADMIN");
   } else if (location.pathname.includes('all-reports')) {
