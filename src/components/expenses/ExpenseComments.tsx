@@ -52,44 +52,8 @@ export function ExpenseComments({
   loadingComments
 }: ExpenseCommentsProps) {
   const { user } = useAuthStore();
-  // const [comments, setComments] = useState<ExpenseComment[]>([]);
-  // const [loadingComments, setLoadingComments] = useState(false);
   const [postingComment, setPostingComment] = useState(false);
-  // const [commentError, setCommentError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
-
-  // Fetch comments when expenseId is available
-  // useEffect(() => {
-  //   const fetchComments = async () => {
-  //     if (autoFetch && expenseId) {
-  //       setLoadingComments(true);
-  //       setCommentError(null);
-  //       try {
-  //         const fetchedComments = await expenseService.getExpenseComments(
-  //           expenseId
-  //         );
-  //         // Sort comments by created_at timestamp (oldest first)
-  //         const sortedComments = [...fetchedComments.filter((c) => !c.action  )].sort((a, b) => {
-  //           const dateA = new Date(a.created_at).getTime();
-  //           const dateB = new Date(b.created_at).getTime();
-  //           return dateA - dateB;
-  //         });
-  //         setComments(sortedComments);
-  //       } catch (error: any) {
-  //         console.error("Error fetching comments:", error);
-  //         setCommentError(
-  //           error.response?.data?.message || "Failed to load comments"
-  //         );
-  //       } finally {
-  //         setLoadingComments(false);
-  //       }
-  //     }
-  //   };
-
-  //   fetchComments();
-  // }, [expenseId, autoFetch]);
-
-  // Auto-scroll to bottom when new comments are added
 
   // Handle posting a new comment
   const handlePostComment = async () => {
@@ -102,7 +66,7 @@ export function ExpenseComments({
       await expenseService.postExpenseComment(
         expenseId,
         newComment.trim(),
-        false // notify: false
+        false
       );
       // Refetch comments to get the updated list with the new comment
       const fetchedComments = await expenseService.getExpenseComments(
