@@ -70,7 +70,7 @@ function BulkUploadedFilesPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [rowCount, setRowCount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),

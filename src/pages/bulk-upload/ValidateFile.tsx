@@ -72,8 +72,8 @@ function ValidateFile() {
 
   const handleConfirm = () => {
     setShowActionDialog(false);
-    navigate('/admin-settings/product-config/bulk-uploads');
-  }
+    navigate("/admin-settings/product-config/bulk-uploads");
+  };
 
   const buildErrorCellMap = (errors: any[]): any => {
     const map: any = {};
@@ -113,7 +113,7 @@ function ValidateFile() {
     setFinalising(true);
     try {
       await bulkImportService.finalizeFile(fileid);
-      
+      setShowActionDialog(true);
     } catch (error: any) {
       console.log(error);
       toast.error(error?.response?.data?.message || error.message);
@@ -396,7 +396,11 @@ function ValidateFile() {
             )}
           </Button>
         </FormFooter>
-        <FinalisedFileAlert showActionDialog={showActionDialog} setShowActionDialog={setShowActionDialog} handleConfirm={handleConfirm} />
+        <FinalisedFileAlert
+          showActionDialog={showActionDialog}
+          setShowActionDialog={setShowActionDialog}
+          handleConfirm={handleConfirm}
+        />
       </>
     );
   }
