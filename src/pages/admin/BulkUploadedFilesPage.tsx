@@ -1,44 +1,16 @@
-import {
-  DataGrid,
-  GridColDef,
-  GridOverlay,
-  GridPaginationModel,
-  GridRowSelectionModel,
-  GridRowParams,
-} from "@mui/x-data-grid";
-import { Button } from "@/components/ui/button";
-import { CheckCircle, Plus } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { getEntities } from "@/services/admin/entities";
+import { bulkImportService } from "@/services/bulkImportService";
 import { Box } from "@mui/material";
-
-type APIEntity = {
-  id: string;
-  name: string;
-  description?: string;
-  display_name?: string;
-  status?: string;
-  type?: string;
-  attributes?: {
-    id: string;
-    value: string;
-    display_value: string;
-    is_active?: boolean;
-  }[];
-  is_active?: boolean;
-  created_at?: string;
-  updated_at?: string;
-  org_id?: string;
-};
-
-type EntityRow = {
-  id: string;
-  entity_name: string;
-  description?: string;
-  type?: string;
-  value?: string;
-};
+import {
+  GridPaginationModel,
+  GridRowModel,
+  GridRowParams,
+  GridRowSelectionModel,
+} from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridOverlay } from "@mui/x-data-grid";
+import { CheckCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 function CustomNoRows() {
   return (
@@ -46,9 +18,11 @@ function CustomNoRows() {
       <Box className="w-full">
         <div className="text-center">
           <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No entities found</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            No uploaded files found
+          </h3>
           <p className="text-muted-foreground">
-            There are currently no entities.
+            There are currently no uploaded files.
           </p>
         </div>
       </Box>
@@ -56,17 +30,38 @@ function CustomNoRows() {
   );
 }
 
-const columns: GridColDef<EntityRow>[] = [
-  { field: "entity_name", headerName: "ENTITY NAME", minWidth: 300, flex: 1 },
-  { field: "description", headerName: "DESC", minWidth: 300, flex: 1 },
-  { field: "type", headerName: "TYPE", minWidth: 300, flex: 1 },
-  { field: "value", headerName: "VALUE", minWidth: 300, flex: 1 },
+const columns: GridColDef[] = [
+  {
+    field: "source_file_name",
+    headerName: "NAME",
+    minWidth: 200,
+    flex: 1,
+  },
+  {
+    field: "template_name",
+    headerName: "TEMPLATE",
+    minWidth: 160,
+    flex: 1,
+  },
+  {
+    field: "status",
+    headerName: "STATUS",
+    minWidth: 160,
+    flex: 1,
+  },
+  {
+    field: "total_errors",
+    headerName: "Errors",
+    minWidth: 160,
+    flex: 1,
+  },
 ];
 
-export const EntityPage = () => {
+function BulkUploadedFilesPage() {
   const navigate = useNavigate();
-  const [rows, setRows] = useState<EntityRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState([]);
+  const [rowCount, setRowCount] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
@@ -74,65 +69,77 @@ export const EntityPage = () => {
   const [paginationModel, setPaginationModel] =
     useState<GridPaginationModel | null>(null);
 
-  const load = async () => {
+  const handleNavigate = ({
+    status,
+    type,
+    fileid,
+  }: {
+    status: string;
+    type: string;
+    fileid: string;
+  }) => {
+    console.log(status, fileid);
+    if (status === "MAPPING") {
+      navigate(`/bulk-upload/column-mapping/${type}/${fileid}`);
+    } else if (status === "NEED_FIXES" || status === "COMPLETE" || status === "VALIDATING") {
+        navigate(`/bulk-upload/validate-file/${type}/${fileid}`)
+    } else if (status === "FINALISED") {
+        navigate(`/bulk-upload/validate-file/${type}/${fileid}`);
+    }
+  };
+
+  const handleRowClick = ({ row }: GridRowModel) => {
+    handleNavigate({
+      status: row.status,
+      type: row.template_key,
+      fileid: row.id,
+    });
+  };
+
+  const getUploadedFiles = async ({
+    limit,
+    offset,
+  }: {
+    limit: number;
+    offset: number;
+  }) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await getEntities();
-      const mapped: EntityRow[] = data.map((e: APIEntity, idx: number) => ({
-        id: e.id || String(idx),
-        entity_name: e.name,
-        description: e.description,
-        type: e.type || e.status,
-        value: Array.isArray(e.attributes)
-          ? e.attributes.map((a) => a.display_value || a.value).join(", ")
-          : e.display_name || "",
-      }));
-      setRows(mapped);
-    } catch (err) {
-      setRows([]);
+      const res = await bulkImportService.getImportedFiles({
+        limit,
+        offset,
+      });
+      setRows(res.data.data);
+      setRowCount(res.data.count);
+    } catch (error: any) {
+      console.log(error);
+      toast.error(error?.response?.data?.message || error.message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (paginationModel) {
+      const limit = paginationModel.pageSize || 10;
+      const offset = (paginationModel.page || 0) * limit;
+      getUploadedFiles({ limit, offset });
+    }
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [paginationModel?.page, paginationModel?.pageSize]);
+
+  useEffect(() => {
     const gridHeight = window.innerHeight - 300;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-
-    load();
   }, []);
 
-  useEffect(() => {
-    setRowSelection({ type: "include", ids: new Set() });
-  }, [paginationModel?.page, paginationModel?.pageSize]);
-
-  const handleRowClick = (params: GridRowParams) => {
-    const entityId = params.id as string;
-    if (!entityId) return;
-    navigate(`/admin-settings/entities/${entityId}`);
-  };
-
   return (
-    <>
+    <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Entities</h1>
-        <Button asChild>
-          <Link to="/admin-settings/entities/create">
-            <Plus className="mr-2 h-4 w-4" />
-            CREATE
-          </Link>
-        </Button>
+        <h1 className="text-2xl font-bold capitalize">Uploaded Files</h1>
       </div>
-{/* 
-      <div className="bg-gray-100 rounded-md p-4">
-        <p className="text-sm text-gray-600">
-          Setup custom entities required to be allocated to users, expenses,
-          transaction etc. These entities can be used for workflows, accounting
-          or any custom purposes.
-        </p>
-      </div> */}
       <Box
         sx={{
           height: "calc(100vh - 120px)",
@@ -188,8 +195,10 @@ export const EntityPage = () => {
           }}
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={setRowSelection}
+          paginationMode="server"
           paginationModel={paginationModel || { page: 0, pageSize: 0 }}
           onPaginationModelChange={setPaginationModel}
+          rowCount={rowCount}
           density="compact"
           checkboxSelection
           disableRowSelectionOnClick
@@ -197,6 +206,8 @@ export const EntityPage = () => {
           showCellVerticalBorder
         />
       </Box>
-    </>
+    </div>
   );
-};
+}
+
+export default BulkUploadedFilesPage;

@@ -67,6 +67,11 @@ import Settlements from "./pages/settlements/Settlements";
 import StoreMaster from "./pages/admin/StoreMaster";
 import CreateWorkflowPage from "./pages/admin/CreateWorkflowPage";
 import CreateRulePage from "./pages/admin/CreateRulePage";
+import UploadFile from "./pages/bulk-upload/UploadFile";
+import PreviewFile from "./pages/bulk-upload/PreviewFile";
+import ColumnMapping from "./pages/bulk-upload/ColumnMapping";
+import ValidateFile from "./pages/bulk-upload/ValidateFile";
+import BulkUploadedFilesPage from "./pages/admin/BulkUploadedFilesPage";
 
 function App() {
   return (
@@ -131,6 +136,11 @@ function App() {
               <Route path="/admin/settlements" element={<Settlements />} />
               <Route path="/admin/settlements/:expenseId" element={<ExpenseDetailPage />} />
 
+              {/* BULK UPLOAD */}
+              <Route path="/bulk-upload/:type" element={<UploadFile />} />
+              <Route path="/file-preview/:type/:fileid" element={<PreviewFile />} />
+              <Route path="/bulk-upload/column-mapping/:type/:fileid" element={<ColumnMapping />} />
+              <Route path="/bulk-upload/validate-file/:type/:fileid" element={<ValidateFile />} />
 
               {/* ADMIN (No Padding Layout) */}
               <Route element={<AdminLayout />}>
@@ -161,6 +171,9 @@ function App() {
                 <Route path="/admin-settings/product-config/category-limits/create" element={<CreateCategoryLimitPage />} />
                 <Route path="/admin-settings/product-config/category-limits/:id" element={<EditCategoryLimitPage />} />
                 <Route path="/admin-settings/product-config/auto-reports" element={<AutoReportPage />} />
+                <Route path="/admin-settings/product-config/bulk-uploads" element={<BulkUploadedFilesPage />} />
+
+
               </Route>
 
               {/* OTHER PAGES */}
