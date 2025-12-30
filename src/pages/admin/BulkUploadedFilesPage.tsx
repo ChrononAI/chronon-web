@@ -1,9 +1,11 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { getBulkUploadStatusColor } from "@/lib/utils";
 import { bulkImportService } from "@/services/bulkImportService";
 import { Box } from "@mui/material";
 import {
   GridPaginationModel,
   GridRowModel,
-  GridRowParams,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { DataGrid, GridColDef, GridOverlay } from "@mui/x-data-grid";
@@ -48,6 +50,13 @@ const columns: GridColDef[] = [
     headerName: "STATUS",
     minWidth: 160,
     flex: 1,
+    renderCell: ({ value }) => {
+      return (
+        <Badge className={getBulkUploadStatusColor(value)}>
+          {value.replace("_", " ")}
+        </Badge>
+      );
+    },
   },
   {
     field: "total_errors",
@@ -80,11 +89,15 @@ function BulkUploadedFilesPage() {
   }) => {
     console.log(status, fileid);
     if (status === "MAPPING") {
-      navigate(`/bulk-upload/column-mapping/${type}/${fileid}`);
-    } else if (status === "NEED_FIXES" || status === "COMPLETE" || status === "VALIDATING") {
-        navigate(`/bulk-upload/validate-file/${type}/${fileid}`)
+      navigate(`/admin-settings/product-config/bulk-uploads/column-mapping/${type}/${fileid}`);
+    } else if (
+      status === "NEED_FIXES" ||
+      status === "COMPLETED" ||
+      status === "VALIDATING"
+    ) {
+      navigate(`/admin-settings/product-config/bulk-uploads/validate-file/${type}/${fileid}`);
     } else if (status === "FINALISED") {
-        navigate(`/bulk-upload/validate-file/${type}/${fileid}`);
+      navigate(`/admin-settings/product-config/bulk-uploads/validate-file/${type}/${fileid}`);
     }
   };
 
@@ -138,7 +151,8 @@ function BulkUploadedFilesPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold capitalize">Uploaded Files</h1>
+        <h1 className="text-2xl font-bold capitalize">Bulk Uploaded Files</h1>
+        <Button onClick={() => navigate('/admin-settings/product-config/bulk-uploads/user')}>Bulk Upload</Button>
       </div>
       <Box
         sx={{

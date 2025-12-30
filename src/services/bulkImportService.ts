@@ -31,11 +31,12 @@ export const bulkImportService = {
 
   async getImportedFiles({ limit, offset }: { limit: number; offset: number }) {
     try {
-      return await api.get('/api/v1/bulk_import', {
+      return await api.get("/api/v1/bulk_import", {
         params: {
-          limit, offset
-        }
-      })
+          limit,
+          offset,
+        },
+      });
     } catch (error) {
       throw error;
     }
@@ -55,9 +56,17 @@ export const bulkImportService = {
     }
   },
 
-  async mapColumns({ fileid, mapping }: {fileid: string; mapping: Record<string, string>}) {
+  async mapColumns({
+    fileid,
+    mapping,
+  }: {
+    fileid: string;
+    mapping: Record<string, string>;
+  }) {
     try {
-      return await api.post(`/api/v1/bulk_import/${fileid}/mapping`, { mapping });
+      return await api.post(`/api/v1/bulk_import/${fileid}/mapping`, {
+        mapping,
+      });
     } catch (error) {
       throw error;
     }
@@ -71,9 +80,19 @@ export const bulkImportService = {
     }
   },
 
-  async getMappedData(fileid: string) {
+  async getMappedData(fileid: string, limit?: number, offset?: number) {
     try {
-      return await api.get(`/api/v1/bulk_import/${fileid}/rows`);
+      const params = new URLSearchParams();
+
+      if (limit !== undefined) params.append("limit", String(limit));
+      if (offset !== undefined) params.append("offset", String(offset));
+
+      const query = params.toString();
+      const url = query
+        ? `/api/v1/bulk_import/${fileid}/rows?${query}`
+        : `/api/v1/bulk_import/${fileid}/rows`;
+
+      return await api.get(url);
     } catch (error) {
       throw error;
     }
@@ -87,11 +106,30 @@ export const bulkImportService = {
     }
   },
 
-  async updateMappedRow({ rowId, fileid, data }: { rowId: string; fileid: string; data: Record<string, Record<string, string>> }) {
+  async updateMappedRow({
+    rowId,
+    fileid,
+    data,
+  }: {
+    rowId: string;
+    fileid: string;
+    data: Record<string, Record<string, string>>;
+  }) {
     try {
-      return await api.post(`/api/v1/bulk_import/${fileid}/rows/${rowId}`, data);
+      return await api.post(
+        `/api/v1/bulk_import/${fileid}/rows/${rowId}`,
+        data
+      );
     } catch (error) {
       throw error;
     }
-  }
+  },
+
+  async finalizeFile(fileid: string) {
+    try {
+      return await api.post(`/api/v1/bulk_import/${fileid}/finalize`);
+    } catch (error) {
+      throw error;
+    }
+  },
 };

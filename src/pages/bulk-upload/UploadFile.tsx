@@ -1,3 +1,4 @@
+import { FormFooter } from "@/components/layout/FormFooter";
 import { Button } from "@/components/ui/button";
 import { bulkImportService } from "@/services/bulkImportService";
 import {
@@ -10,7 +11,7 @@ import {
   Upload,
 } from "lucide-react";
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 const STEPS_DATA = [
@@ -36,7 +37,7 @@ const STEPS_DATA = [
 
 function UploadFile() {
   const { type } = useParams();
-
+  const navigate = useNavigate();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   console.log(uploadedFile);
@@ -50,7 +51,8 @@ function UploadFile() {
           file,
           template_key: type,
         });
-        console.log(res);
+        const id = res.data.data.id;
+        navigate(`/admin-settings/product-config/bulk-uploads/file-preview/${type}/${id}`);
       } catch (error) {
         toast.error("Error uploading file");
         console.error("Error uploading invoice:", error);
@@ -79,6 +81,7 @@ function UploadFile() {
   };
 
   return (
+    <>
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold capitalize">{`Bulk Upload ${type}`}</h1>
@@ -169,6 +172,10 @@ function UploadFile() {
         </div>
       </div>
     </div>
+    <FormFooter>
+      <Button variant="outline" onClick={() => navigate(-1)}>Back</Button>
+    </FormFooter>
+    </>
   );
 }
 

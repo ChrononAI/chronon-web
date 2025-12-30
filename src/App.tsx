@@ -136,12 +136,6 @@ function App() {
               <Route path="/admin/settlements" element={<Settlements />} />
               <Route path="/admin/settlements/:expenseId" element={<ExpenseDetailPage />} />
 
-              {/* BULK UPLOAD */}
-              <Route path="/bulk-upload/:type" element={<UploadFile />} />
-              <Route path="/file-preview/:type/:fileid" element={<PreviewFile />} />
-              <Route path="/bulk-upload/column-mapping/:type/:fileid" element={<ColumnMapping />} />
-              <Route path="/bulk-upload/validate-file/:type/:fileid" element={<ValidateFile />} />
-
               {/* ADMIN (No Padding Layout) */}
               <Route element={<AdminLayout />}>
                 <Route path="/admin-settings/entities" element={<EntityPage />} />
@@ -171,9 +165,13 @@ function App() {
                 <Route path="/admin-settings/product-config/category-limits/create" element={<CreateCategoryLimitPage />} />
                 <Route path="/admin-settings/product-config/category-limits/:id" element={<EditCategoryLimitPage />} />
                 <Route path="/admin-settings/product-config/auto-reports" element={<AutoReportPage />} />
+
+              {/* BULK UPLOAD */}
                 <Route path="/admin-settings/product-config/bulk-uploads" element={<BulkUploadedFilesPage />} />
-
-
+                <Route path="/admin-settings/product-config/bulk-uploads/:type" element={<UploadFile />} />
+                <Route path="/admin-settings/product-config/bulk-uploads/file-preview/:type/:fileid" element={<PreviewFile />} />
+                <Route path="/admin-settings/product-config/bulk-uploads/column-mapping/:type/:fileid" element={<ColumnMapping />} />
+                <Route path="/admin-settings/product-config/bulk-uploads/validate-file/:type/:fileid" element={<ValidateFile />} />
               </Route>
 
               {/* OTHER PAGES */}

@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { bulkImportService } from "@/services/bulkImportService";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -23,7 +24,6 @@ const DetectedHeaderDropdown = ({
   templateKey: string;
   onChange: (key: string, value: string) => void;
 }) => {
-    console.log(options);
   const selectTriggerClass =
     "border border-gray-200 bg-white px-4 text-sm shadow-none focus:outline-none focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
 
@@ -53,15 +53,17 @@ const DetectedHeaderDropdown = ({
         <SelectItem value="No Mapping" className="font-medium">
           No Mapping
         </SelectItem>
-        {options.filter((header) => header && header).map((header) => (
-          <SelectItem
-            key={header}
-            value={header}
-            disabled={isHeaderAlreadyMapped(header, templateKey)}
-          >
-            <div className="font-medium">{header}</div>
-          </SelectItem>
-        ))}
+        {options
+          .filter((header) => header && header)
+          .map((header) => (
+            <SelectItem
+              key={header}
+              value={header}
+              disabled={isHeaderAlreadyMapped(header, templateKey)}
+            >
+              <div className="font-medium">{header}</div>
+            </SelectItem>
+          ))}
       </SelectContent>
     </Select>
   );
@@ -73,27 +75,47 @@ function ColumnMapping() {
   const [detectedHeaders, setDetectedHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [templateHeaders, setTemplateHeaders] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  console.log(templateHeaders);
+const getFileDetails = async (fileid: string) => {
+  try {
+    const res = await bulkImportService.getFileDetailsById(fileid);
+    const data = res.data.data[0];
 
-  const getFileDetails = async (fileid: string) => {
-    try {
-      const res = await bulkImportService.getFileDetailsById(fileid);
-      setDetectedHeaders(res.data.data[0].detected_headers);
-      setTemplateHeaders(res.data.data[0].template_headers);
+    setDetectedHeaders(data.detected_headers);
+    setTemplateHeaders(data.template_headers);
 
-      const mapping: Record<string, string> = {};
-      res.data.data[0].template_headers.forEach(
-        (header: any) => (mapping[header.field_key] = "")
-      );
-      setMapping(mapping);
-    } catch (error) {
-      console.log(error);
+    if (data.mappings) {
+      const hydratedMapping: Record<string, string> = {};
+
+      data.template_headers.forEach((header: any) => {
+        hydratedMapping[header.field_key] =
+          data.mappings[header.field_key] ?? "";
+      });
+
+      setMapping(hydratedMapping);
+    } else {
+      const autoMapping: Record<string, string> = {};
+
+      data.template_headers.forEach((header: any) => {
+        const matchedHeader = data.detected_headers.find(
+          (detected: string) =>
+            detected.trim().toLowerCase() ===
+            header.display_name.trim().toLowerCase()
+        );
+
+        autoMapping[header.field_key] = matchedHeader || "";
+      });
+
+      setMapping(autoMapping);
     }
-  };
+  } catch (error) {
+    console.log(error);
+    toast.error("Failed to load file details");
+  }
+};
 
   const validateMapping = (mapping: Record<string, string>) => {
-    console.log(mapping);
     return templateHeaders
       .filter((header: any) => header.required)
       .every((header: any) => {
@@ -102,24 +124,39 @@ function ColumnMapping() {
       });
   };
 
+  const formatMappingForPayload = (mapping: Record<string, string>) => {
+    return Object.fromEntries(
+      Object.entries(mapping).map(([key, value]) => [
+        key,
+        value === "No Mapping" ? "" : value,
+      ])
+    );
+  };
+
   const mapColumns = async () => {
     if (!validateMapping(mapping)) {
-        toast.error("Please map headers for all selected fields");
+      toast.error("Please map headers for all mandatory fields");
     } else {
-        if (fileid && mapping) {
-          try {
-            const res = await bulkImportService.mapColumns({
-              fileid,
-              mapping,
-            });
-            console.log(res);
-            navigate(`/bulk-upload/validate-file/${type}/${fileid}`);
-          } catch (error) {
-            console.log(error);
-          }
-        } else {
-          toast.error("Cannot find file to map columns");
+      if (fileid && mapping) {
+        setLoading(true);
+        const cleanedMapping = formatMappingForPayload(mapping);
+        try {
+          await bulkImportService.mapColumns({
+            fileid,
+            mapping: cleanedMapping,
+          });
+          toast.success("Successfully mapped columns");
+          navigate(
+            `/admin-settings/product-config/bulk-uploads/validate-file/${type}/${fileid}`
+          );
+        } catch (error) {
+          console.log(error);
+        } finally {
+          setLoading(false);
         }
+      } else {
+        toast.error("Cannot find file to map columns");
+      }
     }
   };
 
@@ -162,7 +199,16 @@ function ColumnMapping() {
         <Button variant="outline" onClick={() => navigate(-1)}>
           Back
         </Button>
-        <Button onClick={mapColumns}>Map Columns</Button>
+        <Button disabled={loading} onClick={mapColumns}>
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Mapping...
+            </>
+          ) : (
+            "Map Columns"
+          )}
+        </Button>
       </FormFooter>
     </div>
   );

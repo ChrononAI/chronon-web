@@ -560,7 +560,7 @@ const MileagePage = ({
       toast.error("Failed to save mileage expense");
       setLoading(false);
     } finally {
-      // setLoading(false);
+      setLoading(false);
     }
   };
 
