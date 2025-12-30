@@ -31,6 +31,7 @@ function CreateExpenseCategoryPage() {
 
   useEffect(() => {
     if (row) {
+      console.log(row);
       setItems([row]);
     }
   }, []);
@@ -83,7 +84,7 @@ function CreateExpenseCategoryPage() {
             name: item.name,
             description: item.description,
             category_type: "EXPENSE",
-            receipt_required: item.is_receipt_required,
+            is_receipt_required: item.is_receipt_required,
           };
         }),
       };
@@ -104,7 +105,7 @@ function CreateExpenseCategoryPage() {
               className="w-full space-y-2"
             >
               {items.map((item) => (
-                <div className="flex items-end gap-4">
+                <div key={item.name} className="flex items-end gap-4">
                   <div className="space-y-2">
                     <Label>Category</Label>
                     <Input
