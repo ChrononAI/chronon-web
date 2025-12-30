@@ -64,8 +64,8 @@ function PreviewFile() {
 
   useEffect(() => {
     if (fileid) {
-      fetchFileData("biteGmpNbxWf");
-      fetchRows("biteGmpNbxWf");
+      fetchFileData(fileid);
+      fetchRows(fileid);
     }
   }, []);
 

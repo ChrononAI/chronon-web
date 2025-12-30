@@ -124,7 +124,6 @@ function ValidateFile() {
 
   const getMappedRows = async (fileid: string) => {
     try {
-      // CHECK WITH BACKEND
       const fileData = await bulkImportService.getFileDetailsById(fileid);
       setFileData(fileData.data.data[0]);
       const res = await bulkImportService.getMappedData(fileid);
