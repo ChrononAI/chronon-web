@@ -2,10 +2,10 @@ import {
   CheckCircle,
   CircleCheck,
   Edit,
+  FileUp,
   History,
   Loader2,
   RotateCcw,
-  Send,
   XCircle,
 } from "lucide-react";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
@@ -17,6 +17,7 @@ const UI_DISPLAY_KEYS = [
   "description",
   "expense date",
   "invoice number",
+  "Reason",
   "vendor",
 ] as const;
 
@@ -37,7 +38,7 @@ const getTimelineIcon = (action?: string) => {
       return <Edit className="h-4 w-4 text-amber-600" />;
 
     case "SUBMITTED":
-      return <Send className="h-4 w-4 text-indigo-600" />;
+      return <FileUp className="h-4 w-4 text-indigo-600" />;
 
     case "APPROVED":
       return <CheckCircle className="h-4 w-4 text-blue-600" />;
@@ -67,8 +68,8 @@ function ExpenseLogs({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-col h-full", className)}>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className={cn("flex flex-col h-full p-4", className)}>
+      <div className="flex-1 overflow-y-auto space-y-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />

@@ -18,7 +18,7 @@ function ExpensesSkeletonOverlay({ rowCount = 8 }) {
   return (
     <GridOverlay>
       <div className="w-full py-3 space-y-0">
-        {Array.from({ length: rowCount - 1 }).map((_, rowIndex) => (
+        {Array.from({ length: rowCount }).map((_, rowIndex) => (
           <div
             key={rowIndex}
             className="flex items-center gap-4 w-full py-4 px-2 border-[0.5px] border-gray"
