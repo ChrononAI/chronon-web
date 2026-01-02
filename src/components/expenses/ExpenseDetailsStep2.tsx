@@ -86,7 +86,20 @@ const expenseSchema = z.object({
   receipt_id: z.string().optional(),
   expense_date: z.preprocess(
     (v) => (v ? new Date(v as string) : v),
-    z.date({ required_error: "Date is required" })
+    z.date({ required_error: "Date is required" }).refine(
+      (date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const selectedDate = new Date(date);
+        selectedDate.setHours(0, 0, 0, 0);
+
+        return selectedDate <= today;
+      },
+      {
+        message: "Date cannot exceed today's date",
+      }
+    )
   ),
   advance_account_id: z.string().optional().nullable(),
   description: z.string().min(1, "Description is required"),
@@ -710,7 +723,9 @@ export function ExpenseDetailsStep2({
   const activeReceiptUrl =
     (receiptSignedUrl && receiptSignedUrl.length > 0
       ? receiptSignedUrl[0]
-      : null) || previewUrl || duplicateReceiptUrl
+      : null) ||
+    previewUrl ||
+    duplicateReceiptUrl;
 
   const receiptDisplayName =
     uploadedFile?.name ||
@@ -1025,7 +1040,8 @@ export function ExpenseDetailsStep2({
                                   }}
                                   disabled={
                                     readOnly ||
-                                    (!orgSettings?.currency_conversion_settings?.enabled)
+                                    !orgSettings?.currency_conversion_settings
+                                      ?.enabled
                                   }
                                 >
                                   <SelectTrigger className={selectTriggerClass}>
