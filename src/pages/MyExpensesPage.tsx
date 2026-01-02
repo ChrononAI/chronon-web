@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { expenseService } from "@/services/expenseService";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { useExpenseStore } from "@/store/expenseStore";
@@ -122,8 +122,44 @@ const EXPENSE_STATUSES = [
 ];
 
 const DRAFT_EXPENSE_STATUSES = ["COMPLETE", "INCOMPLETE"];
+const draft = {
+  status: [
+    {
+      operator: "in",
+      value: ["COMPLETE", "INCOMPLETE"],
+    },
+  ],
+};
 
 const REPORTED_EXPENSE_STATUSES = ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
+const reported = {
+  status: [
+    {
+      operator: "in",
+      value: ["APPROVED", "REJECTED", "PENDING_APPROVAL"],
+    },
+  ],
+};
+
+const TAB_QUERY_OVERRIDES = {
+  all: {},
+  draft: {
+    status: [
+      {
+        operator: "in",
+        value: ["COMPLETE", "INCOMPLETE"],
+      },
+    ],
+  },
+  reported: {
+    status: [
+      {
+        operator: "in",
+        value: ["APPROVED", "REJECTED", "PENDING_APPROVAL"],
+      },
+    ],
+  },
+};
 
 const columns: GridColDef[] = [
   {
@@ -290,6 +326,13 @@ export function MyExpensesPage() {
     ],
   };
 
+  const effectiveQuery = useMemo<FilterMap>(() => {
+    return {
+      ...query,
+      ...TAB_QUERY_OVERRIDES[activeTab],
+    };
+  }, [query, activeTab]);
+
   const rows =
     activeTab === "all"
       ? allExpenses
@@ -365,6 +408,39 @@ export function MyExpensesPage() {
     }
   };
 
+  const fetchFilteredExpenses = async () => {
+  const limit = paginationModel?.pageSize ?? 10;
+  const offset = (paginationModel?.page ?? 0) * limit;
+
+  const effectiveQuery = {
+    ...query,
+    ...TAB_QUERY_OVERRIDES[activeTab],
+  };
+
+  const response = await expenseService.getFilteredExpenses({
+    query: buildBackendQuery(effectiveQuery),
+    limit,
+    offset,
+  });
+
+  switch (activeTab) {
+    case "draft":
+      setDraftExpenses(response.data.data);
+      setDraftExpensesPagination({ total: response.data.count });
+      break;
+
+    case "reported":
+      setReportedExpenses(response.data.data);
+      setReportedExpensesPagination({ total: response.data.count });
+      break;
+
+    case "all":
+    default:
+      setAllExpenses(response.data.data);
+      setAllExpensesPagination({ total: response.data.count });
+  }
+};
+
   useEffect(() => {
     if (paginationModel && rowsCalculated) {
       const limit = paginationModel?.pageSize || 10;
@@ -392,8 +468,6 @@ export function MyExpensesPage() {
       limit,
       offset,
     });
-    console.log(response);
-
     setAllExpenses(response.data.data);
     setAllExpensesPagination({ total: response.data.count });
   };
@@ -442,12 +516,32 @@ export function MyExpensesPage() {
     }
   };
 
+  // useEffect(() => {
+  //   if (paginationModel && rowsCalculated) {
+  //     fetchData();
+  //   }
+  //   setRowSelection({ type: "include", ids: new Set() });
+  // }, [paginationModel?.page, paginationModel?.pageSize, rowsCalculated]);
+
   useEffect(() => {
-    if (paginationModel && rowsCalculated) {
-      fetchData();
-    }
-    setRowSelection({ type: "include", ids: new Set() });
-  }, [paginationModel?.page, paginationModel?.pageSize, rowsCalculated]);
+  if (!rowsCalculated) return;
+
+  setLoading(true);
+
+  fetchFilteredExpenses()
+    .catch(console.error)
+    .finally(() => {
+      setLoading(false);
+      setIsInitialLoad(false);
+      setRowSelection({ type: "include", ids: new Set() });
+    });
+}, [
+  activeTab,
+  paginationModel?.page,
+  paginationModel?.pageSize,
+  rowsCalculated,
+  query,
+]);
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
