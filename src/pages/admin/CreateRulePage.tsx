@@ -158,13 +158,6 @@ function CreateRulePage() {
     value: "",
   });
 
-  // const emptyRule: RuleCondition = {
-  //   id: crypto.randomUUID(),
-  //   ifField: "",
-  //   operator: undefined,
-  //   value: "",
-  // };
-
   const [ruleForm, setRuleForm] = useState<RuleForm>({
     name: "",
     description: "",
@@ -173,7 +166,6 @@ function CreateRulePage() {
     rules: [createEmptyRule()],
   });
 
-  console.log(ruleForm);
   const extractId = (value: string) => {
     if (!value.includes(".")) return value;
     return value.split(".")[1];
@@ -272,9 +264,17 @@ function CreateRulePage() {
         approval_type: ruleForm.workflowEvent,
         conditions: {
           rules: ruleForm.rules.map((r) => ({
-            field: extractId(r.ifField),
+            field:
+              ruleForm.workflowEvent === "REPORT" &&
+              extractId(r.ifField) === "amount"
+                ? `report.${extractId(r.ifField)}`
+                : `user.${extractId(r.ifField)}`,
             operator: r.operator!,
-            value: r.value,
+            value:
+              ruleForm.workflowEvent === "REPORT" &&
+              extractId(r.ifField) === "amount"
+                ? r.value
+                : `user.${extractId(r.ifField)}`,
           })),
           action: {
             type: HARDCODED_VALUES.ACTION_TYPE,
@@ -506,14 +506,6 @@ function CreateRulePage() {
     setHydrated(true);
   }, [isEditMode, ruleToEdit, entities, workflows, hydrated]);
 
-  // useEffect(() => {
-  //   if (!isEditMode || !ruleToEdit) return;
-  //   if (entities.length === 0) return;
-
-  //   const condition = ruleToEdit.conditions?.rules?.[0];
-  //   if (!condition?.field) return;
-  // }, [isEditMode, ruleToEdit, entities]);
-
   return (
     <div className="flex flex-col gap-3 max-w-full">
       <div className="flex items-center justify-between">
@@ -610,10 +602,7 @@ function CreateRulePage() {
             <Label className="text-sm font-medium">New Rules</Label>
             {ruleForm.rules.map((rule: any, index: number) => {
               return (
-                <div
-                  className="flex items-center gap-6"
-                  key={rule.id}
-                >
+                <div className="flex items-center gap-6" key={rule.id}>
                   {renderEntitySelect(
                     rule.ifField,
                     (value) => updateRule(index, { ifField: value, value: "" }),
@@ -632,7 +621,12 @@ function CreateRulePage() {
                     (value) => updateRule(index, { value }),
                     rule.ifField === "amount" ? "Enter value" : "Select value"
                   )}
-                  <Button onClick={() => removeRule(rule.id)} variant="destructive">Remove</Button>
+                  <Button
+                    onClick={() => removeRule(rule.id)}
+                    variant="destructive"
+                  >
+                    Remove
+                  </Button>
                 </div>
               );
             })}
