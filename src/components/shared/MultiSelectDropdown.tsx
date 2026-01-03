@@ -34,10 +34,12 @@ function MultiSelectDropdown({
   selectedItems,
   allItems,
   toggleItem,
+  deselectAll,
 }: {
   selectedItems: string[];
   allItems: any[];
   toggleItem: (id: string) => void;
+  deselectAll: () => void;
 }) {
   return (
     <Popover>
@@ -46,7 +48,7 @@ function MultiSelectDropdown({
           variant="outline"
           className="w-full text-muted-foreground flex gap-2 px-3 h-11 justify-between"
         >
-          <span className="max-w-full">
+          <span className="max-w-[80%]">
             {selectedItems?.length > 0 ? (
               <SelectedItemBadge selectedItems={selectedItems} />
             ) : (
@@ -54,7 +56,13 @@ function MultiSelectDropdown({
             )}
           </span>
           <span className="flex items-center gap-2">
-            <X className="h-4 w-4 opacity-50" />
+            {selectedItems.length > 0 && <X
+              className="h-4 w-4 opacity-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                deselectAll();
+              }}
+            />}
             <ChevronsUpDown className="h-4 w-4 opacity-50" />
           </span>
         </Button>

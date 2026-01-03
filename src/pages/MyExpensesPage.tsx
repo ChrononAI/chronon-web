@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { expenseService } from "@/services/expenseService";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { useExpenseStore } from "@/store/expenseStore";
@@ -121,25 +121,9 @@ const EXPENSE_STATUSES = [
   "SENT_BACK",
 ];
 
-const DRAFT_EXPENSE_STATUSES = ["COMPLETE", "INCOMPLETE"];
-const draft = {
-  status: [
-    {
-      operator: "in",
-      value: ["COMPLETE", "INCOMPLETE"],
-    },
-  ],
-};
+const DRAFT_EXPENSE_STATUSES = ["COMPLETE", "INCOMPLETE", "SENT_BACK"];
 
 const REPORTED_EXPENSE_STATUSES = ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
-const reported = {
-  status: [
-    {
-      operator: "in",
-      value: ["APPROVED", "REJECTED", "PENDING_APPROVAL"],
-    },
-  ],
-};
 
 const TAB_QUERY_OVERRIDES = {
   all: {},
@@ -147,7 +131,7 @@ const TAB_QUERY_OVERRIDES = {
     status: [
       {
         operator: "in",
-        value: ["COMPLETE", "INCOMPLETE"],
+        value: ["COMPLETE", "INCOMPLETE", "SENT_BACK"],
       },
     ],
   },
@@ -310,28 +294,6 @@ export function MyExpensesPage() {
     ids: new Set(),
   });
   const [rowsCalculated, setRowsCalculated] = useState(false);
-  console.log(buildBackendQuery(query));
-  const allExpensesQuery = query;
-
-  const draftExpensesQuery: FilterMap = {
-    status: [{ operator: "in", value: DRAFT_EXPENSE_STATUSES }],
-  };
-
-  const completedExpensesQuery: FilterMap = {
-    status: [
-      {
-        operator: "in",
-        value: REPORTED_EXPENSE_STATUSES,
-      },
-    ],
-  };
-
-  const effectiveQuery = useMemo<FilterMap>(() => {
-    return {
-      ...query,
-      ...TAB_QUERY_OVERRIDES[activeTab],
-    };
-  }, [query, activeTab]);
 
   const rows =
     activeTab === "all"
@@ -387,67 +349,41 @@ export function MyExpensesPage() {
       pageSize: 10,
     });
 
-  const getFilteredExpenses = async ({
-    query,
-    limit,
-    offset,
-  }: {
-    query: string;
-    limit: number;
-    offset: number;
-  }) => {
-    try {
-      const res = await expenseService.getFilteredExpenses({
-        query,
-        limit,
-        offset,
-      });
-      console.log(res);
-    } catch (error) {
-      console.log(error);
+  const fetchFilteredExpenses = async ({ signal }: { signal: AbortSignal }) => {
+    const limit = paginationModel?.pageSize ?? 10;
+    const offset = (paginationModel?.page ?? 0) * limit;
+
+    const effectiveQuery = {
+      ...query,
+      ...TAB_QUERY_OVERRIDES[activeTab],
+    };
+
+    const response = await expenseService.getFilteredExpenses({
+      query: buildBackendQuery(effectiveQuery),
+      limit,
+      offset,
+      signal,
+    });
+
+    switch (activeTab) {
+      case "draft":
+        setDraftExpenses(response.data.data);
+        setDraftExpensesPagination({ total: response.data.count });
+        break;
+
+      case "reported":
+        setReportedExpenses(response.data.data);
+        setReportedExpensesPagination({ total: response.data.count });
+        break;
+
+      case "all":
+      default:
+        setAllExpenses(response.data.data);
+        setAllExpensesPagination({ total: response.data.count });
     }
   };
-
-  const fetchFilteredExpenses = async () => {
-  const limit = paginationModel?.pageSize ?? 10;
-  const offset = (paginationModel?.page ?? 0) * limit;
-
-  const effectiveQuery = {
-    ...query,
-    ...TAB_QUERY_OVERRIDES[activeTab],
-  };
-
-  const response = await expenseService.getFilteredExpenses({
-    query: buildBackendQuery(effectiveQuery),
-    limit,
-    offset,
-  });
-
-  switch (activeTab) {
-    case "draft":
-      setDraftExpenses(response.data.data);
-      setDraftExpensesPagination({ total: response.data.count });
-      break;
-
-    case "reported":
-      setReportedExpenses(response.data.data);
-      setReportedExpensesPagination({ total: response.data.count });
-      break;
-
-    case "all":
-    default:
-      setAllExpenses(response.data.data);
-      setAllExpensesPagination({ total: response.data.count });
-  }
-};
 
   useEffect(() => {
-    if (paginationModel && rowsCalculated) {
-      const limit = paginationModel?.pageSize || 10;
-      const offset = (paginationModel?.page || 0) * limit;
-      const frido = buildBackendQuery(query);
-      getFilteredExpenses({ query: frido, limit, offset });
-    }
     setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize, rowsCalculated]);
 
@@ -459,82 +395,47 @@ export function MyExpensesPage() {
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, [activeTab]);
 
-  const fetchAllExpenses = async () => {
-    const limit = paginationModel?.pageSize ?? 10;
-    const offset = (paginationModel?.page ?? 0) * limit;
+const abortControllerRef = useRef<AbortController | null>(null);
+const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-    const response: any = await expenseService.getFilteredExpenses({
-      query: buildBackendQuery(allExpensesQuery),
-      limit,
-      offset,
-    });
-    setAllExpenses(response.data.data);
-    setAllExpensesPagination({ total: response.data.count });
-  };
-
-  const fetchDraftExpenses = async () => {
-    const limit = paginationModel?.pageSize ?? 10;
-    const offset = (paginationModel?.page ?? 0) * limit;
-
-    const response = await expenseService.getFilteredExpenses({
-      query: buildBackendQuery(draftExpensesQuery),
-      limit,
-      offset,
-    });
-
-    setDraftExpenses(response.data.data);
-    setDraftExpensesPagination({ total: response.data.count });
-  };
-
-  const fetchCompletedExpenses = async () => {
-    const limit = paginationModel?.pageSize ?? 10;
-    const offset = (paginationModel?.page ?? 0) * limit;
-
-    const response = await expenseService.getFilteredExpenses({
-      query: buildBackendQuery(completedExpensesQuery),
-      limit,
-      offset,
-    });
-
-    setReportedExpenses(response.data.data);
-    setReportedExpensesPagination({ total: response.data.count });
-  };
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      await Promise.all([
-        fetchAllExpenses(),
-        fetchDraftExpenses(),
-        fetchCompletedExpenses(),
-      ]);
-      setIsInitialLoad(false);
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // useEffect(() => {
-  //   if (paginationModel && rowsCalculated) {
-  //     fetchData();
-  //   }
-  //   setRowSelection({ type: "include", ids: new Set() });
-  // }, [paginationModel?.page, paginationModel?.pageSize, rowsCalculated]);
-
-  useEffect(() => {
+useEffect(() => {
   if (!rowsCalculated) return;
 
-  setLoading(true);
+  if (debounceRef.current) {
+    clearTimeout(debounceRef.current);
+  }
 
-  fetchFilteredExpenses()
-    .catch(console.error)
-    .finally(() => {
-      setLoading(false);
-      setIsInitialLoad(false);
-      setRowSelection({ type: "include", ids: new Set() });
-    });
+  debounceRef.current = setTimeout(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setLoading(true);
+
+    fetchFilteredExpenses({ signal: controller.signal })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          console.error(err);
+        }
+      })
+      .finally(() => {
+        // Prevent stale cleanup
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          setIsInitialLoad(false);
+          setRowSelection({ type: "include", ids: new Set() });
+        }
+      });
+  }, 400); // 👈 debounce delay (300–500ms ideal)
+
+  return () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+  };
 }, [
   activeTab,
   paginationModel?.page,
@@ -543,6 +444,7 @@ export function MyExpensesPage() {
   query,
 ]);
 
+
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
 
@@ -550,7 +452,7 @@ export function MyExpensesPage() {
       activeTab === "all"
         ? []
         : activeTab === "draft"
-        ? ["COMPLETE", "INCOMPLETE"]
+        ? ["COMPLETE", "INCOMPLETE", "SENT_BACK"]
         : ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
     updateQuery("status", "in", filter);
   }, [activeTab]);

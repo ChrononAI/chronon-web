@@ -122,10 +122,12 @@ export const expenseService = {
     query,
     limit,
     offset,
+    signal
   }: {
     query: string;
     limit: number;
     offset: number;
+    signal: AbortSignal;
   }) {
     try {
       return await api.get(`/api/v1/expenses/spender?${query}`, {
@@ -133,6 +135,7 @@ export const expenseService = {
           limit,
           offset,
         },
+        signal
       });
     } catch (error) {
       throw error;
