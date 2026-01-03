@@ -270,11 +270,7 @@ function CreateRulePage() {
                 ? `report.${extractId(r.ifField)}`
                 : `user.${extractId(r.ifField)}`,
             operator: r.operator!,
-            value:
-              ruleForm.workflowEvent === "REPORT" &&
-              extractId(r.ifField) === "amount"
-                ? r.value
-                : `user.${extractId(r.ifField)}`,
+            value: r.value,
           })),
           action: {
             type: HARDCODED_VALUES.ACTION_TYPE,
@@ -282,6 +278,7 @@ function CreateRulePage() {
         },
         is_active: true,
       };
+
       if (isEditMode) {
         await updatePolicyRule({ id: ruleToEdit?.id, payload });
         toast.success("Policy updated successfully");
