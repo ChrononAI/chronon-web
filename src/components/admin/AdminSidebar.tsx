@@ -20,6 +20,7 @@ import {
   DollarSign,
   Workflow,
   Store,
+  CloudUpload,
 } from "lucide-react";
 import {
   Collapsible,
@@ -87,8 +88,8 @@ const navigation: NavigationItem[] = [
       {
         name: "Store Masters",
         href: "/admin-settings/masters/store-masters",
-        icon: Store
-      }
+        icon: Store,
+      },
     ],
   },
   {
@@ -119,6 +120,11 @@ const navigation: NavigationItem[] = [
         name: "Auto Reports",
         href: "/admin-settings/product-config/auto-reports",
         icon: FileBarChart,
+      },
+      {
+        name: "Bulk Uploads",
+        href: "/admin-settings/product-config/bulk-uploads",
+        icon: CloudUpload,
       },
     ],
   },

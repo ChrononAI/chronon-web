@@ -196,7 +196,9 @@ const createDefaultValues = (
   return defaults;
 };
 
-const parseEntityAssignments = (rawAssignments: unknown): Record<string, string> => {
+const parseEntityAssignments = (
+  rawAssignments: unknown
+): Record<string, string> => {
   const assignments: Record<string, string> = {};
 
   if (Array.isArray(rawAssignments)) {
@@ -204,26 +206,33 @@ const parseEntityAssignments = (rawAssignments: unknown): Record<string, string>
       if (item && typeof item === "object") {
         const maybeEntityId = (item as Record<string, unknown>).entity_id;
         const maybeValue = (item as Record<string, unknown>).value;
-        if (typeof maybeEntityId === "string" && typeof maybeValue === "string") {
+        if (
+          typeof maybeEntityId === "string" &&
+          typeof maybeValue === "string"
+        ) {
           assignments[maybeEntityId] = maybeValue;
         }
 
-        Object.entries(item as Record<string, unknown>).forEach(([key, val]) => {
-          if (typeof val === "string") {
-            assignments[key] = val;
+        Object.entries(item as Record<string, unknown>).forEach(
+          ([key, val]) => {
+            if (typeof val === "string") {
+              assignments[key] = val;
+            }
           }
-        });
+        );
       }
     });
     return assignments;
   }
 
   if (rawAssignments && typeof rawAssignments === "object") {
-    Object.entries(rawAssignments as Record<string, unknown>).forEach(([key, val]) => {
-      if (typeof val === "string") {
-        assignments[key] = val;
+    Object.entries(rawAssignments as Record<string, unknown>).forEach(
+      ([key, val]) => {
+        if (typeof val === "string") {
+          assignments[key] = val;
+        }
       }
-    });
+    );
   }
 
   return assignments;
@@ -298,21 +307,22 @@ const CreateUserForm = ({
       const values = { ...createDefaultValues(templates), ...initialValues };
       form.reset(values);
       if (initialValues.reportingManager && reportingManagers.length > 0) {
-        const manager = reportingManagers.find(m => m.id === initialValues.reportingManager);
+        const manager = reportingManagers.find(
+          (m) => m.id === initialValues.reportingManager
+        );
         if (!manager) {
-          console.warn("Reporting manager not found in list:", initialValues.reportingManager);
+          console.warn(
+            "Reporting manager not found in list:",
+            initialValues.reportingManager
+          );
         }
       }
     }
   }, [form, initialValues, isEditMode, templates, reportingManagers]);
 
-
-  const handleReportingManagerOpen = useCallback(
-    (open: boolean) => {
-      setReportingManagerOpen(open);
-    },
-    []
-  );
+  const handleReportingManagerOpen = useCallback((open: boolean) => {
+    setReportingManagerOpen(open);
+  }, []);
 
   const onSubmit = useCallback(
     async (values: UserFormValues) => {
@@ -323,11 +333,17 @@ const CreateUserForm = ({
 
       const entityAssignmentsObj: Record<string, string> = {};
       templates
-        .filter((entity) => entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT)
+        .filter(
+          (entity) => entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT
+        )
         .forEach((entity) => {
           const entityId = getEntityId(entity);
           const value = values[entityId];
-          if (entityId && typeof value === "string" && value.trim().length > 0) {
+          if (
+            entityId &&
+            typeof value === "string" &&
+            value.trim().length > 0
+          ) {
             entityAssignmentsObj[entityId] = value.trim();
           }
         });
@@ -337,13 +353,18 @@ const CreateUserForm = ({
         last_name: values.lastName,
         phone_number: values.phoneNumber,
         role: values.role,
-        entity_assignments: Object.keys(entityAssignmentsObj).length > 0 
-          ? Object.entries(entityAssignmentsObj).map(([key, value]) => ({ [key]: value }))
-          : [],
+        entity_assignments:
+          Object.keys(entityAssignmentsObj).length > 0
+            ? Object.entries(entityAssignmentsObj).map(([key, value]) => ({
+                [key]: value,
+              }))
+            : [],
       };
 
-      if (values.employeeCode?.trim()) payload.employee_code = values.employeeCode.trim();
-      if (values.reportingManager?.trim()) payload.reporting_manager = values.reportingManager.trim();
+      if (values.employeeCode?.trim())
+        payload.employee_code = values.employeeCode.trim();
+      if (values.reportingManager?.trim())
+        payload.reporting_manager = values.reportingManager.trim();
       if (!isEditMode) payload.email = values.email;
 
       setSubmitting(true);
@@ -351,31 +372,57 @@ const CreateUserForm = ({
         const response = isEditMode
           ? await api.put(`/auth/em/users/${userId}`, payload)
           : await api.post(`/auth/em/users`, payload);
-        toast.success(response.data?.message || (isEditMode ? "User updated successfully" : "User created successfully"));
+        toast.success(
+          response.data?.message ||
+            (isEditMode
+              ? "User updated successfully"
+              : "User created successfully")
+        );
         if (isMounted.current) {
           if (isEditMode) navigate(basePath);
-          else { form.reset(createDefaultValues(templates)); navigate(basePath); }
+          else {
+            form.reset(createDefaultValues(templates));
+            navigate(basePath);
+          }
         }
       } catch (error: any) {
         const errorData = error?.response?.data;
         const errors = errorData?.errors;
         const fieldMap: Record<string, string> = {
-          last_name: "lastName", first_name: "firstName", phone_number: "phoneNumber",
-          employee_code: "employeeCode", email: "email", role: "role", reporting_manager: "reportingManager",
+          last_name: "lastName",
+          first_name: "firstName",
+          phone_number: "phoneNumber",
+          employee_code: "employeeCode",
+          email: "email",
+          role: "role",
+          reporting_manager: "reportingManager",
         };
         if (errors && typeof errors === "object" && !Array.isArray(errors)) {
           const msgs: string[] = [];
           Object.keys(errors).forEach((key) => {
-            const msg = Array.isArray(errors[key]) ? errors[key][0] : typeof errors[key] === "string" ? errors[key] : String(errors[key]);
+            const msg = Array.isArray(errors[key])
+              ? errors[key][0]
+              : typeof errors[key] === "string"
+              ? errors[key]
+              : String(errors[key]);
             if (msg) {
               msgs.push(msg);
-              const field = fieldMap[key] || (knownEntityIds.has(key) ? key : undefined);
-              if (field) form.setError(field as never, { type: "server", message: msg });
+              const field =
+                fieldMap[key] || (knownEntityIds.has(key) ? key : undefined);
+              if (field)
+                form.setError(field as never, { type: "server", message: msg });
             }
           });
-          toast.error(msgs.length > 1 ? `${msgs[0]} (and ${msgs.length - 1} more)` : msgs[0] || errorData?.message || "Please fix the errors");
+          toast.error(
+            msgs.length > 1
+              ? `${msgs[0]} (and ${msgs.length - 1} more)`
+              : msgs[0] || errorData?.message || "Please fix the errors"
+          );
         } else {
-          toast.error(errorData?.message || (isEditMode ? "Failed to update user" : "Failed to create user"));
+          toast.error(
+            errorData?.message ||
+              (isEditMode ? "Failed to update user" : "Failed to create user")
+          );
         }
       } finally {
         if (isMounted.current) setSubmitting(false);
@@ -422,7 +469,9 @@ const CreateUserForm = ({
                           placeholder="user@example.com"
                           required
                           readOnly={isEditMode}
-                          className={isEditMode ? "bg-muted cursor-not-allowed" : ""}
+                          className={
+                            isEditMode ? "bg-muted cursor-not-allowed" : ""
+                          }
                           {...field}
                         />
                       </FormControl>
@@ -693,66 +742,69 @@ const CreateUserForm = ({
                   <Separator className="my-6" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {templates
-                      .filter((entity) => entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT)
+                      .filter(
+                        (entity) =>
+                          entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT
+                      )
                       .map((entity) => {
-                      const entityId = getEntityId(entity);
-                      const fieldName = getFieldName(entity);
-                      return (
-                        <FormField
-                          key={entityId}
-                          control={form.control}
-                          name={entityId}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel
-                                className="flex items-center gap-1"
-                                aria-required={entity.is_mandatory ?? false}
-                              >
-                                {fieldName}
-                                {entity.is_mandatory && (
-                                  <span className="text-destructive">*</span>
-                                )}
-                              </FormLabel>
-                              {entity.field_type?.toUpperCase() ===
-                              FIELD_TYPE_SELECT ? (
-                                <Select
-                                  onValueChange={(val) =>
-                                    field.onChange(val || undefined)
-                                  }
-                                  value={field.value || ""}
+                        const entityId = getEntityId(entity);
+                        const fieldName = getFieldName(entity);
+                        return (
+                          <FormField
+                            key={entityId}
+                            control={form.control}
+                            name={entityId}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel
+                                  className="flex items-center gap-1"
+                                  aria-required={entity.is_mandatory ?? false}
                                 >
+                                  {fieldName}
+                                  {entity.is_mandatory && (
+                                    <span className="text-destructive">*</span>
+                                  )}
+                                </FormLabel>
+                                {entity.field_type?.toUpperCase() ===
+                                FIELD_TYPE_SELECT ? (
+                                  <Select
+                                    onValueChange={(val) =>
+                                      field.onChange(val || undefined)
+                                    }
+                                    value={field.value || ""}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger
+                                        aria-required={
+                                          entity.is_mandatory ?? false
+                                        }
+                                      >
+                                        <SelectValue placeholder="Select" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {entityOptions[entityId]?.map((opt) => (
+                                        <SelectItem key={opt.id} value={opt.id}>
+                                          {opt.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
                                   <FormControl>
-                                    <SelectTrigger
-                                      aria-required={
-                                        entity.is_mandatory ?? false
-                                      }
-                                    >
-                                      <SelectValue placeholder="Select" />
-                                    </SelectTrigger>
+                                    <Input
+                                      placeholder={`Enter ${fieldName}`}
+                                      required={Boolean(entity.is_mandatory)}
+                                      {...field}
+                                    />
                                   </FormControl>
-                                  <SelectContent>
-                                    {entityOptions[entityId]?.map((opt) => (
-                                      <SelectItem key={opt.id} value={opt.id}>
-                                        {opt.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              ) : (
-                                <FormControl>
-                                  <Input
-                                    placeholder={`Enter ${fieldName}`}
-                                    required={Boolean(entity.is_mandatory)}
-                                    {...field}
-                                  />
-                                </FormControl>
-                              )}
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      );
-                    })}
+                                )}
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        );
+                      })}
                   </div>
                 </>
               )}
@@ -781,8 +833,10 @@ const CreateUserForm = ({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 {isEditMode ? "Updating..." : "Creating..."}
               </>
+            ) : isEditMode ? (
+              "Update"
             ) : (
-              isEditMode ? "Update" : "Create"
+              "Create"
             )}
           </Button>
         </FormFooter>
@@ -793,6 +847,7 @@ const CreateUserForm = ({
 
 export const CreateUserPage = () => {
   const { id: userId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
   const location = useLocation();
   const isAdminSettings = location.pathname.includes("/admin-settings/users");
   const isEditMode = Boolean(userId);
@@ -805,8 +860,8 @@ export const CreateUserPage = () => {
   const [initialValues, setInitialValues] =
     useState<Partial<UserFormValues> | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [bulkFile, setBulkFile] = useState<File | null>(null);
-  const [uploadingBulk, setUploadingBulk] = useState(false);
+  // const [bulkFile, setBulkFile] = useState<File | null>(null);
+  // const [uploadingBulk, setUploadingBulk] = useState(false);
   const [bulkInputKey, setBulkInputKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [reportingManagers, setReportingManagers] = useState<UserOption[]>([]);
@@ -816,9 +871,9 @@ export const CreateUserPage = () => {
   const handleBulkDialogChange = useCallback((open: boolean) => {
     setShowBulkUpload(open);
     if (!open) {
-      setBulkFile(null);
+      // setBulkFile(null);
       setBulkInputKey((key) => key + 1);
-      setUploadingBulk(false);
+      // setUploadingBulk(false);
     }
   }, []);
 
@@ -842,55 +897,31 @@ export const CreateUserPage = () => {
     }
   }, []);
 
-  const uploadBulkFile = useCallback(
-    async (file: File) => {
-      if (uploadingBulk) return;
-      setUploadingBulk(true);
-      try {
-        await bulkUploadService.uploadUsers(file);
-        toast.success("Bulk upload submitted successfully");
-        handleBulkDialogChange(false);
-      } catch (error) {
-        console.error("Failed to upload users in bulk:", error);
-        toast.error("Failed to upload file");
-      } finally {
-        setUploadingBulk(false);
-      }
-    },
-    [handleBulkDialogChange, uploadingBulk]
-  );
+  // const uploadBulkFile = useCallback(
+  //   async (file: File) => {
+  //     if (uploadingBulk) return;
+  //     setUploadingBulk(true);
+  //     try {
+  //       await bulkUploadService.uploadUsers(file);
+  //       toast.success("Bulk upload submitted successfully");
+  //       handleBulkDialogChange(false);
+  //     } catch (error) {
+  //       console.error("Failed to upload users in bulk:", error);
+  //       toast.error("Failed to upload file");
+  //     } finally {
+  //       setUploadingBulk(false);
+  //     }
+  //   },
+  //   [handleBulkDialogChange, uploadingBulk]
+  // );
 
-  const handleBulkUpload = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      if (!bulkFile) {
-        toast.error("Please select a file to upload");
-        return;
-      }
-      await uploadBulkFile(bulkFile);
-    },
-    [bulkFile, uploadBulkFile]
-  );
-
-  const handleBulkFileSelect = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0] ?? null;
-      setBulkFile(file);
-    },
-    []
-  );
-
-  const handleBrowseClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleClearFile = useCallback(() => {
-    setBulkFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    setBulkInputKey((key) => key + 1);
-  }, []);
+  // const handleBulkFileSelect = useCallback(
+  //   (event: React.ChangeEvent<HTMLInputElement>) => {
+  //     const file = event.target.files?.[0] ?? null;
+  //     setBulkFile(file);
+  //   },
+  //   []
+  // );
 
   useEffect(() => {
     let cancelled = false;
@@ -979,7 +1010,8 @@ export const CreateUserPage = () => {
         const users: ApiReportingUser[] = response.data?.data || [];
         const managers: UserOption[] = users
           .map((user) => ({
-            id: user.id !== undefined && user.id !== null ? String(user.id) : "",
+            id:
+              user.id !== undefined && user.id !== null ? String(user.id) : "",
             email: user.email || "",
             firstName: user.first_name || "",
             lastName: user.last_name || "",
@@ -1000,65 +1032,76 @@ export const CreateUserPage = () => {
 
   const [rawUserData, setRawUserData] = useState<any>(null);
 
-  const processUserData = useCallback((data: any) => {
-    const rawAssignments = parseEntityAssignments(data.entity_assignments);
-    const mappedAssignments: Record<string, string> = {};
-    
-    if (templates.length > 0 && Object.keys(entityOptions).length > 0) {
-      Object.entries(rawAssignments).forEach(([key, value]) => {
-        const trimmedKey = key.trim();
-        const templateEntity = templates.find(
-          (t) => (getFieldName(t).trim() === trimmedKey || getEntityId(t) === trimmedKey) &&
-                 t.field_type?.toUpperCase() === FIELD_TYPE_SELECT
-        );
-        if (templateEntity) {
-          const entityId = getEntityId(templateEntity);
-          const options = entityOptions[entityId] || [];
-          const matchedOption = options.find(
-            (opt) => opt.label === value || opt.id === value
+  const processUserData = useCallback(
+    (data: any) => {
+      const rawAssignments = parseEntityAssignments(data.entity_assignments);
+      const mappedAssignments: Record<string, string> = {};
+
+      if (templates.length > 0 && Object.keys(entityOptions).length > 0) {
+        Object.entries(rawAssignments).forEach(([key, value]) => {
+          const trimmedKey = key.trim();
+          const templateEntity = templates.find(
+            (t) =>
+              (getFieldName(t).trim() === trimmedKey ||
+                getEntityId(t) === trimmedKey) &&
+              t.field_type?.toUpperCase() === FIELD_TYPE_SELECT
           );
-          if (matchedOption) {
-            mappedAssignments[entityId] = matchedOption.id;
+          if (templateEntity) {
+            const entityId = getEntityId(templateEntity);
+            const options = entityOptions[entityId] || [];
+            const matchedOption = options.find(
+              (opt) => opt.label === value || opt.id === value
+            );
+            if (matchedOption) {
+              mappedAssignments[entityId] = matchedOption.id;
+            }
           }
+        });
+      }
+
+      let reportingManagerId: string | undefined;
+      if (data.reporting_manager) {
+        reportingManagerId = String(data.reporting_manager);
+      } else if (data.reporting_manager_id) {
+        reportingManagerId = String(data.reporting_manager_id);
+      } else if (data.reporting_manager_email && reportingManagers.length > 0) {
+        const managerEmail = (data.reporting_manager_email || "")
+          .trim()
+          .toLowerCase();
+        const manager = reportingManagers.find(
+          (m) => (m.email || "").trim().toLowerCase() === managerEmail
+        );
+        if (manager) {
+          reportingManagerId = manager.id;
         }
-      });
-    }
-
-    let reportingManagerId: string | undefined;
-    if (data.reporting_manager) {
-      reportingManagerId = String(data.reporting_manager);
-    } else if (data.reporting_manager_id) {
-      reportingManagerId = String(data.reporting_manager_id);
-    } else if (data.reporting_manager_email && reportingManagers.length > 0) {
-      const managerEmail = (data.reporting_manager_email || "").trim().toLowerCase();
-      const manager = reportingManagers.find(
-        (m) => (m.email || "").trim().toLowerCase() === managerEmail
-      );
-      if (manager) {
-        reportingManagerId = manager.id;
+      } else if (data.reporting_manager_name && reportingManagers.length > 0) {
+        const managerName = (data.reporting_manager_name || "")
+          .trim()
+          .toLowerCase();
+        const manager = reportingManagers.find((m) => {
+          const fullName = `${m.firstName || ""} ${m.lastName || ""}`
+            .trim()
+            .toLowerCase();
+          return fullName === managerName;
+        });
+        if (manager) {
+          reportingManagerId = manager.id;
+        }
       }
-    } else if (data.reporting_manager_name && reportingManagers.length > 0) {
-      const managerName = (data.reporting_manager_name || "").trim().toLowerCase();
-      const manager = reportingManagers.find((m) => {
-        const fullName = `${m.firstName || ""} ${m.lastName || ""}`.trim().toLowerCase();
-        return fullName === managerName;
-      });
-      if (manager) {
-        reportingManagerId = manager.id;
-      }
-    }
 
-    return {
-      email: data.email || "",
-      firstName: data.first_name || "",
-      lastName: data.last_name || "",
-      phoneNumber: data.phone_number || "",
-      role: data.role || "",
-      employeeCode: data.employee_code || "",
-      reportingManager: reportingManagerId,
-      ...mappedAssignments,
-    };
-  }, [templates, entityOptions, reportingManagers]);
+      return {
+        email: data.email || "",
+        firstName: data.first_name || "",
+        lastName: data.last_name || "",
+        phoneNumber: data.phone_number || "",
+        role: data.role || "",
+        employeeCode: data.employee_code || "",
+        reportingManager: reportingManagerId,
+        ...mappedAssignments,
+      };
+    },
+    [templates, entityOptions, reportingManagers]
+  );
 
   useEffect(() => {
     if (!userId) {
@@ -1119,7 +1162,9 @@ export const CreateUserPage = () => {
     [templateKey, userId]
   );
   const pageTitle = isEditMode ? "Update User" : "Create User";
-  const isLoading = isEditMode && (loading || loadingUser || loadingManagers || (userId && !initialValues));
+  const isLoading =
+    isEditMode &&
+    (loading || loadingUser || loadingManagers || (userId && !initialValues));
 
   if (isLoading) {
     return (
@@ -1142,7 +1187,7 @@ export const CreateUserPage = () => {
           {isAdminSettings && !isEditMode && (
             <Button
               type="button"
-              className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-base"
+              className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-sm"
               onClick={() => handleBulkDialogChange(true)}
             >
               Bulk Upload
@@ -1169,87 +1214,39 @@ export const CreateUserPage = () => {
             <DialogHeader>
               <DialogTitle>Bulk Upload Users</DialogTitle>
               <DialogDescription>
-                Upload an Excel file to create users in bulk. Use the template for
-                the required format.
+                Upload an Excel file to create users in bulk. Use the template
+                for the required format.
               </DialogDescription>
             </DialogHeader>
-            <form className="space-y-6" onSubmit={handleBulkUpload}>
+            <div className="space-y-6">
               <div className="flex flex-col gap-3">
                 <input
                   key={bulkInputKey}
                   ref={fileInputRef}
                   type="file"
                   accept=".xlsx,.xls,.csv"
-                  onChange={handleBulkFileSelect}
+                  // onChange={handleBulkFileSelect}
                   className="hidden"
                 />
-                <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/30 p-4">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-foreground">
-                        Upload spreadsheet
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {bulkFile
-                          ? bulkFile.name
-                          : "Supported formats: .xlsx, .xls, .csv"}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {bulkFile ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleClearFile}
-                          disabled={uploadingBulk}
-                        >
-                          Clear
-                        </Button>
-                      ) : null}
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleBrowseClick}
-                        disabled={uploadingBulk}
-                      >
-                        {bulkFile ? "Change file" : "Browse"}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleDownloadTemplate}
-                    className="sm:w-auto"
-                  >
-                    Download Template
-                  </Button>
-                </div>
               </div>
               <DialogFooter className="gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => handleBulkDialogChange(false)}
-                  disabled={uploadingBulk}
+                  onClick={handleDownloadTemplate}
+                  className="sm:w-auto"
                 >
-                  Cancel
+                  Download Template
                 </Button>
-                <Button type="submit" disabled={!bulkFile || uploadingBulk}>
-                  {uploadingBulk ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    "Upload"
-                  )}
+                <Button
+                  onClick={() =>
+                    navigate("/admin-settings/product-config/bulk-uploads/user")
+                  }
+                >
+                  Continue
                 </Button>
               </DialogFooter>
-            </form>
+            </div>
           </DialogContent>
         </Dialog>
       )}

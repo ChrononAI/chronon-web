@@ -108,6 +108,19 @@ export const getStatusColor = (status: string): string => {
   }
 };
 
+export const getBulkUploadStatusColor = (status: string): string => {
+  switch (status.toUpperCase()) {
+      case "NEED_FIXES":
+      return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
+    case "FINALIZED":
+      return "bg-green-100 text-green-800 hover:bg-green-100";
+    case "COMPLETED":
+      return "bg-blue-100 text-blue-800 hover:bg-blue-100";
+    default:
+      return "bg-gray-100 text-gray-800 hover:bg-gray-100";
+  }
+};
+
 export const getWorkflowStatusColor = (status: string): string => {
   switch (status.toUpperCase()) {
     case "INITIATED":
