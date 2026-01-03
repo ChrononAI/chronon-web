@@ -326,7 +326,7 @@ const MileagePage = ({
         );
         const formattedChargeableDistance = costData.chargeable_distance
           ? formatDistance(costData.chargeable_distance, costData.distance_unit)
-          : "";
+          : formatDistance(0, costData.distance_unit);
 
         setMileagePrice(costData.mileage_info?.price || null);
         setChargeableDistanceValue(costData.chargeable_distance || null);
@@ -337,6 +337,7 @@ const MileagePage = ({
           chargeableDistance: formattedChargeableDistance,
           amount: formattedAmount,
         }));
+        console.log(formattedChargeableDistance);
         form.setValue("distance", formattedDistance);
         form.setValue("chargeableDistance", formattedChargeableDistance);
         form.setValue("amount", formattedAmount);
@@ -602,7 +603,7 @@ const MileagePage = ({
       toast.error("Failed to save mileage expense");
       setLoading(false);
     } finally {
-      // setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -1302,6 +1303,40 @@ const MileagePage = ({
 
                 <FormField
                   control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category *</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={(v) => {
+                          handleInputChange("categoryId", v);
+                          field.onChange(v);
+                        }}
+                        disabled={
+                          loadingPolicies || (mode === "view" && !editMode)
+                        }
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories?.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="distance"
                   render={({ field }) => (
                     <FormItem>
@@ -1370,49 +1405,13 @@ const MileagePage = ({
                   />
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <FormLabel>Policy</FormLabel>
-                    <Input
-                      type="text"
-                      value={selectedPolicy?.name || ""}
-                      className="bg-gray-50 text-gray-500"
-                      disabled
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="categoryId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category *</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={(v) => {
-                            handleInputChange("categoryId", v);
-                            field.onChange(v);
-                          }}
-                          disabled={
-                            loadingPolicies || (mode === "view" && !editMode)
-                          }
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categories?.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                <div className="space-y-2">
+                  <FormLabel>Policy</FormLabel>
+                  <Input
+                    type="text"
+                    value={selectedPolicy?.name || ""}
+                    className="bg-gray-50 text-gray-500"
+                    disabled
                   />
                 </div>
 
