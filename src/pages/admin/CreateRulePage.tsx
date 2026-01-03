@@ -278,7 +278,7 @@ function CreateRulePage() {
         },
         is_active: true,
       };
-      console.log(payload);
+
       if (isEditMode) {
         await updatePolicyRule({ id: ruleToEdit?.id, payload });
         toast.success("Policy updated successfully");
