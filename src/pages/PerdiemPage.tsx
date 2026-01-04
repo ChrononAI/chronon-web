@@ -417,6 +417,8 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     formData.policyId,
   ]);
 
+  console.log(form.getValues());
+
   useEffect(() => {
     const fetchComments = async () => {
       if (expenseData?.id) {
@@ -571,7 +573,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                       name="startDate"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Date *</FormLabel>
+                          <FormLabel>Start Date *</FormLabel>
                           <FormControl>
                             <DateField
                               id="startDate"
@@ -579,7 +581,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                               onChange={(value) => {
                                 handleInputChange("startDate", value);
                                 field.onChange(value);
-                                handleInputChange("endDate", value);
+                                // handleInputChange("endDate", value);
                               }}
                               disabled={mode === "view"}
                               maxDate={today}
@@ -590,7 +592,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                       )}
                     />
 
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label
                         htmlFor="days"
                         className="text-sm font-medium text-gray-700"
@@ -608,9 +610,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                           disabled={mode === "view"}
                         />
                       </div>
-                    </div>
+                    </div> */}
 
-                    {/* <FormField
+                    <FormField
                       control={form.control}
                       name="endDate"
                       render={({ field }) => (
@@ -626,16 +628,16 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                               }}
                               disabled={mode === "view"}
                               minDate={formData.startDate}
-                              maxDate={formData.startDate}
+                              maxDate={new Date().toString()}
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
-                    /> */}
+                    />
                   </div>
 
-                  {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label
                         htmlFor="days"
@@ -654,7 +656,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         />
                       </div>
                     </div>
-                  </div> */}
+                  </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-2">
