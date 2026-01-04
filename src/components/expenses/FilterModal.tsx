@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  FieldFilter,
   FilterMap,
   FilterValue,
   getFilterValue,
@@ -82,17 +83,11 @@ const FilterModal: React.FC<FilterDialogProps> = ({
 }) => {
   const [rows, setRows] = useState<FilterRow[]>([]);
 
-  /* -------------------------------------------
-   * HYDRATE
-   * ----------------------------------------- */
   useEffect(() => {
     if (!open) return;
     setRows(hydrateRowsFromQuery(query, allowedFilters));
   }, [open, query, allowedFilters]);
 
-  /* -------------------------------------------
-   * HELPERS
-   * ----------------------------------------- */
   const updateRow = (id: string, updates: Partial<FilterRow>) => {
     setRows((prev) =>
       prev.map((r) => (r.id === id ? { ...r, ...updates } : r))
@@ -105,6 +100,25 @@ const FilterModal: React.FC<FilterDialogProps> = ({
 
   const removeRow = (id: string) => {
     setRows((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const toggleMultiValue = (rowId: string, option: string) => {
+    setRows((prev) =>
+      prev.map((row) => {
+        if (row.id !== rowId) return row;
+        const current = (row.value as string[]) ?? [];
+        const next = current.includes(option)
+          ? current.filter((v) => v !== option)
+          : [...current, option];
+        return { ...row, value: next };
+      })
+    );
+  };
+  const deselectAllStatus = () => {
+    setQuery((prev: any) => {
+      const { status, ...rest } = prev;
+      return rest;
+    });
   };
 
   /* -------------------------------------------
@@ -122,15 +136,19 @@ const FilterModal: React.FC<FilterDialogProps> = ({
 
         // RANGE TYPES
         if (filter.type === "date" || filter.type === "number") {
-          const arr = [];
+          const arr: FieldFilter[] = [];
 
-          if (row.value?.gte !== undefined)
+          if (row.value?.gte !== undefined) {
             arr.push({ operator: "gte", value: row.value.gte });
+          }
 
-          if (row.value?.lte !== undefined)
+          if (row.value?.lte !== undefined) {
             arr.push({ operator: "lte", value: row.value.lte });
+          }
 
-          if (arr.length) next[row.filterKey] = arr;
+          if (arr.length) {
+            next[row.filterKey] = arr;
+          }
           return;
         }
 
@@ -138,7 +156,7 @@ const FilterModal: React.FC<FilterDialogProps> = ({
         if (row.value !== undefined && row.value !== "") {
           next[row.filterKey] = [
             {
-              operator: filter.operators[0],
+              operator: filter.operators[0] as Operator,
               value: row.value,
             },
           ];
@@ -151,19 +169,15 @@ const FilterModal: React.FC<FilterDialogProps> = ({
     onOpenChange(false);
   };
 
-  /* -------------------------------------------
-   * UI
-   * ----------------------------------------- */
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl h-[60vh] overflow-auto w-full [&>button[aria-label='Close']]:hidden">
+        <DialogTitle className="hidden" />
         <div className="space-y-4">
           <div className="text-xl font-semibold">Apply Filters</div>
 
           {rows.map((row) => {
-            const filter = allowedFilters.find(
-              (f) => f.key === row.filterKey
-            );
+            const filter = allowedFilters.find((f) => f.key === row.filterKey);
 
             return (
               <div key={row.id} className="grid grid-cols-12 gap-2">
@@ -199,6 +213,7 @@ const FilterModal: React.FC<FilterDialogProps> = ({
                           value: { ...row.value, [op]: val },
                         })
                       }
+                      className="w-full"
                     />
                   )}
 
@@ -208,27 +223,29 @@ const FilterModal: React.FC<FilterDialogProps> = ({
                         type="number"
                         placeholder="Min"
                         value={row.value?.gte ?? ""}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const v = e.target.value;
                           updateRow(row.id, {
                             value: {
                               ...row.value,
-                              gte: Number(e.target.value),
+                              gte: v === "" ? undefined : Number(v),
                             },
-                          })
-                        }
+                          });
+                        }}
                       />
                       <Input
                         type="number"
                         placeholder="Max"
                         value={row.value?.lte ?? ""}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const v = e.target.value;
                           updateRow(row.id, {
                             value: {
                               ...row.value,
-                              lte: Number(e.target.value),
+                              lte: v === "" ? undefined : Number(v),
                             },
-                          })
-                        }
+                          });
+                        }}
                       />
                     </div>
                   )}
@@ -236,6 +253,7 @@ const FilterModal: React.FC<FilterDialogProps> = ({
                   {filter?.type === "text" && (
                     <Input
                       value={row.value ?? ""}
+                      placeholder="Enter value"
                       onChange={(e) =>
                         updateRow(row.id, { value: e.target.value })
                       }
@@ -245,9 +263,7 @@ const FilterModal: React.FC<FilterDialogProps> = ({
                   {filter?.type === "select" && (
                     <Select
                       value={row.value ?? ""}
-                      onValueChange={(v) =>
-                        updateRow(row.id, { value: v })
-                      }
+                      onValueChange={(v) => updateRow(row.id, { value: v })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select value" />
@@ -260,6 +276,15 @@ const FilterModal: React.FC<FilterDialogProps> = ({
                         ))}
                       </SelectContent>
                     </Select>
+                  )}
+
+                  {filter?.type === "multi-select" && (
+                    <MultiSelectDropdown
+                      selectedItems={(row?.value as string[]) || []}
+                      allItems={filter?.options || []}
+                      toggleItem={(item: any) => toggleMultiValue(row.id, item)}
+                      deselectAll={deselectAllStatus}
+                    />
                   )}
                 </div>
 
@@ -278,13 +303,12 @@ const FilterModal: React.FC<FilterDialogProps> = ({
           <Button variant="outline" size="sm" onClick={addRow}>
             + Add filter
           </Button>
-
-          <div className="flex justify-end gap-4">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleApply}>Apply</Button>
-          </div>
+        </div>
+        <div className="flex justify-end gap-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleApply}>Apply</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -292,4 +316,3 @@ const FilterModal: React.FC<FilterDialogProps> = ({
 };
 
 export default FilterModal;
-

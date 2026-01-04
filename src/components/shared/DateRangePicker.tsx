@@ -52,7 +52,7 @@ function DateRangePicker({
           }}
           className={cn(
             "h-11 px-3 min-w-[224px] justify-start flex items-center gap-2 font-normal",
-            !(tempFrom && tempTo) && "text-muted-foreground",
+            !(dateFrom && dateTo) && "text-muted-foreground",
             className
           )}
         >
