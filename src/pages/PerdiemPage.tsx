@@ -85,6 +85,10 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const { expenseId } = useParams<{ expenseId: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const { single_date_per_diem_settings } = useAuthStore(
+    (state) => state.orgSettings
+  );
+  const singleDate = single_date_per_diem_settings;
   const { pathname } = useLocation();
   const form = useForm<PerdiemFormValues>({
     resolver: zodResolver(perdiemSchema),
@@ -137,7 +141,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const [adminEditReason, setAdminEditReason] = useState("");
   const [showAdminEditConfirm, setShowAdminEditConfirm] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<any>(null);
-
 
   const [newComment, setNewComment] = useState<string>();
   const [postingComment, setPostingComment] = useState(false);
@@ -570,7 +573,11 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                       control={form.control}
                       name="startDate"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem
+                          className={`${
+                            singleDate?.enabled ? "col-span-2" : "col-span-1"
+                          }`}
+                        >
                           <FormLabel>Start Date *</FormLabel>
                           <FormControl>
                             <DateField
@@ -579,7 +586,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                               onChange={(value) => {
                                 handleInputChange("startDate", value);
                                 field.onChange(value);
-                                // handleInputChange("endDate", value);
+                                if (singleDate?.enabled) {
+                                  handleInputChange("endDate", value);
+                                }
                               }}
                               disabled={mode === "view"}
                               maxDate={today}
@@ -610,51 +619,55 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                       </div>
                     </div> */}
 
-                    <FormField
-                      control={form.control}
-                      name="endDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>End Date *</FormLabel>
-                          <FormControl>
-                            <DateField
-                              id="endDate"
-                              value={formData.endDate}
-                              onChange={(value) => {
-                                handleInputChange("endDate", value);
-                                field.onChange(value);
-                              }}
-                              disabled={mode === "view"}
-                              minDate={formData.startDate}
-                              maxDate={new Date().toString()}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {!singleDate?.enabled && (
+                      <FormField
+                        control={form.control}
+                        name="endDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>End Date *</FormLabel>
+                            <FormControl>
+                              <DateField
+                                id="endDate"
+                                value={formData.endDate}
+                                onChange={(value) => {
+                                  handleInputChange("endDate", value);
+                                  field.onChange(value);
+                                }}
+                                disabled={mode === "view"}
+                                minDate={formData.startDate}
+                                maxDate={new Date().toString()}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="days"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Number of Days
-                      </Label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-                        <Input
-                          id="days"
-                          type="text"
-                          value={days}
-                          readOnly
-                          className="bg-gray-50 pl-10"
-                        />
+                  {!singleDate?.enabled && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="days"
+                          className="text-sm font-medium text-gray-700"
+                        >
+                          Number of Days
+                        </Label>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+                          <Input
+                            id="days"
+                            type="text"
+                            value={days}
+                            readOnly
+                            className="bg-gray-50 pl-10"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-2">
