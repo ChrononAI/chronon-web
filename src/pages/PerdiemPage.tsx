@@ -82,7 +82,7 @@ const perdiemSchema = z.object({
 type PerdiemFormValues = z.infer<typeof perdiemSchema>;
 
 const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
-  const { id } = useParams<{ id: string }>();
+  const { expenseId } = useParams<{ expenseId: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const { pathname } = useLocation();
@@ -328,11 +328,11 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         setShowAdminEditConfirm(true);
         setLoading(false);
         return;
-      } else if (mode === "edit" && id) {
+      } else if (mode === "edit" && expenseId) {
         trackEvent("Edit Per Diem Button Clicked", {
           button_name: "Edit Per Diem",
         });
-        await expenseService.updateExpense(id, submitData);
+        await expenseService.updateExpense(expenseId, submitData);
       }
       if (mode === "create") {
         toast.success("Per diem expense created successfully!");
@@ -416,8 +416,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     formData.categoryId,
     formData.policyId,
   ]);
-
-  console.log(form.getValues());
 
   useEffect(() => {
     const fetchComments = async () => {
