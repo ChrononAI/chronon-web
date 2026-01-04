@@ -578,7 +578,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                             singleDate?.enabled ? "col-span-2" : "col-span-1"
                           }`}
                         >
-                          <FormLabel>Start Date *</FormLabel>
+                          <FormLabel>{singleDate?.enabled ? "Date *" : "Start Date *"}</FormLabel>
                           <FormControl>
                             <DateField
                               id="startDate"
