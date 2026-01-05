@@ -175,118 +175,127 @@ const FilterModal: React.FC<FilterDialogProps> = ({
         <div className="space-y-4 flex flex-col h-full">
           <div className="text-xl font-semibold">Apply Filters</div>
           <div className="flex-1 overflow-auto space-y-6 p-1">
-            {rows.map((row) => {
-              const filter = allowedFilters.find(
-                (f) => f.key === row.filterKey
-              );
+            {rows.length > 0 ? (
+              rows.map((row) => {
+                const filter = allowedFilters.find(
+                  (f) => f.key === row.filterKey
+                );
 
-              return (
-                <div key={row.id} className="grid grid-cols-12 gap-2">
-                  {/* FILTER SELECT */}
-                  <div className="col-span-4">
-                    <Select
-                      value={row.filterKey}
-                      onValueChange={(value) =>
-                        updateRow(row.id, {
-                          filterKey: value,
-                          value: undefined,
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select filter" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allowedFilters.map((f) => {
-                          const isUsed =
-                            usedFilterKeys.includes(f.key) &&
-                            f.key !== row.filterKey;
-                          return (
-                            <SelectItem
-                              key={f.key}
-                              value={f.key}
-                              disabled={isUsed}
-                            >
-                              {f.label}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* VALUE */}
-                  <div className="col-span-7">
-                    {filter?.type === "date" && (
-                      <DateRangePicker
-                        value={row.value}
-                        onChange={(range) =>
+                return (
+                  <div key={row.id} className="grid grid-cols-12 gap-2">
+                    {/* FILTER SELECT */}
+                    <div className="col-span-4">
+                      <Select
+                        value={row.filterKey}
+                        onValueChange={(value) =>
                           updateRow(row.id, {
-                            value: range,
+                            filterKey: value,
+                            value: undefined,
                           })
                         }
-                        className="w-full"
-                      />
-                    )}
-
-                    {filter?.type === "number" && (
-                      <AmountRangePicker
-                        value={row.value}
-                        onChange={(nextValue) =>
-                          updateRow(row.id, { value: nextValue })
-                        }
-                      />
-                    )}
-
-                    {filter?.type === "text" && (
-                      <Input
-                        value={row.value ?? ""}
-                        placeholder="Enter value"
-                        onChange={(e) =>
-                          updateRow(row.id, { value: e.target.value })
-                        }
-                      />
-                    )}
-
-                    {filter?.type === "select" && (
-                      <Select
-                        value={row.value ?? ""}
-                        onValueChange={(v) => updateRow(row.id, { value: v })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select value" />
+                          <SelectValue placeholder="Select filter" />
                         </SelectTrigger>
                         <SelectContent>
-                          {filter.options?.map((opt) => (
-                            <SelectItem key={opt} value={opt}>
-                              {opt}
-                            </SelectItem>
-                          ))}
+                          {allowedFilters.map((f) => {
+                            const isUsed =
+                              usedFilterKeys.includes(f.key) &&
+                              f.key !== row.filterKey;
+                            return (
+                              <SelectItem
+                                key={f.key}
+                                value={f.key}
+                                disabled={isUsed}
+                              >
+                                {f.label}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
-                    )}
+                    </div>
 
-                    {filter?.type === "multi-select" && (
-                      <MultiSelectDropdown
-                        selectedItems={(row?.value as string[]) || []}
-                        allItems={filter?.options || []}
-                        toggleItem={(item: any) =>
-                          toggleMultiValue(row.id, item)
-                        }
-                        deselectAll={deselectAllStatus}
-                      />
-                    )}
+                    {/* VALUE */}
+                    <div className="col-span-7">
+                      {filter?.type === "date" && (
+                        <DateRangePicker
+                          value={row.value}
+                          onChange={(range) =>
+                            updateRow(row.id, {
+                              value: range,
+                            })
+                          }
+                          className="w-full"
+                        />
+                      )}
+
+                      {filter?.type === "number" && (
+                        <AmountRangePicker
+                          value={row.value}
+                          onChange={(nextValue) =>
+                            updateRow(row.id, { value: nextValue })
+                          }
+                        />
+                      )}
+
+                      {filter?.type === "text" && (
+                        <Input
+                          value={row.value ?? ""}
+                          placeholder="Enter value"
+                          onChange={(e) =>
+                            updateRow(row.id, { value: e.target.value })
+                          }
+                        />
+                      )}
+
+                      {filter?.type === "select" && (
+                        <Select
+                          value={row.value ?? ""}
+                          onValueChange={(v) => updateRow(row.id, { value: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select value" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filter.options?.map((opt) => (
+                              <SelectItem key={opt} value={opt}>
+                                {opt}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+
+                      {filter?.type === "multi-select" && (
+                        <MultiSelectDropdown
+                          selectedItems={(row?.value as string[]) || []}
+                          allItems={filter?.options || []}
+                          toggleItem={(item: any) =>
+                            toggleMultiValue(row.id, item)
+                          }
+                          deselectAll={deselectAllStatus}
+                        />
+                      )}
+                    </div>
+
+                    <Button
+                      className="col-span-1 my-auto h-11 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+                      onClick={() => removeRow(row.id)}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
                   </div>
-
-                  <Button
-                    className="col-span-1 my-auto h-11 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
-                    onClick={() => removeRow(row.id)}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="space-y-1 text-center">
+                <p className="text-base font-medium">No filters applied</p>
+                <p className="text-sm text-muted-foreground">
+                  Add filters to narrow down your results
+                </p>
+              </div>
+            )}
 
             <Button variant="outline" size="sm" onClick={addRow}>
               + Add filter

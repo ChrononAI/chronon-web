@@ -54,7 +54,7 @@ function DateRangePicker({ value, onChange, className }: DateRangePickerProps) {
         <Button
           variant="outline"
           className={cn(
-            "h-11 px-3 min-w-[224px] flex items-center justify-between gap-2 font-normal",
+            "h-11 px-3 min-w-[236px] flex items-center justify-between gap-2 font-normal",
             !(value?.gte && value?.lte) && "text-muted-foreground",
             className
           )}

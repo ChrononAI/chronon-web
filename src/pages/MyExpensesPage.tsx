@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { expenseService } from "@/services/expenseService";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { useExpenseStore } from "@/store/expenseStore";
@@ -276,8 +276,6 @@ export function MyExpensesPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
-  console.log(query);
-
   // Tab and filter states
   const [activeTab, setActiveTab] = useState<"all" | "draft" | "reported">(
     "all"
@@ -351,39 +349,42 @@ export function MyExpensesPage() {
       pageSize: 10,
     });
 
-  const fetchFilteredExpenses = async ({ signal }: { signal: AbortSignal }) => {
-    const limit = paginationModel?.pageSize ?? 10;
-    const offset = (paginationModel?.page ?? 0) * limit;
+  const fetchFilteredExpenses = useCallback(
+    async ({ signal }: { signal: AbortSignal }) => {
+      const limit = paginationModel?.pageSize ?? 10;
+      const offset = (paginationModel?.page ?? 0) * limit;
 
-    const effectiveQuery = {
-      ...query,
-      ...TAB_QUERY_OVERRIDES[activeTab],
-    };
+      const effectiveQuery = {
+        ...query,
+        ...TAB_QUERY_OVERRIDES[activeTab],
+      };
 
-    const response = await expenseService.getFilteredExpenses({
-      query: buildBackendQuery(effectiveQuery),
-      limit,
-      offset,
-      signal,
-    });
+      const response = await expenseService.getFilteredExpenses({
+        query: buildBackendQuery(effectiveQuery),
+        limit,
+        offset,
+        signal,
+      });
 
-    switch (activeTab) {
-      case "draft":
-        setDraftExpenses(response.data.data);
-        setDraftExpensesPagination({ total: response.data.count });
-        break;
+      switch (activeTab) {
+        case "draft":
+          setDraftExpenses(response.data.data);
+          setDraftExpensesPagination({ total: response.data.count });
+          break;
 
-      case "reported":
-        setReportedExpenses(response.data.data);
-        setReportedExpensesPagination({ total: response.data.count });
-        break;
+        case "reported":
+          setReportedExpenses(response.data.data);
+          setReportedExpensesPagination({ total: response.data.count });
+          break;
 
-      case "all":
-      default:
-        setAllExpenses(response.data.data);
-        setAllExpensesPagination({ total: response.data.count });
-    }
-  };
+        case "all":
+        default:
+          setAllExpenses(response.data.data);
+          setAllExpensesPagination({ total: response.data.count });
+      }
+    },
+    [query, activeTab, paginationModel?.page, paginationModel?.pageSize]
+  );
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
@@ -403,11 +404,13 @@ export function MyExpensesPage() {
   useEffect(() => {
     if (!rowsCalculated) return;
 
+    // Clear pending debounce
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
     debounceRef.current = setTimeout(() => {
+      // Abort previous request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -424,27 +427,20 @@ export function MyExpensesPage() {
           }
         })
         .finally(() => {
-          // Prevent stale cleanup
           if (!controller.signal.aborted) {
             setLoading(false);
             setIsInitialLoad(false);
             setRowSelection({ type: "include", ids: new Set() });
           }
         });
-    }, 400); // 👈 debounce delay (300–500ms ideal)
+    }, 400);
 
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [
-    activeTab,
-    paginationModel?.page,
-    paginationModel?.pageSize,
-    rowsCalculated,
-    query,
-  ]);
+  }, [fetchFilteredExpenses, rowsCalculated]);
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
@@ -465,8 +461,10 @@ export function MyExpensesPage() {
 
     setRowSelection({ type: "include", ids: new Set() });
 
-    const filter = tab === "all" ? [] :
-      tab === "draft"
+    const filter =
+      tab === "all"
+        ? []
+        : tab === "draft"
         ? ["COMPLETE", "INCOMPLETE", "SENT_BACK"]
         : ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
 
