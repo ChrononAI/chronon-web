@@ -1,13 +1,7 @@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  FieldFilter,
-  FilterMap,
-  FilterValue,
-  getFilterValue,
-  Operator,
-} from "@/pages/MyExpensesPage";
+import { FieldFilter, FilterMap, Operator } from "@/pages/MyExpensesPage";
 import { useEffect, useState } from "react";
 import MultiSelectDropdown from "../shared/MultiSelectDropdown";
 import { Trash } from "lucide-react";
@@ -19,6 +13,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import DateRangePicker from "../shared/DateRangePicker";
+import AmountRangePicker from "../shared/AmountRangePicker";
 
 type FilterType = "text" | "number" | "select" | "multi-select" | "date";
 
@@ -47,6 +42,7 @@ const hydrateRowsFromQuery = (
   query: FilterMap,
   allowedFilters: AllowedFilter[]
 ): FilterRow[] => {
+  delete query.q;
   return Object.keys(query).map((key) => {
     const filter = allowedFilters.find((f) => f.key === key);
     const values = query[key];
@@ -83,6 +79,8 @@ const FilterModal: React.FC<FilterDialogProps> = ({
 }) => {
   const [rows, setRows] = useState<FilterRow[]>([]);
 
+  const usedFilterKeys = rows.map((r) => r.filterKey).filter(Boolean);
+
   useEffect(() => {
     if (!open) return;
     setRows(hydrateRowsFromQuery(query, allowedFilters));
@@ -99,7 +97,11 @@ const FilterModal: React.FC<FilterDialogProps> = ({
   };
 
   const removeRow = (id: string) => {
-    setRows((prev) => prev.filter((r) => r.id !== id));
+    if (rows.length === 1) {
+      setRows([{ id: crypto.randomUUID(), filterKey: "" }]);
+    } else {
+      setRows((prev) => prev.filter((r) => r.id !== id));
+    }
   };
 
   const toggleMultiValue = (rowId: string, option: string) => {
@@ -121,9 +123,6 @@ const FilterModal: React.FC<FilterDialogProps> = ({
     });
   };
 
-  /* -------------------------------------------
-   * APPLY
-   * ----------------------------------------- */
   const handleApply = () => {
     setQuery(() => {
       const next: FilterMap = {};
@@ -171,144 +170,134 @@ const FilterModal: React.FC<FilterDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl h-[60vh] overflow-auto w-full [&>button[aria-label='Close']]:hidden">
+      <DialogContent className="sm:max-w-4xl h-[80vh] max-h-[80vh] overflow-auto w-full [&>button[aria-label='Close']]:hidden">
         <DialogTitle className="hidden" />
-        <div className="space-y-4">
+        <div className="space-y-4 flex flex-col h-full">
           <div className="text-xl font-semibold">Apply Filters</div>
+          <div className="flex-1 overflow-auto space-y-6 p-1">
+            {rows.map((row) => {
+              const filter = allowedFilters.find(
+                (f) => f.key === row.filterKey
+              );
 
-          {rows.map((row) => {
-            const filter = allowedFilters.find((f) => f.key === row.filterKey);
-
-            return (
-              <div key={row.id} className="grid grid-cols-12 gap-2">
-                {/* FILTER SELECT */}
-                <div className="col-span-4">
-                  <Select
-                    value={row.filterKey}
-                    onValueChange={(value) =>
-                      updateRow(row.id, { filterKey: value, value: undefined })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select filter" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allowedFilters.map((f) => (
-                        <SelectItem key={f.key} value={f.key}>
-                          {f.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* VALUE */}
-                <div className="col-span-7">
-                  {filter?.type === "date" && (
-                    <DateRangePicker
-                      dateFrom={row.value?.gte}
-                      dateTo={row.value?.lte}
-                      setDate={(op, val) =>
+              return (
+                <div key={row.id} className="grid grid-cols-12 gap-2">
+                  {/* FILTER SELECT */}
+                  <div className="col-span-4">
+                    <Select
+                      value={row.filterKey}
+                      onValueChange={(value) =>
                         updateRow(row.id, {
-                          value: { ...row.value, [op]: val },
+                          filterKey: value,
+                          value: undefined,
                         })
                       }
-                      className="w-full"
-                    />
-                  )}
-
-                  {filter?.type === "number" && (
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        placeholder="Min"
-                        value={row.value?.gte ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          updateRow(row.id, {
-                            value: {
-                              ...row.value,
-                              gte: v === "" ? undefined : Number(v),
-                            },
-                          });
-                        }}
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Max"
-                        value={row.value?.lte ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          updateRow(row.id, {
-                            value: {
-                              ...row.value,
-                              lte: v === "" ? undefined : Number(v),
-                            },
-                          });
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {filter?.type === "text" && (
-                    <Input
-                      value={row.value ?? ""}
-                      placeholder="Enter value"
-                      onChange={(e) =>
-                        updateRow(row.id, { value: e.target.value })
-                      }
-                    />
-                  )}
-
-                  {filter?.type === "select" && (
-                    <Select
-                      value={row.value ?? ""}
-                      onValueChange={(v) => updateRow(row.id, { value: v })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select value" />
+                        <SelectValue placeholder="Select filter" />
                       </SelectTrigger>
                       <SelectContent>
-                        {filter.options?.map((opt) => (
-                          <SelectItem key={opt} value={opt}>
-                            {opt}
-                          </SelectItem>
-                        ))}
+                        {allowedFilters.map((f) => {
+                          const isUsed =
+                            usedFilterKeys.includes(f.key) &&
+                            f.key !== row.filterKey;
+                          return (
+                            <SelectItem
+                              key={f.key}
+                              value={f.key}
+                              disabled={isUsed}
+                            >
+                              {f.label}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
-                  )}
+                  </div>
 
-                  {filter?.type === "multi-select" && (
-                    <MultiSelectDropdown
-                      selectedItems={(row?.value as string[]) || []}
-                      allItems={filter?.options || []}
-                      toggleItem={(item: any) => toggleMultiValue(row.id, item)}
-                      deselectAll={deselectAllStatus}
-                    />
-                  )}
+                  {/* VALUE */}
+                  <div className="col-span-7">
+                    {filter?.type === "date" && (
+                      <DateRangePicker
+                        value={row.value}
+                        onChange={(range) =>
+                          updateRow(row.id, {
+                            value: range,
+                          })
+                        }
+                        className="w-full"
+                      />
+                    )}
+
+                    {filter?.type === "number" && (
+                      <AmountRangePicker
+                        value={row.value}
+                        onChange={(nextValue) =>
+                          updateRow(row.id, { value: nextValue })
+                        }
+                      />
+                    )}
+
+                    {filter?.type === "text" && (
+                      <Input
+                        value={row.value ?? ""}
+                        placeholder="Enter value"
+                        onChange={(e) =>
+                          updateRow(row.id, { value: e.target.value })
+                        }
+                      />
+                    )}
+
+                    {filter?.type === "select" && (
+                      <Select
+                        value={row.value ?? ""}
+                        onValueChange={(v) => updateRow(row.id, { value: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select value" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filter.options?.map((opt) => (
+                            <SelectItem key={opt} value={opt}>
+                              {opt}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {filter?.type === "multi-select" && (
+                      <MultiSelectDropdown
+                        selectedItems={(row?.value as string[]) || []}
+                        allItems={filter?.options || []}
+                        toggleItem={(item: any) =>
+                          toggleMultiValue(row.id, item)
+                        }
+                        deselectAll={deselectAllStatus}
+                      />
+                    )}
+                  </div>
+
+                  <Button
+                    className="col-span-1 my-auto h-11 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+                    onClick={() => removeRow(row.id)}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
                 </div>
+              );
+            })}
 
-                {/* REMOVE */}
-                <Button
-                  variant="ghost"
-                  className="col-span-1"
-                  onClick={() => removeRow(row.id)}
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
-              </div>
-            );
-          })}
-
-          <Button variant="outline" size="sm" onClick={addRow}>
-            + Add filter
-          </Button>
-        </div>
-        <div className="flex justify-end gap-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleApply}>Apply</Button>
+            <Button variant="outline" size="sm" onClick={addRow}>
+              + Add filter
+            </Button>
+          </div>
+          <div className="flex justify-end gap-4">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleApply}>Apply</Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

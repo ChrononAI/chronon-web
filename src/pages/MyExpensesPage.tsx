@@ -276,6 +276,8 @@ export function MyExpensesPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
+  console.log(query);
+
   // Tab and filter states
   const [activeTab, setActiveTab] = useState<"all" | "draft" | "reported">(
     "all"
@@ -395,66 +397,57 @@ export function MyExpensesPage() {
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, [activeTab]);
 
-const abortControllerRef = useRef<AbortController | null>(null);
-const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-useEffect(() => {
-  if (!rowsCalculated) return;
+  useEffect(() => {
+    if (!rowsCalculated) return;
 
-  if (debounceRef.current) {
-    clearTimeout(debounceRef.current);
-  }
-
-  debounceRef.current = setTimeout(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    setLoading(true);
-
-    fetchFilteredExpenses({ signal: controller.signal })
-      .catch((err) => {
-        if (err.name !== "AbortError") {
-          console.error(err);
-        }
-      })
-      .finally(() => {
-        // Prevent stale cleanup
-        if (!controller.signal.aborted) {
-          setLoading(false);
-          setIsInitialLoad(false);
-          setRowSelection({ type: "include", ids: new Set() });
-        }
-      });
-  }, 400); // 👈 debounce delay (300–500ms ideal)
-
-  return () => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
-  };
-}, [
-  activeTab,
-  paginationModel?.page,
-  paginationModel?.pageSize,
-  rowsCalculated,
-  query,
-]);
 
+    debounceRef.current = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      setLoading(true);
+
+      fetchFilteredExpenses({ signal: controller.signal })
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            console.error(err);
+          }
+        })
+        .finally(() => {
+          // Prevent stale cleanup
+          if (!controller.signal.aborted) {
+            setLoading(false);
+            setIsInitialLoad(false);
+            setRowSelection({ type: "include", ids: new Set() });
+          }
+        });
+    }, 400); // 👈 debounce delay (300–500ms ideal)
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [
+    activeTab,
+    paginationModel?.page,
+    paginationModel?.pageSize,
+    rowsCalculated,
+    query,
+  ]);
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
-
-    const filter =
-      activeTab === "all"
-        ? []
-        : activeTab === "draft"
-        ? ["COMPLETE", "INCOMPLETE", "SENT_BACK"]
-        : ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
-    updateQuery("status", "in", filter);
   }, [activeTab]);
 
   const tabs = [
@@ -467,14 +460,25 @@ useEffect(() => {
     },
   ];
 
+  const handleTabChange = (tab: any) => {
+    setActiveTab(tab);
+
+    setRowSelection({ type: "include", ids: new Set() });
+
+    const filter = tab === "all" ? [] :
+      tab === "draft"
+        ? ["COMPLETE", "INCOMPLETE", "SENT_BACK"]
+        : ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
+
+    updateQuery("status", "in", filter);
+  };
+
   return (
     <ReportsPageWrapper
       title="Expenses"
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) =>
-        setActiveTab(tabId as "all" | "draft" | "reported")
-      }
+      onTabChange={handleTabChange}
       showFilters={false}
       showDateFilter={false}
       showCreateButton={true}

@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Badge, Box } from "@mui/material";
 import { Button } from "../ui/button";
 import { Filter, Search } from "lucide-react";
 import MultiSelectDropdown from "../shared/MultiSelectDropdown";
@@ -24,6 +24,8 @@ type Props = GridToolbarProps &
 
 function CustomExpenseToolbar({ allStatuses }: Props) {
   const { query, setQuery } = useExpenseStore();
+
+  const hasFilters = Object.keys(query).length > 0;
 
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const searchValue = (getFilterValue(query, "q", "eq") as string) ?? "";
@@ -151,10 +153,12 @@ function CustomExpenseToolbar({ allStatuses }: Props) {
         </Box>
 
         <DateRangePicker
-          dateFrom={dateFrom}
-          dateTo={dateTo}
-          setDate={setDate}
-          className="w-[28%]"
+          className="w-[16%]"
+          value={{ gte: dateFrom, lte: dateTo }}
+          onChange={(range) => {
+            setDate("gte", range.gte);
+            setDate("lte", range.lte);
+          }}
         />
 
         {/* 🔧 ADVANCED FILTER */}
@@ -163,7 +167,13 @@ function CustomExpenseToolbar({ allStatuses }: Props) {
           onClick={() => setFilterModalOpen(true)}
           className="text-muted-foreground h-11 w-[10%] max-w-[48px] p-3"
         >
-          <Filter className="h-6 w-6" />
+          {hasFilters && <Badge
+            color="error"
+            variant="dot"
+            className="relative -top-4 -right-7"
+            overlap="circular"
+          ></Badge>}
+          <Filter className="h-8 w-8" />
         </Button>
       </Toolbar>
 
