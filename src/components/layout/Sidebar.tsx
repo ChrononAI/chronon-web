@@ -17,6 +17,7 @@ import {
   SlidersHorizontal,
   Store,
   TicketCheck,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,7 @@ const navigation: NavigationItem[] = [
   },
   { name: "Expenses", href: "/expenses", icon: Banknote },
   { name: "Expense Reports", href: "/reports", icon: FileSpreadsheet },
+  { name: "Transactions", href: "/transactions", icon: Receipt },
   {
     name: "Approvals",
     href: "/approvals/reports",
@@ -129,17 +131,6 @@ const navigation: NavigationItem[] = [
       },
     ],
   },
-  // {
-  //   name: "Reports",
-  //   href: "/all-reports",
-  //   isBold: false,
-  //   icon: FileBarChart,
-  // },
-  // {
-  //   name: "Settlements",
-  //   href: "/settlements",
-  //   icon: TicketCheck,
-  // },
   {
     name: "Admin Settings",
     href: "/admin-settings/entities",
@@ -151,13 +142,15 @@ const navigation: NavigationItem[] = [
 const permissionMap: any = {
   "Pre Approval": "pre_approval_settings",
   Advances: "advance_settings",
+  Transactions: "mobile_payment_settings",
   Admin: "admin_dashboard_settings",
   Stores: "store_settings",
 };
 
 export function Sidebar() {
   const location = useLocation();
-  const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed } = useAuthStore();
+  const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed } =
+    useAuthStore();
   const [openItems, setOpenItems] = useState<string[]>(() => {
     // Load from localStorage on initial render
     if (typeof window !== "undefined") {
@@ -260,6 +253,7 @@ export function Sidebar() {
           children,
         };
       } else {
+        console.log(item)
         const key = permissionMap[item.name];
         const permission = key && permissions ? permissions[key] : undefined;
 
