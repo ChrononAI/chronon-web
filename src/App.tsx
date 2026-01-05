@@ -67,6 +67,8 @@ import Settlements from "./pages/settlements/Settlements";
 import StoreMaster from "./pages/admin/StoreMaster";
 import CreateWorkflowPage from "./pages/admin/CreateWorkflowPage";
 import CreateRulePage from "./pages/admin/CreateRulePage";
+import TransactionsPage from "./pages/transactions/TransactionsPage";
+import TransactionDetailPage from "./pages/transactions/TransactionDetailsPage";
 
 function App() {
   return (
@@ -130,6 +132,10 @@ function App() {
               {/* SETTLEMENTS */}
               <Route path="/admin/settlements" element={<Settlements />} />
               <Route path="/admin/settlements/:expenseId" element={<ExpenseDetailPage />} />
+
+              {/* TRANSACTIONS */}
+              <Route path="/admin/accounts" element={<TransactionsPage />} />
+              <Route path="/admin/accounts/:id" element={<TransactionDetailPage />} />
 
 
               {/* ADMIN (No Padding Layout) */}
