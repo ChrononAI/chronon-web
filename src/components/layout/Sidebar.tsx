@@ -17,6 +17,7 @@ import {
   SlidersHorizontal,
   Store,
   TicketCheck,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -127,6 +128,11 @@ const navigation: NavigationItem[] = [
         href: "/admin/settlements",
         icon: TicketCheck,
       },
+      {
+        name: "Accounts",
+        href: "/admin/accounts",
+        icon: Receipt,
+      },
     ],
   },
   // {
@@ -157,7 +163,8 @@ const permissionMap: any = {
 
 export function Sidebar() {
   const location = useLocation();
-  const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed } = useAuthStore();
+  const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed } =
+    useAuthStore();
   const [openItems, setOpenItems] = useState<string[]>(() => {
     // Load from localStorage on initial render
     if (typeof window !== "undefined") {
@@ -403,7 +410,8 @@ export function Sidebar() {
           key={item.name}
           to={item.href}
           className={({ isActive }) => {
-            const active = isActive || (item.name === "Admin Settings" && isAdminActive);
+            const active =
+              isActive || (item.name === "Admin Settings" && isAdminActive);
 
             return cn(
               "flex items-center py-2 text-sm rounded-md transition-colors",
