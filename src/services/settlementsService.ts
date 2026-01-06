@@ -28,13 +28,38 @@ export const settlementsService = {
       throw error;
     }
   },
-  async markAsPaid(expense_ids: string[]) {
+
+async getAdminReports({
+  query,
+  limit,
+  offset,
+  signal,
+}: {
+  query?: string;
+  limit: number;
+  offset: number;
+  signal?: AbortSignal;
+}) {
+  return api.get(
+    `/api/v1/reports/admin${query ? `?${query}` : ""}`,
+    {
+      params: {
+        limit,
+        offset,
+      },
+      ...(signal && { signal }),
+    }
+  );
+},
+
+  async markAsPaid(report_ids: string[]) {
     try {
-      return await api.post("/em/expenses/bulk_mark_paid", { expense_ids });
+      return await api.post("/api/v1/reports/mark_paid", { report_ids });
     } catch (error) {
       throw error;
     }
   },
+
   async downloadBulkMarkTemplate() {
     try {
       return await api.get(
@@ -50,6 +75,7 @@ export const settlementsService = {
       throw error;
     }
   },
+
   async bulkMarkExpenses() {
     try {
       // return await
@@ -62,11 +88,15 @@ export const settlementsService = {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await api.post("/api/v1/bulk_upload/expenses_paid_upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await api.post(
+        "/api/v1/bulk_upload/expenses_paid_upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       return response;
     } catch (error) {
