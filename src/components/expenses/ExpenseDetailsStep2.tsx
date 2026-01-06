@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -74,7 +74,7 @@ import { getTemplates, type Template } from "@/services/admin/templates";
 import { getEntities, type Entity } from "@/services/admin/entities";
 import { FormFooter } from "../layout/FormFooter";
 import ReceiptViewer from "./ReceiptViewer";
-import { AdvanceService } from "@/services/advanceService";
+import { AdvanceService, AdvanceType } from "@/services/advanceService";
 
 // Form schema
 const expenseSchema = z.object({
@@ -169,9 +169,6 @@ export function ExpenseDetailsStep2({
   >({});
   const [replaceRecLoading, setReplaceRecLoading] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  const [shouldGetConversion, setShouldGetConversion] = useState(
-    !Boolean(expense)
-  );
   const [advanceAccounts, setAdvanceAccounts] = useState([]);
   const [selectedAdvanceAccount, setSelectedAdvanceAccount] =
     useState<any>(null);
@@ -209,6 +206,10 @@ export function ExpenseDetailsStep2({
 
   const userRate = form.watch("user_conversion_rate");
   const apiRate = form.watch("api_conversion_rate");
+  const currency = form.watch("currency");
+  const foreignAmount = form.watch("foreign_amount");
+  const hasAdvanceOnExpense = Boolean(expense?.advance_account_id);
+  const hasResolvedAdvanceRef = useRef(false);
 
   const fetchReceipt = async (receiptId: string, orgId: string) => {
     try {
@@ -335,6 +336,8 @@ export function ExpenseDetailsStep2({
     from: string;
     to: string;
   }) => {
+    const currentApiRate = form.getValues("api_conversion_rate");
+    if (currentApiRate) return;
     try {
       const res = await expenseService.getCurrencyConversionRate({
         date,
@@ -349,8 +352,9 @@ export function ExpenseDetailsStep2({
       form.setValue("user_conversion_rate", conversion);
       form.setValue("api_conversion_rate", conversion);
       setShowConversion(true);
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
+      toast.error(error?.response?.data?.message || error.message);
     }
   };
 
@@ -363,41 +367,113 @@ export function ExpenseDetailsStep2({
     }
   };
 
-  useEffect(() => {
-    if (form.watch("currency") !== baseCurrency) {
-      setShowConversion(true);
-      setShouldGetConversion(true);
-    } else {
-      setShowConversion(false);
-    }
-  }, [form.watch("currency")]);
+  // useEffect(() => {
+  //   if (currency !== baseCurrency) {
+  //     setShowConversion(true);
+  //     setShouldGetConversion(true);
+  //   } else {
+  //     setShowConversion(false);
+  //   }
+  // }, [currency]);
+
+  // useEffect(() => {
+  //   if (currency !== baseCurrency && shouldGetConversion) {
+  //     const yesterday = getYesterday();
+  //     getCurrencyConversion({
+  //       date: yesterday,
+  //       from: currency,
+  //       to: baseCurrency,
+  //     });
+  //     setShowConversion(true);
+  //   } else {
+  //     form.setValue("api_conversion_rate", "0");
+  //     setShowConversion(false);
+  //   }
+  // }, [currency]);
+
+  // useEffect(() => {
+  //   const accountRate = selectedAdvanceAccount?.currency_conversion_rates?.find(
+  //     (item: any) => item.currency === currency
+  //   )?.rate;
+  //   if (selectedAdvanceAccount && accountRate && showConversion) {
+  //     form.setValue("user_conversion_rate", String(accountRate));
+  //   } else if (!accountRate && showConversion) {
+  //     const yesterday = getYesterday();
+  //     getCurrencyConversion({
+  //       date: yesterday,
+  //       from: currency,
+  //       to: baseCurrency,
+  //     });
+  //   }
+  // }, [selectedAdvanceAccount]);
+
+useEffect(() => {
+  if (!currency) return;
+
+  const isBase = currency === baseCurrency;
+
+  if (isBase) {
+    form.setValue("foreign_currency", null);
+    form.setValue("foreign_amount", null);
+    form.setValue("user_conversion_rate", null);
+    form.setValue("api_conversion_rate", null);
+    setShowConversion(false);
+    return;
+  }
+
+  setShowConversion(true);
+  form.setValue("foreign_currency", currency);
+
+  if (!form.getValues("foreign_amount")) {
+    form.setValue("foreign_amount", form.getValues("amount"));
+  }
+
+  if (
+    hasAdvanceOnExpense &&
+    !selectedAdvanceAccount &&
+    !hasResolvedAdvanceRef.current
+  ) {
+    return;
+  }
+
+  const accountRate = selectedAdvanceAccount?.currency_conversion_rates?.find(
+    (item: any) => item.currency === currency
+  )?.rate;
+
+  if (accountRate !== undefined) {
+    form.setValue("user_conversion_rate", String(accountRate));
+    form.setValue("api_conversion_rate", null);
+    return;
+  }
+
+  const yesterday = getYesterday();
+  getCurrencyConversion({
+    date: yesterday,
+    from: currency,
+    to: baseCurrency,
+  });
+}, [
+  currency,
+  baseCurrency,
+  selectedAdvanceAccount,
+  hasAdvanceOnExpense,
+]);
+
 
   useEffect(() => {
-    if (form.getValues("currency") !== baseCurrency && shouldGetConversion) {
-      const yesterday = getYesterday();
-      getCurrencyConversion({
-        date: yesterday,
-        from: form.getValues("currency"),
-        to: getOrgCurrency(),
-      });
-      setShowConversion(true);
-    } else {
-      form.setValue("api_conversion_rate", "0");
-      setShowConversion(false);
-    }
-  }, [form.watch("currency")]);
+    if (!foreignAmount || !userRate) return;
+
+    form.setValue("amount", `${(+foreignAmount * +userRate).toFixed(3)}`);
+  }, [foreignAmount, userRate]);
 
   useEffect(() => {
-    if (form.getValues("user_conversion_rate") && form.getValues("amount")) {
-      form.setValue(
-        "amount",
-        `${(
-          +(form.getValues("user_conversion_rate") || 0) *
-          +(form.getValues("foreign_amount") || 0)
-        ).toFixed(3)}`
+    if (expense && advanceAccounts.length > 0 && expense?.advance_account_id) {
+      const adv = advanceAccounts.find(
+        (adv: AdvanceType) => adv.id === expense.advance_account_id
       );
+      setSelectedAdvanceAccount(adv);
     }
-  }, [form.watch("user_conversion_rate"), form.watch("foreign_amount")]);
+  }, [expense, advanceAccounts]);
 
   useEffect(() => {
     loadPoliciesWithCategories();
@@ -465,22 +541,6 @@ export function ExpenseDetailsStep2({
     loadTemplates();
   }, []);
 
-  useEffect(() => {
-    if (
-      expense?.custom_attributes?.advance_account_id &&
-      advanceAccounts?.length > 0
-    ) {
-      form.setValue(
-        "advance_account_id",
-        expense?.custom_attributes?.advance_account_id
-      );
-      const selAdv = advanceAccounts.find(
-        (adv: any) => adv.id === expense?.custom_attributes?.advance_account_id
-      );
-      if (selAdv) setSelectedAdvanceAccount(selAdv);
-    }
-  }, [expense, advanceAccounts]);
-
   // Update form values when expense changes
   useEffect(() => {
     if (expense && !isReceiptReplaced) {
@@ -531,7 +591,6 @@ export function ExpenseDetailsStep2({
       }
     }
   }, [form, policies, expense, isReceiptReplaced]);
-  form.getValues("advance_account_id");
 
   // Prefill custom attributes when both expense and template entities are available
   useEffect(() => {
@@ -754,7 +813,7 @@ export function ExpenseDetailsStep2({
   const inputFieldClass =
     "border border-gray-200 bg-white px-4 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
   const selectTriggerClass =
-    "border border-gray-200 bg-white px-4 text-sm shadow-none focus:outline-none focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
+    "border border-gray-200 bg-white flex items-center w-full justify-between px-4 text-sm shadow-none focus:outline-none focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
   const textareaClass =
     "border border-gray-200 bg-white px-4 py-3 text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0";
 
@@ -1278,18 +1337,35 @@ export function ExpenseDetailsStep2({
                                       (p: any) => p.id === value
                                     );
                                     setSelectedAdvanceAccount(acc || null);
+                                    hasResolvedAdvanceRef.current = true;
                                   }}
                                   disabled={readOnly}
                                 >
                                   <FormControl>
                                     <SelectTrigger
-                                      className={selectTriggerClass}
+                                      className={`${selectTriggerClass} relative`}
                                     >
                                       <SelectValue placeholder="Select an advance">
                                         {field.value && selectedAdvanceAccount
                                           ? selectedAdvanceAccount.account_name
                                           : "Select an advance"}
                                       </SelectValue>
+
+                                      {field.value && !readOnly && (
+                                        <button
+                                          type="button"
+                                          onPointerDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            field.onChange("");
+                                            setSelectedAdvanceAccount(null);
+                                            hasResolvedAdvanceRef.current = true;
+                                          }}
+                                          className="absolute right-8 top-1/2 mr-2 -translate-y-1/2 text-muted-foreground hover:text-foreground pointer-events-auto"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </button>
+                                      )}
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>

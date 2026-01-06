@@ -253,7 +253,6 @@ export function Sidebar() {
           children,
         };
       } else {
-        console.log(item)
         const key = permissionMap[item.name];
         const permission = key && permissions ? permissions[key] : undefined;
 

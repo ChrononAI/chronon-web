@@ -29,6 +29,7 @@ export interface CreateExpenseData {
 }
 
 export interface UpdateExpenseData {
+  advance_account_id?: string;
   amount?: string | number;
   category_id: string;
   description: string;
