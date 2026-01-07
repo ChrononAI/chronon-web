@@ -181,6 +181,7 @@ export function ExpenseDetailsStep2({
     Record<string, Array<{ id: string; label: string }>>
   >({});
   const [isReceiptReuploaded, setIsReceiptReuploaded] = useState(false);
+  const [isConversionRateReadOnly, setIsConversionRateReadOnly] = useState(false);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -407,58 +408,56 @@ export function ExpenseDetailsStep2({
   //   }
   // }, [selectedAdvanceAccount]);
 
-useEffect(() => {
-  if (!currency) return;
+  useEffect(() => {
+    if (!currency) return;
 
-  const isBase = currency === baseCurrency;
+    const isBase = currency === baseCurrency;
 
-  if (isBase) {
-    form.setValue("foreign_currency", null);
-    form.setValue("foreign_amount", null);
-    form.setValue("user_conversion_rate", null);
-    form.setValue("api_conversion_rate", null);
-    setShowConversion(false);
-    return;
-  }
+    if (isBase) {
+      form.setValue("foreign_currency", null);
+      form.setValue("foreign_amount", null);
+      form.setValue("user_conversion_rate", null);
+      form.setValue("api_conversion_rate", null);
+      setIsConversionRateReadOnly(false);
+      setShowConversion(false);
+      return;
+    }
 
-  setShowConversion(true);
-  form.setValue("foreign_currency", currency);
+    setShowConversion(true);
+    form.setValue("foreign_currency", currency);
 
-  if (!form.getValues("foreign_amount")) {
-    form.setValue("foreign_amount", form.getValues("amount"));
-  }
+    if (!form.getValues("foreign_amount")) {
+      form.setValue("foreign_amount", form.getValues("amount"));
+    }
 
-  if (
-    hasAdvanceOnExpense &&
-    !selectedAdvanceAccount &&
-    !hasResolvedAdvanceRef.current
-  ) {
-    return;
-  }
+    if (
+      hasAdvanceOnExpense &&
+      !selectedAdvanceAccount &&
+      !hasResolvedAdvanceRef.current
+    ) {
+      return;
+    }
 
-  const accountRate = selectedAdvanceAccount?.currency_conversion_rates?.find(
-    (item: any) => item.currency === currency
-  )?.rate;
+    const accountRate = selectedAdvanceAccount?.currency_conversion_rates?.find(
+      (item: any) => item.currency === currency
+    )?.rate;
 
-  if (accountRate !== undefined) {
-    form.setValue("user_conversion_rate", String(accountRate));
-    form.setValue("api_conversion_rate", null);
-    return;
-  }
+    if (accountRate !== undefined) {
+      form.setValue("user_conversion_rate", String(accountRate));
+      form.setValue("api_conversion_rate", null);
+      setIsConversionRateReadOnly(true);
+      return;
+    }
 
-  const yesterday = getYesterday();
-  getCurrencyConversion({
-    date: yesterday,
-    from: currency,
-    to: baseCurrency,
-  });
-}, [
-  currency,
-  baseCurrency,
-  selectedAdvanceAccount,
-  hasAdvanceOnExpense,
-]);
+    setIsConversionRateReadOnly(false);
 
+    const yesterday = getYesterday();
+    getCurrencyConversion({
+      date: yesterday,
+      from: currency,
+      to: baseCurrency,
+    });
+  }, [currency, baseCurrency, selectedAdvanceAccount, hasAdvanceOnExpense]);
 
   useEffect(() => {
     if (!foreignAmount || !userRate) return;
@@ -1182,7 +1181,7 @@ useEffect(() => {
                                       {...field}
                                       placeholder="Conversion Rate"
                                       type="number"
-                                      disabled={readOnly}
+                                      disabled={readOnly || isConversionRateReadOnly}
                                       className={inputFieldClass}
                                       value={
                                         (
@@ -1359,7 +1358,8 @@ useEffect(() => {
                                             e.stopPropagation();
                                             field.onChange("");
                                             setSelectedAdvanceAccount(null);
-                                            hasResolvedAdvanceRef.current = true;
+                                            hasResolvedAdvanceRef.current =
+                                              true;
                                           }}
                                           className="absolute right-8 top-1/2 mr-2 -translate-y-1/2 text-muted-foreground hover:text-foreground pointer-events-auto"
                                         >
