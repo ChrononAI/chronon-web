@@ -118,6 +118,30 @@ export const expenseService = {
     return response.data.data;
   },
 
+  async getFilteredExpenses({
+    query,
+    limit,
+    offset,
+    signal
+  }: {
+    query: string;
+    limit: number;
+    offset: number;
+    signal: AbortSignal;
+  }) {
+    try {
+      return await api.get(`/api/v1/expenses/spender?${query}`, {
+        params: {
+          limit,
+          offset,
+        },
+        signal
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async adminUpdateExpense({
     id,
     payload,

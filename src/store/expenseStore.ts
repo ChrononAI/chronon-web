@@ -1,3 +1,4 @@
+import { FilterMap } from "@/pages/MyExpensesPage";
 import { ParsedInvoiceData } from "@/services/fileParseService";
 import { PreApprovalType } from "@/services/preApprovalService";
 import { Expense } from "@/types/expense";
@@ -5,17 +6,18 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
 export interface PaginationInfo {
-  has_next: boolean;
-  has_prev: boolean;
-  page: number;
-  pages: number;
-  per_page: number;
+  has_next?: boolean;
+  has_prev?: boolean;
+  page?: number;
+  pages?: number;
+  per_page?: number;
   total: number;
 }
+// const [query, setQuery] = useState<Record<string, FieldFilter[]>>({});
 
 interface ExpenseState {
   parsedData: ParsedInvoiceData | null;
-
+  query: FilterMap;
   allExpenses: Expense[];
   allExpensesPagination: PaginationInfo;
 
@@ -29,7 +31,7 @@ interface ExpenseState {
 
   // Methods
   setParsedData: (data: ParsedInvoiceData | null) => void;
-
+  setQuery: (data: FilterMap | ((prev: FilterMap) => FilterMap)) => void;
   setAllExpenses: (data: Expense[]) => void;
   setAllExpensesPagination: (pagination: PaginationInfo) => void;
 
@@ -47,6 +49,7 @@ export const useExpenseStore = create<ExpenseState>()(
     persist(
       (set) => ({
         parsedData: null,
+        query: {},
         allExpenses: [],
         allExpensesPagination: {
           has_next: false,
@@ -77,10 +80,18 @@ export const useExpenseStore = create<ExpenseState>()(
         selectedPreApproval: null,
 
         setParsedData: (data) =>
-          set({ parsedData: data }, false, 'expense/setParsedData'),
+          set({ parsedData: data }, false, "expense/setParsedData"),
+        setQuery: (data: FilterMap | ((prev: FilterMap) => FilterMap)) =>
+          set(
+            (state) => ({
+              query: typeof data === "function" ? data(state.query) : data,
+            }),
+            false,
+            "expense/setQuery"
+          ),
 
         setAllExpenses: (data) =>
-          set({ allExpenses: data }, false, 'expense/setAllExpenses'),
+          set({ allExpenses: data }, false, "expense/setAllExpenses"),
 
         setAllExpensesPagination: (pagination) =>
           set(
@@ -90,7 +101,7 @@ export const useExpenseStore = create<ExpenseState>()(
           ),
 
         setDraftExpenses: (data) =>
-          set({ draftExpenses: data }, false, 'expense/setDraftExpenses'),
+          set({ draftExpenses: data }, false, "expense/setDraftExpenses"),
 
         setDraftExpensesPagination: (pagination) =>
           set(
@@ -100,7 +111,11 @@ export const useExpenseStore = create<ExpenseState>()(
           ),
 
         setReportedExpenses: (data) =>
-          set({ reportedExpenses: data }, false, 'expense/setCompletedExpenses'),
+          set(
+            { reportedExpenses: data },
+            false,
+            "expense/setCompletedExpenses"
+          ),
 
         setReportedExpensesPagination: (pagination) =>
           set(
@@ -109,17 +124,21 @@ export const useExpenseStore = create<ExpenseState>()(
             "expense/setCompletedExpensesPagination"
           ),
 
-          setSelectedPreApproval: (data) =>
-            set({
-              selectedPreApproval: data
-            }, false, 'expense/setSelectedPreApproval')
+        setSelectedPreApproval: (data) =>
+          set(
+            {
+              selectedPreApproval: data,
+            },
+            false,
+            "expense/setSelectedPreApproval"
+          ),
       }),
       {
-        name: 'expense-storage',
+        name: "expense-storage",
       }
     ),
     {
-      name: 'ExpenseStore',
+      name: "ExpenseStore",
     }
   )
 );
