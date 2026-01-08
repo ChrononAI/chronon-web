@@ -106,7 +106,7 @@ function DateRangePicker({ value, onChange, className }: DateRangePickerProps) {
               </Button>
             </PopoverTrigger>
 
-            <PopoverContent side="top" align="start" className="p-0 w-auto">
+            <PopoverContent side="top" align="end" className="p-0 w-auto">
               <CalendarComponent
                 mode="single"
                 selected={

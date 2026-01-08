@@ -471,6 +471,13 @@ export function MyExpensesPage() {
     updateQuery("status", "in", filter);
   };
 
+  useEffect(() => {
+    setQuery((prev) => {
+      const {status, ...rest} = prev;
+      return {...rest}
+    })
+  }, []);
+
   return (
     <ReportsPageWrapper
       title="Expenses"

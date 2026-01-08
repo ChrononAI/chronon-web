@@ -185,7 +185,7 @@ export function ExpenseDetailsStep2({
   >({});
   const [isReceiptReuploaded, setIsReceiptReuploaded] = useState(false);
   const [fetchingConversion, setFetchingConversion] = useState(false);
-  const dupeCheckAcrossOrg = orgSettings?.duplicate_check_across_org_settings?.enabled || false;
+  const dupeCheckAcrossOrg = orgSettings?.org_level_duplicate_check_settings?.enabled || true;
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
