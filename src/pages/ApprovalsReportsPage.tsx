@@ -73,7 +73,7 @@ const columns: GridColDef[] = [
     minWidth: 140,
     flex: 1,
     renderCell: (params) => (
-      <span className="whitespace-nowrap">{params.row.created_by?.email}</span>
+      <span className="whitespace-nowrap">{params.row.user_info?.email}</span>
     ),
   },
   {

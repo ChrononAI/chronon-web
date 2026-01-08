@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Send } from "lucide-react";
-import { expenseService } from "@/services/expenseService";
 import { ExpenseComment } from "@/types/expense";
 import { useAuthStore } from "@/store/authStore";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
 const formatDateOnly = (dateString: string | undefined | null): string => {
   if (!dateString) return "Invalid date";
   const datePart = dateString.split("T")[0];
@@ -31,67 +29,29 @@ interface ExpenseCommentsProps {
   expenseId: string | undefined;
   readOnly?: boolean;
   className?: string;
-  onCommentPosted?: () => void;
   autoFetch?: boolean; // Whether to automatically fetch comments when expenseId changes
   comments: ExpenseComment[];
-  setComments: (data: ExpenseComment[]) => void;
   commentError: string | null;
-  setCommentError: (data: string | null) => void;
   loadingComments: boolean;
+  postComment: any;
+  postingComment: boolean;
+  newComment: string;
+  setNewComment: any;
 }
 
 export function ExpenseComments({
   expenseId,
   readOnly = false,
   className,
-  onCommentPosted,
   comments,
-  setComments,
   commentError,
-  setCommentError,
-  loadingComments
+  loadingComments,
+  postComment,
+  postingComment,
+  newComment,
+  setNewComment
 }: ExpenseCommentsProps) {
   const { user } = useAuthStore();
-  const [postingComment, setPostingComment] = useState(false);
-  const [newComment, setNewComment] = useState("");
-
-  // Handle posting a new comment
-  const handlePostComment = async () => {
-    if (!expenseId || !newComment.trim() || postingComment) return;
-
-    setPostingComment(true);
-    setCommentError(null);
-
-    try {
-      await expenseService.postExpenseComment(
-        expenseId,
-        newComment.trim(),
-        false
-      );
-      // Refetch comments to get the updated list with the new comment
-      const fetchedComments = await expenseService.getExpenseComments(
-        expenseId
-      );
-      // Sort comments by created_at timestamp (oldest first)
-      const sortedComments = [...fetchedComments.filter(c => !c.action)].sort((a, b) => {
-        const dateA = new Date(a.created_at).getTime();
-        const dateB = new Date(b.created_at).getTime();
-        return dateA - dateB;
-      });
-      setComments(sortedComments);
-      setNewComment("");
-      toast.success("Comment posted successfully");
-      onCommentPosted?.();
-    } catch (error: any) {
-      console.error("Error posting comment:", error);
-      const errorMessage =
-        error.response?.data?.message || "Failed to post comment";
-      setCommentError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setPostingComment(false);
-    }
-  };
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
@@ -171,7 +131,7 @@ export function ExpenseComments({
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  if (newComment.trim() && !postingComment) handlePostComment();
+                  if (newComment.trim() && !postingComment) postComment();
                 }
               }}
             />
@@ -181,7 +141,7 @@ export function ExpenseComments({
                 size="icon"
                 className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90"
                 disabled={!newComment.trim() || postingComment}
-                onClick={handlePostComment}
+                onClick={postComment}
               >
                 {postingComment ? (
                   <Loader2 className="h-5 w-5 text-white animate-spin" />

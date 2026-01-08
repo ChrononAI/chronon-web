@@ -52,7 +52,9 @@ function UploadFile() {
           template_key: type,
         });
         const id = res.data.data.id;
-        navigate(`/admin-settings/product-config/bulk-uploads/file-preview/${type}/${id}`);
+        navigate(
+          `/admin-settings/product-config/bulk-uploads/file-preview/${type}/${id}`
+        );
       } catch (error) {
         toast.error("Error uploading file");
         console.error("Error uploading invoice:", error);
@@ -74,7 +76,7 @@ function UploadFile() {
 
   const handleRemove = () => {
     setUploadedFile(null);
-  }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -82,26 +84,25 @@ function UploadFile() {
 
   return (
     <>
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold capitalize">{`Bulk Upload ${type}`}</h1>
-      </div>
-      <div className="space-y-6">
-        <div className="p-8 border rounded-md h-[40vh]">
-          {uploadedFile ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <Check className="h-12 w-12 mx-auto mb-4 text-primary" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  File Uploaded{" "}
-                </h3>
-                <p className="text-gray-600 mb-4">{uploadedFile.name}</p>
-                <Button onClick={handleRemove}>Upload Another</Button>
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold capitalize">{`Bulk Upload ${type}`}</h1>
+        </div>
+        <div className="space-y-6">
+          <div className="p-8 border rounded-md h-[40vh]">
+            {uploadedFile ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <Check className="h-12 w-12 mx-auto mb-4 text-primary" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    File Uploaded{" "}
+                  </h3>
+                  <p className="text-gray-600 mb-4">{uploadedFile.name}</p>
+                  <Button onClick={handleRemove}>Upload Another</Button>
+                </div>
               </div>
-            </div>
-          ) : isProcessing ? (
-            <div className="h-full flex items-center justify-center">
-              {isProcessing && (
+            ) : isProcessing ? (
+              <div className="h-full flex items-center justify-center">
                 <div className="text-center">
                   <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -111,70 +112,74 @@ function UploadFile() {
                     Please wait while we process your file
                   </p>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div
-              className="p-12 text-center hover:border-primary/50 transition-colors cursor-pointer"
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onClick={() => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".csv,.xlsx";
-                input.onchange = (e) => {
-                  const file = (e.target as HTMLInputElement).files?.[0];
-                  if (file) {
-                    handleFileUpload(file);
-                  }
-                };
-                input.click();
-              }}
-            >
-              <div className="flex flex-col items-center space-y-4">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                  <Upload className="h-8 w-8 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xl font-semibold text-gray-900 mb-2">
-                    Upload a file
-                  </p>
-                  <p className="text-gray-600 mb-4">
-                    Drag and drop or click to upload
-                  </p>
-                  <Button className="bg-primary hover:bg-primary/90 mb-4">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Browse file
-                  </Button>
-                  <p className="text-gray-600 text-sm">
-                    Supported Formats: CSV, XLSX
-                  </p>
-                  <p className="text-gray-600 text-sm">
-                    Maximum file size: 10MB
-                  </p>
+              </div>
+            ) : (
+              <div
+                className="p-12 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onClick={() => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept = ".csv,.xlsx";
+                  input.onchange = (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file) {
+                      handleFileUpload(file);
+                    }
+                  };
+                  input.click();
+                }}
+              >
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Upload className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-semibold text-gray-900 mb-2">
+                      Upload a file
+                    </p>
+                    <p className="text-gray-600 mb-4">
+                      Drag and drop or click to upload
+                    </p>
+                    <Button className="bg-primary hover:bg-primary/90 mb-4">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Browse file
+                    </Button>
+                    <p className="text-gray-600 text-sm">
+                      Supported Formats: CSV, XLSX
+                    </p>
+                    <p className="text-gray-600 text-sm">
+                      Maximum file size: 10MB
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {STEPS_DATA.map((step) => {
-            return (
-              <div key={step.title} className="space-y-4 p-6 border rounded-md">
-                <div className="w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center mb-4">
-                  <step.icon className="flex items-center justify-between mx-auto text-primary" />
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {STEPS_DATA.map((step) => {
+              return (
+                <div
+                  key={step.title}
+                  className="space-y-4 p-6 border rounded-md"
+                >
+                  <div className="w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center mb-4">
+                    <step.icon className="flex items-center justify-between mx-auto text-primary" />
+                  </div>
+                  <h2>{step.title}</h2>
+                  <p>{step.description}</p>
                 </div>
-                <h2>{step.title}</h2>
-                <p>{step.description}</p>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
-    <FormFooter>
-      <Button variant="outline" onClick={() => navigate(-1)}>Back</Button>
-    </FormFooter>
+      <FormFooter>
+        <Button variant="outline" onClick={() => navigate(-1)}>
+          Back
+        </Button>
+      </FormFooter>
     </>
   );
 }

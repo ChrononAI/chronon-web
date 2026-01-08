@@ -105,7 +105,7 @@ function CreateExpenseCategoryPage() {
               className="w-full space-y-2"
             >
               {items.map((item) => (
-                <div key={item.name} className="flex items-end gap-4">
+                <div key={item.id} className="flex items-end gap-4">
                   <div className="space-y-2">
                     <Label>Category</Label>
                     <Input

@@ -243,10 +243,10 @@ export function ExpenseDetailPage() {
       } else if (formData.start_location) {
         const expenseData: UpdateExpenseData = {
           amount: parseFloat(formData.amount),
-          category_id: formData.categoryId,
+          category_id: formData.category_id,
           description: formData.description,
           expense_date: formData.expense_date,
-          expense_policy_id: formData.policyId,
+          expense_policy_id: formData.expense_policy_id,
           vendor: formData.merchant,
           receipt_id: isReceiptReplaced
             ? parsedData?.id ?? null

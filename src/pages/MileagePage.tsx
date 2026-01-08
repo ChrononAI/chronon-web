@@ -175,6 +175,48 @@ const MileagePage = ({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const isUpdateFlow = mode === "edit" || editMode;
+
+    const [newComment, setNewComment] = useState<string>();
+    const [postingComment, setPostingComment] = useState(false);
+  
+    const handlePostComment = async () => {
+      if (!expenseData?.id || !newComment?.trim() || postingComment) return;
+  
+      setPostingComment(true);
+      setCommentError(null);
+  
+      try {
+        await expenseService.postExpenseComment(
+          expenseData?.id,
+          newComment.trim(),
+          false
+        );
+        // Refetch comments to get the updated list with the new comment
+        const fetchedComments = await expenseService.getExpenseComments(
+          expenseData?.id
+        );
+        // Sort comments by created_at timestamp (oldest first)
+        const sortedComments = [...fetchedComments.filter((c) => !c.action)].sort(
+          (a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateA - dateB;
+          }
+        );
+        setComments(sortedComments);
+        setNewComment("");
+        toast.success("Comment posted successfully");
+      } catch (error: any) {
+        console.error("Error posting comment:", error);
+        const errorMessage =
+          error.response?.data?.message || "Failed to post comment";
+        setCommentError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setPostingComment(false);
+      }
+    };
+
   const isStartEndLocationLocked =
     (mode === "view" && !editMode) || hasPrefilledLocations;
   const renderPrimaryButtonContent = () => {
@@ -284,7 +326,7 @@ const MileagePage = ({
         );
         const formattedChargeableDistance = costData.chargeable_distance
           ? formatDistance(costData.chargeable_distance, costData.distance_unit)
-          : "";
+          : formatDistance(0, costData.distance_unit);
 
         setMileagePrice(costData.mileage_info?.price || null);
         setChargeableDistanceValue(costData.chargeable_distance || null);
@@ -295,6 +337,7 @@ const MileagePage = ({
           chargeableDistance: formattedChargeableDistance,
           amount: formattedAmount,
         }));
+        console.log(formattedChargeableDistance);
         form.setValue("distance", formattedDistance);
         form.setValue("chargeableDistance", formattedChargeableDistance);
         form.setValue("amount", formattedAmount);
@@ -973,9 +1016,9 @@ const MileagePage = ({
               </div>
             </div>
 
-            <div className="h-full flex-1 overflow-hidden">
+            <div className="h-full flex-1 overflow-hidden flex flex-col">
               {activeMapTab === "map" ? (
-                <div className="md:flex-1 md:overflow-hidden">
+                <div className="flex-1 md:overflow-hidden">
                   {isCalculating ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
                       <div className="mx-auto h-16 w-16 text-gray-300">
@@ -1011,7 +1054,7 @@ const MileagePage = ({
                       />
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center md:h-full">
+                    <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 p-16 text-center h-[100%]">
                       <div className="mx-auto h-16 w-16 text-gray-300">
                         <svg
                           viewBox="0 0 24 24"
@@ -1042,10 +1085,12 @@ const MileagePage = ({
                   expenseId={expenseData?.id}
                   readOnly={false}
                   comments={comments}
-                  setCommentError={setCommentError}
-                  setComments={setComments}
                   commentError={commentError}
                   loadingComments={loadingComments}
+                  postComment={handlePostComment}
+                  postingComment={postingComment}
+                  newComment={newComment || ""}
+                  setNewComment={setNewComment}
                 />
               ) : (
                 <ExpenseLogs
@@ -1062,7 +1107,7 @@ const MileagePage = ({
             <div
               className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
                 pathname.includes("create")
-                  ? "md:h-[calc(100vh-18rem)]"
+                  ? "md:h-[calc(100vh-16rem)]"
                   : "md:h-[calc(100vh-13rem)]"
               } md:overflow-y-auto`}
             >
@@ -1258,6 +1303,40 @@ const MileagePage = ({
 
                 <FormField
                   control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category *</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={(v) => {
+                          handleInputChange("categoryId", v);
+                          field.onChange(v);
+                        }}
+                        disabled={
+                          loadingPolicies || (mode === "view" && !editMode)
+                        }
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories?.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="distance"
                   render={({ field }) => (
                     <FormItem>
@@ -1326,49 +1405,13 @@ const MileagePage = ({
                   />
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <FormLabel>Policy</FormLabel>
-                    <Input
-                      type="text"
-                      value={selectedPolicy?.name || ""}
-                      className="bg-gray-50 text-gray-500"
-                      disabled
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="categoryId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category *</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={(v) => {
-                            handleInputChange("categoryId", v);
-                            field.onChange(v);
-                          }}
-                          disabled={
-                            loadingPolicies || (mode === "view" && !editMode)
-                          }
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categories?.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                <div className="space-y-2">
+                  <FormLabel>Policy</FormLabel>
+                  <Input
+                    type="text"
+                    value={selectedPolicy?.name || ""}
+                    className="bg-gray-50 text-gray-500"
+                    disabled
                   />
                 </div>
 
@@ -1400,7 +1443,7 @@ const MileagePage = ({
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Purpose of Travel *</FormLabel>
+                      <FormLabel>Purpose *</FormLabel>
                       <FormControl>
                         <Textarea
                           value={field.value}
@@ -1408,6 +1451,7 @@ const MileagePage = ({
                             handleInputChange("description", e.target.value);
                             field.onChange(e.target.value);
                           }}
+                          rows={4}
                           disabled={mode === "view" && !editMode}
                           className="resize-none"
                           placeholder="Enter purpose of travel"
@@ -1528,7 +1572,7 @@ const MileagePage = ({
             </>
           </form>
         </Form>
-        \ {/* Fullscreen Map Modal */}
+         {/* Fullscreen Map Modal */}
         {isMapFullscreen && mapUrl && (
           <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
             <div className="relative w-full h-full flex flex-col">

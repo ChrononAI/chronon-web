@@ -54,7 +54,7 @@ const DetectedHeaderDropdown = ({
           No Mapping
         </SelectItem>
         {options
-          .filter((header) => header && header)
+          .filter(Boolean)
           .map((header) => (
             <SelectItem
               key={header}

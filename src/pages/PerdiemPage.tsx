@@ -40,7 +40,16 @@ import {
 } from "@/components/ui/form";
 import { trackEvent } from "@/mixpanel";
 import ExpenseLogs from "@/components/expenses/ExpenseLogs";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PerdiemPageProps {
   mode?: "create" | "view" | "edit";
@@ -73,9 +82,13 @@ const perdiemSchema = z.object({
 type PerdiemFormValues = z.infer<typeof perdiemSchema>;
 
 const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
-  const { id } = useParams<{ id: string }>();
+  const { expenseId } = useParams<{ expenseId: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const { single_date_per_diem_settings } = useAuthStore(
+    (state) => state.orgSettings
+  );
+  const singleDate = single_date_per_diem_settings;
   const { pathname } = useLocation();
   const form = useForm<PerdiemFormValues>({
     resolver: zodResolver(perdiemSchema),
@@ -125,9 +138,50 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const today = new Date().toISOString().split("T")[0];
   const [loading, setLoading] = useState(false);
 
-    const [adminEditReason, setAdminEditReason] = useState("");
-      const [showAdminEditConfirm, setShowAdminEditConfirm] = useState(false);
-      const [pendingFormData, setPendingFormData] = useState<any>(null);
+  const [adminEditReason, setAdminEditReason] = useState("");
+  const [showAdminEditConfirm, setShowAdminEditConfirm] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
+
+  const [newComment, setNewComment] = useState<string>();
+  const [postingComment, setPostingComment] = useState(false);
+
+  const handlePostComment = async () => {
+    if (!expenseData?.id || !newComment?.trim() || postingComment) return;
+
+    setPostingComment(true);
+    setCommentError(null);
+
+    try {
+      await expenseService.postExpenseComment(
+        expenseData?.id,
+        newComment.trim(),
+        false
+      );
+      // Refetch comments to get the updated list with the new comment
+      const fetchedComments = await expenseService.getExpenseComments(
+        expenseData?.id
+      );
+      // Sort comments by created_at timestamp (oldest first)
+      const sortedComments = [...fetchedComments.filter((c) => !c.action)].sort(
+        (a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateA - dateB;
+        }
+      );
+      setComments(sortedComments);
+      setNewComment("");
+      toast.success("Comment posted successfully");
+    } catch (error: any) {
+      console.error("Error posting comment:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to post comment";
+      setCommentError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setPostingComment(false);
+    }
+  };
 
   const isAdminUpdatingExpense =
     isAdmin &&
@@ -150,7 +204,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
           return new Date().toISOString().split("T")[0];
         }
       };
-console.log(expenseData);
+
       const data = {
         startDate: formatDate(
           expenseData.start_date ||
@@ -277,11 +331,11 @@ console.log(expenseData);
         setShowAdminEditConfirm(true);
         setLoading(false);
         return;
-      } else if (mode === "edit" && id) {
+      } else if (mode === "edit" && expenseId) {
         trackEvent("Edit Per Diem Button Clicked", {
           button_name: "Edit Per Diem",
         });
-          await expenseService.updateExpense(id, submitData);
+        await expenseService.updateExpense(expenseId, submitData);
       }
       if (mode === "create") {
         toast.success("Per diem expense created successfully!");
@@ -302,23 +356,23 @@ console.log(expenseData);
     }
   };
 
-    const handleEditExpenseAsAdmin = async () => {
-      try {
-        if (expenseData?.id) {
-          const newPayload = { ...pendingFormData, reason: adminEditReason };
-          await expenseService.adminUpdateExpense({
-            id: expenseData?.id,
-            payload: newPayload,
-          });
-        }
-        toast.success("Exopense uodated successfuylly");
-        setShowAdminEditConfirm(false);
-        navigate(-1);
-      } catch (error: any) {
-        console.log(error);
-        toast.error(error?.response?.data?.message || error?.message);
+  const handleEditExpenseAsAdmin = async () => {
+    try {
+      if (expenseData?.id) {
+        const newPayload = { ...pendingFormData, reason: adminEditReason };
+        await expenseService.adminUpdateExpense({
+          id: expenseData?.id,
+          payload: newPayload,
+        });
       }
-    };
+      toast.success("Exopense uodated successfuylly");
+      setShowAdminEditConfirm(false);
+      navigate(-1);
+    } catch (error: any) {
+      console.log(error);
+      toast.error(error?.response?.data?.message || error?.message);
+    }
+  };
 
   const calculatePerDiemAmount = async ({
     startDate,
@@ -434,7 +488,7 @@ console.log(expenseData);
         <div
           className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
             pathname.includes("create")
-              ? "md:h-[calc(100vh-18rem)]"
+              ? "md:h-[calc(100vh-16rem)]"
               : "md:h-[calc(100vh-13rem)]"
           } md:overflow-y-auto`}
         >
@@ -485,10 +539,12 @@ console.log(expenseData);
                   expenseId={expenseData?.id}
                   readOnly={false}
                   comments={comments}
-                  setCommentError={setCommentError}
-                  setComments={setComments}
                   commentError={commentError}
                   loadingComments={loadingComments}
+                  postComment={handlePostComment}
+                  postingComment={postingComment}
+                  newComment={newComment || ""}
+                  setNewComment={setNewComment}
                 />
               ) : (
                 <ExpenseLogs
@@ -517,8 +573,12 @@ console.log(expenseData);
                       control={form.control}
                       name="startDate"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date *</FormLabel>
+                        <FormItem
+                          className={`${
+                            singleDate?.enabled ? "col-span-2" : "col-span-1"
+                          }`}
+                        >
+                          <FormLabel>{singleDate?.enabled ? "Date *" : "Start Date *"}</FormLabel>
                           <FormControl>
                             <DateField
                               id="startDate"
@@ -526,7 +586,9 @@ console.log(expenseData);
                               onChange={(value) => {
                                 handleInputChange("startDate", value);
                                 field.onChange(value);
-                                handleInputChange("endDate", value);
+                                if (singleDate?.enabled) {
+                                  handleInputChange("endDate", value);
+                                }
                               }}
                               disabled={mode === "view"}
                               maxDate={today}
@@ -537,7 +599,7 @@ console.log(expenseData);
                       )}
                     />
 
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label
                         htmlFor="days"
                         className="text-sm font-medium text-gray-700"
@@ -555,53 +617,57 @@ console.log(expenseData);
                           disabled={mode === "view"}
                         />
                       </div>
-                    </div>
+                    </div> */}
 
-                    {/* <FormField
-                      control={form.control}
-                      name="endDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>End Date *</FormLabel>
-                          <FormControl>
-                            <DateField
-                              id="endDate"
-                              value={formData.endDate}
-                              onChange={(value) => {
-                                handleInputChange("endDate", value);
-                                field.onChange(value);
-                              }}
-                              disabled={mode === "view"}
-                              minDate={formData.startDate}
-                              maxDate={formData.startDate}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    /> */}
+                    {!singleDate?.enabled && (
+                      <FormField
+                        control={form.control}
+                        name="endDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>End Date *</FormLabel>
+                            <FormControl>
+                              <DateField
+                                id="endDate"
+                                value={formData.endDate}
+                                onChange={(value) => {
+                                  handleInputChange("endDate", value);
+                                  field.onChange(value);
+                                }}
+                                disabled={mode === "view"}
+                                minDate={formData.startDate}
+                                maxDate={new Date().toString()}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
 
-                  {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="days"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Number of Days
-                      </Label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-                        <Input
-                          id="days"
-                          type="text"
-                          value={days}
-                          readOnly
-                          className="bg-gray-50 pl-10"
-                        />
+                  {!singleDate?.enabled && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="days"
+                          className="text-sm font-medium text-gray-700"
+                        >
+                          Number of Days
+                        </Label>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+                          <Input
+                            id="days"
+                            type="text"
+                            value={days}
+                            readOnly
+                            className="bg-gray-50 pl-10"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div> */}
+                  )}
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -705,6 +771,7 @@ console.log(expenseData);
                                 handleInputChange("purpose", e.target.value);
                                 field.onChange(e.target.value);
                               }}
+                              rows={4}
                               className="resize-none"
                               disabled={mode === "view"}
                             />
@@ -813,11 +880,15 @@ console.log(expenseData);
           </div>
 
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setShowAdminEditConfirm(false);
-              setPendingFormData(null);
-              setLoading(false);
-            }}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel
+              onClick={() => {
+                setShowAdminEditConfirm(false);
+                setPendingFormData(null);
+                setLoading(false);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
 
             <AlertDialogAction
               onClick={() => {

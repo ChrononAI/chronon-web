@@ -82,7 +82,7 @@ export function formatCurrency(
 }
 
 export const getStatusColor = (status: string): string => {
-  switch (status.toUpperCase()) {
+  switch (status?.toUpperCase()) {
     case "PENDING":
     case "PENDING_APPROVAL":
     case "PAYMENT_PENDING":

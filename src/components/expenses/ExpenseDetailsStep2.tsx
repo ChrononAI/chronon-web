@@ -86,7 +86,20 @@ const expenseSchema = z.object({
   receipt_id: z.string().optional(),
   expense_date: z.preprocess(
     (v) => (v ? new Date(v as string) : v),
-    z.date({ required_error: "Date is required" })
+    z.date({ required_error: "Date is required" }).refine(
+      (date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const selectedDate = new Date(date);
+        selectedDate.setHours(0, 0, 0, 0);
+
+        return selectedDate <= today;
+      },
+      {
+        message: "Date cannot exceed today's date",
+      }
+    )
   ),
   advance_account_id: z.string().optional().nullable(),
   description: z.string().min(1, "Description is required"),
@@ -171,6 +184,8 @@ export function ExpenseDetailsStep2({
     Record<string, Array<{ id: string; label: string }>>
   >({});
   const [isReceiptReuploaded, setIsReceiptReuploaded] = useState(false);
+  const [fetchingConversion, setFetchingConversion] = useState(false);
+  const dupeCheckAcrossOrg = orgSettings?.org_level_duplicate_check_settings?.enabled || true;
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -322,6 +337,7 @@ export function ExpenseDetailsStep2({
     from: string;
     to: string;
   }) => {
+    setFetchingConversion(true);
     try {
       const res = await expenseService.getCurrencyConversionRate({
         date,
@@ -338,6 +354,8 @@ export function ExpenseDetailsStep2({
       setShowConversion(true);
     } catch (error) {
       console.log(error);
+    } finally {
+      setFetchingConversion(false);
     }
   };
 
@@ -710,7 +728,9 @@ export function ExpenseDetailsStep2({
   const activeReceiptUrl =
     (receiptSignedUrl && receiptSignedUrl.length > 0
       ? receiptSignedUrl[0]
-      : null) || previewUrl || duplicateReceiptUrl
+      : null) ||
+    previewUrl ||
+    duplicateReceiptUrl;
 
   const receiptDisplayName =
     uploadedFile?.name ||
@@ -754,7 +774,7 @@ export function ExpenseDetailsStep2({
             </AlertTitle>
             <AlertDescription className="text-yellow-700">
               This expense has been flagged as a duplicate.
-              <Button
+              {!dupeCheckAcrossOrg && <Button
                 variant="link"
                 className="p-0 h-auto text-yellow-700 underline ml-1"
                 onClick={() =>
@@ -762,7 +782,7 @@ export function ExpenseDetailsStep2({
                 }
               >
                 View original expense <ExternalLink className="ml-1 h-3 w-3" />
-              </Button>
+              </Button>}
             </AlertDescription>
           </Alert>
         )}
@@ -1025,7 +1045,8 @@ export function ExpenseDetailsStep2({
                                   }}
                                   disabled={
                                     readOnly ||
-                                    (!orgSettings?.currency_conversion_settings?.enabled)
+                                    !orgSettings?.currency_conversion_settings
+                                      ?.enabled
                                   }
                                 >
                                   <SelectTrigger className={selectTriggerClass}>
@@ -1034,7 +1055,7 @@ export function ExpenseDetailsStep2({
                                   <SelectContent>
                                     <SelectItem value="INR">INR (₹)</SelectItem>
                                     <SelectItem value="USD">USD ($)</SelectItem>
-                                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                                    {/* <SelectItem value="EUR">EUR (€)</SelectItem> */}
                                   </SelectContent>
                                 </Select>
                               </FormControl>
@@ -1426,7 +1447,7 @@ export function ExpenseDetailsStep2({
                   {!readOnly && (
                     <Button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || fetchingConversion}
                       className="min-w-[200px]"
                     >
                       {loading ? (
