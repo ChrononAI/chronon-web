@@ -488,7 +488,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         <div
           className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
             pathname.includes("create")
-              ? "md:h-[calc(100vh-18rem)]"
+              ? "md:h-[calc(100vh-16rem)]"
               : "md:h-[calc(100vh-13rem)]"
           } md:overflow-y-auto`}
         >
@@ -771,6 +771,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                                 handleInputChange("purpose", e.target.value);
                                 field.onChange(e.target.value);
                               }}
+                              rows={4}
                               className="resize-none"
                               disabled={mode === "view"}
                             />
