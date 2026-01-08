@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { expenseService } from "@/services/expenseService";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { useExpenseStore } from "@/store/expenseStore";
-import { Box, Skeleton } from "@mui/material";
+import { Box } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
   GridPaginationModel,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
-import { AlertTriangle, CheckCircle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -24,7 +24,9 @@ import {
   getOrgCurrency,
 } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import { GridOverlay } from "@mui/x-data-grid";
+import ExpensesSkeletonOverlay from "@/components/expenses/ExpenseSkeletonOverlay";
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import CustomExpenseToolbar from "@/components/expenses/CustomExpenseToolbar";
 
 export function getExpenseType(type: string) {
   if (type === "RECEIPT_BASED") return "Expense";
@@ -33,114 +35,115 @@ export function getExpenseType(type: string) {
   return type;
 }
 
-function ExpensesSkeletonOverlay({ rowCount = 8 }) {
-  return (
-    <GridOverlay>
-      <div className="w-full py-3 space-y-0">
-        {Array.from({ length: rowCount }).map((_, rowIndex) => (
-          <div
-            key={rowIndex}
-            className="flex items-center gap-4 w-full py-3 px-2 border-[0.5px] border-gray"
-          >
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="2%"
-              className="rounded-full"
-            />
-            {/* EXPENSE ID */}
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="10%"
-              className="rounded-full"
-            />
+export type Operator =
+  | "eq"
+  | "neq"
+  | "lt"
+  | "lte"
+  | "gt"
+  | "gte"
+  | "in"
+  | "like"
+  | "ilike";
 
-            {/* TYPE */}
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="8%"
-              className="rounded-full"
-            />
+export type FilterValue = string | number | (string | number)[];
 
-            {/* POLICY */}
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="10%"
-              className="rounded-full"
-            />
+export type FieldFilter = {
+  operator: Operator;
+  value: FilterValue;
+};
 
-            {/* CATEGORY */}
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="10%"
-              className="rounded-full"
-            />
+export type FilterMap = Record<string, FieldFilter[]>;
 
-            {/* VENDOR */}
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="16%"
-              className="rounded-full"
-            />
-
-            {/* DATE */}
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="8%"
-              className="rounded-full"
-            />
-
-            {/* AMOUNT */}
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="8%"
-              className="rounded-full"
-            />
-
-            {/* CURRENCY */}
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="6%"
-              className="rounded-full"
-            />
-
-            {/* STATUS */}
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="12%"
-              className="rounded-full"
-            />
-          </div>
-        ))}
-      </div>
-    </GridOverlay>
-  );
+export function getFilterValue(
+  query: FilterMap,
+  key: string,
+  operator: Operator
+): FilterValue | undefined {
+  return query[key]?.find((f) => f.operator === operator)?.value;
 }
 
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No expenses found</h3>
-          <p className="text-muted-foreground">
-            There are currently no expenses.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
+export function buildBackendQuery(filters: FilterMap): string {
+  const params: string[] = [];
+
+  Object.entries(filters).forEach(([key, fieldFilters]) => {
+    // 🔍 SPECIAL CASE: search query
+    if (key === "q") {
+      const value = fieldFilters?.[0]?.value;
+
+      if (typeof value !== "string" || value.trim() === "") {
+        return;
+      }
+
+      const finalValue = value.endsWith(":*") ? value : `${value}:*`;
+
+      params.push(`q=${finalValue}`);
+      return;
+    }
+
+    // ✅ Normal filters
+    fieldFilters?.forEach(({ operator, value }) => {
+      if (
+        value === undefined ||
+        value === null ||
+        (typeof value === "string" && value.trim() === "") ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        return;
+      }
+
+      switch (operator) {
+        case "in":
+          params.push(
+            `${key}=in.(${(value as (string | number)[]).join(",")})`
+          );
+          break;
+
+        case "ilike":
+          params.push(`${key}=ilike.%${value}%`);
+          break;
+
+        default:
+          params.push(`${key}=${operator}.${value}`);
+      }
+    });
+  });
+
+  return params.join("&");
 }
+
+const EXPENSE_STATUSES = [
+  "COMPLETE",
+  "INCOMPLETE",
+  "PENDING_APPROVAL",
+  "APPROVED",
+  "REJECTED",
+  "SENT_BACK",
+];
+
+const DRAFT_EXPENSE_STATUSES = ["COMPLETE", "INCOMPLETE", "SENT_BACK"];
+
+const REPORTED_EXPENSE_STATUSES = ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
+
+const TAB_QUERY_OVERRIDES = {
+  all: {},
+  draft: {
+    status: [
+      {
+        operator: "in",
+        value: ["COMPLETE", "INCOMPLETE", "SENT_BACK"],
+      },
+    ],
+  },
+  reported: {
+    status: [
+      {
+        operator: "in",
+        value: ["APPROVED", "REJECTED", "PENDING_APPROVAL"],
+      },
+    ],
+  },
+};
 
 const columns: GridColDef[] = [
   {
@@ -256,12 +259,14 @@ const columns: GridColDef[] = [
 export function MyExpensesPage() {
   const {
     allExpenses,
+    query,
     draftExpenses,
     reportedExpenses,
     allExpensesPagination,
     draftExpensesPagination,
     reportedExpensesPagination,
     setAllExpenses,
+    setQuery,
     setDraftExpenses,
     setReportedExpenses,
     setAllExpensesPagination,
@@ -275,9 +280,14 @@ export function MyExpensesPage() {
   const [activeTab, setActiveTab] = useState<"all" | "draft" | "reported">(
     "all"
   );
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+
+  const allowedStatus =
+    activeTab === "all"
+      ? EXPENSE_STATUSES
+      : activeTab === "draft"
+      ? DRAFT_EXPENSE_STATUSES
+      : REPORTED_EXPENSE_STATUSES;
+
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
@@ -292,89 +302,152 @@ export function MyExpensesPage() {
       ? draftExpenses
       : reportedExpenses;
 
+  function updateQuery(key: string, operator: Operator, value: FilterValue) {
+    setQuery((prev) => {
+      const prevFilters: FieldFilter[] = prev[key] ?? [];
+
+      if (
+        value === undefined ||
+        value === null ||
+        (typeof value === "string" && value.trim() === "") ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        const nextFilters = prevFilters.filter((f) => f.operator !== operator);
+
+        if (nextFilters.length === 0) {
+          const { [key]: _, ...rest } = prev;
+          return rest;
+        }
+
+        return {
+          ...prev,
+          [key]: nextFilters,
+        };
+      }
+
+      const existingIndex = prevFilters.findIndex(
+        (f) => f.operator === operator
+      );
+
+      const nextFilters =
+        existingIndex >= 0
+          ? prevFilters.map((f, i) =>
+              i === existingIndex ? { operator, value } : f
+            )
+          : [...prevFilters, { operator, value }];
+
+      return {
+        ...prev,
+        [key]: nextFilters,
+      };
+    });
+  }
+
   const [paginationModel, setPaginationModel] =
     useState<GridPaginationModel | null>({
       page: 0,
       pageSize: 10,
     });
 
+  const fetchFilteredExpenses = useCallback(
+    async ({ signal }: { signal: AbortSignal }) => {
+      const limit = paginationModel?.pageSize ?? 10;
+      const offset = (paginationModel?.page ?? 0) * limit;
+
+      const effectiveQuery = {
+        ...query,
+        ...TAB_QUERY_OVERRIDES[activeTab],
+      };
+
+      const response = await expenseService.getFilteredExpenses({
+        query: buildBackendQuery(effectiveQuery),
+        limit,
+        offset,
+        signal,
+      });
+
+      switch (activeTab) {
+        case "draft":
+          setDraftExpenses(response.data.data);
+          setDraftExpensesPagination({ total: response.data.count });
+          break;
+
+        case "reported":
+          setReportedExpenses(response.data.data);
+          setReportedExpensesPagination({ total: response.data.count });
+          break;
+
+        case "all":
+        default:
+          setAllExpenses(response.data.data);
+          setAllExpensesPagination({ total: response.data.count });
+      }
+    },
+    [query, activeTab, paginationModel?.page, paginationModel?.pageSize]
+  );
+
   useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [paginationModel?.page, paginationModel?.pageSize, rowsCalculated]);
+
+  useEffect(() => {
+    const gridHeight = window.innerHeight - 340;
     const rowHeight = 36;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setRowsCalculated(true);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, [activeTab]);
 
-  const fetchAllExpenses = async () => {
-    try {
-      const response = await expenseService.fetchAllExpenses(
-        (paginationModel?.page || 0) + 1,
-        paginationModel?.pageSize
-      );
-      setAllExpenses(response.data);
-      setAllExpensesPagination(response.pagination);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchDraftExpenses = async () => {
-    try {
-      const response = await expenseService.getExpensesByStatus(
-        "COMPLETE,INCOMPLETE",
-        (paginationModel?.page || 0) + 1,
-        paginationModel?.pageSize
-      );
-      setDraftExpenses(response.data);
-      setDraftExpensesPagination(response.pagination);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const fetchCompletedExpenses = async () => {
-    try {
-      const response = await expenseService.getExpensesByStatus(
-        "APPROVED,REJECTED,PENDING_APPROVAL",
-        (paginationModel?.page || 0) + 1,
-        paginationModel?.pageSize
-      );
-      setReportedExpenses(response.data);
-      setReportedExpensesPagination(response.pagination);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      await Promise.all([
-        fetchAllExpenses(),
-        fetchDraftExpenses(),
-        fetchCompletedExpenses(),
-      ]);
-      setIsInitialLoad(false);
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  };
   useEffect(() => {
-    if (paginationModel && rowsCalculated) {
-      fetchData();
+    if (!rowsCalculated) return;
+
+    // Clear pending debounce
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
     }
-    setRowSelection({ type: "include", ids: new Set() });
-  }, [paginationModel?.page, paginationModel?.pageSize, rowsCalculated]);
+
+    debounceRef.current = setTimeout(() => {
+      // Abort previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      setLoading(true);
+
+      fetchFilteredExpenses({ signal: controller.signal })
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            console.error(err);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setLoading(false);
+            setIsInitialLoad(false);
+            setRowSelection({ type: "include", ids: new Set() });
+          }
+        });
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [fetchFilteredExpenses, rowsCalculated]);
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
   }, [activeTab]);
 
   const tabs = [
-    { key: "all", label: "All", count: allExpensesPagination.total },
+    { key: "all", label: "All", count: allExpensesPagination?.total },
     { key: "draft", label: "Drafts", count: draftExpensesPagination.total },
     {
       key: "reported",
@@ -383,42 +456,38 @@ export function MyExpensesPage() {
     },
   ];
 
-  const statusOptions = [
-    { value: "all", label: "All" },
-    { value: "COMPLETE", label: "Complete" },
-    { value: "INCOMPLETE", label: "Incomplete" },
-    { value: "PENDING_APPROVAL", label: "Pending Approval" },
-    { value: "APPROVED", label: "Approved" },
-    { value: "REJECTED", label: "Rejected" },
-  ];
+  const handleTabChange = (tab: any) => {
+    setActiveTab(tab);
+
+    setRowSelection({ type: "include", ids: new Set() });
+
+    const filter =
+      tab === "all"
+        ? []
+        : tab === "draft"
+        ? ["COMPLETE", "INCOMPLETE", "SENT_BACK"]
+        : ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
+
+    updateQuery("status", "in", filter);
+  };
 
   return (
     <ReportsPageWrapper
       title="Expenses"
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) =>
-        setActiveTab(tabId as "all" | "draft" | "reported")
-      }
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      searchPlaceholder="Search expenses..."
-      statusFilter={statusFilter}
-      onStatusChange={setStatusFilter}
-      statusOptions={statusOptions}
-      selectedDate={selectedDate}
-      onDateChange={setSelectedDate}
+      onTabChange={handleTabChange}
       showFilters={false}
       showDateFilter={false}
       showCreateButton={true}
       createButtonText="Create New Expense"
+      marginBottom="mb-0"
       createButtonLink="/expenses/create"
     >
       <Box
         sx={{
           height: "calc(100vh - 160px)",
           width: "100%",
-          marginTop: "-30px",
         }}
       >
         <DataGrid
@@ -427,7 +496,13 @@ export function MyExpensesPage() {
           columns={columns}
           loading={loading}
           slots={{
-            noRowsOverlay: CustomNoRows,
+            toolbar: CustomExpenseToolbar,
+            noRowsOverlay: () => (
+              <CustomNoRows
+                title={"No expenses found"}
+                description={"There are currently no expenses"}
+              />
+            ),
             loadingOverlay:
               loading && isInitialLoad
                 ? () => (
@@ -436,6 +511,13 @@ export function MyExpensesPage() {
                     />
                   )
                 : undefined,
+          }}
+          slotProps={{
+            toolbar: {
+              allStatuses: allowedStatus,
+              query,
+              updateQuery,
+            } as any,
           }}
           sx={{
             border: 0,
@@ -453,6 +535,15 @@ export function MyExpensesPage() {
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
               border: "none",
+            },
+            "& .MuiDataGridToolbar-root": {
+              paddingX: "2px",
+              width: "100%",
+              justifyContent: "start",
+            },
+            "& .MuiDataGridToolbar": {
+              justifyContent: "start",
+              border: "none !important",
             },
             "& .MuiDataGrid-columnHeaders": {
               border: "none",
@@ -479,6 +570,7 @@ export function MyExpensesPage() {
           getRowClassName={(params) =>
             params.row.original_expense_id ? "bg-yellow-50" : ""
           }
+          showToolbar
           checkboxSelection
           disableRowSelectionOnClick
           showCellVerticalBorder

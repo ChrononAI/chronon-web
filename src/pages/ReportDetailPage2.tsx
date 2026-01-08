@@ -458,6 +458,8 @@ export function ReportDetailPage2() {
   const handleViewExpense = async (expense: Expense) => {
     if (pathname.includes("/approvals/")) {
       navigate(`/approvals/reports/${report.id}/${expense.id}`);
+    } else if (pathname.includes("/admin/settlements")) {
+      navigate(`/admin/settlements/${report.id}/${expense.id}`);
     } else {
       navigate(`/reports/${report.id}/${expense.id}`);
     }
@@ -654,7 +656,7 @@ export function ReportDetailPage2() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/approvals/reports")}
+            onClick={() => navigate(-1)}
             className="px-6 py-2"
           >
             Back

@@ -27,6 +27,7 @@ interface ReportsPageWrapperProps {
   tabs?: TabConfig[];
   activeTab?: string;
   onTabChange?: (tab: string) => void;
+  marginBottom?: string;
   
   // Filter configuration
   searchTerm?: string;
@@ -56,6 +57,7 @@ export function ReportsPageWrapper({
   onSearchChange,
   searchPlaceholder = "Search reports...",
   statusFilter,
+  marginBottom = "mb-8",
   onStatusChange,
   statusOptions = [
     { value: 'all', label: 'All' },
@@ -92,7 +94,7 @@ export function ReportsPageWrapper({
         activeTab={activeTab}
         onTabChange={onTabChange}
         tabs={tabs}
-        className="mb-8"
+        className={marginBottom ? marginBottom : "mb-8"}
       />}
 
       {/* Filter Controls Section */}
