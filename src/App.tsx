@@ -72,6 +72,8 @@ import PreviewFile from "./pages/bulk-upload/PreviewFile";
 import ColumnMapping from "./pages/bulk-upload/ColumnMapping";
 import ValidateFile from "./pages/bulk-upload/ValidateFile";
 import BulkUploadedFilesPage from "./pages/admin/BulkUploadedFilesPage";
+import TransactionsPage from "./pages/transactions/TransactionsPage";
+import TransactionDetailPage from "./pages/transactions/TransactionDetailPage";
 
 function App() {
   return (
@@ -96,6 +98,11 @@ function App() {
               <Route path="/expenses" element={<MyExpensesPage />} />
               <Route path="/expenses/create" element={<UnifiedExpensesPage />} />
               <Route path="/expenses/:expenseId" element={<ExpenseDetailPage />} />
+
+              {/* TRANSACTIONS */}
+              <Route path="/transactions" element={<TransactionsPage />} />
+              <Route path="/transactions/:id" element={<TransactionDetailPage />} />
+
 
               {/* REPORTS */}
               <Route path="/reports" element={<MyReportsPage />} />
@@ -134,7 +141,8 @@ function App() {
 
               {/* SETTLEMENTS */}
               <Route path="/admin/settlements" element={<Settlements />} />
-              <Route path="/admin/settlements/:expenseId" element={<ExpenseDetailPage />} />
+              <Route path="/admin/settlements/:id" element={<ReportDetailPage2 />} />
+              <Route path="/admin/settlements/:id/:expenseId" element={<ExpenseDetailPage />} />
 
               {/* ADMIN (No Padding Layout) */}
               <Route element={<AdminLayout />}>

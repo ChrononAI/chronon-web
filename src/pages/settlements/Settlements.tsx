@@ -1,7 +1,6 @@
 import {
   formatCurrency,
   formatDate,
-  getOrgCurrency,
   getStatusColor,
 } from "@/lib/utils";
 import { Box, Toolbar } from "@mui/material";
@@ -13,28 +12,13 @@ import {
   GridRowParams,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { getExpenseType } from "../MyExpensesPage";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { GridOverlay } from "@mui/x-data-grid";
 import { toast } from "sonner";
 import { settlementsService } from "@/services/settlementsService";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import { useNavigate } from "react-router-dom";
 
@@ -97,140 +81,71 @@ function CustomToolbar({
           </Button>
         )}
       </Box>
-
-      {/* <Box className="flex items-center gap-2">
-        <FilterPanelTrigger
-          size="small"
-          startIcon={<GridFilterListIcon className="text-gray-500" />} // 👈 custom icon
-        >
-          <span className="text-gray-500">Filter</span>
-        </FilterPanelTrigger>
-
-        <ExportCsv
-          size="small"
-          startIcon={<GridExpandMoreIcon className="text-gray-500" />} // 👈 custom icon
-        >
-          <span className="text-gray-500">Export CSV</span>
-        </ExportCsv>
-      </Box> */}
     </Toolbar>
   );
 }
 
 const columns: GridColDef[] = [
-  {
-    field: "sequence_number",
-    headerName: "EXPENSE ID",
-    minWidth: 150,
-    flex: 1,
-    renderCell: (params) => {
-      const expense = params.row;
-      return (
-        <div className="flex items-center gap-2">
-          {expense.original_expense_id && (
-            <TooltipProvider>
-              <Tooltip delayDuration={50}>
-                <TooltipTrigger asChild>
-                  <div className="relative cursor-pointer">
-                    <AlertTriangle
-                      className="h-4 w-4 text-yellow-400"
-                      fill="currentColor"
-                      stroke="none"
-                    />
-                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-800 text-[8px] font-bold">
-                      !
-                    </span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  align="center"
-                  className="bg-yellow-100 border-yellow-300 text-yellow-800"
-                >
-                  <p>Duplicate expense</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          <span>{expense.sequence_number}</span>
-        </div>
-      );
-    },
-  },
-  {
-    field: "expense_type",
-    headerName: "TYPE",
-    minWidth: 120,
-    flex: 1,
-    renderCell: (params: any) => getExpenseType(params.row.expense_type),
-  },
-  {
-    field: "policy",
-    headerName: "POLICY",
-    minWidth: 140,
-    flex: 1,
-    valueGetter: (params: any) => params?.name || "No Policy",
-  },
-  {
-    field: "category",
-    headerName: "CATEGORY",
-    minWidth: 140,
-    flex: 1,
-  },
-  {
-    field: "vendor",
-    headerName: "VENDOR",
+    {
+    field: "title",
+    headerName: "TITLE",
     minWidth: 200,
     flex: 1,
-    renderCell: (params: any) => {
-      const { vendor, expense_type } = params.row;
-      if (vendor) return vendor;
-      if (expense_type === "RECEIPT_BASED") {
-        return <span className="text-gray-600 italic">Unknown Vendor</span>;
-      }
-      return "NA";
-    },
-  },
-  {
-    field: "expense_date",
-    headerName: "DATE",
-    minWidth: 120,
-    flex: 1,
-    valueFormatter: (params: any) => formatDate(params),
-  },
-  {
-    field: "payment_state",
-    headerName: "PAYMENT STATE",
-    minWidth: 180,
-    flex: 1,
-    renderCell: (params: any) => (
-      <Badge className={getStatusColor(params.value)}>
-        {params.value.replace("_", " ")}
-      </Badge>
+    renderCell: (params) => (
+      <span className="font-medium hover:underline whitespace-nowrap">
+        {params.value}
+      </span>
     ),
   },
   {
-    field: "amount",
-    headerName: "AMOUNT",
-    minWidth: 120,
+    field: "description",
+    headerName: "DESCRIPTION",
+    minWidth: 180,
     flex: 1,
-    type: "number",
-    align: "right",
-    headerAlign: "right",
-    valueFormatter: (params: any) => formatCurrency(params),
+    renderCell: (params) => (
+      <span className="whitespace-nowrap">{params.value}</span>
+    ),
   },
   {
-    field: "currency",
-    headerName: "CURRENCY",
-    minWidth: 80,
+    field: "payment_state",
+    headerName: "STATE",
     flex: 1,
-    renderCell: () => getOrgCurrency(),
+    minWidth: 180,
+    renderCell: (params) => (
+      <Badge className={getStatusColor(params.value)}>{params.value || "N/A"}</Badge>
+    ),
+  },
+  {
+    field: "total_amount",
+    headerName: "TOTAL AMOUNT",
+    minWidth: 120,
+    flex: 1,
+    align: "right",
+    headerAlign: "right",
+    valueFormatter: (params) => formatCurrency(params),
+  },
+  {
+    field: "created_by",
+    headerName: "CREATED BY",
+    minWidth: 140,
+    flex: 1,
+    renderCell: (params) => (
+      <span className="whitespace-nowrap">{params.row.user_info?.email}</span>
+    ),
+  },
+  {
+    field: "created_at",
+    headerName: "CREATED DATE",
+    minWidth: 120,
+    flex: 1,
+    valueFormatter: (params) => formatDate(params),
   },
 ];
 
 function Settlements() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"paid" | "unpaid">("unpaid");
+  const [rowsCalculated, setRowsCalculated] = useState(false);
   const [paidExpenseCount, setPaidExpenseCount] = useState(0);
   const [unpaidExpenseCount, setUnpaidExpenseCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -251,108 +166,21 @@ function Settlements() {
     type: "include",
     ids: new Set<GridRowId>(),
   });
-  const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [bulkFile, setBulkFile] = useState<File | null>(null);
-  const [uploadingBulk, setUploadingBulk] = useState(false);
-  const [bulkInputKey, setBulkInputKey] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const rows: any = activeTab === "paid" ? paidRows : unpaidRows;
 
-  const handleBulkDialogChange = useCallback((open: boolean) => {
-    setShowBulkUpload(open);
-    if (!open) {
-      setBulkFile(null);
-      setBulkInputKey((key) => key + 1);
-      setUploadingBulk(false);
-    }
-  }, []);
-
-  const handleDownloadTemplate = useCallback(async () => {
-    try {
-      const response = await settlementsService.downloadBulkMarkTemplate();
-
-      const blob = new Blob([response.data], {
-        type: response.headers["content-type"] || "application/octet-stream",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "bulk-settle-expenses-template.xlsx");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Failed to download bulk upload template:", error);
-      toast.error("Failed to download template");
-    }
-  }, []);
-
-  const uploadBulkFile = useCallback(
-    async (file: File) => {
-      if (uploadingBulk) return;
-
-      setUploadingBulk(true);
-      try {
-        await settlementsService.uploadBulkSettleExpense(file);
-        toast.success("Bulk settlement submitted successfully");
-        handleBulkDialogChange(false);
-      } catch (error) {
-        console.error("Failed to upload file in:", error);
-        toast.error("Failed to upload file");
-      } finally {
-        setUploadingBulk(false);
-      }
-    },
-    [handleBulkDialogChange, uploadingBulk]
-  );
-
-  const handleBulkUpload = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      if (!bulkFile) {
-        toast.error("Please select a file to upload");
-        return;
-      }
-
-      await uploadBulkFile(bulkFile);
-    },
-    [bulkFile, uploadBulkFile]
-  );
-
-  const handleBulkFileSelect = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0] ?? null;
-      setBulkFile(file);
-    },
-    []
-  );
-
-  const handleBrowseClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleClearFile = useCallback(() => {
-    setBulkFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    setBulkInputKey((key) => key + 1);
-  }, []);
-
   useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
+    const gridHeight = window.innerHeight - 280;
     const rowHeight = 38;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+    setRowsCalculated(true);
     setPaginationModel({ page: 0, pageSize: calculatedPageSize });
   }, []);
 
   const handleRowClick = ({ id }: GridRowParams) => {
-    console.log(id);
     navigate(`/admin/settlements/${id}`);
   };
 
-  const fetchPaidExpenses = async ({
+  const fetchPaidReports = async ({
     limit,
     offset,
   }: {
@@ -360,11 +188,12 @@ function Settlements() {
     offset: number;
   }) => {
     try {
-      const res = await settlementsService.getSettlementsByStatus({
+      const res = await settlementsService.getAdminReports({
         limit,
         offset,
-        state: "PAID",
+        query: "payment_state=in.(PAID)"
       });
+      console.log(res);
       setPaidRows(res.data.data);
       setPaidExpenseCount(res.data.count);
     } catch (error) {
@@ -372,7 +201,7 @@ function Settlements() {
     }
   };
 
-  const fetchUnpaidExpenses = async ({
+  const fetchUnpaidReports = async ({
     limit,
     offset,
   }: {
@@ -380,12 +209,12 @@ function Settlements() {
     offset: number;
   }) => {
     try {
-      const res = await settlementsService.getSettlementsByStatus({
+      const res = await settlementsService.getAdminReports({
         limit,
         offset,
-        state: "PAYMENT_PENDING",
-        status: "APPROVED",
+        query: "payment_state=in.(PAYMENT_PENDING)"
       });
+      console.log(res);
       setUnpaidRows(res.data.data);
       setUnpaidExpenseCount(res.data.count);
     } catch (error) {
@@ -403,8 +232,8 @@ function Settlements() {
     try {
       setLoading(true);
       await Promise.all([
-        fetchPaidExpenses({ limit, offset }),
-        fetchUnpaidExpenses({ limit, offset }),
+        fetchPaidReports({ limit, offset }),
+        fetchUnpaidReports({ limit, offset }),
       ]);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message);
@@ -443,9 +272,11 @@ function Settlements() {
   useEffect(() => {
     const limit = paginationModel?.pageSize || 10;
     const offset = (paginationModel?.page || 0) * limit;
-    fetchData({ limit, offset });
+    if (rowsCalculated) {
+      fetchData({ limit, offset });
+    }
     setRowSelection({ type: "include", ids: new Set() });
-  }, [paginationModel?.page, paginationModel?.pageSize]);
+  }, [paginationModel?.page, paginationModel?.pageSize, rowsCalculated]);
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
@@ -457,13 +288,6 @@ function Settlements() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Settlements</h1>
         </div>
-        <Button
-          type="button"
-          className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-[14px]"
-          onClick={() => handleBulkDialogChange(true)}
-        >
-          Bulk Mark Paid
-        </Button>
       </div>
       <ReportTabs
         activeTab={activeTab}
@@ -557,7 +381,7 @@ function Settlements() {
           }
         />
       </Box>
-      <Dialog open={showBulkUpload} onOpenChange={handleBulkDialogChange}>
+      {/* <Dialog open={showBulkUpload} onOpenChange={handleBulkDialogChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Bulk Upload Settlement Expenses</DialogTitle>
@@ -644,7 +468,7 @@ function Settlements() {
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 }

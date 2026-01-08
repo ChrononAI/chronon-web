@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import {
+  useParams,
+  useSearchParams,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +24,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { approvalService } from "@/services/approvalService";
 import { reportService } from "@/services/reportService";
-import { ReportWithExpenses, ApprovalWorkflow, Expense } from "@/types/expense";
+import {
+  ReportWithExpenses,
+  ApprovalWorkflow,
+  Expense,
+  ExpenseComment,
+} from "@/types/expense";
 import {
   formatDate,
   formatCurrency,
@@ -41,6 +51,8 @@ import { Input } from "@/components/ui/input";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import { trackEvent } from "@/mixpanel";
 import { FormFooter } from "@/components/layout/FormFooter";
+import ExpenseLogs from "@/components/expenses/ExpenseLogs";
+import { ExpenseComments } from "@/components/expenses/ExpenseComments";
 
 const columns: GridColDef[] = [
   {
@@ -160,7 +172,8 @@ export function ReportDetailPage2() {
   const navigate = useNavigate();
   const isFromApprovals = searchParams.get("from") === "approvals";
   const { user, orgSettings } = useAuthStore();
-  const customIdEnabled = orgSettings?.custom_report_id_settings?.enabled ?? false;
+  const customIdEnabled =
+    orgSettings?.custom_report_id_settings?.enabled ?? false;
   const [report, setReport] = useState<ReportWithExpenses | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<ApprovalWorkflow | null>(null);
@@ -171,12 +184,21 @@ export function ReportDetailPage2() {
   >(null);
   const [comments, setComments] = useState("");
   const [showActionDialog, setShowActionDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState<"expenses" | "history">(
-    "expenses"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "expenses" | "history" | "comments" | "logs"
+  >("expenses");
+  const [loadingReportComments, setLoadingReportComments] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>();
+  const [reportComments, setReportComments] = useState<ExpenseComment[]>([]);
+  const [reportLogs, setReportLogs] = useState<ExpenseComment[]>([]);
+  const [postingComment, setPostingComment] = useState(false);
+  const [newComment, setNewComment] = useState<string>();
+
   const tabs = [
     { key: "expenses", label: "Expenses", count: 0 },
     { key: "history", label: "Audit History", count: 0 },
+    { key: "comments", label: "Comments", count: 0 },
+    { key: "logs", label: "Logs", count: 0 },
   ];
 
   const fetchReport = async () => {
@@ -236,8 +258,81 @@ export function ReportDetailPage2() {
     }
   };
 
+  const handlePostComment = async () => {
+    if (!id || !newComment?.trim() || postingComment) return;
+
+    setPostingComment(true);
+    setCommentError(null);
+
+    try {
+      await reportService.postReportComment(
+        id,
+        newComment.trim(),
+        false // notify: false
+      );
+
+      const fetchedComments = await reportService.getReportComments(id);
+
+      const sortedComments = [...fetchedComments.filter((c) => !c.action)].sort(
+        (a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateA - dateB;
+        }
+      );
+      setReportComments(sortedComments);
+      setNewComment("");
+      toast.success("Comment posted successfully");
+    } catch (error: any) {
+      console.error("Error posting comment:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to post comment";
+      setCommentError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setPostingComment(false);
+    }
+  };
+
+  const fetchComments = async (id: string) => {
+    if (id) {
+      setLoadingReportComments(true);
+      setCommentError(null);
+      try {
+        const fetchedComments = await reportService.getReportComments(id);
+        // Sort comments by created_at timestamp (oldest first)
+        const sortedComments = [
+          ...fetchedComments.filter((c) => c.creator_type === "USER"),
+        ].sort((a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateA - dateB;
+        });
+        setReportComments(sortedComments);
+        const sortedLogs = [
+          ...fetchedComments.filter((c) => c.creator_type === "SYSTEM"),
+        ].sort((a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateA - dateB;
+        });
+        setReportLogs(sortedLogs);
+      } catch (error: any) {
+        console.error("Error fetching comments:", error);
+        setCommentError(
+          error.response?.data?.message || "Failed to load comments"
+        );
+      } finally {
+        setLoadingReportComments(false);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchReport();
+    if (id) {
+      fetchComments(id);
+    }
   }, [id]);
 
   // Redirect to edit mode if report is DRAFT
@@ -361,16 +456,18 @@ export function ReportDetailPage2() {
   ).length;
 
   const handleViewExpense = async (expense: Expense) => {
-    if (pathname.includes('/approvals/')) {
-      navigate(`/approvals/reports/${report.id}/${expense.id}`)
+    if (pathname.includes("/approvals/")) {
+      navigate(`/approvals/reports/${report.id}/${expense.id}`);
+    } else if (pathname.includes("/admin/settlements")) {
+      navigate(`/admin/settlements/${report.id}/${expense.id}`);
     } else {
-      navigate(`/reports/${report.id}/${expense.id}`)
+      navigate(`/reports/${report.id}/${expense.id}`);
     }
   };
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="flex flex-col h-[calc(100vh-24px)] space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Report Approval</h1>
           {isFromApprovals && canApproveReport() && (
@@ -415,10 +512,12 @@ export function ReportDetailPage2() {
             <label className="text-sm font-medium">Description</label>
             <Input value={report.description} disabled />
           </div>
-          {customIdEnabled && report?.custom_report_id && <div className="space-y-2">
-            <label className="text-sm font-medium">Custom Report ID</label>
-            <Input value={report?.custom_report_id ?? ""} disabled />
-          </div>}
+          {customIdEnabled && report?.custom_report_id && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Custom Report ID</label>
+              <Input value={report?.custom_report_id ?? ""} disabled />
+            </div>
+          )}
         </div>
         {report.custom_attributes &&
           Object.keys(report.custom_attributes).length > 0 && (
@@ -442,19 +541,19 @@ export function ReportDetailPage2() {
               </div>
             </div>
           )}
-        <div>
-          <div>
-            <ReportTabs
-              activeTab={activeTab}
-              onTabChange={(tabId) =>
-                setActiveTab(tabId as "expenses" | "history")
-              }
-              tabs={tabs}
-              className="mb-8"
-            />
-          </div>
+        <div className="flex flex-col flex-1 min-h-0">
+          <ReportTabs
+            activeTab={activeTab}
+            onTabChange={(tabId) =>
+              setActiveTab(
+                tabId as "expenses" | "history" | "comments" | "logs"
+              )
+            }
+            tabs={tabs}
+            className="mb-0"
+          />
           {activeTab === "expenses" && (
-            <div className="space-y-6">
+            <div className="space-y-6 mt-6">
               <div className="rounded-lg border">
                 <DataGrid
                   className="rounded border-[0.2px] border-[#f3f4f6] h-full"
@@ -526,12 +625,38 @@ export function ReportDetailPage2() {
               )}
             </div>
           )}
+
+          {activeTab === "comments" && (
+            <div className="flex flex-col h-full overflow-hidden">
+              <ExpenseComments
+                expenseId={id}
+                loadingComments={loadingReportComments}
+                comments={reportComments}
+                commentError={commentError || ""}
+                postComment={handlePostComment}
+                postingComment={postingComment}
+                newComment={newComment || ""}
+                setNewComment={setNewComment}
+              />
+            </div>
+          )}
+
+          {activeTab === "logs" && (
+            <div className="flex flex-col h-full overflow-hidden">
+              <ExpenseLogs
+                logs={reportLogs}
+                loading={loadingReportComments}
+                error={commentError || ""}
+                className="px-0"
+              />
+            </div>
+          )}
         </div>
         <FormFooter>
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/approvals/reports")}
+            onClick={() => navigate(-1)}
             className="px-6 py-2"
           >
             Back
