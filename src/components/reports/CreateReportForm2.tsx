@@ -33,19 +33,17 @@ import { reportService } from "@/services/reportService";
 import { Expense, ApprovalWorkflow, ExpenseComment } from "@/types/expense";
 import { AdditionalFieldMeta, CustomAttribute } from "@/types/report";
 import { useAuthStore } from "@/store/authStore";
-import { formatDate, formatCurrency, getStatusColor, cn, getOrgCurrency } from "@/lib/utils";
+import {
+  formatDate,
+  formatCurrency,
+  getStatusColor,
+  cn,
+  getOrgCurrency,
+} from "@/lib/utils";
 import { DynamicCustomField } from "./DynamicCustomField";
 import { ReportTabs } from "./ReportTabs";
 import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
-import {
-  DataGrid,
-  ExportCsv,
-  FilterPanelTrigger,
-  GridColDef,
-  GridExpandMoreIcon,
-  GridFilterListIcon,
-  GridRowId,
-} from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { Badge } from "../ui/badge";
 import { GridPaginationModel } from "@mui/x-data-grid";
 import { Box, Toolbar } from "@mui/material";
@@ -57,14 +55,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { format } from "date-fns";
 import { ExpenseComments } from "../expenses/ExpenseComments";
 import ExpenseLogs from "../expenses/ExpenseLogs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 import { getExpenseType } from "@/pages/MyExpensesPage";
 
 // Dynamic form schema creation function
 const createReportSchema = (customAttributes: CustomAttribute[]) => {
   const baseSchema = {
     reportName: z.string().min(1, "Report name is required"),
-    description: z.string().min(1, "Description is required"),
+    description: z.string().optional(),
   };
 
   // Add dynamic fields based on custom attributes
@@ -289,7 +292,7 @@ function CustomToolbar({
         </Popover>
       </Box>
 
-      <Box className="flex items-center gap-2">
+      {/* <Box className="flex items-center gap-2">
         <FilterPanelTrigger
           size="small"
           startIcon={<GridFilterListIcon className="text-gray-500" />}
@@ -303,7 +306,7 @@ function CustomToolbar({
         >
           <span className="text-gray-500">Export CSV</span>
         </ExportCsv>
-      </Box>
+      </Box> */}
     </Toolbar>
   );
 }
@@ -465,40 +468,39 @@ export function CreateReportForm2({
     }
   }, [customAttributes, form]);
 
-
-    const fetchComments = async (id: string) => {
-      if (id) {
-        setLoadingReportComments(true);
-        setCommentError(null);
-        try {
-          const fetchedComments = await reportService.getReportComments(id);
-          // Sort comments by created_at timestamp (oldest first)
-          const sortedComments = [
-            ...fetchedComments.filter((c) => c.creator_type === "USER"),
-          ].sort((a, b) => {
-            const dateA = new Date(a.created_at).getTime();
-            const dateB = new Date(b.created_at).getTime();
-            return dateA - dateB;
-          });
-          setReportComments(sortedComments);
-          const sortedLogs = [
-            ...fetchedComments.filter((c) => c.creator_type === "SYSTEM"),
-          ].sort((a, b) => {
-            const dateA = new Date(a.created_at).getTime();
-            const dateB = new Date(b.created_at).getTime();
-            return dateA - dateB;
-          });
-          setReportLogs(sortedLogs);
-        } catch (error: any) {
-          console.error("Error fetching comments:", error);
-          setCommentError(
-            error.response?.data?.message || "Failed to load comments"
-          );
-        } finally {
-          setLoadingReportComments(false);
-        }
+  const fetchComments = async (id: string) => {
+    if (id) {
+      setLoadingReportComments(true);
+      setCommentError(null);
+      try {
+        const fetchedComments = await reportService.getReportComments(id);
+        // Sort comments by created_at timestamp (oldest first)
+        const sortedComments = [
+          ...fetchedComments.filter((c) => c.creator_type === "USER"),
+        ].sort((a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateA - dateB;
+        });
+        setReportComments(sortedComments);
+        const sortedLogs = [
+          ...fetchedComments.filter((c) => c.creator_type === "SYSTEM"),
+        ].sort((a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateA - dateB;
+        });
+        setReportLogs(sortedLogs);
+      } catch (error: any) {
+        console.error("Error fetching comments:", error);
+        setCommentError(
+          error.response?.data?.message || "Failed to load comments"
+        );
+      } finally {
+        setLoadingReportComments(false);
       }
-    };
+    }
+  };
 
   const handlePostComment = async () => {
     if (!reportData?.id || !newComment?.trim() || postingComment) return;
@@ -892,26 +894,28 @@ export function CreateReportForm2({
             onSubmit={form.handleSubmit(onSubmit)}
             className="grid grid-cols-1 lg:grid-cols-2 lg:col-span-2 gap-4"
           >
-            <FormField
-              control={form.control}
-              name="reportName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Report Name *</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Enter report name" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div>
+              <FormField
+                control={form.control}
+                name="reportName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Report Name *</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Enter report name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description *</FormLabel>
+                  <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="Enter report description" />
                   </FormControl>
@@ -921,7 +925,7 @@ export function CreateReportForm2({
             />
 
             {loadingMeta && (
-              <div className="flex items-center py-8">
+              <div className="flex items-center py-8 col-span-2">
                 <Loader2 className="h-6 w-6 animate-spin mr-2" />
                 <span className="text-muted-foreground">
                   Loading additional fields...
