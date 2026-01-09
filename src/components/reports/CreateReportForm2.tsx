@@ -316,7 +316,9 @@ export function CreateReportForm2({
   reportData,
 }: CreateReportFormProps) {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, orgSettings } = useAuthStore();
+
+  const showDescription = orgSettings?.report_description_settings?.enabled ?? true;
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -910,7 +912,7 @@ export function CreateReportForm2({
               />
             </div>
 
-            <FormField
+            {showDescription && <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
@@ -922,7 +924,7 @@ export function CreateReportForm2({
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            />}
 
             {loadingMeta && (
               <div className="flex items-center py-8 col-span-2">

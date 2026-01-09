@@ -86,7 +86,7 @@ export const getStatusColor = (status: string): string => {
     case "PENDING":
     case "PENDING_APPROVAL":
     case "PAYMENT_PENDING":
-      case "IN_PROGRESS":
+    case "IN_PROGRESS":
       return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
     case "APPROVED":
     case "PAID":
@@ -121,4 +121,19 @@ export const getWorkflowStatusColor = (status: string): string => {
     default:
       return "bg-gray-100 text-gray-600 hover:bg-gray-100";
   }
+};
+
+export const generateIdWithPrefix = (prefix: string, length = 10): string => {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+  const randomValues = new Uint8Array(length);
+  crypto.getRandomValues(randomValues);
+
+  let id = "";
+  for (let i = 0; i < length; i++) {
+    id += chars[randomValues[i] % chars.length];
+  }
+
+  return `${prefix}${id}`;
 };
