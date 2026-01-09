@@ -50,6 +50,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
 
 interface PerdiemPageProps {
   mode?: "create" | "view" | "edit";
@@ -135,7 +136,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
   const [comments, setComments] = useState<ExpenseComment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
-  const today = new Date().toISOString().split("T")[0];
+  const today = format(new Date(), "yyyy-MM-dd");
   const [loading, setLoading] = useState(false);
 
   const [adminEditReason, setAdminEditReason] = useState("");
@@ -199,9 +200,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     if (expenseData) {
       const formatDate = (dateString: string) => {
         try {
-          return new Date(dateString).toISOString().split("T")[0];
+          return format(new Date(dateString), "yyyy-MM-dd");
         } catch {
-          return new Date().toISOString().split("T")[0];
+          return format(new Date(), "yyyy-MM-dd");
         }
       };
 
@@ -578,7 +579,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                             singleDate?.enabled ? "col-span-2" : "col-span-1"
                           }`}
                         >
-                          <FormLabel>{singleDate?.enabled ? "Date *" : "Start Date *"}</FormLabel>
+                          <FormLabel>
+                            {singleDate?.enabled ? "Date *" : "Start Date *"}
+                          </FormLabel>
                           <FormControl>
                             <DateField
                               id="startDate"
