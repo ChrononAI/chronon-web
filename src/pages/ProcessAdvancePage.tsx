@@ -48,6 +48,7 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  Loader2,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -226,7 +227,9 @@ function ProcessAdvancePage() {
       }
     } catch (error) {
       console.log(error);
-      toast.error("Failed to process advance");
+      toast.error("Failed to process expense");
+      setLoading(false);
+      setLoadingApprove(false);
     }
   };
 
@@ -259,7 +262,7 @@ function ProcessAdvancePage() {
       setShowCurrencyAlert(true);
     } else {
       setLoadingApprove(true);
-      processAdvance(action);
+      processAdvance(action, {});
       // Show confirmation modal
     }
   };
@@ -294,7 +297,7 @@ function ProcessAdvancePage() {
                   disabled={loadingApprove}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {loadingApprove ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
                   {loadingApprove ? "Approving..." : "Approve"}
                 </Button>
                 <Button
@@ -432,6 +435,7 @@ function ProcessAdvancePage() {
                         <Input
                           {...field}
                           type="number"
+                          step="any"
                           placeholder="Enter conversion rate"
                         />
                       </FormControl>
@@ -524,8 +528,7 @@ function ProcessAdvancePage() {
                     <Button
                       onClick={() =>
                         processAdvance("reject", {
-                          action: "reject",
-                          approval_notes: comments,
+                          notes: comments,
                         })
                       }
                       disabled={!comments.trim() || loading}

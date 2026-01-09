@@ -291,22 +291,6 @@ function CustomToolbar({
           </PopoverContent>
         </Popover>
       </Box>
-
-      {/* <Box className="flex items-center gap-2">
-        <FilterPanelTrigger
-          size="small"
-          startIcon={<GridFilterListIcon className="text-gray-500" />}
-        >
-          <span className="text-gray-500">Filter</span>
-        </FilterPanelTrigger>
-
-        <ExportCsv
-          size="small"
-          startIcon={<GridExpandMoreIcon className="text-gray-500" />}
-        >
-          <span className="text-gray-500">Export CSV</span>
-        </ExportCsv>
-      </Box> */}
     </Toolbar>
   );
 }
@@ -1108,7 +1092,7 @@ export function CreateReportForm2({
             )}
           </>
         ) : (
-          <>
+          <div>
             <DataGrid
               className="rounded border-[0.2px] border-[#f3f4f6] h-full"
               rows={loadingExpenses ? [] : filteredExpenses}
@@ -1202,7 +1186,7 @@ export function CreateReportForm2({
                 </span>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
 

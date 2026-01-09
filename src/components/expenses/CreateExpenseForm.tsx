@@ -60,6 +60,7 @@ export function CreateExpenseForm() {
   const [templateEntities, setTemplateEntities] = useState<
     Template["entities"]
   >([]);
+
   useEffect(() => {
     if (currentStep === 2) {
       const loadTemplateEntities = async () => {
@@ -182,9 +183,9 @@ export function CreateExpenseForm() {
         });
       }
 
-      if (formData.advance_account_id) {
-        customAttributes["advance_account_id"] = formData.advance_account_id;
-      }
+      // if (formData.advance_account_id) {
+      //   customAttributes["advance_account_id"] = formData.advance_account_id;
+      // }
 
       let result;
       if (formData.invoice_number) {
@@ -202,6 +203,7 @@ export function CreateExpenseForm() {
           description: formData.description,
           receipt_id: formData.receipt_id,
           currency: formData.currency || baseCurrency || "INR",
+          advance_account_id: formData.advance_account_id
         };
 
         if (formData.advance_id)
@@ -224,6 +226,7 @@ export function CreateExpenseForm() {
         if (Object.keys(customAttributes).length > 0) {
           expensePayload.custom_attributes = customAttributes;
         }
+        console.log(expensePayload);
 
         result = await expenseService.createExpense(expensePayload);
         if (result?.success && result.data?.id) {

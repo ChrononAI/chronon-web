@@ -439,29 +439,41 @@ const CreateUserForm = ({
               <span>Loading user details...</span>
             </div>
           )}
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel aria-required={true}>Email *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="user@example.com"
-                        readOnly={isEditMode}
-                        className={
-                          isEditMode ? "bg-muted cursor-not-allowed" : ""
-                        }
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <Card>
+            <CardHeader>
+              <CardTitle>User Information</CardTitle>
+              <CardDescription>
+                {isEditMode
+                  ? "Update the user information below."
+                  : "Enter the basic information for the new user."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel aria-required={true}>
+                        Email <span className="text-destructive">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="user@example.com"
+                          required
+                          readOnly={isEditMode}
+                          className={
+                            isEditMode ? "bg-muted cursor-not-allowed" : ""
+                          }
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
               <FormField
                 control={form.control}
@@ -707,76 +719,79 @@ const CreateUserForm = ({
                 </div>
               )} */}
 
-            {!loadingEntityFields && templates.length > 0 && (
-              <>
-                <Separator className="my-6" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {templates
-                    .filter(
-                      (entity) =>
-                        entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT
-                    )
-                    .map((entity) => {
-                      const entityId = getEntityId(entity);
-                      const fieldName = getFieldName(entity);
-                      return (
-                        <FormField
-                          key={entityId}
-                          control={form.control}
-                          name={entityId}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel
-                                className="flex items-center gap-1"
-                                aria-required={entity.is_mandatory ?? false}
-                              >
-                                {fieldName}
-                                {entity.is_mandatory && <span>*</span>}
-                              </FormLabel>
-                              {entity.field_type?.toUpperCase() ===
-                              FIELD_TYPE_SELECT ? (
-                                <Select
-                                  onValueChange={(val) =>
-                                    field.onChange(val || undefined)
-                                  }
-                                  value={field.value || ""}
+              {!loadingEntityFields && templates.length > 0 && (
+                <>
+                  <Separator className="my-6" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {templates
+                      .filter(
+                        (entity) =>
+                          entity.field_type?.toUpperCase() === FIELD_TYPE_SELECT
+                      )
+                      .map((entity) => {
+                        const entityId = getEntityId(entity);
+                        const fieldName = getFieldName(entity);
+                        return (
+                          <FormField
+                            key={entityId}
+                            control={form.control}
+                            name={entityId}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel
+                                  className="flex items-center gap-1"
+                                  aria-required={entity.is_mandatory ?? false}
                                 >
+                                  {fieldName}
+                                  {entity.is_mandatory && (
+                                    <span className="text-destructive">*</span>
+                                  )}
+                                </FormLabel>
+                                {entity.field_type?.toUpperCase() ===
+                                FIELD_TYPE_SELECT ? (
+                                  <Select
+                                    onValueChange={(val) =>
+                                      field.onChange(val || undefined)
+                                    }
+                                    value={field.value || ""}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger
+                                        aria-required={
+                                          entity.is_mandatory ?? false
+                                        }
+                                      >
+                                        <SelectValue placeholder="Select" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {entityOptions[entityId]?.map((opt) => (
+                                        <SelectItem key={opt.id} value={opt.id}>
+                                          {opt.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
                                   <FormControl>
-                                    <SelectTrigger
-                                      aria-required={
-                                        entity.is_mandatory ?? false
-                                      }
-                                    >
-                                      <SelectValue placeholder="Select" />
-                                    </SelectTrigger>
+                                    <Input
+                                      placeholder={`Enter ${fieldName}`}
+                                      required={Boolean(entity.is_mandatory)}
+                                      {...field}
+                                    />
                                   </FormControl>
-                                  <SelectContent>
-                                    {entityOptions[entityId]?.map((opt) => (
-                                      <SelectItem key={opt.id} value={opt.id}>
-                                        {opt.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              ) : (
-                                <FormControl>
-                                  <Input
-                                    placeholder={`Enter ${fieldName}`}
-                                    required={Boolean(entity.is_mandatory)}
-                                    {...field}
-                                  />
-                                </FormControl>
-                              )}
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      );
-                    })}
-                </div>
-              </>
-            )}
-          </div>
+                                )}
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        );
+                      })}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </fieldset>
 
         <FormFooter>
@@ -814,6 +829,7 @@ const CreateUserForm = ({
 
 export const CreateUserPage = () => {
   const { id: userId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
   const location = useLocation();
   const isAdminSettings = location.pathname.includes("/admin-settings/users");
   const isEditMode = Boolean(userId);
@@ -826,8 +842,8 @@ export const CreateUserPage = () => {
   const [initialValues, setInitialValues] =
     useState<Partial<UserFormValues> | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [bulkFile, setBulkFile] = useState<File | null>(null);
-  const [uploadingBulk, setUploadingBulk] = useState(false);
+  // const [bulkFile, setBulkFile] = useState<File | null>(null);
+  // const [uploadingBulk, setUploadingBulk] = useState(false);
   const [bulkInputKey, setBulkInputKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [reportingManagers, setReportingManagers] = useState<UserOption[]>([]);
@@ -837,9 +853,9 @@ export const CreateUserPage = () => {
   const handleBulkDialogChange = useCallback((open: boolean) => {
     setShowBulkUpload(open);
     if (!open) {
-      setBulkFile(null);
+      // setBulkFile(null);
       setBulkInputKey((key) => key + 1);
-      setUploadingBulk(false);
+      // setUploadingBulk(false);
     }
   }, []);
 
@@ -863,55 +879,31 @@ export const CreateUserPage = () => {
     }
   }, []);
 
-  const uploadBulkFile = useCallback(
-    async (file: File) => {
-      if (uploadingBulk) return;
-      setUploadingBulk(true);
-      try {
-        await bulkUploadService.uploadUsers(file);
-        toast.success("Bulk upload submitted successfully");
-        handleBulkDialogChange(false);
-      } catch (error) {
-        console.error("Failed to upload users in bulk:", error);
-        toast.error("Failed to upload file");
-      } finally {
-        setUploadingBulk(false);
-      }
-    },
-    [handleBulkDialogChange, uploadingBulk]
-  );
+  // const uploadBulkFile = useCallback(
+  //   async (file: File) => {
+  //     if (uploadingBulk) return;
+  //     setUploadingBulk(true);
+  //     try {
+  //       await bulkUploadService.uploadUsers(file);
+  //       toast.success("Bulk upload submitted successfully");
+  //       handleBulkDialogChange(false);
+  //     } catch (error) {
+  //       console.error("Failed to upload users in bulk:", error);
+  //       toast.error("Failed to upload file");
+  //     } finally {
+  //       setUploadingBulk(false);
+  //     }
+  //   },
+  //   [handleBulkDialogChange, uploadingBulk]
+  // );
 
-  const handleBulkUpload = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      if (!bulkFile) {
-        toast.error("Please select a file to upload");
-        return;
-      }
-      await uploadBulkFile(bulkFile);
-    },
-    [bulkFile, uploadBulkFile]
-  );
-
-  const handleBulkFileSelect = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0] ?? null;
-      setBulkFile(file);
-    },
-    []
-  );
-
-  const handleBrowseClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleClearFile = useCallback(() => {
-    setBulkFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    setBulkInputKey((key) => key + 1);
-  }, []);
+  // const handleBulkFileSelect = useCallback(
+  //   (event: React.ChangeEvent<HTMLInputElement>) => {
+  //     const file = event.target.files?.[0] ?? null;
+  //     setBulkFile(file);
+  //   },
+  //   []
+  // );
 
   useEffect(() => {
     let cancelled = false;
@@ -1177,7 +1169,7 @@ export const CreateUserPage = () => {
           {isAdminSettings && !isEditMode && (
             <Button
               type="button"
-              className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-base"
+              className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-sm"
               onClick={() => handleBulkDialogChange(true)}
             >
               Bulk Upload
@@ -1208,83 +1200,35 @@ export const CreateUserPage = () => {
                 for the required format.
               </DialogDescription>
             </DialogHeader>
-            <form className="space-y-6" onSubmit={handleBulkUpload}>
+            <div className="space-y-6">
               <div className="flex flex-col gap-3">
                 <input
                   key={bulkInputKey}
                   ref={fileInputRef}
                   type="file"
                   accept=".xlsx,.xls,.csv"
-                  onChange={handleBulkFileSelect}
+                  // onChange={handleBulkFileSelect}
                   className="hidden"
                 />
-                <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/30 p-4">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-foreground">
-                        Upload spreadsheet
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {bulkFile
-                          ? bulkFile.name
-                          : "Supported formats: .xlsx, .xls, .csv"}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {bulkFile ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleClearFile}
-                          disabled={uploadingBulk}
-                        >
-                          Clear
-                        </Button>
-                      ) : null}
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleBrowseClick}
-                        disabled={uploadingBulk}
-                      >
-                        {bulkFile ? "Change file" : "Browse"}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleDownloadTemplate}
-                    className="sm:w-auto"
-                  >
-                    Download Template
-                  </Button>
-                </div>
               </div>
               <DialogFooter className="gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => handleBulkDialogChange(false)}
-                  disabled={uploadingBulk}
+                  onClick={handleDownloadTemplate}
+                  className="sm:w-auto"
                 >
-                  Cancel
+                  Download Template
                 </Button>
-                <Button type="submit" disabled={!bulkFile || uploadingBulk}>
-                  {uploadingBulk ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    "Upload"
-                  )}
+                <Button
+                  onClick={() =>
+                    navigate("/admin-settings/product-config/bulk-uploads/user")
+                  }
+                >
+                  Continue
                 </Button>
               </DialogFooter>
-            </form>
+            </div>
           </DialogContent>
         </Dialog>
       )}

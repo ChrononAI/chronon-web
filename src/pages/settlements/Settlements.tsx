@@ -1,9 +1,5 @@
-import {
-  formatCurrency,
-  formatDate,
-  getStatusColor,
-} from "@/lib/utils";
-import { Box, Toolbar } from "@mui/material";
+import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { Box } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
@@ -12,15 +8,42 @@ import {
   GridRowParams,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
-import { useEffect, useState } from "react";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { GridOverlay } from "@mui/x-data-grid";
 import { toast } from "sonner";
 import { settlementsService } from "@/services/settlementsService";
-import { Button } from "@/components/ui/button";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import { useNavigate } from "react-router-dom";
+import CustomSettlementsToolbar from "@/components/settlements/CustomSettlementsToolbar";
+import {
+  buildBackendQuery,
+  FieldFilter,
+  FilterMap,
+  FilterValue,
+  Operator,
+} from "../MyExpensesPage";
+import { useSettlementStore } from "@/store/settlementsStore";
+
+const TAB_QUERY_OVERRIDES: Record<string, FilterMap> = {
+  paid: {
+    payment_state: [
+      {
+        operator: "in",
+        value: ["PAID"],
+      },
+    ],
+  },
+  unpaid: {
+    payment_state: [
+      {
+        operator: "in",
+        value: ["PAYMENT_PENDING"],
+      },
+    ],
+  },
+};
 
 function CustomNoRows() {
   return (
@@ -28,9 +51,9 @@ function CustomNoRows() {
       <Box className="w-full">
         <div className="text-center">
           <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No expenses found</h3>
+          <h3 className="text-lg font-semibold mb-2">No reports found</h3>
           <p className="text-muted-foreground">
-            There are currently no expenses.
+            There are currently no reports.
           </p>
         </div>
       </Box>
@@ -38,55 +61,8 @@ function CustomNoRows() {
   );
 }
 
-function CustomToolbar({
-  onCustomClick,
-  rowSelection,
-  activeTab,
-  marking,
-  rowCount,
-}: {
-  onCustomClick: (data: any) => void;
-  rowSelection: GridRowSelectionModel;
-  activeTab: "paid" | "unpaid";
-  marking: boolean;
-  rowCount: number;
-}) {
-  const disabled =
-    marking ||
-    (rowSelection.type === "include"
-      ? Array.from(rowSelection.ids).length === 0
-      : Array.from(rowSelection.ids).length === rowCount);
-  return (
-    <Toolbar
-      sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        p: 1,
-        gap: 2,
-        backgroundColor: "background.paper",
-      }}
-    >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        {activeTab === "unpaid" && (
-          <Button disabled={disabled} onClick={onCustomClick}>
-            {marking ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Marking...
-              </>
-            ) : (
-              "Mark As Paid"
-            )}
-          </Button>
-        )}
-      </Box>
-    </Toolbar>
-  );
-}
-
 const columns: GridColDef[] = [
-    {
+  {
     field: "title",
     headerName: "TITLE",
     minWidth: 200,
@@ -112,7 +88,9 @@ const columns: GridColDef[] = [
     flex: 1,
     minWidth: 180,
     renderCell: (params) => (
-      <Badge className={getStatusColor(params.value)}>{params.value || "N/A"}</Badge>
+      <Badge className={getStatusColor(params.value)}>
+        {params.value || "N/A"}
+      </Badge>
     ),
   },
   {
@@ -144,12 +122,16 @@ const columns: GridColDef[] = [
 
 function Settlements() {
   const navigate = useNavigate();
+  const { query, setQuery } = useSettlementStore();
   const [activeTab, setActiveTab] = useState<"paid" | "unpaid">("unpaid");
   const [rowsCalculated, setRowsCalculated] = useState(false);
   const [paidExpenseCount, setPaidExpenseCount] = useState(0);
   const [unpaidExpenseCount, setUnpaidExpenseCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const tabs = [
     {
       key: "unpaid",
@@ -168,6 +150,49 @@ function Settlements() {
   });
   const rows: any = activeTab === "paid" ? paidRows : unpaidRows;
 
+  const allowedStatus = activeTab === "paid" ? ["PAID"] : ["PAYMENT_PENDING"];
+
+  function updateQuery(key: string, operator: Operator, value: FilterValue) {
+    setQuery((prev) => {
+      const prevFilters: FieldFilter[] = prev[key] ?? [];
+
+      if (
+        value === undefined ||
+        value === null ||
+        (typeof value === "string" && value.trim() === "") ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        const nextFilters = prevFilters.filter((f) => f.operator !== operator);
+
+        if (nextFilters.length === 0) {
+          const { [key]: _, ...rest } = prev;
+          return rest;
+        }
+
+        return {
+          ...prev,
+          [key]: nextFilters,
+        };
+      }
+
+      const existingIndex = prevFilters.findIndex(
+        (f) => f.operator === operator
+      );
+
+      const nextFilters =
+        existingIndex >= 0
+          ? prevFilters.map((f, i) =>
+              i === existingIndex ? { operator, value } : f
+            )
+          : [...prevFilters, { operator, value }];
+
+      return {
+        ...prev,
+        [key]: nextFilters,
+      };
+    });
+  }
+
   useEffect(() => {
     const gridHeight = window.innerHeight - 280;
     const rowHeight = 38;
@@ -180,65 +205,62 @@ function Settlements() {
     navigate(`/admin/settlements/${id}`);
   };
 
-  const fetchPaidReports = async ({
-    limit,
-    offset,
-  }: {
-    limit: number;
-    offset: number;
-  }) => {
-    try {
-      const res = await settlementsService.getAdminReports({
-        limit,
-        offset,
-        query: "payment_state=in.(PAID)"
-      });
-      console.log(res);
-      setPaidRows(res.data.data);
-      setPaidExpenseCount(res.data.count);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  const fetchFilteredReports = useCallback(
+    async ({ signal }: { signal: AbortSignal }) => {
+      try {
+        const limit = paginationModel?.pageSize ?? 10;
+        const offset = (paginationModel?.page ?? 0) * limit;
 
-  const fetchUnpaidReports = async ({
-    limit,
-    offset,
-  }: {
-    limit: number;
-    offset: number;
-  }) => {
-    try {
-      const res = await settlementsService.getAdminReports({
-        limit,
-        offset,
-        query: "payment_state=in.(PAYMENT_PENDING)"
-      });
-      console.log(res);
-      setUnpaidRows(res.data.data);
-      setUnpaidExpenseCount(res.data.count);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+        const effectiveQuery = {
+          ...query,
+          ...TAB_QUERY_OVERRIDES[activeTab],
+        };
 
-  const fetchData = async ({
-    limit,
-    offset,
-  }: {
-    limit: number;
-    offset: number;
-  }) => {
+        console.log(buildBackendQuery(effectiveQuery));
+
+        const res = await settlementsService.getAdminReports({
+          limit,
+          offset,
+          query: buildBackendQuery(effectiveQuery),
+          signal,
+        });
+
+        if (activeTab === "paid") {
+          setPaidRows(res.data.data);
+          setPaidExpenseCount(res.data.count);
+        } else if (activeTab === "unpaid") {
+          setUnpaidRows(res.data.data);
+          setUnpaidExpenseCount(res.data.count);
+        }
+      } catch (error: any) {
+        console.log(error);
+        toast.error(error?.response?.data?.message || error?.message);
+      }
+    },
+    [query, activeTab, paginationModel?.page, paginationModel?.pageSize]
+  );
+
+  const handleFetchData = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setLoading(true);
+
     try {
-      setLoading(true);
-      await Promise.all([
-        fetchPaidReports({ limit, offset }),
-        fetchUnpaidReports({ limit, offset }),
-      ]);
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || error.message);
+      await fetchFilteredReports({ signal: controller.signal });
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        console.error(err);
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRowSelection({ type: "include", ids: new Set() });
+      }
     }
   };
 
@@ -246,9 +268,7 @@ function Settlements() {
     setMarking(true);
     try {
       await settlementsService.markAsPaid(ids);
-      const limit = paginationModel?.pageSize || 10;
-      const offset = (paginationModel?.page || 0) * limit;
-      fetchData({ limit, offset });
+      handleFetchData();
       toast.success("Expenses marked as paid");
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message);
@@ -270,16 +290,70 @@ function Settlements() {
   };
 
   useEffect(() => {
-    const limit = paginationModel?.pageSize || 10;
-    const offset = (paginationModel?.page || 0) * limit;
-    if (rowsCalculated) {
-      fetchData({ limit, offset });
-    }
     setRowSelection({ type: "include", ids: new Set() });
-  }, [paginationModel?.page, paginationModel?.pageSize, rowsCalculated]);
+    setLoading(true);
+  }, [
+    paginationModel?.page,
+    paginationModel?.pageSize,
+    rowsCalculated,
+    activeTab,
+  ]);
 
   useEffect(() => {
-    setRowSelection({ type: "include", ids: new Set() });
+    if (!rowsCalculated) return;
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      setLoading(true);
+
+      fetchFilteredReports({ signal: controller.signal })
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            console.error(err);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setLoading(false);
+            setRowSelection({ type: "include", ids: new Set() });
+          }
+        });
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [fetchFilteredReports, rowsCalculated]);
+
+  useEffect(() => {
+    const tabFilter = TAB_QUERY_OVERRIDES[activeTab];
+
+    setQuery((prev) => {
+      // avoid unnecessary state update
+      if (
+        JSON.stringify(prev.payment_state) ===
+        JSON.stringify(tabFilter?.payment_state)
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        ...tabFilter,
+      };
+    });
   }, [activeTab]);
 
   return (
@@ -291,7 +365,9 @@ function Settlements() {
       </div>
       <ReportTabs
         activeTab={activeTab}
-        onTabChange={(tabId) => setActiveTab(tabId as "paid" | "unpaid")}
+        onTabChange={(tabId) => {
+          setActiveTab(tabId as "paid" | "unpaid");
+        }}
         tabs={tabs}
         className="mb-8"
       />
@@ -309,15 +385,19 @@ function Settlements() {
           loading={loading}
           slots={{
             noRowsOverlay: CustomNoRows,
-            toolbar: () => (
-              <CustomToolbar
-                onCustomClick={onCustomClick}
-                rowSelection={rowSelection}
-                activeTab={activeTab}
-                marking={marking}
-                rowCount={rows.length}
-              />
-            ),
+            toolbar: CustomSettlementsToolbar,
+          }}
+          slotProps={{
+            toolbar: {
+              allStatuses: allowedStatus,
+              query,
+              updateQuery,
+              onCustomClick,
+              rowSelection,
+              activeTab,
+              marking,
+              rowCount: rows.length,
+            } as any,
           }}
           sx={{
             border: 0,
@@ -328,7 +408,7 @@ function Settlements() {
             },
             "& .MuiToolbar-root": {
               paddingX: 0,
-              minHeight: "52px"
+              minHeight: "52px",
             },
             "& .MuiDataGrid-panel .MuiSelect-select": {
               fontSize: "12px",
