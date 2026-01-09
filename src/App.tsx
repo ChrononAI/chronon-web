@@ -67,6 +67,11 @@ import Settlements from "./pages/settlements/Settlements";
 import StoreMaster from "./pages/admin/StoreMaster";
 import CreateWorkflowPage from "./pages/admin/CreateWorkflowPage";
 import CreateRulePage from "./pages/admin/CreateRulePage";
+import UploadFile from "./pages/bulk-upload/UploadFile";
+import PreviewFile from "./pages/bulk-upload/PreviewFile";
+import ColumnMapping from "./pages/bulk-upload/ColumnMapping";
+import ValidateFile from "./pages/bulk-upload/ValidateFile";
+import BulkUploadedFilesPage from "./pages/admin/BulkUploadedFilesPage";
 import TransactionsPage from "./pages/transactions/TransactionsPage";
 import TransactionDetailPage from "./pages/transactions/TransactionDetailPage";
 
@@ -136,8 +141,8 @@ function App() {
 
               {/* SETTLEMENTS */}
               <Route path="/admin/settlements" element={<Settlements />} />
-              <Route path="/admin/settlements/:expenseId" element={<ExpenseDetailPage />} />
-
+              <Route path="/admin/settlements/:id" element={<ReportDetailPage2 />} />
+              <Route path="/admin/settlements/:id/:expenseId" element={<ExpenseDetailPage />} />
 
               {/* ADMIN (No Padding Layout) */}
               <Route element={<AdminLayout />}>
@@ -168,6 +173,13 @@ function App() {
                 <Route path="/admin-settings/product-config/category-limits/create" element={<CreateCategoryLimitPage />} />
                 <Route path="/admin-settings/product-config/category-limits/:id" element={<EditCategoryLimitPage />} />
                 <Route path="/admin-settings/product-config/auto-reports" element={<AutoReportPage />} />
+
+              {/* BULK UPLOAD */}
+                <Route path="/admin-settings/product-config/bulk-uploads" element={<BulkUploadedFilesPage />} />
+                <Route path="/admin-settings/product-config/bulk-uploads/:type" element={<UploadFile />} />
+                <Route path="/admin-settings/product-config/bulk-uploads/file-preview/:type/:fileid" element={<PreviewFile />} />
+                <Route path="/admin-settings/product-config/bulk-uploads/column-mapping/:type/:fileid" element={<ColumnMapping />} />
+                <Route path="/admin-settings/product-config/bulk-uploads/validate-file/:type/:fileid" element={<ValidateFile />} />
               </Route>
 
               {/* OTHER PAGES */}

@@ -113,7 +113,7 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
   // };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 h-[50vh]">
       {/* Potential Duplicate Alert */}
       {showPotentialDuplicateAlert && (
         <Alert className="border-yellow-200 bg-yellow-50">
@@ -145,11 +145,11 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
         </Alert>
       )}
 
-      <Card>
-        <CardContent className="p-8">
+      <Card className="h-full">
+        <CardContent className="p-8 h-full">
           {!uploadedFile ? (
             <div
-              className="border-2 border-dashed border-primary/30 rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer"
+              className="border-2 border-dashed border-primary/30 h-full rounded-lg p-12 text-center flex items-center justify-center hover:border-primary/50 transition-colors cursor-pointer"
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onClick={() => {
@@ -165,7 +165,7 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
                 input.click();
               }}
             >
-              <div className="flex flex-col items-center space-y-4">
+              <div className="flex flex-col items-center justify-center space-y-4">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                   <Upload className="h-8 w-8 text-primary" />
                 </div>

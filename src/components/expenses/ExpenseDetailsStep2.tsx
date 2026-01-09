@@ -182,6 +182,8 @@ export function ExpenseDetailsStep2({
   >({});
   const [isReceiptReuploaded, setIsReceiptReuploaded] = useState(false);
   const [isConversionRateReadOnly, setIsConversionRateReadOnly] = useState(false);
+  const [fetchingConversion, setFetchingConversion] = useState(false);
+  const dupeCheckAcrossOrg = orgSettings?.org_level_duplicate_check_settings?.enabled || true;
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -339,6 +341,7 @@ export function ExpenseDetailsStep2({
   }) => {
     const currentApiRate = form.getValues("api_conversion_rate");
     if (currentApiRate) return;
+    setFetchingConversion(true);
     try {
       const res = await expenseService.getCurrencyConversionRate({
         date,
@@ -356,6 +359,8 @@ export function ExpenseDetailsStep2({
     } catch (error: any) {
       console.log(error);
       toast.error(error?.response?.data?.message || error.message);
+    } finally {
+      setFetchingConversion(false);
     }
   };
 
@@ -827,7 +832,7 @@ export function ExpenseDetailsStep2({
             </AlertTitle>
             <AlertDescription className="text-yellow-700">
               This expense has been flagged as a duplicate.
-              <Button
+              {!dupeCheckAcrossOrg && <Button
                 variant="link"
                 className="p-0 h-auto text-yellow-700 underline ml-1"
                 onClick={() =>
@@ -835,7 +840,7 @@ export function ExpenseDetailsStep2({
                 }
               >
                 View original expense <ExternalLink className="ml-1 h-3 w-3" />
-              </Button>
+              </Button>}
             </AlertDescription>
           </Alert>
         )}
@@ -1108,7 +1113,7 @@ export function ExpenseDetailsStep2({
                                   <SelectContent>
                                     <SelectItem value="INR">INR (₹)</SelectItem>
                                     <SelectItem value="USD">USD ($)</SelectItem>
-                                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                                    {/* <SelectItem value="EUR">EUR (€)</SelectItem> */}
                                   </SelectContent>
                                 </Select>
                               </FormControl>
@@ -1518,7 +1523,7 @@ export function ExpenseDetailsStep2({
                   {!readOnly && (
                     <Button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || fetchingConversion}
                       className="min-w-[200px]"
                     >
                       {loading ? (
