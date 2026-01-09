@@ -26,6 +26,7 @@ import { getTemplates, Template } from "@/services/admin/templates";
 import { useAuthStore } from "@/store/authStore";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { format } from "date-fns";
 
 const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE", "SENT_BACK"];
 
@@ -218,20 +219,16 @@ export function ExpenseDetailPage() {
     const filteredData = filterFormData(formData);
     try {
       if (filteredData.invoice_number) {
-        filteredData.expense_date = new Date(filteredData.expense_date)
-          .toISOString()
-          .split("T")[0];
-        filteredData.currency = baseCurrency || "INR";
+        filteredData.expense_date = format(
+          new Date(filteredData.expense_date),
+          "yyyy-MM-dd"
+        );
+        filteredData.currency = baseCurrency;
         if (!filteredData.foreign_amount) {
           filteredData.foreign_currency = null;
         }
-        if (formData.advance_account_id) {
-          if (!filteredData.custom_attributes) {
-            filteredData.custom_attributes = {};
-          }
-          filteredData.custom_attributes.advance_account_id =
-            formData.advance_account_id;
-        }
+        filteredData.advance_account_id = formData.advance_account_id.length > 0 ? formData.advance_account_id : null;
+
         if (isAdminUpdatingExpense) {
           setShowAdminEditConfirm(true);
           setPendingFormData(filteredData);
@@ -284,7 +281,7 @@ export function ExpenseDetailPage() {
   const handleEditExpenseAsAdmin = async () => {
     try {
       if (expenseId) {
-        const newPayload = { ...pendingFormData, reason: adminEditReason }
+        const newPayload = { ...pendingFormData, reason: adminEditReason };
         await expenseService.adminUpdateExpense({
           id: expenseId,
           payload: newPayload,

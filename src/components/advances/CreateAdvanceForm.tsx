@@ -472,7 +472,8 @@ export function CreateAdvanceForm({
                         selected={field.value && new Date(field.value)}
                         onSelect={(date) => field.onChange(date)}
                         disabled={(date) =>
-                          date < new Date() || date < new Date("1900-01-01")
+                          // date < new Date() || date < new Date("1900-01-01")
+                          date < new Date("1900-01-01")
                         }
                         initialFocus
                       />

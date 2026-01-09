@@ -3,8 +3,11 @@ import { useAuthStore } from "@/store/authStore";
 import { trackApiError } from "@/mixpanel";
 
 // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://in.pulse.chronon.co.in';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://staging-api.chronon.com.chronon.co.in';
-const API_BASE_URL_V2 = import.meta.env.VITE_API_BASE_URL_V2 || 'https://stageapi.auth.chronon.co.in';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://staging-api.chronon.com.chronon.co.in";
+const API_BASE_URL_V2 =
+  import.meta.env.VITE_API_BASE_URL_V2 || "https://stageapi.auth.chronon.co.in";
 
 export const api2 = axios.create({
   baseURL: `${API_BASE_URL_V2}/api/v2`,
@@ -98,6 +101,13 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+api.interceptors.request.use((config) => {
+  if (config.data === undefined) {
+    delete config.headers["Content-Type"];
+  }
+  return config;
+});
 
 // Response interceptor to handle auth errors for api2
 api2.interceptors.response.use(
