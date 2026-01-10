@@ -118,7 +118,7 @@ const MileagePage = ({
       amount: "",
       description: "",
       vehiclesType: "",
-      expenseDate: new Date().toISOString().split("T")[0],
+      expenseDate: format(new Date(), "yyyy-MM-dd"),
       isRoundTrip: false,
       policyId: "",
       categoryId: "",
@@ -135,7 +135,7 @@ const MileagePage = ({
     amount: "",
     description: "",
     vehiclesType: "",
-    expenseDate: new Date().toISOString().split("T")[0],
+    expenseDate: format(new Date(), "yyyy-MM-dd"),
     isRoundTrip: false,
     policyId: "",
     categoryId: "",
@@ -163,7 +163,7 @@ const MileagePage = ({
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [activeMapTab, setActiveMapTab] = useState<"map" | "comments">("map");
   const [lastAddedStopId, setLastAddedStopId] = useState<string | null>(null);
-  const today = new Date().toISOString().split("T")[0];
+  const today = format(new Date(), "yyyy-MM-dd");
   const stopRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [mileageRates, setMileageRates] = useState([]);
   const [expenseLogs, setExpenseLogs] = useState<ExpenseComment[]>([]);
@@ -176,46 +176,46 @@ const MileagePage = ({
 
   const isUpdateFlow = mode === "edit" || editMode;
 
-    const [newComment, setNewComment] = useState<string>();
-    const [postingComment, setPostingComment] = useState(false);
-  
-    const handlePostComment = async () => {
-      if (!expenseData?.id || !newComment?.trim() || postingComment) return;
-  
-      setPostingComment(true);
-      setCommentError(null);
-  
-      try {
-        await expenseService.postExpenseComment(
-          expenseData?.id,
-          newComment.trim(),
-          false
-        );
-        // Refetch comments to get the updated list with the new comment
-        const fetchedComments = await expenseService.getExpenseComments(
-          expenseData?.id
-        );
-        // Sort comments by created_at timestamp (oldest first)
-        const sortedComments = [...fetchedComments.filter((c) => !c.action)].sort(
-          (a, b) => {
-            const dateA = new Date(a.created_at).getTime();
-            const dateB = new Date(b.created_at).getTime();
-            return dateA - dateB;
-          }
-        );
-        setComments(sortedComments);
-        setNewComment("");
-        toast.success("Comment posted successfully");
-      } catch (error: any) {
-        console.error("Error posting comment:", error);
-        const errorMessage =
-          error.response?.data?.message || "Failed to post comment";
-        setCommentError(errorMessage);
-        toast.error(errorMessage);
-      } finally {
-        setPostingComment(false);
-      }
-    };
+  const [newComment, setNewComment] = useState<string>();
+  const [postingComment, setPostingComment] = useState(false);
+
+  const handlePostComment = async () => {
+    if (!expenseData?.id || !newComment?.trim() || postingComment) return;
+
+    setPostingComment(true);
+    setCommentError(null);
+
+    try {
+      await expenseService.postExpenseComment(
+        expenseData?.id,
+        newComment.trim(),
+        false
+      );
+      // Refetch comments to get the updated list with the new comment
+      const fetchedComments = await expenseService.getExpenseComments(
+        expenseData?.id
+      );
+      // Sort comments by created_at timestamp (oldest first)
+      const sortedComments = [...fetchedComments.filter((c) => !c.action)].sort(
+        (a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateA - dateB;
+        }
+      );
+      setComments(sortedComments);
+      setNewComment("");
+      toast.success("Comment posted successfully");
+    } catch (error: any) {
+      console.error("Error posting comment:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to post comment";
+      setCommentError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setPostingComment(false);
+    }
+  };
 
   const isStartEndLocationLocked =
     (mode === "view" && !editMode) || hasPrefilledLocations;
@@ -1572,7 +1572,7 @@ const MileagePage = ({
             </>
           </form>
         </Form>
-         {/* Fullscreen Map Modal */}
+        {/* Fullscreen Map Modal */}
         {isMapFullscreen && mapUrl && (
           <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
             <div className="relative w-full h-full flex flex-col">

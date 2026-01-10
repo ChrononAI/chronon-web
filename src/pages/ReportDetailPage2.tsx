@@ -467,7 +467,7 @@ export function ReportDetailPage2() {
 
   return (
     <>
-      <div className="flex flex-col h-[calc(100vh-24px)] space-y-6">
+      <div className="flex flex-col space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Report Approval</h1>
           {isFromApprovals && canApproveReport() && (
@@ -560,6 +560,7 @@ export function ReportDetailPage2() {
                   rows={report.expenses}
                   columns={columns}
                   sx={{
+                    minHeight: "84px",
                     border: 0,
                     "& .MuiDataGrid-columnHeaderTitle": {
                       color: "#9AA0A6",
@@ -605,14 +606,6 @@ export function ReportDetailPage2() {
                   onRowClick={(params) => handleViewExpense(params.row)}
                 />
               </div>
-              <div className="flex">
-                <div className="bg-gray-50 rounded-lg px-8 py-3 w-full flex items-center justify-end gap-6">
-                  <span className=" text-gray-600">Total Amount:</span>
-                  <span className="text-lg font-bold text-primary">
-                    {formatCurrency(totalAmount || 0)}
-                  </span>
-                </div>
-              </div>
             </div>
           )}
 
@@ -627,7 +620,7 @@ export function ReportDetailPage2() {
           )}
 
           {activeTab === "comments" && (
-            <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col h-[40vh] overflow-hidden">
               <ExpenseComments
                 expenseId={id}
                 loadingComments={loadingReportComments}
@@ -642,7 +635,7 @@ export function ReportDetailPage2() {
           )}
 
           {activeTab === "logs" && (
-            <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col h-[40vh] overflow-hidden">
               <ExpenseLogs
                 logs={reportLogs}
                 loading={loadingReportComments}
@@ -653,14 +646,22 @@ export function ReportDetailPage2() {
           )}
         </div>
         <FormFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate(-1)}
-            className="px-6 py-2"
-          >
-            Back
-          </Button>
+          <div className="w-full flex items-center justify-between">
+            <div>
+              <span className="text-gray-600">Total Amount: </span>
+              <span className="text-lg font-bold text-primary">
+                {formatCurrency(totalAmount || 0)}
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(-1)}
+              className="px-6 py-2"
+            >
+              Back
+            </Button>
+          </div>
         </FormFooter>
       </div>
 

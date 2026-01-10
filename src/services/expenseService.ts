@@ -8,6 +8,7 @@ import {
 } from "@/types/expense";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 export interface CreateExpenseData {
   amount: number;
@@ -123,7 +124,7 @@ export const expenseService = {
     query,
     limit,
     offset,
-    signal
+    signal,
   }: {
     query: string;
     limit: number;
@@ -136,7 +137,7 @@ export const expenseService = {
           limit,
           offset,
         },
-        signal
+        signal,
       });
     } catch (error) {
       throw error;
@@ -483,8 +484,8 @@ export const expenseService = {
             email: "",
             full_name: "",
           },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          created_at: format(new Date(), "yyyy-MM-dd"),
+          updated_at: format(new Date(), "yyyy-MM-dd"),
           org_id: orgId,
         }
       );
