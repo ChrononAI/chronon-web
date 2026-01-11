@@ -938,7 +938,7 @@ export function CreateReportForm2({
         </Form>
       </div>
 
-      <div className="flex flex-col flex-1 min-h-0">
+      <div className="flex flex-col flex-1 min-h-[540px]">
         {showTabs ? (
           <div className="flex flex-col flex-1 min-h-0">
             <ReportTabs
@@ -959,7 +959,7 @@ export function CreateReportForm2({
               className="mb-2"
             />
             {activeTab === "expenses" && (
-              <div className="space-y-0">
+              <div className="space-y-0 flex-1 h-full">
                 <DataGrid
                   className="rounded border-[0.2px] border-[#f3f4f6] h-full"
                   rows={loadingExpenses ? [] : filteredExpenses}
@@ -979,7 +979,7 @@ export function CreateReportForm2({
                     ),
                   }}
                   sx={{
-                    height: "calc(100vh - 800px)",
+                    height: "calc(100vh)",
                     border: 0,
                     "& .MuiDataGrid-columnHeaderTitle": {
                       color: "#9AA0A6",
@@ -1085,7 +1085,7 @@ export function CreateReportForm2({
             )}
           </div>
         ) : (
-          <div>
+          <div className="flex-1 h-full">
             <DataGrid
               className="rounded border-[0.2px] border-[#f3f4f6] h-full"
               rows={loadingExpenses ? [] : filteredExpenses}
@@ -1105,7 +1105,7 @@ export function CreateReportForm2({
                 ),
               }}
               sx={{
-                height: "calc(100vh - 800px)",
+                height: "calc(100vh - 568px)",
                 border: 0,
                 "& .MuiDataGrid-columnHeaderTitle": {
                   color: "#9AA0A6",
@@ -1172,15 +1172,6 @@ export function CreateReportForm2({
               onPaginationModelChange={setPaginationModel}
               pageSizeOptions={[10, 15, 20]}
             />
-            {/* Total Amount Display */}
-            <div className="flex mt-6">
-              <div className="bg-gray-50 rounded-lg px-8 py-3 w-full flex items-center justify-end gap-6">
-                <span className="text-gray-600">Total Amount:</span>
-                <span className="text-lg font-bold text-primary">
-                  {formatCurrency(totalAmount || 0)}
-                </span>
-              </div>
-            </div>
           </div>
         )}
       </div>
