@@ -439,16 +439,16 @@ const CreateUserForm = ({
               <span>Loading user details...</span>
             </div>
           )}
-          <Card>
-            <CardHeader>
+          <div>
+            {/* <CardHeader>
               <CardTitle>User Information</CardTitle>
               <CardDescription>
                 {isEditMode
                   ? "Update the user information below."
                   : "Enter the basic information for the new user."}
               </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+            </CardHeader> */}
+            <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
@@ -790,8 +790,8 @@ const CreateUserForm = ({
                   </div>
                 </>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </fieldset>
 
         <FormFooter>
@@ -842,8 +842,6 @@ export const CreateUserPage = () => {
   const [initialValues, setInitialValues] =
     useState<Partial<UserFormValues> | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
-  // const [bulkFile, setBulkFile] = useState<File | null>(null);
-  // const [uploadingBulk, setUploadingBulk] = useState(false);
   const [bulkInputKey, setBulkInputKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [reportingManagers, setReportingManagers] = useState<UserOption[]>([]);
@@ -853,9 +851,7 @@ export const CreateUserPage = () => {
   const handleBulkDialogChange = useCallback((open: boolean) => {
     setShowBulkUpload(open);
     if (!open) {
-      // setBulkFile(null);
       setBulkInputKey((key) => key + 1);
-      // setUploadingBulk(false);
     }
   }, []);
 
@@ -878,32 +874,6 @@ export const CreateUserPage = () => {
       toast.error("Failed to download template");
     }
   }, []);
-
-  // const uploadBulkFile = useCallback(
-  //   async (file: File) => {
-  //     if (uploadingBulk) return;
-  //     setUploadingBulk(true);
-  //     try {
-  //       await bulkUploadService.uploadUsers(file);
-  //       toast.success("Bulk upload submitted successfully");
-  //       handleBulkDialogChange(false);
-  //     } catch (error) {
-  //       console.error("Failed to upload users in bulk:", error);
-  //       toast.error("Failed to upload file");
-  //     } finally {
-  //       setUploadingBulk(false);
-  //     }
-  //   },
-  //   [handleBulkDialogChange, uploadingBulk]
-  // );
-
-  // const handleBulkFileSelect = useCallback(
-  //   (event: React.ChangeEvent<HTMLInputElement>) => {
-  //     const file = event.target.files?.[0] ?? null;
-  //     setBulkFile(file);
-  //   },
-  //   []
-  // );
 
   useEffect(() => {
     let cancelled = false;
