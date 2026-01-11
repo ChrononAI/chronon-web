@@ -216,13 +216,12 @@ function Settlements() {
           ...TAB_QUERY_OVERRIDES[activeTab],
         };
 
-        console.log(buildBackendQuery(effectiveQuery));
-
-        const res = await settlementsService.getAdminReports({
+        const res = await settlementsService.getFilteredReports({
           limit,
           offset,
           query: buildBackendQuery(effectiveQuery),
           signal,
+          role: "admin"
         });
 
         if (activeTab === "paid") {

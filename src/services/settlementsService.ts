@@ -29,28 +29,27 @@ export const settlementsService = {
     }
   },
 
-async getAdminReports({
-  query,
-  limit,
-  offset,
-  signal,
-}: {
-  query?: string;
-  limit: number;
-  offset: number;
-  signal?: AbortSignal;
-}) {
-  return api.get(
-    `/api/v1/reports/admin${query ? `?${query}` : ""}`,
-    {
+  async getFilteredReports({
+    query,
+    limit,
+    offset,
+    signal,
+    role,
+  }: {
+    query?: string;
+    limit: number;
+    offset: number;
+    signal?: AbortSignal;
+    role: "admin" | "spender";
+  }) {
+    return api.get(`/api/v1/reports/${role}${query ? `?${query}` : ""}`, {
       params: {
         limit,
         offset,
       },
       ...(signal && { signal }),
-    }
-  );
-},
+    });
+  },
 
   async markAsPaid(report_ids: string[]) {
     try {

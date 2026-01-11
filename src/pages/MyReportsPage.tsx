@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ReportTabs } from "@/components/reports/ReportTabs";
-import { expenseService } from "@/services/expenseService";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useReportsStore } from "@/store/reportsStore";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +12,17 @@ import { GridPaginationModel } from "@mui/x-data-grid";
 import { Box, Skeleton } from "@mui/material";
 import { GridOverlay } from "@mui/x-data-grid";
 import { useAuthStore } from "@/store/authStore";
+import CustomReportsToolbar from "@/components/reports/CustomReportsToolbar";
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import { toast } from "sonner";
+import {
+  buildBackendQuery,
+  FieldFilter,
+  FilterMap,
+  FilterValue,
+  Operator,
+} from "./MyExpensesPage";
+import { settlementsService } from "@/services/settlementsService";
 
 function ExpensesSkeletonOverlay({ rowCount = 8 }) {
   return (
@@ -72,22 +82,6 @@ function ExpensesSkeletonOverlay({ rowCount = 8 }) {
   );
 }
 
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No reports found</h3>
-          <p className="text-muted-foreground">
-            There are currently no reportrs.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
-
 const columns: GridColDef[] = [
   {
     field: "title",
@@ -136,6 +130,38 @@ const columns: GridColDef[] = [
   },
 ];
 
+const REPORT_STATUSES = [
+  "DRAFT",
+  "UNDER_REVIEW",
+  "APPROVED",
+  "REJECTED",
+  "SENT_BACK",
+];
+
+const UNSUBMITTED_REPORT_STATUSES = ["DRAFT"];
+
+const SUBMITTED_REPORT_STATUSES = ["APPROVED", "REJECTED", "UNDER_REVIEW"];
+
+const TAB_QUERY_OVERRIDES: Record<string, FilterMap> = {
+  all: {},
+  submitted: {
+    status: [
+      {
+        operator: "in",
+        value: ["UNDER_REVIEW", "APPROVED", "REJECTED"],
+      },
+    ],
+  },
+  unsubmitted: {
+    status: [
+      {
+        operator: "in",
+        value: ["DRAFT"],
+      },
+    ],
+  },
+};
+
 export function MyReportsPage() {
   const {
     allReports,
@@ -150,19 +176,33 @@ export function MyReportsPage() {
     allReportsPagination,
     unsubmittedReportsPagination,
     submittedReportsPagination,
+    query,
+    setQuery,
   } = useReportsStore();
   const navigate = useNavigate();
   const { orgSettings } = useAuthStore();
-  const customIdEnabled = orgSettings?.custom_report_id_settings?.enabled ?? false;
+  const customIdEnabled =
+    orgSettings?.custom_report_id_settings?.enabled ?? false;
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [rowsCalculated, setRowsCalculated] = useState(false);
   const [paginationModel, setPaginationModel] =
     useState<GridPaginationModel | null>(null);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const allowedStatus =
+    activeTab === "all"
+      ? REPORT_STATUSES
+      : activeTab === "unsubmitted"
+      ? UNSUBMITTED_REPORT_STATUSES
+      : SUBMITTED_REPORT_STATUSES;
 
   const newCols = useMemo<GridColDef[]>(() => {
     return [
@@ -180,16 +220,148 @@ export function MyReportsPage() {
     ];
   }, [columns, customIdEnabled]);
 
-  useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-    setRowSelection({
-      type: "include",
-      ids: new Set(),
+  function updateQuery(key: string, operator: Operator, value: FilterValue) {
+    setQuery((prev) => {
+      const prevFilters: FieldFilter[] = prev[key] ?? [];
+
+      if (
+        value === undefined ||
+        value === null ||
+        (typeof value === "string" && value.trim() === "") ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        const nextFilters = prevFilters.filter((f) => f.operator !== operator);
+
+        if (nextFilters.length === 0) {
+          const { [key]: _, ...rest } = prev;
+          return rest;
+        }
+
+        return {
+          ...prev,
+          [key]: nextFilters,
+        };
+      }
+
+      const existingIndex = prevFilters.findIndex(
+        (f) => f.operator === operator
+      );
+
+      const nextFilters =
+        existingIndex >= 0
+          ? prevFilters.map((f, i) =>
+              i === existingIndex ? { operator, value } : f
+            )
+          : [...prevFilters, { operator, value }];
+
+      return {
+        ...prev,
+        [key]: nextFilters,
+      };
     });
-  }, [activeTab]);
+  }
+
+  const handleTabChange = (tab: any) => {
+    setActiveTab(tab);
+    setLoading(true);
+    setRowSelection({ type: "include", ids: new Set() });
+
+    const filter =
+      tab === "all"
+        ? []
+        : tab === "unsubmitted"
+        ? ["DRAFT"]
+        : ["APPROVED", "REJECTED", "UNDER_REVIEW"];
+
+    updateQuery("status", "in", filter);
+  };
+
+  const fetchFilteredReports = useCallback(
+    async ({ signal }: { signal: AbortSignal }) => {
+      try {
+        const limit = paginationModel?.pageSize ?? 10;
+        const offset = (paginationModel?.page ?? 0) * limit;
+
+        const effectiveQuery = {
+          ...query,
+          ...TAB_QUERY_OVERRIDES[activeTab],
+        };
+
+        const res = await settlementsService.getFilteredReports({
+          limit,
+          offset,
+          query: buildBackendQuery(effectiveQuery),
+          signal,
+          role: "spender",
+        });
+
+        if (activeTab === "all") {
+          setAllReports(res.data.data);
+          setAllReportsPagination({
+            count: res.data.count,
+            offset: res.data.offset,
+          });
+        } else if (activeTab === "unsubmitted") {
+          setUnsubmittedReports(res.data.data);
+          setUnsubmittedReportsPagination({
+            count: res.data.count,
+            offset: res.data.offset,
+          });
+        } else {
+          setSubmittedReports(res.data.data);
+          setSubmittedReportsPagination({
+            count: res.data.count,
+            offset: res.data.offset,
+          });
+        }
+      } catch (error: any) {
+        console.log(error);
+        if (error.name !== "CanceledError") {
+          toast.error(error?.response?.data?.message || error?.message);
+        }
+      }
+    },
+    [query, activeTab, paginationModel?.page, paginationModel?.pageSize]
+  );
+
+  useEffect(() => {
+    if (!rowsCalculated) return;
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      setLoading(true);
+
+      fetchFilteredReports({ signal: controller.signal })
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            console.error(err);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setLoading(false);
+            setIsInitialLoad(false);
+            setRowSelection({ type: "include", ids: new Set() });
+          }
+        });
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [fetchFilteredReports, rowsCalculated]);
 
   const reportsArr =
     activeTab === "all"
@@ -198,72 +370,83 @@ export function MyReportsPage() {
       ? unsubmittedReports
       : submittedReports;
 
-  const fetchAllReports = async () => {
-    try {
-      const limit = paginationModel?.pageSize || 10;
-      const offset = (paginationModel?.page || 0) * limit;
-      const response = await expenseService.getMyReports(limit, offset);
-      setAllReports(response.reports);
-      setAllReportsPagination(response.pagination);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  // const fetchAllReports = async () => {
+  //   try {
+  //     const limit = paginationModel?.pageSize || 10;
+  //     const offset = (paginationModel?.page || 0) * limit;
+  //     const response = await expenseService.getMyReports(limit, offset);
+  //     setAllReports(response.reports);
+  //     setAllReportsPagination(response.pagination);
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // };
 
-  const fetchUnsubmittedReports = async () => {
-    try {
-      const limit = paginationModel?.pageSize || 10;
-      const offset = (paginationModel?.page || 0) * limit;
-      const response = await expenseService.getReportsByStatus(
-        "DRAFT",
-        limit,
-        offset
-      );
-      setUnsubmittedReports(response.reports);
-      setUnsubmittedReportsPagination(response.pagination);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  // const fetchUnsubmittedReports = async () => {
+  //   try {
+  //     const limit = paginationModel?.pageSize || 10;
+  //     const offset = (paginationModel?.page || 0) * limit;
+  //     const response = await expenseService.getReportsByStatus(
+  //       "DRAFT",
+  //       limit,
+  //       offset
+  //     );
+  //     setUnsubmittedReports(response.reports);
+  //     setUnsubmittedReportsPagination(response.pagination);
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // };
 
-  const fetchSubmittedReports = async () => {
-    try {
-      const limit = paginationModel?.pageSize || 10;
-      const offset = (paginationModel?.page || 0) * limit;
-      const response = await expenseService.getReportsByStatus(
-        "UNDER_REVIEW,APPROVED,REJECTED",
-        limit,
-        offset
-      );
-      setSubmittedReports(response.reports);
-      setSubmittedReportsPagination(response.pagination);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  // const fetchSubmittedReports = async () => {
+  //   try {
+  //     const limit = paginationModel?.pageSize || 10;
+  //     const offset = (paginationModel?.page || 0) * limit;
+  //     const response = await expenseService.getReportsByStatus(
+  //       "UNDER_REVIEW,APPROVED,REJECTED",
+  //       limit,
+  //       offset
+  //     );
+  //     setSubmittedReports(response.reports);
+  //     setSubmittedReportsPagination(response.pagination);
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // };
 
-  const fetchData = async () => {
-    try {
-      await Promise.all([
-        fetchAllReports(),
-        fetchUnsubmittedReports(),
-        fetchSubmittedReports(),
-      ]);
-      setIsInitialLoad(false);
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const fetchData = async () => {
+  //   try {
+  //     await Promise.all([
+  //       fetchAllReports(),
+  //       fetchUnsubmittedReports(),
+  //       fetchSubmittedReports(),
+  //     ]);
+  //     setIsInitialLoad(false);
+  //   } catch (error) {
+  //     console.log(error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   useEffect(() => {
-    fetchData();
     setRowSelection({
       type: "include",
       ids: new Set(),
     });
   }, [paginationModel?.page, paginationModel?.pageSize]);
+
+  useEffect(() => {
+    const gridHeight = window.innerHeight - 348;
+    const rowHeight = 36;
+    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
+    setRowsCalculated(true);
+    setRowSelection({
+      type: "include",
+      ids: new Set(),
+    });
+  }, [activeTab]);
 
   const handleReportClick = (report: Report) => {
     if (report.status === "DRAFT" || report.status === "SENT_BACK") {
@@ -284,6 +467,13 @@ export function MyReportsPage() {
     }
   };
 
+  useEffect(() => {
+    setQuery((prev) => {
+      const { status, ...rest } = prev;
+      return { ...rest };
+    });
+  }, []);
+
   return (
     <>
       {/* Header Section */}
@@ -300,7 +490,7 @@ export function MyReportsPage() {
       {/* Tabs Section */}
       <ReportTabs
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         tabs={[
           { key: "all", label: "All", count: allReportsPagination.count },
           {
@@ -337,7 +527,13 @@ export function MyReportsPage() {
             }
           }}
           slots={{
-            noRowsOverlay: CustomNoRows,
+            toolbar: CustomReportsToolbar,
+            noRowsOverlay: () => (
+              <CustomNoRows
+                title="No reports found"
+                description="There are currently no reports"
+              />
+            ),
             loadingOverlay:
               loading && isInitialLoad
                 ? () => (
@@ -346,6 +542,11 @@ export function MyReportsPage() {
                     />
                   )
                 : undefined,
+          }}
+          slotProps={{
+            toolbar: {
+              allStatuses: allowedStatus,
+            } as any,
           }}
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           sx={{
@@ -383,6 +584,7 @@ export function MyReportsPage() {
               color: "#f3f4f6",
             },
           }}
+          showToolbar
           checkboxSelection
           rowCount={
             activeTab === "all"

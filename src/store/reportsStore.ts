@@ -1,3 +1,4 @@
+import { FilterMap } from "@/pages/MyExpensesPage";
 import { NewPaginationMeta, Report } from "@/types/expense";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
@@ -5,6 +6,7 @@ import { devtools, persist } from "zustand/middleware";
 interface ReportsState {
   allReports: Report[];
   allReportsPagination: NewPaginationMeta;
+  query: FilterMap;
 
   unsubmittedReports: Report[];
   unsubmittedReportsPagination: NewPaginationMeta;
@@ -16,6 +18,7 @@ interface ReportsState {
 
   setAllReports: (data: Report[]) => void;
   setAllReportsPagination: (pagination: NewPaginationMeta) => void;
+  setQuery: (data: FilterMap | ((prev: FilterMap) => FilterMap)) => void;
 
   setUnsubmittedReports: (data: Report[]) => void;
   setUnsubmittedReportsPagination: (pagination: NewPaginationMeta) => void;
@@ -28,6 +31,7 @@ export const useReportsStore = create<ReportsState>()(
   devtools(
     persist(
       (set) => ({
+        query: {},
         allReports: [],
         allReportsPagination: {
           count: 0,
@@ -52,6 +56,15 @@ export const useReportsStore = create<ReportsState>()(
             { allReportsPagination: pagination },
             false,
             "reports/setAllReportsPagination"
+          ),
+
+        setQuery: (data: FilterMap | ((prev: FilterMap) => FilterMap)) =>
+          set(
+            (state) => ({
+              query: typeof data === "function" ? data(state.query) : data,
+            }),
+            false,
+            "reports/setQuery"
           ),
 
         setUnsubmittedReports: (data) =>
