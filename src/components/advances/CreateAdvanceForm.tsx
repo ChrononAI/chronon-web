@@ -196,7 +196,15 @@ export function CreateAdvanceForm({
           }
         });
 
-        const { title, description, amount, currency, policy_id, from_date, to_date } = values;
+        const {
+          title,
+          description,
+          amount,
+          currency,
+          policy_id,
+          from_date,
+          to_date,
+        } = values;
         if (from_date) {
           customAttributes["from_date"] = from_date;
         }
@@ -217,9 +225,7 @@ export function CreateAdvanceForm({
         const response: any = await AdvanceService.createAdvance(payload);
         await AdvanceService.submitAdvance(response.data.data.id);
         toast.success("Advance created successfully");
-        // setTimeout(() => {
-          navigate("/requests/advances");
-        // }, 200);
+        navigate("/requests/advances");
       } catch (error: any) {
         toast.error(error.response?.data?.message || error.message);
       } finally {
@@ -251,11 +257,19 @@ export function CreateAdvanceForm({
 
   useEffect(() => {
     if (selectedAdvance?.custom_attributes && templateEntities.length > 0) {
+      // const newTempEntities: any[] = [];
       Object.entries(selectedAdvance.custom_attributes).forEach(
         ([entityId, attributeId]) => {
           form.setValue(entityId as any, String(attributeId));
+          // const ent = templateEntities.find(temp => {
+          //   return temp.entity_id === entityId
+          // })
+          // if (ent) {
+          //   newTempEntities.push(ent);
+          // }
         }
       );
+      // setTemplateEntities(newTempEntities)
     }
   }, [selectedAdvance, templateEntities]);
 
@@ -440,94 +454,98 @@ export function CreateAdvanceForm({
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              control={form.control}
-              name="from_date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>From</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "h-11 w-full justify-between pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                          disabled={mode === "view"}
-                        >
-                          {field.value ? (
-                            format(new Date(field.value), "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <Calendar className="h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={field.value && new Date(field.value)}
-                        onSelect={(date) => field.onChange(date)}
-                        disabled={(date) =>
-                          // date < new Date() || date < new Date("1900-01-01")
-                          date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="to_date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>To</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "h-11 w-full justify-between pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                          disabled={mode === "view"}
-                        >
-                          {field.value ? (
-                            format(new Date(field.value), "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <Calendar className="h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={field.value && new Date(field.value)}
-                        onSelect={(date) => field.onChange(date)}
-                        disabled={(date) =>
-                          date < new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!(mode === "view" && !form.getValues("from_date")) && (
+              <FormField
+                control={form.control}
+                name="from_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>From</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "h-11 w-full justify-between pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            disabled={mode === "view"}
+                          >
+                            {field.value ? (
+                              format(new Date(field.value), "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <Calendar className="h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={field.value && new Date(field.value)}
+                          onSelect={(date) => field.onChange(date)}
+                          disabled={(date) =>
+                            date < new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            {!(mode === "view" && !form.getValues("to_date")) && (
+              <FormField
+                control={form.control}
+                name="to_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>To</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "h-11 w-full justify-between pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            disabled={mode === "view"}
+                          >
+                            {field.value ? (
+                              format(new Date(field.value), "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <Calendar className="h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={field.value && new Date(field.value)}
+                          onSelect={(date) => field.onChange(date)}
+                          disabled={(date) =>
+                            date < new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </div>
 
           <div>
+            {!(mode === "view" && !form.getValues("policy_id")) && (
             <FormField
               control={form.control}
               name="policy_id"
@@ -573,12 +591,13 @@ export function CreateAdvanceForm({
                 </FormItem>
               )}
             />
+            )}
           </div>
 
           {templateEntities?.map((entity) => {
             const entityId = getEntityId(entity);
             const fieldName = getFieldName(entity);
-            if (!entityId) return null;
+            if (!entityId || (mode === "view" && !selectedAdvance?.custom_attributes?.[entityId])) return null;
 
             return (
               <FormField

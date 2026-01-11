@@ -43,15 +43,7 @@ import {
 import { DynamicCustomField } from "./DynamicCustomField";
 import { ReportTabs } from "./ReportTabs";
 import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
-import {
-  DataGrid,
-  ExportCsv,
-  FilterPanelTrigger,
-  GridColDef,
-  GridExpandMoreIcon,
-  GridFilterListIcon,
-  GridRowId,
-} from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { Badge } from "../ui/badge";
 import { GridPaginationModel } from "@mui/x-data-grid";
 import { Box, Toolbar } from "@mui/material";
@@ -75,7 +67,7 @@ import { getExpenseType } from "@/pages/MyExpensesPage";
 const createReportSchema = (customAttributes: CustomAttribute[]) => {
   const baseSchema = {
     reportName: z.string().min(1, "Report name is required"),
-    description: z.string().min(1, "Description is required"),
+    description: z.string().optional(),
   };
 
   // Add dynamic fields based on custom attributes
@@ -299,22 +291,6 @@ function CustomToolbar({
           </PopoverContent>
         </Popover>
       </Box>
-
-      <Box className="flex items-center gap-2">
-        <FilterPanelTrigger
-          size="small"
-          startIcon={<GridFilterListIcon className="text-gray-500" />}
-        >
-          <span className="text-gray-500">Filter</span>
-        </FilterPanelTrigger>
-
-        <ExportCsv
-          size="small"
-          startIcon={<GridExpandMoreIcon className="text-gray-500" />}
-        >
-          <span className="text-gray-500">Export CSV</span>
-        </ExportCsv>
-      </Box>
     </Toolbar>
   );
 }
@@ -324,7 +300,9 @@ export function CreateReportForm2({
   reportData,
 }: CreateReportFormProps) {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, orgSettings } = useAuthStore();
+
+  const showDescription = orgSettings?.report_description_settings?.enabled ?? true;
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -902,36 +880,38 @@ export function CreateReportForm2({
             onSubmit={form.handleSubmit(onSubmit)}
             className="grid grid-cols-1 lg:grid-cols-2 lg:col-span-2 gap-4"
           >
-            <FormField
-              control={form.control}
-              name="reportName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Report Name *</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Enter report name" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div>
+              <FormField
+                control={form.control}
+                name="reportName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Report Name *</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Enter report name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-            <FormField
+            {showDescription && <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description *</FormLabel>
+                  <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="Enter report description" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            />}
 
             {loadingMeta && (
-              <div className="flex items-center py-8">
+              <div className="flex items-center py-8 col-span-2">
                 <Loader2 className="h-6 w-6 animate-spin mr-2" />
                 <span className="text-muted-foreground">
                   Loading additional fields...
@@ -1105,6 +1085,7 @@ export function CreateReportForm2({
             )}
           </div>
         ) : (
+          <div>
             <DataGrid
               className="rounded border-[0.2px] border-[#f3f4f6] h-full"
               rows={loadingExpenses ? [] : filteredExpenses}
@@ -1191,6 +1172,16 @@ export function CreateReportForm2({
               onPaginationModelChange={setPaginationModel}
               pageSizeOptions={[10, 15, 20]}
             />
+            {/* Total Amount Display */}
+            <div className="flex mt-6">
+              <div className="bg-gray-50 rounded-lg px-8 py-3 w-full flex items-center justify-end gap-6">
+                <span className="text-gray-600">Total Amount:</span>
+                <span className="text-lg font-bold text-primary">
+                  {formatCurrency(totalAmount || 0)}
+                </span>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 

@@ -7,6 +7,7 @@ import {
   FileX,
   CheckCircle,
   XCircle,
+  FilePlus,
 } from "lucide-react";
 import { ApprovalWorkflow } from "@/types/expense";
 import { formatDate } from "@/lib/utils";
@@ -27,6 +28,8 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
 
   const getStatusIcon = (status: string) => {
     switch (status.toUpperCase()) {
+      case "CREATED":
+        return <FilePlus className="h-5 w-5 text-green-600" />
       case "APPROVED":
         return <FileCheck className="h-5 w-5 text-green-600" />;
       case "PENDING":
@@ -52,6 +55,8 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
     lastName: string;
   }) => {
     switch (status) {
+      case "CREATED":
+        return `Created by ${firstName} ${lastName}`;
       case "PENDING":
         return `To be reviewed by ${firstName} ${lastName}`;
       case "IN_PROGRESS":
@@ -81,8 +86,6 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
             step.approver_note?.[0]?.notes ||
             "";
           const isMulti = approvers.length > 1;
-          // let normalView = (!isMulti || approvalWorkflow.workflow_status === "COMPLETED") || (isMulti && approvalWorkflow.workflow_status === "COMPLETED");
-          // let multiView = isMulti && approvalWorkflow.workflow_status === "RUNNING";
 
           return (
             <div key={index} className="flex items-start space-x-4">

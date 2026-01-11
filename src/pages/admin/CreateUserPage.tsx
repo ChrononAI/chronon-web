@@ -33,13 +33,6 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -143,10 +136,12 @@ const createUserSchema = (templateEntities: TemplateEntity[]) => {
     phoneNumber: z
       .string()
       .trim()
-      .min(1, "Phone number is required")
-      .regex(/^[\d\s()+-]{7,20}$/, "Invalid phone number format"),
+      .refine(
+        (val) => val.replace(/\D/g, "").length === 10,
+        "Phone number must be 10 digits long"
+      ),
     role: z.string().trim().min(1, "Role is required"),
-    employeeCode: z.string().trim().optional(),
+    employeeCode: z.string().trim().min(1, "EMP Code is required"),
     reportingManager: z.string().trim().optional(),
   };
 
@@ -444,16 +439,16 @@ const CreateUserForm = ({
               <span>Loading user details...</span>
             </div>
           )}
-          <Card>
-            <CardHeader>
+          <div>
+            {/* <CardHeader>
               <CardTitle>User Information</CardTitle>
               <CardDescription>
                 {isEditMode
                   ? "Update the user information below."
                   : "Enter the basic information for the new user."}
               </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+            </CardHeader> */}
+            <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
@@ -480,180 +475,167 @@ const CreateUserForm = ({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel aria-required={true}>
-                        First Name <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder="First Name" required {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel aria-required={true}>First Name *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="First Name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel aria-required={true}>
-                        Last Name <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder="Last Name" required {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel aria-required={true}>Last Name *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Last Name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="phoneNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel aria-required={true}>
-                        Phone Number <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="tel"
-                          placeholder="+91 8292729271"
-                          required
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="phoneNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel aria-required={true}>Phone Number *</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="tel"
+                        placeholder="Enter mobile number"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel aria-required={true}>Select Role *</FormLabel>
+                    <Select
+                      onValueChange={(val) => field.onChange(val || undefined)}
+                      value={field.value || ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger aria-required={true}>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {ROLE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="employeeCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Employee Code *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="EMP001" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="reportingManager"
+                render={({ field }) => {
+                  const selectedManager = reportingManagers.find(
+                    (m) => m.id === field.value
+                  );
+                  return (
                     <FormItem>
-                      <FormLabel aria-required={true}>
-                        Select Role <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <Select
-                        onValueChange={(val) =>
-                          field.onChange(val || undefined)
-                        }
-                        value={field.value || ""}
+                      <FormLabel>Reporting Manager</FormLabel>
+                      <Popover
+                        open={reportingManagerOpen}
+                        onOpenChange={handleReportingManagerOpen}
                       >
-                        <FormControl>
-                          <SelectTrigger aria-required={true}>
-                            <SelectValue placeholder="Select a role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {ROLE_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="employeeCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Employee Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="EMP001" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="reportingManager"
-                  render={({ field }) => {
-                    const selectedManager = reportingManagers.find(
-                      (m) => m.id === field.value
-                    );
-                    return (
-                      <FormItem>
-                        <FormLabel>Reporting Manager</FormLabel>
-                        <Popover
-                          open={reportingManagerOpen}
-                          onOpenChange={handleReportingManagerOpen}
-                        >
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                disabled={
-                                  loadingManagers || loadingEntityFields
-                                }
-                                className="w-full h-11 justify-between"
-                              >
-                                {selectedManager
-                                  ? `${selectedManager.firstName} ${selectedManager.lastName} (${selectedManager.email})`
-                                  : loadingManagers
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              disabled={loadingManagers || loadingEntityFields}
+                              className="w-full h-11 justify-between"
+                            >
+                              {selectedManager
+                                ? `${selectedManager.firstName} ${selectedManager.lastName} (${selectedManager.email})`
+                                : loadingManagers
+                                ? "Loading..."
+                                : "Select reporting manager"}
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                          <Command>
+                            <CommandInput placeholder="Search reporting manager..." />
+                            <CommandList className="max-h-[180px] overflow-y-auto">
+                              <CommandEmpty>
+                                {loadingManagers
                                   ? "Loading..."
-                                  : "Select reporting manager"}
-                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                              <CommandInput placeholder="Search reporting manager..." />
-                              <CommandList className="max-h-[180px] overflow-y-auto">
-                                <CommandEmpty>
-                                  {loadingManagers
-                                    ? "Loading..."
-                                    : "No reporting manager found."}
-                                </CommandEmpty>
-                                <CommandGroup>
-                                  {reportingManagers.map((manager) => (
-                                    <CommandItem
-                                      key={manager.id}
-                                      value={`${manager.firstName} ${manager.lastName} ${manager.email}`}
-                                      onSelect={() => {
-                                        field.onChange(manager.id);
-                                        setReportingManagerOpen(false);
-                                      }}
-                                    >
-                                      <Check
-                                        className={`mr-2 h-4 w-4 ${
-                                          field.value === manager.id
-                                            ? "opacity-100"
-                                            : "opacity-0"
-                                        }`}
-                                      />
-                                      {manager.firstName} {manager.lastName} (
-                                      {manager.email})
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
+                                  : "No reporting manager found."}
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {reportingManagers.map((manager) => (
+                                  <CommandItem
+                                    key={manager.id}
+                                    value={`${manager.firstName} ${manager.lastName} ${manager.email}`}
+                                    onSelect={() => {
+                                      field.onChange(manager.id);
+                                      setReportingManagerOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${
+                                        field.value === manager.id
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      }`}
+                                    />
+                                    {manager.firstName} {manager.lastName} (
+                                    {manager.email})
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
 
-                {/* <FormField
+              {/* <FormField
                   control={form.control}
                   name="store_id"
                   render={({ field }) => {
@@ -722,16 +704,16 @@ const CreateUserForm = ({
                     );
                   }}
                 /> */}
+            </div>
+
+            {loadingEntityFields && (
+              <div className="flex items-center justify-center gap-2 text-muted-foreground py-8">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading entity fields...</span>
               </div>
+            )}
 
-              {loadingEntityFields && (
-                <div className="flex items-center justify-center gap-2 text-muted-foreground py-8">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Loading entity fields...</span>
-                </div>
-              )}
-
-              {/* {!loadingEntityFields && templates.length === 0 && (
+            {/* {!loadingEntityFields && templates.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   No entity fields available for this user template.
                 </div>
@@ -808,8 +790,8 @@ const CreateUserForm = ({
                   </div>
                 </>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </fieldset>
 
         <FormFooter>
@@ -860,8 +842,6 @@ export const CreateUserPage = () => {
   const [initialValues, setInitialValues] =
     useState<Partial<UserFormValues> | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
-  // const [bulkFile, setBulkFile] = useState<File | null>(null);
-  // const [uploadingBulk, setUploadingBulk] = useState(false);
   const [bulkInputKey, setBulkInputKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [reportingManagers, setReportingManagers] = useState<UserOption[]>([]);
@@ -871,9 +851,7 @@ export const CreateUserPage = () => {
   const handleBulkDialogChange = useCallback((open: boolean) => {
     setShowBulkUpload(open);
     if (!open) {
-      // setBulkFile(null);
       setBulkInputKey((key) => key + 1);
-      // setUploadingBulk(false);
     }
   }, []);
 
@@ -896,32 +874,6 @@ export const CreateUserPage = () => {
       toast.error("Failed to download template");
     }
   }, []);
-
-  // const uploadBulkFile = useCallback(
-  //   async (file: File) => {
-  //     if (uploadingBulk) return;
-  //     setUploadingBulk(true);
-  //     try {
-  //       await bulkUploadService.uploadUsers(file);
-  //       toast.success("Bulk upload submitted successfully");
-  //       handleBulkDialogChange(false);
-  //     } catch (error) {
-  //       console.error("Failed to upload users in bulk:", error);
-  //       toast.error("Failed to upload file");
-  //     } finally {
-  //       setUploadingBulk(false);
-  //     }
-  //   },
-  //   [handleBulkDialogChange, uploadingBulk]
-  // );
-
-  // const handleBulkFileSelect = useCallback(
-  //   (event: React.ChangeEvent<HTMLInputElement>) => {
-  //     const file = event.target.files?.[0] ?? null;
-  //     setBulkFile(file);
-  //   },
-  //   []
-  // );
 
   useEffect(() => {
     let cancelled = false;

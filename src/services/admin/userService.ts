@@ -13,4 +13,11 @@ export const userService = {
         throw error;
     }
   },
+  getUserById: async (id: string) => {
+    try {
+      return await api.get(`/auth/em/users/${id}`);
+    } catch (error) {
+      throw error;
+    }
+  }
 };

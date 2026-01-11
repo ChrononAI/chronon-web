@@ -31,10 +31,12 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   formatCurrency,
   formatDate,
+  generateIdWithPrefix,
   getOrgCurrency,
   getStatusColor,
 } from "@/lib/utils";
 import { trackEvent } from "@/mixpanel";
+import { userService } from "@/services/admin/userService";
 import { AdvanceService } from "@/services/advanceService";
 import { useAdvanceStore } from "@/store/advanceStore";
 import { useAuthStore } from "@/store/authStore";
@@ -156,12 +158,49 @@ function ProcessAdvancePage() {
     }
   };
 
-  const getAdvance = async (id: string) => {
+  const getAdvance = async (advId: string) => {
     try {
       const approvalWorkflowRes: any = await AdvanceService.getAdvanceWorkflow(
-        id
+        advId
       );
-      setApprovalWorkflow(approvalWorkflowRes.data.data);
+      let userDetails;
+      if (selectedAdvanceToApprove?.user_id) {
+        userDetails = await userService.getUserById(
+          selectedAdvanceToApprove?.user_id
+        );
+      }
+      const { id, first_name, last_name, username, email } =
+        userDetails?.data.data;
+      const createdAtStep = {
+        approved_at: selectedAdvanceToApprove?.created_at,
+        approver_note: [],
+        approvers: [
+          {
+            approved_at: selectedAdvanceToApprove?.created_at,
+            approver_note: [
+              {
+                approver_id: 34,
+                notes: null,
+                status: "APPROVED",
+                timestamp: "2025-12-08T08:12:54.088183",
+              },
+            ],
+            email: email,
+            first_name: first_name,
+            last_name: last_name,
+            user_id: id.toString(),
+            username: username,
+          },
+        ],
+        status: "CREATED",
+        step_id: generateIdWithPrefix("wes"),
+        step_name: "Creation",
+        step_order: 0
+      };
+      const newSteps = [createdAtStep, ...approvalWorkflowRes.data.data.approval_steps];
+      const newApprovalWorkflow = {...approvalWorkflowRes.data.data, approval_steps: newSteps};
+
+      setApprovalWorkflow(newApprovalWorkflow);
     } catch (error) {
       console.log(error);
     }
@@ -396,6 +435,7 @@ function ProcessAdvancePage() {
                         <Input
                           {...field}
                           type="number"
+                          step="any"
                           placeholder="Enter conversion rate"
                         />
                       </FormControl>
