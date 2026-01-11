@@ -869,7 +869,7 @@ export function CreateReportForm2({
   };
 
   return (
-    <div className="flex flex-col space-y-6">
+    <div className="flex flex-col space-y-6 min-h-[calc(100vh-40px)]">
       <h1 className="text-2xl font-bold">
         {editMode ? "Edit Report" : "Create Report"}
       </h1>
@@ -979,7 +979,6 @@ export function CreateReportForm2({
                     ),
                   }}
                   sx={{
-                    height: "calc(100vh)",
                     border: 0,
                     "& .MuiDataGrid-columnHeaderTitle": {
                       color: "#9AA0A6",
@@ -1105,7 +1104,6 @@ export function CreateReportForm2({
                 ),
               }}
               sx={{
-                height: "calc(100vh - 568px)",
                 border: 0,
                 "& .MuiDataGrid-columnHeaderTitle": {
                   color: "#9AA0A6",
