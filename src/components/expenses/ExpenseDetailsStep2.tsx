@@ -181,9 +181,11 @@ export function ExpenseDetailsStep2({
     Record<string, Array<{ id: string; label: string }>>
   >({});
   const [isReceiptReuploaded, setIsReceiptReuploaded] = useState(false);
-  const [isConversionRateReadOnly, setIsConversionRateReadOnly] = useState(false);
+  const [isConversionRateReadOnly, setIsConversionRateReadOnly] =
+    useState(false);
   const [fetchingConversion, setFetchingConversion] = useState(false);
-  const dupeCheckAcrossOrg = orgSettings?.org_level_duplicate_check_settings?.enabled || true;
+  const dupeCheckAcrossOrg =
+    orgSettings?.org_level_duplicate_check_settings?.enabled || true;
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -195,7 +197,7 @@ export function ExpenseDetailsStep2({
           invoiceNumber: "",
           merchant: "",
           amount: "",
-          expense_date: new Date(),
+          expense_date: undefined,
           comments: "",
           city: "",
           source: "",
@@ -283,7 +285,6 @@ export function ExpenseDetailsStep2({
     input.click();
   };
 
-  // Fetch signed URL for duplicate receipts
   const fetchDuplicateReceiptUrl = async (receiptId: string) => {
     try {
       setDuplicateReceiptLoading(true);
@@ -302,7 +303,6 @@ export function ExpenseDetailsStep2({
     }
   };
 
-  // Receipt viewer states
   const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
   const [activeReceiptTab, setActiveReceiptTab] = useState<
     "receipt" | "comments"
@@ -310,7 +310,6 @@ export function ExpenseDetailsStep2({
   const [receiptZoom, setReceiptZoom] = useState(1);
   const [receiptRotation, setReceiptRotation] = useState(0);
 
-  // Fetch signed URL for duplicate receipts when component mounts
   useEffect(() => {
     if (
       parsedData?.id &&
@@ -372,46 +371,6 @@ export function ExpenseDetailsStep2({
       console.log(error);
     }
   };
-
-  // useEffect(() => {
-  //   if (currency !== baseCurrency) {
-  //     setShowConversion(true);
-  //     setShouldGetConversion(true);
-  //   } else {
-  //     setShowConversion(false);
-  //   }
-  // }, [currency]);
-
-  // useEffect(() => {
-  //   if (currency !== baseCurrency && shouldGetConversion) {
-  //     const yesterday = getYesterday();
-  //     getCurrencyConversion({
-  //       date: yesterday,
-  //       from: currency,
-  //       to: baseCurrency,
-  //     });
-  //     setShowConversion(true);
-  //   } else {
-  //     form.setValue("api_conversion_rate", "0");
-  //     setShowConversion(false);
-  //   }
-  // }, [currency]);
-
-  // useEffect(() => {
-  //   const accountRate = selectedAdvanceAccount?.currency_conversion_rates?.find(
-  //     (item: any) => item.currency === currency
-  //   )?.rate;
-  //   if (selectedAdvanceAccount && accountRate && showConversion) {
-  //     form.setValue("user_conversion_rate", String(accountRate));
-  //   } else if (!accountRate && showConversion) {
-  //     const yesterday = getYesterday();
-  //     getCurrencyConversion({
-  //       date: yesterday,
-  //       from: currency,
-  //       to: baseCurrency,
-  //     });
-  //   }
-  // }, [selectedAdvanceAccount]);
 
   useEffect(() => {
     if (!currency) return;
@@ -499,12 +458,10 @@ export function ExpenseDetailsStep2({
         if (expenseTemplate?.entities) {
           setTemplateEntities(expenseTemplate.entities);
 
-          // Set default values for template entities only if they don't already have values
           expenseTemplate.entities.forEach((entity) => {
             const entityId = getEntityId(entity);
             if (entityId) {
               const currentValue = form.getValues(entityId as any);
-              // Only set empty string if no value exists (don't overwrite expense data)
               if (currentValue === undefined || currentValue === null) {
                 form.setValue(entityId as any, "");
               }
@@ -545,7 +502,6 @@ export function ExpenseDetailsStep2({
     loadTemplates();
   }, []);
 
-  // Update form values when expense changes
   useEffect(() => {
     if (expense && !isReceiptReplaced) {
       form.reset(expense);
@@ -575,7 +531,6 @@ export function ExpenseDetailsStep2({
         }
       }
 
-      // Prefill custom attributes from expense.custom_attributes
       if (
         expense.custom_attributes &&
         typeof expense.custom_attributes === "object"
@@ -596,7 +551,6 @@ export function ExpenseDetailsStep2({
     }
   }, [form, policies, expense, isReceiptReplaced]);
 
-  // Prefill custom attributes when both expense and template entities are available
   useEffect(() => {
     if (
       expense &&
@@ -606,7 +560,6 @@ export function ExpenseDetailsStep2({
     ) {
       Object.entries(expense.custom_attributes).forEach(([entityId, value]) => {
         if (entityId && value !== null && value !== undefined && value !== "") {
-          // Verify this entityId exists in template entities
           const entityExists = templateEntities.some(
             (entity) => (entity?.entity_id || entity?.id) === entityId
           );
@@ -618,16 +571,18 @@ export function ExpenseDetailsStep2({
     }
   }, [expense, templateEntities, form]);
 
-  // Auto-fill fields from parsed data
   useEffect(() => {
     if (parsedData && parsedData.ocr_result) {
       const ocrData = parsedData.ocr_result;
 
-      if (ocrData.amount) {
-        // Clean amount by removing currency symbols and commas
+      const canSetAmount =
+        !!ocrData.amount && (!expense || expense.transaction_id == null);
+
+      if (canSetAmount) {
         const cleanAmount = ocrData.amount
           .replace(/[^\d.,]/g, "")
           .replace(/,/g, "");
+
         form.setValue("amount", cleanAmount);
       }
 
@@ -642,10 +597,14 @@ export function ExpenseDetailsStep2({
       }
 
       if (ocrData.date) {
-        // Parse the date string and convert to Date object
-        const parsedDate = new Date(parsedData.extracted_date || "");
+        const parsedDate = new Date(parsedData.extracted_date ?? "");
         if (!isNaN(parsedDate.getTime())) {
-          form.setValue("expense_date", parsedDate);
+          const today = new Date();
+          parsedDate.setHours(0, 0, 0, 0);
+          today.setHours(0, 0, 0, 0);
+          if (parsedDate <= today) {
+            form.setValue("expense_date", parsedDate);
+          }
         }
       }
     }
@@ -747,7 +706,11 @@ export function ExpenseDetailsStep2({
   const availableCategories = selectedPolicy?.categories || [];
 
   useEffect(() => {
-    if (parsedData?.recommended_policy_id && parsedData?.recommended_category) {
+    if (
+      parsedData?.recommended_policy_id &&
+      parsedData?.recommended_category &&
+      (!expense || !("transaction_id" in expense))
+    ) {
       const selectedPolicy = policies.find(
         (policy) => policy.id === parsedData.recommended_policy_id
       );
@@ -832,15 +795,18 @@ export function ExpenseDetailsStep2({
             </AlertTitle>
             <AlertDescription className="text-yellow-700">
               This expense has been flagged as a duplicate.
-              {!dupeCheckAcrossOrg && <Button
-                variant="link"
-                className="p-0 h-auto text-yellow-700 underline ml-1"
-                onClick={() =>
-                  navigate(`/expenses/${expense.original_expense_id}`)
-                }
-              >
-                View original expense <ExternalLink className="ml-1 h-3 w-3" />
-              </Button>}
+              {!dupeCheckAcrossOrg && (
+                <Button
+                  variant="link"
+                  className="p-0 h-auto text-yellow-700 underline ml-1"
+                  onClick={() =>
+                    navigate(`/expenses/${expense.original_expense_id}`)
+                  }
+                >
+                  View original expense{" "}
+                  <ExternalLink className="ml-1 h-3 w-3" />
+                </Button>
+              )}
             </AlertDescription>
           </Alert>
         )}
@@ -1186,7 +1152,9 @@ export function ExpenseDetailsStep2({
                                       {...field}
                                       placeholder="Conversion Rate"
                                       type="number"
-                                      disabled={readOnly || isConversionRateReadOnly}
+                                      disabled={
+                                        readOnly || isConversionRateReadOnly
+                                      }
                                       className={inputFieldClass}
                                       value={
                                         (

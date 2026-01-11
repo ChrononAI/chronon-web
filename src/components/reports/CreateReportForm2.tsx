@@ -869,7 +869,7 @@ export function CreateReportForm2({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-24px)] space-y-6">
+    <div className="flex flex-col space-y-6">
       <h1 className="text-2xl font-bold">
         {editMode ? "Edit Report" : "Create Report"}
       </h1>
@@ -940,7 +940,7 @@ export function CreateReportForm2({
 
       <div className="flex flex-col flex-1 min-h-0">
         {showTabs ? (
-          <>
+          <div className="flex flex-col flex-1 min-h-0">
             <ReportTabs
               activeTab={activeTab}
               onTabChange={(tabId) =>
@@ -961,7 +961,7 @@ export function CreateReportForm2({
             {activeTab === "expenses" && (
               <div className="space-y-0">
                 <DataGrid
-                  className="rounded border-[0.2px] border-[#f3f4f6]"
+                  className="rounded border-[0.2px] border-[#f3f4f6] h-full"
                   rows={loadingExpenses ? [] : filteredExpenses}
                   columns={columns}
                   loading={loadingExpenses}
@@ -979,6 +979,7 @@ export function CreateReportForm2({
                     ),
                   }}
                   sx={{
+                    height: "calc(100vh - 800px)",
                     border: 0,
                     "& .MuiDataGrid-columnHeaderTitle": {
                       color: "#9AA0A6",
@@ -1044,14 +1045,6 @@ export function CreateReportForm2({
                   onPaginationModelChange={setPaginationModel}
                   pageSizeOptions={[10, 15, 20]}
                 />
-                <div className="flex">
-                  <div className="bg-gray-50 rounded-lg px-8 py-3 w-full flex items-center justify-end gap-6">
-                    <span className="text-gray-600">Total Amount:</span>
-                    <span className="text-lg font-bold text-primary">
-                      {formatCurrency(totalAmount || 0)}
-                    </span>
-                  </div>
-                </div>
               </div>
             )}
             {activeTab === "history" && (
@@ -1090,7 +1083,7 @@ export function CreateReportForm2({
                 />
               </div>
             )}
-          </>
+          </div>
         ) : (
           <div>
             <DataGrid
@@ -1112,6 +1105,7 @@ export function CreateReportForm2({
                 ),
               }}
               sx={{
+                height: "calc(100vh - 800px)",
                 border: 0,
                 "& .MuiDataGrid-columnHeaderTitle": {
                   color: "#9AA0A6",
@@ -1127,6 +1121,7 @@ export function CreateReportForm2({
                 },
                 "& .MuiDataGrid-main": {
                   border: "0.2px solid #f3f4f6",
+                  minHeight: "240px",
                 },
                 "& .MuiDataGrid-columnHeader": {
                   backgroundColor: "#f3f4f6",
@@ -1190,93 +1185,101 @@ export function CreateReportForm2({
         )}
       </div>
 
-      {/* Action Buttons - At the very bottom of the page */}
       <FormFooter>
-        {/* Delete Button - Only show in edit mode for draft reports */}
-        {editMode && reportData && (
-          <AlertDialog
-            open={showDeleteDialog}
-            onOpenChange={setShowDeleteDialog}
-          >
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="px-10 py-3 border-red-500 text-red-600 hover:bg-red-50"
-                onClick={() => setShowDeleteDialog(true)}
+        <div className="flex w-full items-center justify-between gap-4">
+          <div>
+            <span className="text-gray-600">Total Amount: </span>
+            <span className="text-lg font-bold text-primary">
+              {formatCurrency(totalAmount || 0)}
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            {editMode && reportData && (
+              <AlertDialog
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Report</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete this report? This action
-                  cannot be undone.
-                  {reportData.title && (
-                    <span className="block mt-2 font-medium">
-                      Report: {reportData.title}
-                    </span>
-                  )}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={isDeleting}>
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteReport}
-                  disabled={isDeleting}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Deleting...
-                    </>
-                  ) : (
-                    "Delete"
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate("/reports")}
-          className="px-6 py-2"
-        >
-          Back
-        </Button>
-        <Button onClick={onSave} disabled={saving} variant="outline">
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {editMode ? "Updating..." : "Saving..."}
-            </>
-          ) : editMode ? (
-            "Update Report"
-          ) : (
-            "Save Draft"
-          )}
-        </Button>
-        <Button
-          onClick={form.handleSubmit(onSubmit)}
-          disabled={loading}
-          className="px-10 py-3"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
-            </>
-          ) : (
-            "Submit"
-          )}
-        </Button>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="px-10 py-3 border-red-500 text-red-600 hover:bg-red-50"
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Report</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this report? This action
+                      cannot be undone.
+                      {reportData.title && (
+                        <span className="block mt-2 font-medium">
+                          Report: {reportData.title}
+                        </span>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteReport}
+                      disabled={isDeleting}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        "Delete"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/reports")}
+              className="px-6 py-2"
+            >
+              Back
+            </Button>
+            <Button onClick={onSave} disabled={saving} variant="outline">
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {editMode ? "Updating..." : "Saving..."}
+                </>
+              ) : editMode ? (
+                "Update Report"
+              ) : (
+                "Save Draft"
+              )}
+            </Button>
+            <Button
+              onClick={form.handleSubmit(onSubmit)}
+              disabled={loading}
+              className="px-10 py-3"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit"
+              )}
+            </Button>
+          </div>
+        </div>
       </FormFooter>
     </div>
   );

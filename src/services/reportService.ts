@@ -48,6 +48,7 @@ export interface GeneratedReportsResponse {
   status: string;
 }
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
+import { format } from "date-fns";
 
 export interface ReportJob {
   job_id: number;
@@ -452,8 +453,8 @@ class ReportService {
             email: "",
             full_name: "",
           },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          created_at: format(new Date(), "yyyy-MM-dd"),
+          updated_at: format(new Date(), "yyyy-MM-dd"),
           org_id: orgId,
         }
       );
@@ -558,11 +559,11 @@ class ReportService {
 
       const response = await api.get(`/reports/generated?org_id=${orgId}`);
 
-        return {
-          success: true,
-          data: response.data.data.reports,
-          total: response.data.data.total,
-        };
+      return {
+        success: true,
+        data: response.data.data.reports,
+        total: response.data.data.total,
+      };
     } catch (error: any) {
       console.error("Error fetching generated reports:", error);
       return {

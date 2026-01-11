@@ -152,7 +152,6 @@ export function Sidebar() {
   const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed } =
     useAuthStore();
   const [openItems, setOpenItems] = useState<string[]>(() => {
-    // Load from localStorage on initial render
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("sidebarOpenItems");
       return saved ? JSON.parse(saved) : [];
@@ -282,23 +281,19 @@ export function Sidebar() {
     logout();
   };
 
-  // Save to localStorage whenever openItems changes
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("sidebarOpenItems", JSON.stringify(openItems));
     }
   }, [openItems]);
 
-  // Update open items based on current route (only on initial load and route change)
   useEffect(() => {
     const path = location.pathname;
-    const newOpenItems = new Set<string>(openItems); // Start with current open items
+    const newOpenItems = new Set<string>(openItems);
     let hasChanges = false;
 
-    // Check each navigation item with children
     navigation.forEach((item) => {
       if (item.children) {
-        // If any child's href matches the current path, ensure parent is open
         const hasActiveChild = item.children.some(
           (child) => child.href && path.startsWith(child.href)
         );
@@ -316,11 +311,10 @@ export function Sidebar() {
   }, [location.pathname, openItems]);
 
   const toggleItem = (name: string) => {
-    setOpenItems(
-      (prev) =>
-        prev.includes(name)
-          ? prev.filter((item) => item !== name) // Remove if exists (close)
-          : [...prev, name] // Add if not exists (open)
+    setOpenItems((prev) =>
+      prev.includes(name)
+        ? prev.filter((item) => item !== name)
+        : [...prev, name]
     );
   };
 
@@ -328,10 +322,14 @@ export function Sidebar() {
     if (item.permissions && item.permissions?.enabled === false) {
       return null;
     }
-    const paddingLeft = level * 12 + 12; // 12px base + 12px per level
+    const paddingLeft = level * 12 + 12;
     const isDisabled = item.disabled;
 
-    if (item.children) {
+    const hasAtLeastOneEnabled = item?.children?.some(
+      (item) => item.permissions?.enabled === true
+    );
+
+    if (item.children && hasAtLeastOneEnabled) {
       const isOpen = !sidebarCollapsed && openItems.includes(item.name);
       return (
         <Collapsible
@@ -396,7 +394,8 @@ export function Sidebar() {
           key={item.name}
           to={item.href}
           className={({ isActive }) => {
-            const active = isActive || (item.name === "Admin Settings" && isAdminActive);
+            const active =
+              isActive || (item.name === "Admin Settings" && isAdminActive);
 
             return cn(
               "flex items-center py-2 text-sm rounded-md transition-colors",
