@@ -151,6 +151,7 @@ export function Sidebar() {
   const location = useLocation();
   const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed } =
     useAuthStore();
+  console.log(orgSettings);
   const [openItems, setOpenItems] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("sidebarOpenItems");
@@ -319,6 +320,10 @@ export function Sidebar() {
   };
 
   const renderNavigationItem = (item: NavigationItem, level: number = 0) => {
+    if (item.permissions && item.permissions?.enabled === false) {
+      return null;
+    }
+
     const paddingLeft = level * 12 + 12;
     const isDisabled = item.disabled;
 
