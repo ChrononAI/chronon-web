@@ -174,7 +174,7 @@ function Settlements() {
   }
 
   useEffect(() => {
-    const gridHeight = window.innerHeight - 280;
+    const gridHeight = window.innerHeight - 300;
     const rowHeight = 38;
     const calculatedPageSize = Math.floor(gridHeight / rowHeight);
     setRowsCalculated(true);
