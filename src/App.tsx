@@ -74,6 +74,11 @@ import ValidateFile from "./pages/bulk-upload/ValidateFile";
 import BulkUploadedFilesPage from "./pages/admin/BulkUploadedFilesPage";
 import TransactionsPage from "./pages/transactions/TransactionsPage";
 import TransactionDetailPage from "./pages/transactions/TransactionDetailPage";
+import { InvoicePage } from "./pages/InvoicePage";
+import { AllInvoicesPage } from "./pages/AllInvoicesPage";
+import { AllVendorsPage } from "./pages/AllVendorsPage";
+import { AllApprovalsPage } from "./pages/AllApprovalsPage";
+import { FlowLayout } from "./components/layout/FlowLayout";
 
 function App() {
   return (
@@ -86,6 +91,19 @@ function App() {
           <Route path="/accounts/reset_password" element={<ResetPassword />} />
           <Route path="/accounts/create_password" element={<CreatePassword />} />
           <Route path="/accounts/resend_verification" element={<ResendVerificationMail />} />
+
+          {/* Invoice Flow Layout */}
+          <Route element={<FlowLayout />}>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/flow" element={<Navigate to="/flow/invoice" replace />} />
+              <Route path="/flow/invoice" element={<AllInvoicesPage />} />
+              <Route path="/flow/invoice/upload" element={<InvoicePage />} />
+              <Route path="/flow/invoice/:id" element={<InvoicePage />} />
+              <Route path="/flow/vendors" element={<AllVendorsPage />} />
+              <Route path="/flow/approvals" element={<AllApprovalsPage />} />
+              <Route path="/flow/approvals/:id" element={<InvoicePage />} />
+            </Route>
+          </Route>
 
           {/* Protected + Main Layout */}
           <Route element={<Layout />}>
@@ -181,6 +199,12 @@ function App() {
                 <Route path="/admin-settings/product-config/bulk-uploads/column-mapping/:type/:fileid" element={<ColumnMapping />} />
                 <Route path="/admin-settings/product-config/bulk-uploads/validate-file/:type/:fileid" element={<ValidateFile />} />
               </Route>
+
+              {/* INVOICES - Redirect old routes to flow */}
+              <Route path="/invoice" element={<Navigate to="/flow/invoice" replace />} />
+              <Route path="/invoice/upload" element={<Navigate to="/flow/invoice/upload" replace />} />
+              <Route path="/invoice/:id" element={<InvoicePage />} />
+              <Route path="/vendors" element={<Navigate to="/flow/vendors" replace />} />
 
               {/* OTHER PAGES */}
               <Route path="/admin/all-reports" element={<AllReportsPage />} />

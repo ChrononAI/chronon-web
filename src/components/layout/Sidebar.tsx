@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, NavLink } from "react-router-dom";
+import { useLocation, NavLink, useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -18,6 +18,8 @@ import {
   Store,
   TicketCheck,
   Receipt,
+  FileText,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -149,8 +151,11 @@ const permissionMap: any = {
 
 export function Sidebar() {
   const location = useLocation();
-  const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed } =
-    useAuthStore();
+  const navigate = useNavigate();
+  const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed } = useAuthStore();
+  const isFlowMode = location.pathname.startsWith("/flow");
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitioningTo, setTransitioningTo] = useState<"expenses" | "flow">("expenses");
   const [openItems, setOpenItems] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("sidebarOpenItems");
@@ -270,9 +275,55 @@ export function Sidebar() {
   };
 
   useEffect(() => {
-    const newNav: NavigationItem[] = mergePermissions(navigation, orgSettings);
+    let navToUse = navigation;
+    
+    if (isFlowMode) {
+      navToUse = [
+        {
+          name: "Master",
+          icon: Building2,
+          children: [
+            { name: "Vendor", href: "/flow/vendors", icon: Store },
+          ],
+        },
+        { name: "Invoice", href: "/flow/invoice", icon: FileText },
+        { name: "Approval", href: "/flow/approvals", icon: SlidersHorizontal },
+      ];
+    }
+    
+    const newNav: NavigationItem[] = mergePermissions(navToUse, orgSettings);
     setNewNavItems(newNav);
-  }, [orgSettings]);
+  }, [orgSettings, isFlowMode]);
+
+  // Prevent browser back button when switching workspaces
+  useEffect(() => {
+    const handlePopState = () => {
+      const currentPath = location.pathname;
+      const isInFlowMode = currentPath.startsWith("/flow");
+      const isInMainMode = !isInFlowMode && currentPath !== "/login" && currentPath !== "/";
+
+      // If user tries to go back from one workspace to another, prevent it
+      if (isInFlowMode || isInMainMode) {
+        // Replace current history entry to prevent back navigation
+        window.history.pushState(null, "", currentPath);
+        
+        // If they're trying to go back to the other workspace, redirect to current workspace default
+        if (isInFlowMode) {
+          navigate("/flow/invoice", { replace: true });
+        } else if (isInMainMode) {
+          navigate("/expenses", { replace: true });
+        }
+      }
+    };
+
+    // Push current state to prevent initial back navigation
+    window.history.pushState(null, "", location.pathname);
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [location.pathname, navigate]);
 
   const handleLogout = () => {
     trackEvent("Logout Button Clicked", {
@@ -292,7 +343,8 @@ export function Sidebar() {
     const newOpenItems = new Set<string>(openItems);
     let hasChanges = false;
 
-    navigation.forEach((item) => {
+    const itemsToCheck = isFlowMode ? newNavItems : navigation;
+    itemsToCheck.forEach((item) => {
       if (item.children) {
         const hasActiveChild = item.children.some(
           (child) => child.href && path.startsWith(child.href)
@@ -308,7 +360,7 @@ export function Sidebar() {
     if (hasChanges) {
       setOpenItems(Array.from(newOpenItems));
     }
-  }, [location.pathname, openItems]);
+  }, [location.pathname, isFlowMode, newNavItems, openItems]);
 
   const toggleItem = (name: string) => {
     setOpenItems((prev) =>
@@ -387,8 +439,9 @@ export function Sidebar() {
           key={item.name}
           to={item.href}
           className={({ isActive }) => {
-            const active =
-              isActive || (item.name === "Admin Settings" && isAdminActive);
+            // For Approval tab, also check if we're on approval detail pages
+            const isApprovalActive = item.name === "Approval" && location.pathname.startsWith("/flow/approvals");
+            const active = isActive || isApprovalActive || (item.name === "Admin Settings" && isAdminActive);
 
             return cn(
               "flex items-center py-2 text-sm rounded-md transition-colors",
@@ -420,16 +473,82 @@ export function Sidebar() {
   };
 
   return (
-    <div
-      className={cn(
-        "bg-card border-r h-full overflow-y-auto flex flex-col transition-all duration-300 ease-in-out",
-        sidebarCollapsed ? "w-12" : "w-64"
+    <>
+      {/* Futuristic Workspace Transition Overlay */}
+      {isTransitioning && (
+        <div 
+          className="fixed inset-0 z-[9999] pointer-events-none overflow-hidden animate-[workspaceFadeIn_0.3s_ease-out]"
+          style={{ 
+            animation: 'workspaceFadeIn 0.3s ease-out',
+          }}
+        >
+          {/* Animated gradient background with blur */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/98 via-purple-50/95 to-indigo-50/98 backdrop-blur-xl" />
+          
+          {/* Animated floating orbs/particles */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-300/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          </div>
+
+          {/* Main Content Container */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative z-10 text-center animate-[workspaceSlideUp_0.5s_ease-out]">
+              {/* Icon container with morphing rings */}
+              <div className="relative w-32 h-32 flex items-center justify-center mb-8 mx-auto">
+                {/* Outer animated rings */}
+                <div className="absolute inset-0 border-2 border-blue-300/30 rounded-full animate-spin" style={{ animationDuration: '8s' }} />
+                <div className="absolute inset-2 border-2 border-purple-300/30 rounded-full animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }} />
+                <div className="absolute inset-4 border border-indigo-300/20 rounded-full animate-spin" style={{ animationDuration: '10s' }} />
+                
+                {/* Main icon with glow */}
+                <div className="relative w-24 h-24 flex items-center justify-center">
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400/40 to-purple-400/40 rounded-full blur-xl animate-pulse" />
+                  
+                  {/* Icon background with glassmorphism */}
+                  <div className="relative w-20 h-20 flex items-center justify-center bg-white/90 backdrop-blur-xl rounded-full border-2 border-white/60 shadow-2xl transform transition-all duration-500 hover:scale-110">
+                    {transitioningTo === "expenses" ? (
+                      <Wallet className="h-10 w-10 text-blue-600 animate-[workspaceFadeIn_0.4s_ease-out]" />
+                    ) : (
+                      <FileText className="h-10 w-10 text-purple-600 animate-[workspaceFadeIn_0.4s_ease-out]" />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Workspace name with smooth animation */}
+              <div className="space-y-3 animate-[workspaceSlideUp_0.6s_ease-out]">
+                <div className="text-gray-800 text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  {transitioningTo === "expenses" ? "Employee Expenses" : "Accounts Payable"}
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                  <div className="text-gray-600 text-sm font-medium">Switching workspace</div>
+                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Animated progress bar at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 overflow-hidden">
+            <div className="h-full w-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-[workspaceProgress_1.2s_ease-in-out_infinite]" style={{ transform: 'translateX(-100%)' }} />
+          </div>
+        </div>
       )}
-    >
+
+      <div
+        className={cn(
+          "bg-card border-r h-full overflow-y-auto flex flex-col transition-all duration-300 ease-in-out",
+          sidebarCollapsed ? "w-12" : "w-64"
+        )}
+      >
       {/* Header Section */}
       <div className="flex items-center justify-between p-4">
         {!sidebarCollapsed && (
-          <Link to="/" className="flex items-center space-x-2">
+          <Link to={isFlowMode ? "/flow" : "/"} className="flex items-center space-x-2">
             <h1 className="text-2xl font-bold text-primary truncate">
               CHRONON
             </h1>
@@ -505,29 +624,111 @@ export function Sidebar() {
 
           {!sidebarCollapsed && (
             <DropdownMenuContent
-              className="w-56 ml-4"
+              className="w-64 ml-4 p-0"
               side="right"
               align="end"
               forceMount
             >
+              {/* Workspaces Section */}
+              <div className="px-3 pt-2.5 pb-2">
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Workspaces
+                </p>
+                <div className="space-y-0.5">
+                  {/* Main App Profile (PattyCash) */}
+                  <div
+                    onClick={() => {
+                      if (isFlowMode) {
+                        setTransitioningTo("expenses");
+                        setIsTransitioning(true);
+                        setTimeout(() => {
+                          window.history.replaceState(null, "", "/expenses");
+                          navigate("/expenses", { replace: true });
+                          setTimeout(() => setIsTransitioning(false), 1200);
+                        }, 1000);
+                      }
+                    }}
+                    className={cn(
+                      "relative flex items-center gap-2.5 p-2 rounded-md cursor-pointer transition-all",
+                      !isFlowMode
+                        ? "bg-blue-50 border-l-4 border-blue-600"
+                        : "hover:bg-muted/50"
+                    )}
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-blue-600 text-white">
+                        <Wallet className="h-3.5 w-3.5" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground leading-tight">
+                        Employee Expenses
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Invoice Profile */}
+                  <div
+                    onClick={() => {
+                      if (!isFlowMode) {
+                        setTransitioningTo("flow");
+                        setIsTransitioning(true);
+                        setTimeout(() => {
+                          window.history.replaceState(null, "", "/flow");
+                          navigate("/flow", { replace: true });
+                          setTimeout(() => setIsTransitioning(false), 1200);
+                        }, 1000);
+                      }
+                    }}
+                    className={cn(
+                      "relative flex items-center gap-2.5 p-2 rounded-md cursor-pointer transition-all",
+                      isFlowMode
+                        ? "bg-blue-50 border-l-4 border-blue-600"
+                        : "hover:bg-muted/50"
+                    )}
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-purple-600 text-white">
+                        <FileText className="h-3.5 w-3.5" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground leading-tight">
+                        Accounts Payable
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link to="/profile" className="flex items-center">
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="cursor-pointer text-red-600 focus:text-red-600"
-                onClick={handleLogout}
-              >
-                <span>Log out</span>
-              </DropdownMenuItem>
+
+              {/* Account Section */}
+              <div className="px-3 pt-2 pb-2.5">
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Account
+                </p>
+                <div className="space-y-0.5">
+                  <DropdownMenuItem asChild className="cursor-pointer px-2 py-1.5">
+                    <Link to="/profile" className="flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 px-2 py-1.5"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </div>
+              </div>
             </DropdownMenuContent>
           )}
         </DropdownMenu>
       </div>
     </div>
+    </>
   );
 }
