@@ -318,18 +318,13 @@ export function Sidebar() {
     );
   };
 
+  console.log(newNavItems);
+
   const renderNavigationItem = (item: NavigationItem, level: number = 0) => {
-    if (item.permissions && item.permissions?.enabled === false) {
-      return null;
-    }
     const paddingLeft = level * 12 + 12;
     const isDisabled = item.disabled;
 
-    const hasAtLeastOneEnabled = item?.children?.some(
-      (item) => item.permissions?.enabled === true
-    );
-
-    if (item.children && hasAtLeastOneEnabled) {
+    if (item.children) {
       const isOpen = !sidebarCollapsed && openItems.includes(item.name);
       return (
         <Collapsible
