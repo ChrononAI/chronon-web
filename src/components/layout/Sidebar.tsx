@@ -318,8 +318,6 @@ export function Sidebar() {
     );
   };
 
-  console.log(newNavItems);
-
   const renderNavigationItem = (item: NavigationItem, level: number = 0) => {
     const paddingLeft = level * 12 + 12;
     const isDisabled = item.disabled;
