@@ -352,8 +352,9 @@ export function ExpenseDetailsStep2({
         "amount",
         `${(+conversion * +form.getValues("amount")).toFixed(3)}`
       );
-      form.setValue("user_conversion_rate", conversion);
-      form.setValue("api_conversion_rate", conversion);
+      console.log(typeof conversion);
+      form.setValue("user_conversion_rate", Number(conversion).toFixed(4).toString());
+      form.setValue("api_conversion_rate", Number(conversion).toFixed(4).toString());
       setShowConversion(true);
     } catch (error: any) {
       console.log(error);
@@ -1168,7 +1169,7 @@ export function ExpenseDetailsStep2({
                                                 expense?.user_conversion_rate ??
                                                 apiRate ??
                                                 0
-                                            ).toFixed(3)
+                                            )
                                           : ""
                                       }
                                       onChange={(e) => {

@@ -67,7 +67,6 @@ export function buildBackendQuery(filters: FilterMap): string {
   const params: string[] = [];
 
   Object.entries(filters).forEach(([key, fieldFilters]) => {
-    // 🔍 SPECIAL CASE: search query
     if (key === "q") {
       const value = fieldFilters?.[0]?.value;
 
@@ -81,7 +80,6 @@ export function buildBackendQuery(filters: FilterMap): string {
       return;
     }
 
-    // ✅ Normal filters
     fieldFilters?.forEach(({ operator, value }) => {
       if (
         value === undefined ||
@@ -124,26 +122,6 @@ const EXPENSE_STATUSES = [
 const DRAFT_EXPENSE_STATUSES = ["COMPLETE", "INCOMPLETE", "SENT_BACK"];
 
 const REPORTED_EXPENSE_STATUSES = ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
-
-const TAB_QUERY_OVERRIDES = {
-  all: {},
-  draft: {
-    status: [
-      {
-        operator: "in",
-        value: ["COMPLETE", "INCOMPLETE", "SENT_BACK"],
-      },
-    ],
-  },
-  reported: {
-    status: [
-      {
-        operator: "in",
-        value: ["APPROVED", "REJECTED", "PENDING_APPROVAL"],
-      },
-    ],
-  },
-};
 
 const columns: GridColDef[] = [
   {
@@ -354,13 +332,8 @@ export function MyExpensesPage() {
       const limit = paginationModel?.pageSize ?? 10;
       const offset = (paginationModel?.page ?? 0) * limit;
 
-      const effectiveQuery = {
-        ...query,
-        ...TAB_QUERY_OVERRIDES[activeTab],
-      };
-
       const response = await expenseService.getFilteredExpenses({
-        query: buildBackendQuery(effectiveQuery),
+        query: buildBackendQuery(query),
         limit,
         offset,
         signal,
@@ -404,13 +377,11 @@ export function MyExpensesPage() {
   useEffect(() => {
     if (!rowsCalculated) return;
 
-    // Clear pending debounce
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
     debounceRef.current = setTimeout(() => {
-      // Abort previous request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -458,7 +429,7 @@ export function MyExpensesPage() {
 
   const handleTabChange = (tab: any) => {
     setActiveTab(tab);
-
+    setLoading(true);
     setRowSelection({ type: "include", ids: new Set() });
 
     const filter =

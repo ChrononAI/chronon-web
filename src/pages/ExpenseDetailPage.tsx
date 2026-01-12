@@ -227,7 +227,7 @@ export function ExpenseDetailPage() {
         if (!filteredData.foreign_amount) {
           filteredData.foreign_currency = null;
         }
-        filteredData.advance_account_id = formData.advance_account_id.length > 0 ? formData.advance_account_id : null;
+        filteredData.advance_account_id = formData.advance_account_id?.length > 0 ? formData.advance_account_id : null;
 
         if (isAdminUpdatingExpense) {
           setShowAdminEditConfirm(true);

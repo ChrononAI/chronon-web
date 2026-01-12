@@ -18,7 +18,6 @@ import { toast } from "sonner";
 import {
   buildBackendQuery,
   FieldFilter,
-  FilterMap,
   FilterValue,
   Operator,
 } from "./MyExpensesPage";
@@ -142,26 +141,6 @@ const UNSUBMITTED_REPORT_STATUSES = ["DRAFT"];
 
 const SUBMITTED_REPORT_STATUSES = ["APPROVED", "REJECTED", "UNDER_REVIEW"];
 
-const TAB_QUERY_OVERRIDES: Record<string, FilterMap> = {
-  all: {},
-  submitted: {
-    status: [
-      {
-        operator: "in",
-        value: ["UNDER_REVIEW", "APPROVED", "REJECTED"],
-      },
-    ],
-  },
-  unsubmitted: {
-    status: [
-      {
-        operator: "in",
-        value: ["DRAFT"],
-      },
-    ],
-  },
-};
-
 export function MyReportsPage() {
   const {
     allReports,
@@ -281,15 +260,10 @@ export function MyReportsPage() {
         const limit = paginationModel?.pageSize ?? 10;
         const offset = (paginationModel?.page ?? 0) * limit;
 
-        const effectiveQuery = {
-          ...query,
-          ...TAB_QUERY_OVERRIDES[activeTab],
-        };
-
         const res = await settlementsService.getFilteredReports({
           limit,
           offset,
-          query: buildBackendQuery(effectiveQuery),
+          query: buildBackendQuery(query),
           signal,
           role: "spender",
         });
@@ -368,65 +342,6 @@ export function MyReportsPage() {
       : activeTab === "unsubmitted"
       ? unsubmittedReports
       : submittedReports;
-
-  // const fetchAllReports = async () => {
-  //   try {
-  //     const limit = paginationModel?.pageSize || 10;
-  //     const offset = (paginationModel?.page || 0) * limit;
-  //     const response = await expenseService.getMyReports(limit, offset);
-  //     setAllReports(response.reports);
-  //     setAllReportsPagination(response.pagination);
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // };
-
-  // const fetchUnsubmittedReports = async () => {
-  //   try {
-  //     const limit = paginationModel?.pageSize || 10;
-  //     const offset = (paginationModel?.page || 0) * limit;
-  //     const response = await expenseService.getReportsByStatus(
-  //       "DRAFT",
-  //       limit,
-  //       offset
-  //     );
-  //     setUnsubmittedReports(response.reports);
-  //     setUnsubmittedReportsPagination(response.pagination);
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // };
-
-  // const fetchSubmittedReports = async () => {
-  //   try {
-  //     const limit = paginationModel?.pageSize || 10;
-  //     const offset = (paginationModel?.page || 0) * limit;
-  //     const response = await expenseService.getReportsByStatus(
-  //       "UNDER_REVIEW,APPROVED,REJECTED",
-  //       limit,
-  //       offset
-  //     );
-  //     setSubmittedReports(response.reports);
-  //     setSubmittedReportsPagination(response.pagination);
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // };
-
-  // const fetchData = async () => {
-  //   try {
-  //     await Promise.all([
-  //       fetchAllReports(),
-  //       fetchUnsubmittedReports(),
-  //       fetchSubmittedReports(),
-  //     ]);
-  //     setIsInitialLoad(false);
-  //   } catch (error) {
-  //     console.log(error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   useEffect(() => {
     setRowSelection({

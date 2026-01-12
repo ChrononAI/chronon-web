@@ -20,30 +20,10 @@ import CustomSettlementsToolbar from "@/components/settlements/CustomSettlements
 import {
   buildBackendQuery,
   FieldFilter,
-  FilterMap,
   FilterValue,
   Operator,
 } from "../MyExpensesPage";
 import { useSettlementStore } from "@/store/settlementsStore";
-
-const TAB_QUERY_OVERRIDES: Record<string, FilterMap> = {
-  paid: {
-    payment_state: [
-      {
-        operator: "in",
-        value: ["PAID"],
-      },
-    ],
-  },
-  unpaid: {
-    payment_state: [
-      {
-        operator: "in",
-        value: ["PAYMENT_PENDING"],
-      },
-    ],
-  },
-};
 
 function CustomNoRows() {
   return (
@@ -182,8 +162,8 @@ function Settlements() {
       const nextFilters =
         existingIndex >= 0
           ? prevFilters.map((f, i) =>
-              i === existingIndex ? { operator, value } : f
-            )
+            i === existingIndex ? { operator, value } : f
+          )
           : [...prevFilters, { operator, value }];
 
       return {
@@ -211,15 +191,10 @@ function Settlements() {
         const limit = paginationModel?.pageSize ?? 10;
         const offset = (paginationModel?.page ?? 0) * limit;
 
-        const effectiveQuery = {
-          ...query,
-          ...TAB_QUERY_OVERRIDES[activeTab],
-        };
-
         const res = await settlementsService.getFilteredReports({
           limit,
           offset,
-          query: buildBackendQuery(effectiveQuery),
+          query: buildBackendQuery(query),
           signal,
           role: "admin"
         });
@@ -288,6 +263,17 @@ function Settlements() {
     markAspaid(expense_ids as string[]);
   };
 
+  const handleTabChange = (tab: any) => {
+    setActiveTab(tab);
+    setLoading(true);
+    setRowSelection({ type: "include", ids: new Set() });
+
+    const filter =
+      tab === "paid" ? ["PAID"] : ["PAYMENT_PENDING"];
+
+    updateQuery("payment_state", "in", filter);
+  };
+
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
     setLoading(true);
@@ -337,23 +323,19 @@ function Settlements() {
   }, [fetchFilteredReports, rowsCalculated]);
 
   useEffect(() => {
-    const tabFilter = TAB_QUERY_OVERRIDES[activeTab];
-
-    setQuery((prev) => {
-      // avoid unnecessary state update
-      if (
-        JSON.stringify(prev.payment_state) ===
-        JSON.stringify(tabFilter?.payment_state)
-      ) {
-        return prev;
+    const filter: FieldFilter[] = [
+      {
+        operator: "in",
+        value: [
+          "PAYMENT_PENDING"
+        ]
       }
-
-      return {
-        ...prev,
-        ...tabFilter,
-      };
+    ]
+    setQuery((prev) => {
+      const { payment_state, ...rest } = prev;
+      return { payment_state: filter, ...rest };
     });
-  }, [activeTab]);
+  }, []);
 
   return (
     <div>
@@ -364,9 +346,7 @@ function Settlements() {
       </div>
       <ReportTabs
         activeTab={activeTab}
-        onTabChange={(tabId) => {
-          setActiveTab(tabId as "paid" | "unpaid");
-        }}
+        onTabChange={handleTabChange}
         tabs={tabs}
         className="mb-8"
       />
