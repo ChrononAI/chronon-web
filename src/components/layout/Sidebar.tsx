@@ -151,7 +151,6 @@ export function Sidebar() {
   const location = useLocation();
   const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed } =
     useAuthStore();
-  console.log(orgSettings);
   const [openItems, setOpenItems] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("sidebarOpenItems");
