@@ -332,8 +332,18 @@ export function MyExpensesPage() {
       const limit = paginationModel?.pageSize ?? 10;
       const offset = (paginationModel?.page ?? 0) * limit;
 
+      let newQuery: FilterMap = query;
+
+      if (!query?.status) {
+        if (activeTab === "draft") {
+          newQuery = { ...query, status: [{operator: "in", value: ["COMPLETE","INCOMPLETE","SENT_BACK"]}] }
+        } else if (activeTab === "reported") {
+          newQuery = { ...query, status: [{ operator: "in", value: ["APPROVED","REJECTED","PENDING_APPROVAL"] }] }
+        } else newQuery = query;
+      }
+
       const response = await expenseService.getFilteredExpenses({
-        query: buildBackendQuery(query),
+        query: buildBackendQuery(newQuery),
         limit,
         offset,
         signal,

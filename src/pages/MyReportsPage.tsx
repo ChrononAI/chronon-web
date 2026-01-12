@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import {
   buildBackendQuery,
   FieldFilter,
+  FilterMap,
   FilterValue,
   Operator,
 } from "./MyExpensesPage";
@@ -180,21 +181,21 @@ export function MyReportsPage() {
     activeTab === "all"
       ? REPORT_STATUSES
       : activeTab === "unsubmitted"
-      ? UNSUBMITTED_REPORT_STATUSES
-      : SUBMITTED_REPORT_STATUSES;
+        ? UNSUBMITTED_REPORT_STATUSES
+        : SUBMITTED_REPORT_STATUSES;
 
   const newCols = useMemo<GridColDef[]>(() => {
     return [
       ...columns,
       ...(customIdEnabled
         ? [
-            {
-              field: "custom_report_id",
-              headerName: "CUSTOM REPORT ID",
-              minWidth: 140,
-              flex: 1,
-            } as GridColDef,
-          ]
+          {
+            field: "custom_report_id",
+            headerName: "CUSTOM REPORT ID",
+            minWidth: 140,
+            flex: 1,
+          } as GridColDef,
+        ]
         : []),
     ];
   }, [columns, customIdEnabled]);
@@ -228,8 +229,8 @@ export function MyReportsPage() {
       const nextFilters =
         existingIndex >= 0
           ? prevFilters.map((f, i) =>
-              i === existingIndex ? { operator, value } : f
-            )
+            i === existingIndex ? { operator, value } : f
+          )
           : [...prevFilters, { operator, value }];
 
       return {
@@ -248,8 +249,8 @@ export function MyReportsPage() {
       tab === "all"
         ? []
         : tab === "unsubmitted"
-        ? ["DRAFT"]
-        : ["APPROVED", "REJECTED", "UNDER_REVIEW"];
+          ? ["DRAFT"]
+          : ["APPROVED", "REJECTED", "UNDER_REVIEW"];
 
     updateQuery("status", "in", filter);
   };
@@ -260,10 +261,20 @@ export function MyReportsPage() {
         const limit = paginationModel?.pageSize ?? 10;
         const offset = (paginationModel?.page ?? 0) * limit;
 
+        let newQuery: FilterMap = query;
+
+        if (!query?.status) {
+          if (activeTab === "unsubmitted") {
+            newQuery = { ...query, status: [{ operator: "in", value: UNSUBMITTED_REPORT_STATUSES }] }
+          } else if (activeTab === "submitted") {
+            newQuery = { ...query, status: [{ operator: "in", value: SUBMITTED_REPORT_STATUSES }] }
+          } else newQuery = query;
+        }
+
         const res = await settlementsService.getFilteredReports({
           limit,
           offset,
-          query: buildBackendQuery(query),
+          query: buildBackendQuery(newQuery),
           signal,
           role: "spender",
         });
@@ -340,8 +351,8 @@ export function MyReportsPage() {
     activeTab === "all"
       ? allReports
       : activeTab === "unsubmitted"
-      ? unsubmittedReports
-      : submittedReports;
+        ? unsubmittedReports
+        : submittedReports;
 
   useEffect(() => {
     setRowSelection({
@@ -451,10 +462,10 @@ export function MyReportsPage() {
             loadingOverlay:
               loading && isInitialLoad
                 ? () => (
-                    <ExpensesSkeletonOverlay
-                      rowCount={paginationModel?.pageSize}
-                    />
-                  )
+                  <ExpensesSkeletonOverlay
+                    rowCount={paginationModel?.pageSize}
+                  />
+                )
                 : undefined,
           }}
           slotProps={{
@@ -504,8 +515,8 @@ export function MyReportsPage() {
             activeTab === "all"
               ? allReportsPagination.count
               : activeTab === "unsubmitted"
-              ? unsubmittedReportsPagination.count
-              : submittedReportsPagination.count
+                ? unsubmittedReportsPagination.count
+                : submittedReportsPagination.count
           }
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={setRowSelection}

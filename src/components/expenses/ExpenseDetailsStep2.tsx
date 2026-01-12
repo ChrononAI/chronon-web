@@ -352,7 +352,6 @@ export function ExpenseDetailsStep2({
         "amount",
         `${(+conversion * +form.getValues("amount")).toFixed(3)}`
       );
-      console.log(typeof conversion);
       form.setValue("user_conversion_rate", Number(conversion).toFixed(4).toString());
       form.setValue("api_conversion_rate", Number(conversion).toFixed(4).toString());
       setShowConversion(true);

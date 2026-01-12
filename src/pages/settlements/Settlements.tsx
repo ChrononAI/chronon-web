@@ -20,6 +20,7 @@ import CustomSettlementsToolbar from "@/components/settlements/CustomSettlements
 import {
   buildBackendQuery,
   FieldFilter,
+  FilterMap,
   FilterValue,
   Operator,
 } from "../MyExpensesPage";
@@ -191,10 +192,19 @@ function Settlements() {
         const limit = paginationModel?.pageSize ?? 10;
         const offset = (paginationModel?.page ?? 0) * limit;
 
+        let newQuery: FilterMap = query;
+
+        if (!query?.payment_state) {
+          if (activeTab === "paid") {
+            newQuery = { ...query, payment_state: [{ operator: "in", value: ["PAID"] }] }
+          } else {
+            newQuery = { ...query, payment_state: [{ operator: "in", value: ["PAYMENT_PENDING"] }] }
+          }
+        }
         const res = await settlementsService.getFilteredReports({
           limit,
           offset,
-          query: buildBackendQuery(query),
+          query: buildBackendQuery(newQuery),
           signal,
           role: "admin"
         });
