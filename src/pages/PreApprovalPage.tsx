@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { usePreApprovalStore } from "@/store/preApprovalStore";
 import { PaginationInfo } from "@/store/expenseStore";
 import { CheckCircle } from "lucide-react";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 function CustomNoRows() {
   return (
@@ -36,72 +37,72 @@ function CustomNoRows() {
   );
 }
 
-  const columns: GridColDef[] = [
-    {
-      field: "sequence_number",
-      headerName: "PRE APPROVAL ID",
-      minWidth: 160,
-      flex: 1,
+const columns: GridColDef[] = [
+  {
+    field: "sequence_number",
+    headerName: "PRE APPROVAL ID",
+    minWidth: 160,
+    flex: 1,
+  },
+  {
+    field: "title",
+    headerName: "TITLE",
+    minWidth: 200,
+    flex: 1,
+  },
+  {
+    field: "start_date",
+    headerName: "START",
+    minWidth: 120,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return formatDate(value);
     },
-    {
-      field: "title",
-      headerName: "TITLE",
-      minWidth: 200,
-      flex: 1,
+  },
+  {
+    field: "end_date",
+    headerName: "END",
+    minWidth: 120,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return formatDate(value);
     },
-    {
-      field: "start_date",
-      headerName: "START",
-      minWidth: 120,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return formatDate(value);
-      },
+  },
+  {
+    field: "policy_name",
+    headerName: "POLICY",
+    minWidth: 150,
+    flex: 1,
+  },
+  {
+    field: "status",
+    headerName: "STATUS",
+    minWidth: 170,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return (
+        <Badge className={getStatusColor(value)}>
+          {value.replace("_", " ")}
+        </Badge>
+      );
     },
-    {
-      field: "end_date",
-      headerName: "END",
-      minWidth: 120,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return formatDate(value);
-      },
+  },
+  {
+    field: "created_at",
+    headerName: "CREATED AT",
+    minWidth: 150,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return formatDate(value);
     },
-    {
-      field: "policy_name",
-      headerName: "POLICY",
-      minWidth: 150,
-      flex: 1,
-    },
-    {
-      field: "status",
-      headerName: "STATUS",
-      minWidth: 170,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return (
-          <Badge className={getStatusColor(value)}>
-            {value.replace("_", " ")}
-          </Badge>
-        );
-      },
-    },
-    {
-      field: "created_at",
-      headerName: "CREATED AT",
-      minWidth: 150,
-      flex: 1,
-      renderCell: ({ value }) => {
-        return formatDate(value);
-      },
-    },
-    {
-      field: "description",
-      headerName: "PURPOSE",
-      flex: 1,
-      minWidth: 150,
-    },
-  ];
+  },
+  {
+    field: "description",
+    headerName: "PURPOSE",
+    flex: 1,
+    minWidth: 150,
+  },
+];
 
 function PreApprovalPage() {
   const navigate = useNavigate();
@@ -115,17 +116,21 @@ function PreApprovalPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [loading, setLoading] = useState<boolean>(true);
 
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel | null>({
-    page: 0,
-    pageSize: 10,
-  });
+  const GRID_OFFSET = 240;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
 
-  useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-  }, [activeTab]);
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
 
   const statusOptions = [
     { value: "all", label: "All" },
@@ -153,8 +158,8 @@ function PreApprovalPage() {
     activeTab === "all"
       ? allRows
       : activeTab === "pending"
-      ? pendingRows
-      : processedRows;
+        ? pendingRows
+        : processedRows;
 
   const tabs = [
     { key: "all", label: "All", count: allPagination?.total || 0 },
@@ -250,11 +255,11 @@ function PreApprovalPage() {
     };
 
     fetchData();
-    setRowSelection({type: "include", ids: new Set()});
-  }, [paginationModel?.page, paginationModel?.pageSize]);
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [paginationModel.page, paginationModel.pageSize]);
 
   useEffect(() => {
-    setRowSelection({type: "include", ids: new Set()});
+    setRowSelection({ type: "include", ids: new Set() });
   }, [activeTab]);
 
   return (
@@ -289,10 +294,11 @@ function PreApprovalPage() {
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           columns={columns}
-          rows={rows}
+          rows={loading ? [] : rows}
           loading={loading}
           slots={{
             noRowsOverlay: CustomNoRows,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           sx={{
             border: 0,
@@ -300,6 +306,9 @@ function PreApprovalPage() {
               color: "#9AA0A6",
               fontWeight: "bold",
               fontSize: "12px",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-panel .MuiSelect-select": {
               fontSize: "12px",
@@ -341,14 +350,14 @@ function PreApprovalPage() {
           onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "all"
               ? allPagination?.total
               : activeTab === "pending"
-              ? pendingPagination?.total
-              : processedPagination?.total) || 0
+                ? pendingPagination?.total
+                : processedPagination?.total) || 0
           }
         />
       </Box>

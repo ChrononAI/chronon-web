@@ -1,35 +1,35 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle } from "lucide-react";
 import { approvalService } from "@/services/approvalService";
 import { NewPaginationMeta, Report } from "@/types/expense";
 import { formatDate, formatCurrency, getStatusColor } from "@/lib/utils";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { Badge } from "@/components/ui/badge";
 import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
-import { GridOverlay } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
 import { GridPaginationModel } from "@mui/x-data-grid";
 import { useAuthStore } from "@/store/authStore";
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No expenses found</h3>
-          <p className="text-muted-foreground">
-            There are currently no expenses.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
+// function CustomNoRows() {
+//   return (
+//     <GridOverlay>
+//       <Box className="w-full">
+//         <div className="text-center">
+//           <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+//           <h3 className="text-lg font-semibold mb-2">No expenses found</h3>
+//           <p className="text-muted-foreground">
+//             There are currently no expenses.
+//           </p>
+//         </div>
+//       </Box>
+//     </GridOverlay>
+//   );
+// }
 
 const columns: GridColDef[] = [
-    {
+  {
     field: "title",
     headerName: "TITLE",
     minWidth: 200,
@@ -108,39 +108,46 @@ export function ApprovalsReportsPage() {
     activeTab === "all"
       ? allReports
       : activeTab === "unsubmitted"
-      ? pendingReports
-      : processedReports;
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>({
-      page: 0,
-      pageSize: 10,
-    });
+        ? pendingReports
+        : processedReports;
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
+
+  const GRID_OFFSET = 240;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
 
   const newCols = useMemo<GridColDef[]>(() => {
     return [
       ...columns,
       ...(customIdEnabled
         ? [
-            {
-              field: "custom_report_id",
-              headerName: "CUSTOM REPORT ID",
-              minWidth: 140,
-              flex: 1,
-            } as GridColDef,
-          ]
+          {
+            field: "custom_report_id",
+            headerName: "CUSTOM REPORT ID",
+            minWidth: 140,
+            flex: 1,
+          } as GridColDef,
+        ]
         : []),
     ];
   }, [columns, customIdEnabled]);
 
   useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
     setRowSelection({
       type: "include",
       ids: new Set(),
@@ -280,11 +287,12 @@ export function ApprovalsReportsPage() {
       >
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          rows={rows}
+          rows={loading ? [] : rows}
           columns={newCols}
           loading={loading}
           slots={{
-            noRowsOverlay: CustomNoRows,
+            noRowsOverlay: () => <CustomNoRows title="No reports found" description="There are currently no reports." />,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           sx={{
             border: 0,
@@ -295,6 +303,9 @@ export function ApprovalsReportsPage() {
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
@@ -330,14 +341,14 @@ export function ApprovalsReportsPage() {
           onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "all"
               ? allReportsPagination?.count
               : activeTab === "unsubmitted"
-              ? pendingReportsPagination?.count
-              : processedReportsPagination?.count) || 0
+                ? pendingReportsPagination?.count
+                : processedReportsPagination?.count) || 0
           }
         />
       </Box>

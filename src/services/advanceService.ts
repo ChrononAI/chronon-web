@@ -141,7 +141,7 @@ export const AdvanceService = {
   }) => {
     try {
       return await api.get(
-        `/api/v1/advances/approvers?page=${page}&perPage=${perPage}`
+        `/api/v1/advances/approvers?page=${page}&per_page=${perPage}`
       );
     } catch (error) {
       throw error;
@@ -159,7 +159,7 @@ export const AdvanceService = {
   }) => {
     try {
       return await api.get(
-        `/api/v1/advances/approvers?status=${status}&page=${page}&perPage=${perPage}`
+        `/api/v1/advances/approvers?status=${status}&page=${page}&per_page=${perPage}`
       );
     } catch (error) {
       throw error;

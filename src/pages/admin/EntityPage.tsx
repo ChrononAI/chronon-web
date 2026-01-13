@@ -1,17 +1,18 @@
 import {
   DataGrid,
   GridColDef,
-  GridOverlay,
   GridPaginationModel,
   GridRowSelectionModel,
   GridRowParams,
 } from "@mui/x-data-grid";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getEntities } from "@/services/admin/entities";
 import { Box } from "@mui/material";
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 type APIEntity = {
   id: string;
@@ -40,22 +41,6 @@ type EntityRow = {
   value?: string;
 };
 
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No entities found</h3>
-          <p className="text-muted-foreground">
-            There are currently no entities.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
-
 const columns: GridColDef<EntityRow>[] = [
   { field: "entity_name", headerName: "ENTITY NAME", minWidth: 300, flex: 1 },
   { field: "description", headerName: "DESC", minWidth: 300, flex: 1 },
@@ -71,8 +56,22 @@ export const EntityPage = () => {
     type: "include",
     ids: new Set(),
   });
+
+  const GRID_OFFSET = 190;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
   const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
 
   const load = async () => {
     try {
@@ -96,11 +95,6 @@ export const EntityPage = () => {
   };
 
   useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-
     load();
   }, []);
 
@@ -125,14 +119,6 @@ export const EntityPage = () => {
           </Link>
         </Button>
       </div>
-{/* 
-      <div className="bg-gray-100 rounded-md p-4">
-        <p className="text-sm text-gray-600">
-          Setup custom entities required to be allocated to users, expenses,
-          transaction etc. These entities can be used for workflows, accounting
-          or any custom purposes.
-        </p>
-      </div> */}
       <Box
         sx={{
           height: "calc(100vh - 120px)",
@@ -142,9 +128,12 @@ export const EntityPage = () => {
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           columns={columns}
-          rows={rows}
+          rows={loading ? [] : rows}
           loading={loading}
-          slots={{ noRowsOverlay: CustomNoRows }}
+          slots={{
+            noRowsOverlay: () => <CustomNoRows title="No entities found" description="There are currently no entities." />,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize}/>
+          }}
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {
@@ -157,6 +146,9 @@ export const EntityPage = () => {
             },
             "& .MuiDataGrid-panel .MuiSelect-select": {
               fontSize: "12px",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
@@ -188,7 +180,7 @@ export const EntityPage = () => {
           }}
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={setRowSelection}
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           density="compact"
           checkboxSelection

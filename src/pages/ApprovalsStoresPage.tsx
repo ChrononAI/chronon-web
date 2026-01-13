@@ -3,7 +3,6 @@ import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import {
   DataGrid,
   GridColDef,
-  GridOverlay,
   GridPaginationModel,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
@@ -11,25 +10,26 @@ import { formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { Box } from "@mui/material";
-import { CheckCircle } from "lucide-react";
 import { storesService } from "@/services/storeService";
 import { useStoreStore } from "@/store/storeStore";
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No advances found</h3>
-          <p className="text-muted-foreground">
-            There are currently no advances.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
+// function CustomNoRows() {
+//   return (
+//     <GridOverlay>
+//       <Box className="w-full">
+//         <div className="text-center">
+//           <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+//           <h3 className="text-lg font-semibold mb-2">No advances found</h3>
+//           <p className="text-muted-foreground">
+//             There are currently no advances.
+//           </p>
+//         </div>
+//       </Box>
+//     </GridOverlay>
+//   );
+// }
 
 const columns: GridColDef[] = [
   {
@@ -99,9 +99,6 @@ function ApprovalsStoresPage() {
   const [processedRows, setProcessedRows] = useState([]);
   const [processedCount, setProcessedCount] = useState<number>(0);
 
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
-
   const [activeTab, setActiveTab] = useState<"pending" | "processed" | "all">(
     "all"
   );
@@ -110,11 +107,23 @@ function ApprovalsStoresPage() {
     ids: new Set(),
   });
 
+  const GRID_OFFSET = 240;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
+
   useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
     setRowSelection({ type: "include", ids: new Set() });
   }, [activeTab]);
 
@@ -122,8 +131,8 @@ function ApprovalsStoresPage() {
     activeTab === "all"
       ? allRows
       : activeTab === "pending"
-      ? pendingRows
-      : processedRows;
+        ? pendingRows
+        : processedRows;
   const tabs = [
     { key: "all", label: "All", count: allCount || 0 },
     { key: "pending", label: "Pending", count: pendingCount || 0 },
@@ -255,10 +264,11 @@ function ApprovalsStoresPage() {
         <DataGrid
           className="rounded border h-full"
           columns={columns}
-          rows={rows}
+          rows={loading ? [] : rows}
           loading={loading}
           slots={{
-            noRowsOverlay: CustomNoRows,
+            noRowsOverlay: () => <CustomNoRows title="No stores found" description="There are currently no stores." />,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           sx={{
             border: 0,
@@ -272,6 +282,9 @@ function ApprovalsStoresPage() {
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
@@ -312,8 +325,8 @@ function ApprovalsStoresPage() {
             (activeTab === "all"
               ? allCount
               : activeTab === "pending"
-              ? pendingCount
-              : processedCount) || 0
+                ? pendingCount
+                : processedCount) || 0
           }
         />
       </Box>

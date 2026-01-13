@@ -3,7 +3,6 @@ import {
   FileText,
   Loader2,
   CalendarIcon,
-  CheckCircle,
   Download,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,24 +37,9 @@ import {
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
-import { GridOverlay } from "@mui/x-data-grid";
 import { Badge } from "@/components/ui/badge";
-
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No expenses found</h3>
-          <p className="text-muted-foreground">
-            There are currently no expenses.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 const parseCriteria = (criteria: string) => {
   try {
@@ -75,89 +59,89 @@ const parseCriteria = (criteria: string) => {
 const columns = (
   handleDownloadGeneratedReport: (id: string | number) => void
 ): GridColDef[] => [
-  {
-    field: "report_name",
-    headerName: "TITLE",
-    flex: 1,
-    minWidth: 150,
-  },
-  {
-    field: "criteria",
-    headerName: "DATE RANGE",
-    flex: 1,
-    minWidth: 180,
-    renderCell: ({ value }) => {
-      const criteria = parseCriteria(value);
-      return (
-        <span>
-          {criteria.start_date} to {criteria.end_date}{" "}
-        </span>
-      );
+    {
+      field: "report_name",
+      headerName: "TITLE",
+      flex: 1,
+      minWidth: 150,
     },
-  },
-  {
-    field: "number_of_records",
-    headerName: "RECORDS",
-    flex: 1,
-    minWidth: 80,
-  },
-  {
-    field: "report_size",
-    headerName: "SIZE",
-    flex: 1,
-    minWidth: 120,
-    renderCell: ({ value }) => formatFileSize(value),
-  },
-  {
-    field: "status",
-    headerName: "STATUS",
-    flex: 1,
-    minWidth: 130,
-    renderCell: ({ value }) => {
-      return (
-        <Badge
-          className={
-            value === "GENERATED"
-              ? "bg-green-100 text-green-800 hover:bg-green-100"
-              : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-          }
-        >
-          {value}
-        </Badge>
-      );
+    {
+      field: "criteria",
+      headerName: "DATE RANGE",
+      flex: 1,
+      minWidth: 180,
+      renderCell: ({ value }) => {
+        const criteria = parseCriteria(value);
+        return (
+          <span>
+            {criteria.start_date} to {criteria.end_date}{" "}
+          </span>
+        );
+      },
     },
-  },
-  {
-    field: "created_at",
-    headerName: "CREATED ON",
-    flex: 1,
-    minWidth: 150,
-    renderCell: ({ value }) => {
-      return <span>{value ? formatDate(value) : "N/A"}</span>;
+    {
+      field: "number_of_records",
+      headerName: "RECORDS",
+      flex: 1,
+      minWidth: 80,
     },
-  },
-  {
-    field: "action",
-    headerName: "ACTION",
-    flex: 1,
-    minWidth: 120,
-    sortable: false,
-    filterable: false,
-    renderCell: (params) => {
-      const id = params.row.id;
-      return (
-        <Button
-          variant="ghost"
-          size="sm"
-          title="Download report"
-          onClick={() => handleDownloadGeneratedReport(id)}
-        >
-          <Download className="h-4 w-4" />
-        </Button>
-      );
+    {
+      field: "report_size",
+      headerName: "SIZE",
+      flex: 1,
+      minWidth: 120,
+      renderCell: ({ value }) => formatFileSize(value),
     },
-  },
-];
+    {
+      field: "status",
+      headerName: "STATUS",
+      flex: 1,
+      minWidth: 130,
+      renderCell: ({ value }) => {
+        return (
+          <Badge
+            className={
+              value === "GENERATED"
+                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+            }
+          >
+            {value}
+          </Badge>
+        );
+      },
+    },
+    {
+      field: "created_at",
+      headerName: "CREATED ON",
+      flex: 1,
+      minWidth: 150,
+      renderCell: ({ value }) => {
+        return <span>{value ? formatDate(value) : "N/A"}</span>;
+      },
+    },
+    {
+      field: "action",
+      headerName: "ACTION",
+      flex: 1,
+      minWidth: 120,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => {
+        const id = params.row.id;
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Download report"
+            onClick={() => handleDownloadGeneratedReport(id)}
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+        );
+      },
+    },
+  ];
 
 export function AllReportsPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
@@ -174,12 +158,26 @@ export function AllReportsPage() {
     []
   );
   const [generatedReportsLoading, setGeneratedReportsLoading] = useState(true);
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
+
+  const GRID_OFFSET = 360;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -286,9 +284,9 @@ export function AllReportsPage() {
       );
       const reportName = selectedTemplate
         ? `${selectedTemplate.name} - ${format(fromDate, "MMM dd")} to ${format(
-            toDate,
-            "MMM dd"
-          )}`
+          toDate,
+          "MMM dd"
+        )}`
         : "Report";
 
       const formattedFromDate = format(fromDate, "yyyy-MM-dd");
@@ -340,13 +338,6 @@ export function AllReportsPage() {
     setToDate(date);
     setToDateOpen(false);
   };
-
-  useEffect(() => {
-    const gridHeight = window.innerHeight - 400;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-  }, []);
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
@@ -523,7 +514,8 @@ export function AllReportsPage() {
               columns={columns(handleDownloadGeneratedReport)}
               loading={generatedReportsLoading}
               slots={{
-                noRowsOverlay: CustomNoRows,
+                noRowsOverlay: () => <CustomNoRows title="No entries found" description="There are currently no entries" />,
+                loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
               }}
               sx={{
                 border: 0,
@@ -554,9 +546,9 @@ export function AllReportsPage() {
                   border: "0.2px solid #f3f4f6",
                 },
                 "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                  {
-                    outline: "none",
-                  },
+                {
+                  outline: "none",
+                },
                 "& .MuiDataGrid-cell:focus-within": {
                   outline: "none",
                 },
@@ -571,7 +563,7 @@ export function AllReportsPage() {
               disableRowSelectionOnClick
               showCellVerticalBorder
               pagination
-              paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+              paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
             />
           </Box>

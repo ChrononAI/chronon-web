@@ -54,19 +54,30 @@ const columns: GridColDef[] = [
 function AdminExpenseCategories() {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>({
-      page: 0,
-      pageSize: 10,
-    });
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
-    const handleRowClick = ({ row }: any) => {
-      console.log(row);
-      navigate(`/admin-settings/product-config/expense-categories/create/${row.id}`, { state: row });
-    }
+  const GRID_OFFSET = 100;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
+
+  const handleRowClick = ({ row }: any) => {
+    console.log(row);
+    navigate(`/admin-settings/product-config/expense-categories/create/${row.id}`, { state: row });
+  }
 
   useEffect(() => {
     const gridHeight = window.innerHeight - 260;
@@ -92,8 +103,8 @@ function AdminExpenseCategories() {
       console.log(error);
       toast.error(
         error?.response?.data?.message ||
-          error.message ||
-          "Failed to get categories"
+        error.message ||
+        "Failed to get categories"
       );
     } finally {
       setLoading(false);
@@ -178,7 +189,7 @@ function AdminExpenseCategories() {
           pagination
           paginationMode="server"
           rowCount={pagination ? pagination.total : 0}
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
         />
       </Box>
