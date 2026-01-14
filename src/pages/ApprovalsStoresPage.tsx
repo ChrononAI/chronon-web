@@ -15,22 +15,6 @@ import { useStoreStore } from "@/store/storeStore";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
-// function CustomNoRows() {
-//   return (
-//     <GridOverlay>
-//       <Box className="w-full">
-//         <div className="text-center">
-//           <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-//           <h3 className="text-lg font-semibold mb-2">No advances found</h3>
-//           <p className="text-muted-foreground">
-//             There are currently no advances.
-//           </p>
-//         </div>
-//       </Box>
-//     </GridOverlay>
-//   );
-// }
-
 const columns: GridColDef[] = [
   {
     field: "name",

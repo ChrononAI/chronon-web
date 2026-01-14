@@ -19,22 +19,6 @@ import { Box } from "@mui/material";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
-// function CustomNoRows() {
-//   return (
-//     <GridOverlay>
-//       <Box className="w-full">
-//         <div className="text-center">
-//           <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-//           <h3 className="text-lg font-semibold mb-2">No pre approvals found</h3>
-//           <p className="text-muted-foreground">
-//             There are currently no pre approvals.
-//           </p>
-//         </div>
-//       </Box>
-//     </GridOverlay>
-//   );
-// }
-
 const columns: GridColDef[] = [
   {
     field: "sequence_number",

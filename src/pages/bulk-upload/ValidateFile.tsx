@@ -253,7 +253,7 @@ function ValidateFile() {
         >
           <DataGrid
             columns={columns}
-            rows={loading ? [] : rows}
+            rows={loading ? [] : (rows || [])}
             loading={loading}
             slots={{
             }}

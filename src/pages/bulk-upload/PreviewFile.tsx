@@ -82,13 +82,13 @@ function PreviewFile() {
 
   const fetchData = async (fileid: string) => {
     try {
-      await Promise.all([fetchFileData(fileid), fetchRows(fileid)])
+      await Promise.all([fetchFileData(fileid), fetchRows(fileid)]);
     } catch (error) {
       console.log(error);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     if (fileid) {

@@ -62,7 +62,7 @@ function AdminExpenseCategories() {
   const handleRowClick = ({ row }: any) => {
     console.log(row);
     navigate(`/admin-settings/product-config/expense-categories/create/${row.id}`, { state: row });
-  }
+  };
 
   const getCategories = async ({
     page,

@@ -530,6 +530,9 @@ export function AllReportsPage() {
                 "& .MuiDataGrid-main": {
                   border: "0.2px solid #f3f4f6",
                 },
+                "& .MuiDataGrid-virtualScroller": {
+                  overflow: generatedReportsLoading ? "hidden" : "auto",
+                },
                 "& .MuiDataGrid-columnHeader": {
                   backgroundColor: "#f3f4f6",
                   border: "none",

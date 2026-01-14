@@ -59,7 +59,6 @@ function CategoryLimitPage() {
     });
 
   const getPolicyRules = async () => {
-    console.log("inside get rules");
     try {
       setLoading(true);
       const res = await policyRulesService.getPolicyRules();
