@@ -3,7 +3,6 @@ import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import {
   DataGrid,
   GridColDef,
-  GridOverlay,
   GridPaginationModel,
   GridRowModel,
   GridRowSelectionModel,
@@ -18,24 +17,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { usePreApprovalStore } from "@/store/preApprovalStore";
 import { PaginationInfo } from "@/store/expenseStore";
-import { CheckCircle } from "lucide-react";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
-
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No reports found</h3>
-          <p className="text-muted-foreground">
-            There are currently no reportrs.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
+import CustomNoRows from "@/components/shared/CustomNoRows";
 
 const columns: GridColDef[] = [
   {
@@ -267,9 +250,13 @@ function PreApprovalPage() {
       title="Pre Approval"
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) =>
-        setActiveTab(tabId as "all" | "pending" | "approved")
-      }
+      onTabChange={(tabId) => {
+        setActiveTab(tabId as "all" | "pending" | "approved");
+        setPaginationModel((prev) => ({
+          ...prev,
+          page: 0,
+        }));
+      }}
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       searchPlaceholder="Search expenses..."
@@ -297,7 +284,7 @@ function PreApprovalPage() {
           rows={loading ? [] : rows}
           loading={loading}
           slots={{
-            noRowsOverlay: CustomNoRows,
+            noRowsOverlay: () => <CustomNoRows title="No pre apporvals found" description="There are currently no pre approvals." />,
             loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           sx={{

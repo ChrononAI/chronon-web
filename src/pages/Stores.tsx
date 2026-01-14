@@ -195,6 +195,10 @@ export default function Stores() {
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
+    setPaginationModel((prev) => ({
+      ...prev,
+      page: 0,
+    }));
   }, [activeTab]);
 
   return (

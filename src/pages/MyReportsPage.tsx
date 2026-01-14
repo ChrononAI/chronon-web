@@ -218,7 +218,10 @@ export function MyReportsPage() {
     setActiveTab(tab);
     setLoading(true);
     setRowSelection({ type: "include", ids: new Set() });
-
+    setPaginationModel((prev) => ({
+      ...prev,
+      page: 0,
+    }));
     const filter =
       tab === "all"
         ? []

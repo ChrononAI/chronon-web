@@ -353,6 +353,10 @@ function Settlements() {
         activeTab={activeTab}
         onTabChange={(tabId) => {
           setActiveTab(tabId as "paid" | "unpaid");
+          setPaginationModel((prev) => ({
+            ...prev,
+            page: 0,
+          }));
         }}
         tabs={tabs}
         className="mb-8"
@@ -372,7 +376,7 @@ function Settlements() {
           slots={{
             noRowsOverlay: () => <CustomNoRows title="No reports Found" description="There are currently no reports." />,
             toolbar: CustomSettlementsToolbar,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize}/>
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           slotProps={{
             toolbar: {

@@ -252,13 +252,6 @@ function AdvanceAccounts() {
     }
   };
 
-  // useEffect(() => {
-  //   const gridHeight = window.innerHeight - 400;
-  //   const rowHeight = 36;
-  //   const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-  //   setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-  // }, []);
-
   const fetchData = async () => {
     try {
       setLoading(true);

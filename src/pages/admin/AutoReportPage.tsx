@@ -1,6 +1,6 @@
-import { DataGrid, GridColDef, GridOverlay, GridPaginationModel } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dialog,
@@ -23,6 +23,8 @@ import {
 } from "@/services/admin/autoReportSubmissions";
 import { toast } from "sonner";
 import { Box } from "@mui/material";
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 const getOrdinalSuffix = (day: number) => {
   if (day % 100 >= 11 && day % 100 <= 13) {
@@ -39,22 +41,6 @@ const getOrdinalSuffix = (day: number) => {
       return "th";
   }
 };
-
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No entries found</h3>
-          <p className="text-muted-foreground">
-            There are currently no entries.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
 
 const WEEKLY_DAY_OPTIONS = [
   { value: "mon", label: "Monday" },
@@ -94,10 +80,23 @@ export const AutoReportPage = () => {
   >();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
-    page: 0,
-    pageSize: 20,
-  });
+
+  const GRID_OFFSET = 190;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
+
   const columns: GridColDef<SubmissionScheduleRow>[] = [
     {
       field: "submitOn",
@@ -159,8 +158,8 @@ export const AutoReportPage = () => {
         ? `${selectedMonthLabel} of every month`
         : "Select a Date"
       : selectedDayLabel
-      ? `${selectedDayLabel} of every week`
-      : "Select a Day";
+        ? `${selectedDayLabel} of every week`
+        : "Select a Day";
 
   const resolveSubmitOn = useCallback((submission: AutoReportSubmission) => {
     const when = submission.schedule?.config?.when;
@@ -224,29 +223,28 @@ export const AutoReportPage = () => {
     const payload =
       scheduleType === "monthly"
         ? {
-            description,
-            schedule_config: {
-              type: "cron" as const,
-              when: {
-                day: selectedMonthDate!,
-              },
+          description,
+          schedule_config: {
+            type: "cron" as const,
+            when: {
+              day: selectedMonthDate!,
             },
-          }
+          },
+        }
         : {
-            description,
-            schedule_config: {
-              type: "cron" as const,
-              when: {
-                day_of_week: selectedDay!,
-              },
+          description,
+          schedule_config: {
+            type: "cron" as const,
+            when: {
+              day_of_week: selectedDay!,
             },
-          };
+          },
+        };
 
     try {
       setIsSubmitting(true);
       await createAutoReportSchedule(payload);
       await fetchSchedules();
-
       toast.success("Auto submission schedule created.");
       setShowScheduleModal(false);
       setSelectedDay(undefined);
@@ -270,13 +268,6 @@ export const AutoReportPage = () => {
           Create Submission Schedule
         </Button>
       </div>
-
-      {/* <div className="bg-gray-100 rounded-md p-4 mb-6">
-        <p className="text-sm text-gray-600">
-          Create submission schedules to automatically submit expense reports at
-          specified intervals.
-        </p>
-      </div> */}
       <Box
         sx={{
           height: "calc(100vh - 160px)",
@@ -286,8 +277,11 @@ export const AutoReportPage = () => {
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           columns={columns}
-          rows={scheduleRows}
-          slots={{ noRowsOverlay: CustomNoRows }}
+          rows={isLoading ? [] : scheduleRows}
+          slots={{
+            noRowsOverlay: () => <CustomNoRows title="No entries found" description="There are currrently no entries" />,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          }}
           loading={isLoading}
           sx={{
             border: 0,
@@ -298,6 +292,9 @@ export const AutoReportPage = () => {
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: isLoading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
@@ -409,10 +406,6 @@ export const AutoReportPage = () => {
                 </span>
               </div>
             </div>
-
-            {/* <Button variant="ghost" className="justify-start px-0 text-green-600 hover:text-green-700 hover:bg-transparent">
-                + Add Another Date
-              </Button> */}
 
             <div className="rounded-md border bg-gray-50 px-4 py-3 text-sm text-gray-600">
               Expense Reports will be submitted on{" "}

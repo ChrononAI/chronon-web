@@ -514,7 +514,7 @@ export function AllReportsPage() {
               columns={columns(handleDownloadGeneratedReport)}
               loading={generatedReportsLoading}
               slots={{
-                noRowsOverlay: () => <CustomNoRows title="No entries found" description="There are currently no entries" />,
+                noRowsOverlay: () => <CustomNoRows title="No reports found" description="There are currently no reports" />,
                 loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
               }}
               sx={{

@@ -270,9 +270,13 @@ function ApprovalsPreApprovalsPage() {
       title="Approver Dashboard"
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) =>
-        setActiveTab(tabId as "all" | "pending" | "processed")
-      }
+      onTabChange={(tabId) => {
+        setActiveTab(tabId as "all" | "pending" | "processed");
+        setPaginationModel((prev) => ({
+          ...prev,
+          page: 0,
+        }));
+      }}
       showDateFilter={true}
       showFilters={false}
       searchTerm={""}
@@ -294,7 +298,7 @@ function ApprovalsPreApprovalsPage() {
           loading={loading}
           slots={{
             noRowsOverlay: () => <CustomNoRows title="No pre approvals found" description="There are currently no pre approvals." />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize}/>
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           sx={{
             border: 0,

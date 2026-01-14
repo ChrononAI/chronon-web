@@ -226,9 +226,13 @@ function ApprovalsAdvancesPage() {
       title="Approver Dashboard"
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) =>
-        setActiveTab(tabId as "all" | "pending" | "processed")
-      }
+      onTabChange={(tabId) => {
+        setActiveTab(tabId as "all" | "pending" | "processed");
+        setPaginationModel((prev) => ({
+          ...prev,
+          page: 0,
+        }));
+      }}
       showDateFilter={true}
       showFilters={false}
       searchTerm={""}
@@ -250,7 +254,7 @@ function ApprovalsAdvancesPage() {
           loading={loading}
           slots={{
             noRowsOverlay: () => <CustomNoRows title="No advances found" description="There are currently no advances." />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize}/>
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           sx={{
             border: 0,

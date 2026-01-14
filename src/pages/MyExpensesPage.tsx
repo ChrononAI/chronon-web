@@ -341,21 +341,21 @@ export function MyExpensesPage() {
     });
   }
 
- const GRID_OFFSET = 240;
- const ROW_HEIGHT = 38;
- const HEADER_HEIGHT = 56;
+  const GRID_OFFSET = 240;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 56;
 
- const calculatePageSize = () => {
-   const availableHeight =
-     window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
-   return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
- };
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
 
- const [paginationModel, setPaginationModel] =
-   useState<GridPaginationModel>({
-     page: 0,
-     pageSize: calculatePageSize(),
-   });
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
 
 
   const fetchFilteredExpenses = useCallback(
@@ -456,7 +456,10 @@ export function MyExpensesPage() {
 
   const handleTabChange = (tab: any) => {
     setActiveTab(tab);
-
+    setPaginationModel((prev) => ({
+      ...prev,
+      page: 0,
+    }));
     setRowSelection({ type: "include", ids: new Set() });
 
     const filter =

@@ -260,9 +260,13 @@ export function MyAdvancesPage() {
       title="Advances"
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) =>
-        setActiveTab(tabId as "all" | "pending" | "approved")
-      }
+      onTabChange={(tabId) => {
+        setActiveTab(tabId as "all" | "pending" | "approved");
+        setPaginationModel((prev) => ({
+          ...prev,
+          page: 0,
+        }));
+      }}
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       searchPlaceholder="Search expenses..."

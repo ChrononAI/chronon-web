@@ -244,9 +244,13 @@ function ApprovalsStoresPage() {
       title="Approver Dashboard"
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) =>
-        setActiveTab(tabId as "all" | "pending" | "processed")
-      }
+      onTabChange={(tabId) => {
+        setActiveTab(tabId as "all" | "pending" | "processed");
+        setPaginationModel((prev) => ({
+          ...prev,
+          page: 0,
+        }));
+      }}
       showDateFilter={true}
       showFilters={false}
       searchTerm={""}
