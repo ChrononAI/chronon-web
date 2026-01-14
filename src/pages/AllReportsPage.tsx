@@ -163,7 +163,7 @@ export function AllReportsPage() {
     ids: new Set(),
   });
 
-  const GRID_OFFSET = 300;
+  const GRID_OFFSET = 340;
   const ROW_HEIGHT = 38;
   const HEADER_HEIGHT = 0;
 

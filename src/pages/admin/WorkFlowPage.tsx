@@ -145,7 +145,7 @@ const WorkFlowPage = () => {
 
   const [rulePaginationInfo, setRulePaginationInfo] = useState<any>();
 
-  const GRID_OFFSET = 240;
+  const GRID_OFFSET = 260;
   const ROW_HEIGHT = 38;
   const HEADER_HEIGHT = 0;
 

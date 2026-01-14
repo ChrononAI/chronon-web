@@ -59,7 +59,7 @@ function BulkUploadedFilesPage() {
     ids: new Set(),
   });
 
-  const GRID_OFFSET = 190;
+  const GRID_OFFSET = 200;
   const ROW_HEIGHT = 38;
   const HEADER_HEIGHT = 0;
 
