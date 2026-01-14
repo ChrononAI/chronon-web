@@ -163,7 +163,7 @@ export function AllReportsPage() {
     ids: new Set(),
   });
 
-  const GRID_OFFSET = 360;
+  const GRID_OFFSET = 300;
   const ROW_HEIGHT = 38;
   const HEADER_HEIGHT = 0;
 
@@ -365,17 +365,17 @@ export function AllReportsPage() {
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col sm:flex-row gap-4 items-end">
-                <div className="min-w-[600px] w-full sm:w-auto">
+              <div
+                className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 items-end"
+              >
+                <div className="lg:col-span-4">
                   <Label className="mb-2 block">Select Report</Label>
                   <Select
                     value={selectedTemplateId?.toString() || ""}
-                    onValueChange={(value) =>
-                      setSelectedTemplateId(Number(value))
-                    }
+                    onValueChange={(value) => setSelectedTemplateId(Number(value))}
                     disabled={isGenerating}
                   >
-                    <SelectTrigger className="bg-white w-full">
+                    <SelectTrigger className="bg-white w-full h-11">
                       <SelectValue placeholder="Select report" />
                     </SelectTrigger>
                     <SelectContent>
@@ -391,111 +391,94 @@ export function AllReportsPage() {
                   </Select>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 items-end sm:ml-auto">
-                  <div className="min-w-[160px] w-full sm:w-auto">
-                    <Label className="mb-2 block">From</Label>
-                    <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-11 justify-start text-left font-normal bg-white",
-                            !fromDate && "text-muted-foreground"
-                          )}
-                          disabled={isGenerating}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {fromDate ? (
-                            format(fromDate, "MMM dd, yyyy")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={fromDate}
-                          onSelect={handleFromDateSelect}
-                          initialFocus
-                          disabled={(date) => {
-                            const today = new Date();
-                            today.setHours(23, 59, 59, 999);
-                            const isAfterToday = date > today;
-                            const isAfterToDate = toDate
-                              ? date > toDate
-                              : false;
-                            return isAfterToday || isAfterToDate;
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                <div className="lg:col-span-3">
+                  <Label className="mb-2 block">From</Label>
+                  <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full h-11 justify-start text-left font-normal bg-white",
+                          !fromDate && "text-muted-foreground"
+                        )}
+                        disabled={isGenerating}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {fromDate ? format(fromDate, "MMM dd, yyyy") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={fromDate}
+                        onSelect={handleFromDateSelect}
+                        initialFocus
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(23, 59, 59, 999);
+                          return date > today || (toDate ? date > toDate : false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-                  <div className="min-w-[160px] w-full sm:w-auto">
-                    <Label className="mb-2 block">TO</Label>
-                    <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal bg-white h-11",
-                            !toDate && "text-muted-foreground"
-                          )}
-                          disabled={isGenerating}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {toDate ? (
-                            format(toDate, "MMM dd, yyyy")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={toDate}
-                          onSelect={handleToDateSelect}
-                          initialFocus
-                          disabled={(date) => {
-                            const today = new Date();
-                            today.setHours(23, 59, 59, 999);
-                            const isAfterToday = date > today;
-                            const isBeforeFromDate = fromDate
-                              ? date < fromDate
-                              : false;
-                            return isAfterToday || isBeforeFromDate;
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                <div className="lg:col-span-3">
+                  <Label className="mb-2 block">To</Label>
+                  <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full h-11 justify-start text-left font-normal bg-white",
+                          !toDate && "text-muted-foreground"
+                        )}
+                        disabled={isGenerating}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {toDate ? format(toDate, "MMM dd, yyyy") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={toDate}
+                        onSelect={handleToDateSelect}
+                        initialFocus
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(23, 59, 59, 999);
+                          return date > today || (fromDate ? date < fromDate : false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-                  <div className="min-w-[100px] w-full sm:w-auto">
-                    <div className="mb-2 h-[20px]"></div>
-                    <Button
-                      onClick={handleGenerateReport}
-                      disabled={
-                        isGenerating ||
-                        !selectedTemplateId ||
-                        !fromDate ||
-                        !toDate
-                      }
-                      className="w-full h-11 sm:w-auto bg-white text-gray-900 border border-gray-300 hover:bg-gray-50"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        "Generate"
-                      )}
-                    </Button>
-                  </div>
+                <div className="lg:col-span-2">
+                  <div className="mb-2 h-[20px]" />
+                  <Button
+                    onClick={handleGenerateReport}
+                    disabled={
+                      isGenerating ||
+                      !selectedTemplateId ||
+                      !fromDate ||
+                      !toDate
+                    }
+                    className="w-full h-11 bg-white text-gray-900 border border-gray-300 hover:bg-gray-50"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      "Generate"
+                    )}
+                  </Button>
                 </div>
               </div>
+
             )}
           </CardContent>
         </Card>

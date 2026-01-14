@@ -186,7 +186,7 @@ function AdvanceAccounts() {
     ids: new Set(),
   });
 
-  const GRID_OFFSET = 400;
+  const GRID_OFFSET = 340;
   const ROW_HEIGHT = 38;
   const HEADER_HEIGHT = 0;
 
