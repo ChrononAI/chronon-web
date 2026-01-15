@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { Currency } from "../advances/CreateAdvanceForm";
 import { trackEvent } from "@/mixpanel";
 import { FormFooter } from "../layout/FormFooter";
+import { format } from "date-fns";
 
 // Form schema
 const preApprovalSchema = z.object({
@@ -78,7 +79,7 @@ function CreatePreApprovalForm({
   const [selectedPreApproval, setSelectedPreApproval] =
     useState<PreApprovalType | null>(null);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = format(new Date(), "yyyy-MM-dd");
 
   const loadPoliciesWithCategories = async () => {
     try {
