@@ -4,7 +4,6 @@ import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import {
   DataGrid,
   GridColDef,
-  GridOverlay,
   GridPaginationModel,
   GridRowModel,
   GridRowSelectionModel,
@@ -15,7 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { AdvanceService } from "@/services/advanceService";
 import { useAdvanceStore } from "@/store/advanceStore";
 import { PaginationInfo } from "@/store/expenseStore";
-import { CheckCircle } from "lucide-react";
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 const columns: GridColDef[] = [
   {
@@ -91,22 +91,6 @@ const columns: GridColDef[] = [
   },
 ];
 
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No advances found</h3>
-          <p className="text-muted-foreground">
-            There are currently no advances.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
-
 export function MyAdvancesPage() {
   const navigate = useNavigate();
   const { setSelectedAdvance } = useAdvanceStore();
@@ -122,18 +106,21 @@ export function MyAdvancesPage() {
     ids: new Set(),
   });
 
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>({
-      page: 0,
-      pageSize: 10,
-    });
+  const GRID_OFFSET = 240;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
 
-  useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-  }, [activeTab]);
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
 
   const statusOptions = [
     { value: "all", label: "All" },
@@ -146,7 +133,6 @@ export function MyAdvancesPage() {
     navigate(`/requests/advances/${row.id}`);
   };
 
-  // const [rows, setRows] = useState<any[]>([]);
   const [allRows, setAllRows] = useState<any[]>([]);
   const [allPagination, setAllPagination] = useState<PaginationInfo | null>(
     null
@@ -172,8 +158,8 @@ export function MyAdvancesPage() {
     activeTab === "all"
       ? allRows
       : activeTab === "pending"
-      ? pendingRows
-      : processedRows;
+        ? pendingRows
+        : processedRows;
 
   const getAllAdvances = async ({
     page,
@@ -274,9 +260,13 @@ export function MyAdvancesPage() {
       title="Advances"
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) =>
-        setActiveTab(tabId as "all" | "pending" | "approved")
-      }
+      onTabChange={(tabId) => {
+        setActiveTab(tabId as "all" | "pending" | "approved");
+        setPaginationModel((prev) => ({
+          ...prev,
+          page: 0,
+        }));
+      }}
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       searchPlaceholder="Search expenses..."
@@ -302,10 +292,11 @@ export function MyAdvancesPage() {
         <DataGrid
           className="rounded border border-[#F1F3F4] h-full"
           columns={columns}
-          rows={rows}
+          rows={loading ? [] : rows}
           loading={loading}
           slots={{
-            noRowsOverlay: CustomNoRows,
+            noRowsOverlay: () => <CustomNoRows title="No advances found" description="There are currently no advances." />,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           sx={{
             border: 0,
@@ -316,6 +307,9 @@ export function MyAdvancesPage() {
             },
             "& .MuiDataGrid-panel .MuiSelect-select": {
               fontSize: "12px",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
@@ -353,14 +347,14 @@ export function MyAdvancesPage() {
           onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "all"
               ? allPagination?.total
               : activeTab === "pending"
-              ? pendingPagination?.total
-              : processedPagination?.total) || 0
+                ? pendingPagination?.total
+                : processedPagination?.total) || 0
           }
         />
       </Box>

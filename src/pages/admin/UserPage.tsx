@@ -3,12 +3,11 @@ import { Button } from "@/components/ui/button";
 import {
   DataGrid,
   GridColDef,
-  GridOverlay,
   GridPaginationModel,
   GridRowSelectionModel,
   GridRowParams,
 } from "@mui/x-data-grid";
-import { CheckCircle, Download, Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { toast } from "sonner";
@@ -16,6 +15,8 @@ import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { bulkUploadService } from "@/services/admin/bulkUploadService";
 import { getTemplates } from "@/services/admin/templates";
 import { Box } from "@mui/material";
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 type APIUser = {
   id?: string | number;
@@ -38,34 +39,32 @@ type UserRow = {
   [entityKey: string]: string | undefined;
 };
 
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No entries found</h3>
-          <p className="text-muted-foreground">
-            There are currently no entries.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
-
 const UserPage = () => {
   const navigate = useNavigate();
   const [rows, setRows] = useState<UserRow[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
+  const [loading, setLoading] = useState(true);
   const [entityCols, setEntityCols] = useState<any>([]);
   const [rowCount, setRowCount] = useState<number>(0);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
+
+  const GRID_OFFSET = 190;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
 
   const baseColumns = useMemo<GridColDef<UserRow>[]>(
     () => [
@@ -114,10 +113,6 @@ const UserPage = () => {
   );
 
   useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
     getTemps();
   }, []);
 
@@ -189,9 +184,6 @@ const UserPage = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">Users</h1>
-          {/* <p className="text-sm text-gray-600 mt-1">
-            View and manage the users in your organization.
-          </p> */}
         </div>
         <div className="flex items-center gap-2">
           <Button asChild>
@@ -210,23 +202,21 @@ const UserPage = () => {
         </div>
       </div>
 
-      {/* <div className="bg-gray-100 rounded-md p-4 mb-6">
-        <p className="text-sm text-gray-600">
-          Review user access and create new users to grant access to Chronon.
-        </p>
-      </div> */}
       <Box
         sx={{
-          height: "calc(100vh - 140px)",
+          height: "calc(100vh - 120px)",
           width: "100%",
         }}
       >
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           columns={columns}
-          rows={rows}
+          rows={loading ? [] : rows}
           loading={loading}
-          slots={{ noRowsOverlay: CustomNoRows }}
+          slots={{
+            noRowsOverlay: () => <CustomNoRows title="No users found" description="There are currently no users." />,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          }}
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {
@@ -240,6 +230,9 @@ const UserPage = () => {
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
               border: "none",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-columnHeaders": {
               border: "none",
@@ -273,7 +266,7 @@ const UserPage = () => {
           onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
-          paginationModel={paginationModel || { page: 0, pageSize: 25 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           pageSizeOptions={[10, 25, 50, 100]}
           rowCount={rowCount}

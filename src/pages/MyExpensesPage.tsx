@@ -24,9 +24,9 @@ import {
   getOrgCurrency,
 } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import ExpensesSkeletonOverlay from "@/components/expenses/ExpenseSkeletonOverlay";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import CustomExpenseToolbar from "@/components/expenses/CustomExpenseToolbar";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 export function getExpenseType(type: string) {
   if (type === "RECEIPT_BASED") return "Expense";
@@ -263,22 +263,20 @@ export function MyExpensesPage() {
     activeTab === "all"
       ? EXPENSE_STATUSES
       : activeTab === "draft"
-      ? DRAFT_EXPENSE_STATUSES
-      : REPORTED_EXPENSE_STATUSES;
+        ? DRAFT_EXPENSE_STATUSES
+        : REPORTED_EXPENSE_STATUSES;
 
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
-  const [rowsCalculated, setRowsCalculated] = useState(false);
 
   const rows =
     activeTab === "all"
       ? allExpenses
       : activeTab === "draft"
-      ? draftExpenses
-      : reportedExpenses;
+        ? draftExpenses
+        : reportedExpenses;
 
   function updateQuery(key: string, operator: Operator, value: FilterValue) {
     setQuery((prev) => {
@@ -310,8 +308,8 @@ export function MyExpensesPage() {
       const nextFilters =
         existingIndex >= 0
           ? prevFilters.map((f, i) =>
-              i === existingIndex ? { operator, value } : f
-            )
+            i === existingIndex ? { operator, value } : f
+          )
           : [...prevFilters, { operator, value }];
 
       return {
@@ -321,11 +319,22 @@ export function MyExpensesPage() {
     });
   }
 
+  const GRID_OFFSET = 240;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 56;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
   const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>({
+    useState<GridPaginationModel>({
       page: 0,
-      pageSize: 10,
+      pageSize: calculatePageSize(),
     });
+
 
   const fetchFilteredExpenses = useCallback(
     async ({ signal }: { signal: AbortSignal }) => {
@@ -371,22 +380,13 @@ export function MyExpensesPage() {
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
-  }, [paginationModel?.page, paginationModel?.pageSize, rowsCalculated]);
-
-  useEffect(() => {
-    const gridHeight = window.innerHeight - 340;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setRowsCalculated(true);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-  }, [activeTab]);
+  }, [paginationModel?.page, paginationModel?.pageSize]);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!rowsCalculated) return;
-
+    // Clear pending debounce
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
@@ -410,7 +410,6 @@ export function MyExpensesPage() {
         .finally(() => {
           if (!controller.signal.aborted) {
             setLoading(false);
-            setIsInitialLoad(false);
             setRowSelection({ type: "include", ids: new Set() });
           }
         });
@@ -421,7 +420,7 @@ export function MyExpensesPage() {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [fetchFilteredExpenses, rowsCalculated]);
+  }, [fetchFilteredExpenses]);
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
@@ -439,23 +438,26 @@ export function MyExpensesPage() {
 
   const handleTabChange = (tab: any) => {
     setActiveTab(tab);
-    setLoading(true);
+    setLoading(true);    setPaginationModel((prev) => ({
+      ...prev,
+      page: 0,
+    }));
     setRowSelection({ type: "include", ids: new Set() });
 
     const filter =
       tab === "all"
         ? []
         : tab === "draft"
-        ? ["COMPLETE", "INCOMPLETE", "SENT_BACK"]
-        : ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
+          ? ["COMPLETE", "INCOMPLETE", "SENT_BACK"]
+          : ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
 
     updateQuery("status", "in", filter);
   };
 
   useEffect(() => {
     setQuery((prev) => {
-      const {status, ...rest} = prev;
-      return {...rest}
+      const { status, ...rest } = prev;
+      return { ...rest }
     })
   }, []);
 
@@ -491,14 +493,11 @@ export function MyExpensesPage() {
                 description={"There are currently no expenses"}
               />
             ),
-            loadingOverlay:
-              loading && isInitialLoad
-                ? () => (
-                    <ExpensesSkeletonOverlay
-                      rowCount={paginationModel?.pageSize}
-                    />
-                  )
-                : undefined,
+            loadingOverlay: () => (
+              <SkeletonLoaderOverlay
+                rowCount={paginationModel?.pageSize}
+              />
+            ),
           }}
           slotProps={{
             toolbar: {
@@ -516,6 +515,9 @@ export function MyExpensesPage() {
             },
             "& .MuiDataGrid-panel .MuiSelect-select": {
               fontSize: "12px",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
@@ -565,16 +567,15 @@ export function MyExpensesPage() {
           onRowClick={(params) => navigate(`/expenses/${params.id}`)}
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={setRowSelection}
-          pagination
           paginationMode="server"
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "all"
               ? allExpensesPagination?.total
               : activeTab === "draft"
-              ? draftExpensesPagination?.total
-              : reportedExpensesPagination?.total) || 0
+                ? draftExpensesPagination?.total
+                : reportedExpensesPagination?.total) || 0
           }
         />
       </Box>

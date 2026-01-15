@@ -319,6 +319,10 @@ export function Sidebar() {
   };
 
   const renderNavigationItem = (item: NavigationItem, level: number = 0) => {
+    if (item.permissions && item.permissions?.enabled === false) {
+      return null;
+    }
+
     const paddingLeft = level * 12 + 12;
     const isDisabled = item.disabled;
 

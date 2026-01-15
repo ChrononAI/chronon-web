@@ -17,6 +17,7 @@ import { formatCurrency, getOrgCurrency } from "@/lib/utils";
 import { ExpenseDetailsStep2 } from "./ExpenseDetailsStep2";
 import { getTemplates, type Template } from "@/services/admin/templates";
 import { trackEvent } from "@/mixpanel";
+import { format } from "date-fns";
 
 // Form schema for step 2
 type ExpenseFormValues = {
@@ -39,7 +40,7 @@ type ExpenseFormValues = {
 export function getYesterday() {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return d.toISOString().split("T")[0];
+  return format(d, "yyyy-MM-dd");
 }
 
 export function CreateExpenseForm() {
@@ -196,7 +197,7 @@ export function CreateExpenseForm() {
           amount: parseFloat(formData.amount),
           expense_date:
             formData.expense_date instanceof Date
-              ? formData.expense_date.toISOString().split("T")[0]
+              ? format(formData.expenseDate, "yyyy-MM-dd")
               : formData.expense_date,
           vendor: formData.vendor,
           invoice_number: formData.invoice_number,
@@ -240,7 +241,7 @@ export function CreateExpenseForm() {
           amount: parseFloat(formData.amount),
           expense_date:
             formData.expense_date instanceof Date
-              ? formData.expense_date.toISOString().split("T")[0]
+              ? format(formData.expenseDate, "yyyy-MM-dd")
               : formData.expense_date,
           description: formData.description,
           vendor: formData.vendor || formData.merchant,

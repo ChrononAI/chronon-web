@@ -1,3 +1,5 @@
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getBulkUploadStatusColor } from "@/lib/utils";
@@ -8,29 +10,10 @@ import {
   GridRowModel,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
-import { DataGrid, GridColDef, GridOverlay } from "@mui/x-data-grid";
-import { CheckCircle } from "lucide-react";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">
-            No uploaded files found
-          </h3>
-          <p className="text-muted-foreground">
-            There are currently no uploaded files.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
 
 const columns: GridColDef[] = [
   {
@@ -75,8 +58,22 @@ function BulkUploadedFilesPage() {
     type: "include",
     ids: new Set(),
   });
+
+  const GRID_OFFSET = 200;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
   const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
 
   const handleNavigate = ({
     status,
@@ -87,7 +84,6 @@ function BulkUploadedFilesPage() {
     type: string;
     fileid: string;
   }) => {
-    console.log(status, fileid);
     if (status === "MAPPING") {
       navigate(`/admin-settings/product-config/bulk-uploads/column-mapping/${type}/${fileid}`);
     } else if (
@@ -141,13 +137,6 @@ function BulkUploadedFilesPage() {
     setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
 
-  useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-  }, []);
-
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -163,9 +152,12 @@ function BulkUploadedFilesPage() {
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           columns={columns}
-          rows={rows}
+          rows={loading ? [] : rows}
           loading={loading}
-          slots={{ noRowsOverlay: CustomNoRows }}
+          slots={{
+            noRowsOverlay: () => <CustomNoRows title="" description="There are currently no uploaded files." />,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel?.pageSize} />
+          }}
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {
@@ -178,6 +170,9 @@ function BulkUploadedFilesPage() {
             },
             "& .MuiDataGrid-panel .MuiSelect-select": {
               fontSize: "12px",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
