@@ -190,6 +190,7 @@ export function CreateExpenseForm() {
 
       let result;
       if (formData.invoice_number) {
+
         // Regular expense with invoice number
         const expensePayload: any = {
           expense_policy_id: formData.expense_policy_id,
@@ -197,7 +198,7 @@ export function CreateExpenseForm() {
           amount: parseFloat(formData.amount),
           expense_date:
             formData.expense_date instanceof Date
-              ? format(formData.expenseDate, "yyyy-MM-dd")
+              ? format(formData.expense_date, "yyyy-MM-dd")
               : formData.expense_date,
           vendor: formData.vendor,
           invoice_number: formData.invoice_number,
@@ -227,7 +228,6 @@ export function CreateExpenseForm() {
         if (Object.keys(customAttributes).length > 0) {
           expensePayload.custom_attributes = customAttributes;
         }
-        console.log(expensePayload);
 
         result = await expenseService.createExpense(expensePayload);
         if (result?.success && result.data?.id) {
