@@ -49,6 +49,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/authStore";
 import { trackEvent } from "@/mixpanel";
 
+const hasPermittedChild = (item: NavigationItem): boolean => {
+  if (!item.children) return false;
+
+  return item.children.some((child) => {
+    if (child.permissions?.enabled === true) return true;
+    if (child.children) return hasPermittedChild(child);
+    return false;
+  });
+};
+
 const navigation: NavigationItem[] = [
   {
     name: "Requests",
@@ -215,7 +225,6 @@ export function Sidebar() {
             ? permissions[key]
             : { enabled: false, allowed: false };
 
-        // Recursively apply to children
         const children = item.children
           ? mergePermissions(item.children, permissions)
           : undefined;
@@ -327,7 +336,14 @@ export function Sidebar() {
     const isDisabled = item.disabled;
 
     if (item.children) {
-      const isOpen = !sidebarCollapsed && openItems.includes(item.name);
+      const hasAllowedChild = item.name === "Requests" ? hasPermittedChild(item) : true;
+
+      if (!hasAllowedChild) return null;
+
+      const isOpen =
+        !isDisabled &&
+        !sidebarCollapsed &&
+        openItems.includes(item.name);
       return (
         <Collapsible
           key={item.name}
@@ -343,7 +359,7 @@ export function Sidebar() {
               className={cn(
                 "w-full justify-between h-auto font-normal transition-all duration-200",
                 isDisabled &&
-                  "opacity-50 cursor-not-allowed hover:bg-transparent"
+                "opacity-50 cursor-not-allowed hover:bg-transparent"
               )}
               style={{ paddingLeft: `${paddingLeft}px` }}
               disabled={isDisabled}
