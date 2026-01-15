@@ -84,26 +84,6 @@ const UNSUBMITTED_REPORT_STATUSES = ["DRAFT"];
 
 const SUBMITTED_REPORT_STATUSES = ["APPROVED", "REJECTED", "UNDER_REVIEW"];
 
-const TAB_QUERY_OVERRIDES: Record<string, FilterMap> = {
-  all: {},
-  submitted: {
-    status: [
-      {
-        operator: "in",
-        value: ["UNDER_REVIEW", "APPROVED", "REJECTED"],
-      },
-    ],
-  },
-  unsubmitted: {
-    status: [
-      {
-        operator: "in",
-        value: ["DRAFT"],
-      },
-    ],
-  },
-};
-
 export function MyReportsPage() {
   const {
     allReports,
@@ -238,15 +218,20 @@ export function MyReportsPage() {
         const limit = paginationModel?.pageSize ?? 10;
         const offset = (paginationModel?.page ?? 0) * limit;
 
-        const effectiveQuery = {
-          ...query,
-          ...TAB_QUERY_OVERRIDES[activeTab],
-        };
+        let newQuery: FilterMap = query;
+
+        if (!query?.status) {
+          if (activeTab === "unsubmitted") {
+            newQuery = { ...query, status: [{ operator: "in", value: UNSUBMITTED_REPORT_STATUSES }] }
+          } else if (activeTab === "submitted") {
+            newQuery = { ...query, status: [{ operator: "in", value: SUBMITTED_REPORT_STATUSES }] }
+          } else newQuery = query;
+        }
 
         const res = await settlementsService.getFilteredReports({
           limit,
           offset,
-          query: buildBackendQuery(effectiveQuery),
+          query: buildBackendQuery(newQuery),
           signal,
           role: "spender",
         });

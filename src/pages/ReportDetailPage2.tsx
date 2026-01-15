@@ -174,6 +174,7 @@ export function ReportDetailPage2() {
   const { user, orgSettings } = useAuthStore();
   const customIdEnabled =
     orgSettings?.custom_report_id_settings?.enabled ?? false;
+  const showDescription = orgSettings?.report_description_settings?.enabled ?? true;
   const [report, setReport] = useState<ReportWithExpenses | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<ApprovalWorkflow | null>(null);
@@ -508,10 +509,10 @@ export function ReportDetailPage2() {
           </div>
 
           {/* Description */}
-          <div className="space-y-2">
+          {showDescription && <div className="space-y-2">
             <label className="text-sm font-medium">Description</label>
             <Input value={report.description} disabled />
-          </div>
+          </div>}
           {customIdEnabled && report?.custom_report_id && (
             <div className="space-y-2">
               <label className="text-sm font-medium">Custom Report ID</label>
