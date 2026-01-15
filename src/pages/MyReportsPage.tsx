@@ -9,8 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
 import { Report } from "@/types/expense";
 import { GridPaginationModel } from "@mui/x-data-grid";
-import { Box, Skeleton } from "@mui/material";
-import { GridOverlay } from "@mui/x-data-grid";
+import { Box } from "@mui/material";
 import { useAuthStore } from "@/store/authStore";
 import CustomReportsToolbar from "@/components/reports/CustomReportsToolbar";
 import CustomNoRows from "@/components/shared/CustomNoRows";
@@ -23,64 +22,7 @@ import {
   Operator,
 } from "./MyExpensesPage";
 import { settlementsService } from "@/services/settlementsService";
-
-function ExpensesSkeletonOverlay({ rowCount = 8 }) {
-  return (
-    <GridOverlay>
-      <div className="w-full py-3 space-y-0">
-        {Array.from({ length: rowCount }).map((_, rowIndex) => (
-          <div
-            key={rowIndex}
-            className="flex items-center gap-4 w-full py-4 px-2 border-[0.5px] border-gray"
-          >
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="2%"
-              className="rounded-full"
-            />
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="15%"
-              className="rounded-full"
-            />
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="16%"
-              className="rounded-full"
-            />
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="16%"
-              className="rounded-full"
-            />
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="14%"
-              className="rounded-full"
-            />
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="16%"
-              className="rounded-full"
-            />
-            <Skeleton
-              variant="rectangular"
-              height={10}
-              width="16%"
-              className="rounded-full"
-            />
-          </div>
-        ))}
-      </div>
-    </GridOverlay>
-  );
-}
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 const columns: GridColDef[] = [
   {
@@ -185,14 +127,26 @@ export function MyReportsPage() {
     orgSettings?.custom_report_id_settings?.enabled ?? false;
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [rowsCalculated, setRowsCalculated] = useState(false);
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
+
+  const GRID_OFFSET = 240;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 56;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -201,21 +155,21 @@ export function MyReportsPage() {
     activeTab === "all"
       ? REPORT_STATUSES
       : activeTab === "unsubmitted"
-      ? UNSUBMITTED_REPORT_STATUSES
-      : SUBMITTED_REPORT_STATUSES;
+        ? UNSUBMITTED_REPORT_STATUSES
+        : SUBMITTED_REPORT_STATUSES;
 
   const newCols = useMemo<GridColDef[]>(() => {
     return [
       ...columns,
       ...(customIdEnabled
         ? [
-            {
-              field: "custom_report_id",
-              headerName: "CUSTOM REPORT ID",
-              minWidth: 140,
-              flex: 1,
-            } as GridColDef,
-          ]
+          {
+            field: "custom_report_id",
+            headerName: "CUSTOM REPORT ID",
+            minWidth: 140,
+            flex: 1,
+          } as GridColDef,
+        ]
         : []),
     ];
   }, [columns, customIdEnabled]);
@@ -249,8 +203,8 @@ export function MyReportsPage() {
       const nextFilters =
         existingIndex >= 0
           ? prevFilters.map((f, i) =>
-              i === existingIndex ? { operator, value } : f
-            )
+            i === existingIndex ? { operator, value } : f
+          )
           : [...prevFilters, { operator, value }];
 
       return {
@@ -264,13 +218,16 @@ export function MyReportsPage() {
     setActiveTab(tab);
     setLoading(true);
     setRowSelection({ type: "include", ids: new Set() });
-
+    setPaginationModel((prev) => ({
+      ...prev,
+      page: 0,
+    }));
     const filter =
       tab === "all"
         ? []
         : tab === "unsubmitted"
-        ? ["DRAFT"]
-        : ["APPROVED", "REJECTED", "UNDER_REVIEW"];
+          ? ["DRAFT"]
+          : ["APPROVED", "REJECTED", "UNDER_REVIEW"];
 
     updateQuery("status", "in", filter);
   };
@@ -324,8 +281,6 @@ export function MyReportsPage() {
   );
 
   useEffect(() => {
-    if (!rowsCalculated) return;
-
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
@@ -349,7 +304,6 @@ export function MyReportsPage() {
         .finally(() => {
           if (!controller.signal.aborted) {
             setLoading(false);
-            setIsInitialLoad(false);
             setRowSelection({ type: "include", ids: new Set() });
           }
         });
@@ -360,73 +314,14 @@ export function MyReportsPage() {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [fetchFilteredReports, rowsCalculated]);
+  }, [fetchFilteredReports]);
 
   const reportsArr =
     activeTab === "all"
       ? allReports
       : activeTab === "unsubmitted"
-      ? unsubmittedReports
-      : submittedReports;
-
-  // const fetchAllReports = async () => {
-  //   try {
-  //     const limit = paginationModel?.pageSize || 10;
-  //     const offset = (paginationModel?.page || 0) * limit;
-  //     const response = await expenseService.getMyReports(limit, offset);
-  //     setAllReports(response.reports);
-  //     setAllReportsPagination(response.pagination);
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // };
-
-  // const fetchUnsubmittedReports = async () => {
-  //   try {
-  //     const limit = paginationModel?.pageSize || 10;
-  //     const offset = (paginationModel?.page || 0) * limit;
-  //     const response = await expenseService.getReportsByStatus(
-  //       "DRAFT",
-  //       limit,
-  //       offset
-  //     );
-  //     setUnsubmittedReports(response.reports);
-  //     setUnsubmittedReportsPagination(response.pagination);
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // };
-
-  // const fetchSubmittedReports = async () => {
-  //   try {
-  //     const limit = paginationModel?.pageSize || 10;
-  //     const offset = (paginationModel?.page || 0) * limit;
-  //     const response = await expenseService.getReportsByStatus(
-  //       "UNDER_REVIEW,APPROVED,REJECTED",
-  //       limit,
-  //       offset
-  //     );
-  //     setSubmittedReports(response.reports);
-  //     setSubmittedReportsPagination(response.pagination);
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // };
-
-  // const fetchData = async () => {
-  //   try {
-  //     await Promise.all([
-  //       fetchAllReports(),
-  //       fetchUnsubmittedReports(),
-  //       fetchSubmittedReports(),
-  //     ]);
-  //     setIsInitialLoad(false);
-  //   } catch (error) {
-  //     console.log(error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+        ? unsubmittedReports
+        : submittedReports;
 
   useEffect(() => {
     setRowSelection({
@@ -436,11 +331,6 @@ export function MyReportsPage() {
   }, [paginationModel?.page, paginationModel?.pageSize]);
 
   useEffect(() => {
-    const gridHeight = window.innerHeight - 348;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-    setRowsCalculated(true);
     setRowSelection({
       type: "include",
       ids: new Set(),
@@ -533,14 +423,7 @@ export function MyReportsPage() {
                 description="There are currently no reports"
               />
             ),
-            loadingOverlay:
-              loading && isInitialLoad
-                ? () => (
-                    <ExpensesSkeletonOverlay
-                      rowCount={paginationModel?.pageSize}
-                    />
-                  )
-                : undefined,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />,
           }}
           slotProps={{
             toolbar: {
@@ -557,6 +440,9 @@ export function MyReportsPage() {
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
@@ -589,15 +475,15 @@ export function MyReportsPage() {
             activeTab === "all"
               ? allReportsPagination.count
               : activeTab === "unsubmitted"
-              ? unsubmittedReportsPagination.count
-              : submittedReportsPagination.count
+                ? unsubmittedReportsPagination.count
+                : submittedReportsPagination.count
           }
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
           disableRowSelectionOnClick
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           density="compact"
           showCellVerticalBorder

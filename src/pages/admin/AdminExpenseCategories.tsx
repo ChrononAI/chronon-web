@@ -1,3 +1,5 @@
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { Button } from "@/components/ui/button";
 import { categoryService } from "@/services/admin/categoryService";
 import { PaginationInfo } from "@/store/expenseStore";
@@ -5,30 +7,13 @@ import { Box } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
-  GridOverlay,
   GridPaginationModel,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
-import { CheckCircle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No categories found</h3>
-          <p className="text-muted-foreground">
-            There are currently no categories.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
 
 const columns: GridColDef[] = [
   {
@@ -54,27 +39,30 @@ const columns: GridColDef[] = [
 function AdminExpenseCategories() {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>({
-      page: 0,
-      pageSize: 10,
-    });
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
-    const handleRowClick = ({ row }: any) => {
-      console.log(row);
-      navigate(`/admin-settings/product-config/expense-categories/create/${row.id}`, { state: row });
-    }
+  const GRID_OFFSET = 190;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
 
-  useEffect(() => {
-    const gridHeight = window.innerHeight - 260;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-  }, []);
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
 
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
+
+  const handleRowClick = ({ row }: any) => {
+    console.log(row);
+    navigate(`/admin-settings/product-config/expense-categories/create/${row.id}`, { state: row });
+  };
 
   const getCategories = async ({
     page,
@@ -92,8 +80,8 @@ function AdminExpenseCategories() {
       console.log(error);
       toast.error(
         error?.response?.data?.message ||
-          error.message ||
-          "Failed to get categories"
+        error.message ||
+        "Failed to get categories"
       );
     } finally {
       setLoading(false);
@@ -121,13 +109,16 @@ function AdminExpenseCategories() {
           Add Categories
         </Button>
       </div>
-      <Box sx={{ height: "calc(100vh - 100px)", width: "100%" }}>
+      <Box sx={{ height: "calc(100vh - 120px)", width: "100%" }}>
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           columns={columns}
-          rows={rows}
+          rows={loading ? [] : rows}
           loading={loading}
-          slots={{ noRowsOverlay: CustomNoRows }}
+          slots={{
+            noRowsOverlay: () => <CustomNoRows title="No categories found" description="There are currently no categories." />,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+           }}
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {
@@ -137,6 +128,9 @@ function AdminExpenseCategories() {
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
@@ -178,7 +172,7 @@ function AdminExpenseCategories() {
           pagination
           paginationMode="server"
           rowCount={pagination ? pagination.total : 0}
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
         />
       </Box>
