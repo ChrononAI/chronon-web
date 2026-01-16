@@ -96,7 +96,7 @@ const navigation: NavigationItem[] = [
     icon: SlidersHorizontal,
     children: [
       {
-        name: "Expenses",
+        name: "Expense Reports",
         href: "/approvals/reports",
         icon: CheckSquare,
       },
@@ -138,6 +138,11 @@ const navigation: NavigationItem[] = [
         name: "Settlements",
         href: "/admin/settlements",
         icon: TicketCheck,
+      },
+      {
+        name: "Expense Reports",
+        href: "/admin/admin-reports",
+        icon: CheckSquare,
       },
     ],
   },

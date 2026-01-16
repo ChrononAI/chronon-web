@@ -174,6 +174,10 @@ export function ReportDetailPage2() {
   const { user, orgSettings } = useAuthStore();
   const customIdEnabled =
     orgSettings?.custom_report_id_settings?.enabled ?? false;
+
+  const isAdmin = user?.role === "ADMIN";
+  console.log(isAdmin);
+
   const showDescription = orgSettings?.report_description_settings?.enabled ?? true;
   const [report, setReport] = useState<ReportWithExpenses | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
@@ -456,6 +460,8 @@ export function ReportDetailPage2() {
     (exp) => exp.status === "PENDING" || exp.status === "PENDING_APPROVAL"
   ).length;
 
+  const adminApprover = isAdmin && pathname.includes("admin-reports") && report.status === "UNDER_REVIEW";
+
   const handleViewExpense = async (expense: Expense) => {
     if (pathname.includes("/approvals/")) {
       navigate(`/approvals/reports/${report.id}/${expense.id}`);
@@ -471,7 +477,7 @@ export function ReportDetailPage2() {
       <div className="flex flex-col space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Report Approval</h1>
-          {isFromApprovals && canApproveReport() && (
+          {((isFromApprovals && canApproveReport()) || adminApprover) && (
             <div className="flex gap-2">
               <Button
                 onClick={() => handleAction("approve")}
