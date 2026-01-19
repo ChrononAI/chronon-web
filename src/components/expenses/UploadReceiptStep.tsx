@@ -6,7 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { fileParseService, ParsedInvoiceData } from '@/services/fileParseService';
 import { useExpenseStore } from '@/store/expenseStore';
+import { FileSizeDialog } from './FileSizeDialog';
 
+const MAX_FILE_SIZE_MB = 3;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 interface UploadReceiptStepProps {
   onNext: (data: {
@@ -24,13 +27,17 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   // const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
-    const { parsedData, setParsedData } = useExpenseStore();
+  const { parsedData, setParsedData } = useExpenseStore();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showPotentialDuplicateAlert, setShowPotentialDuplicateAlert] = useState(false);
   const [duplicateIds, setDuplicateIds] = useState<number[]>([]);
-
+  const [showSizeDialog, setShowSizeDialog] = useState(false);
 
   const handleFileUpload = async (file: File) => {
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setShowSizeDialog(true);
+      return;
+    }
     try {
       setIsProcessing(true);
       setUploadedFile(file);
@@ -190,47 +197,47 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
               ) : (
                 <>
                   <Card>
-                      <CardContent className="p-6">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <FileText className="h-5 w-5 text-green-600" />
-                              <span className="font-medium">{uploadedFile.name}</span>
-                              {parsedData && (
-                                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                  Processed
-                                </Badge>
-                              )}
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={removeUploadedFile}
-                              className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-5 w-5 text-green-600" />
+                            <span className="font-medium">{uploadedFile.name}</span>
+                            {parsedData && (
+                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Processed
+                              </Badge>
+                            )}
                           </div>
-
-                          {previewUrl && (
-                            <img
-                              src={previewUrl}
-                              alt="Invoice preview"
-                              className="w-full h-48 object-contain rounded-md border"
-                            />
-                          )}
-
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={removeUploadedFile}
+                            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
-                      </CardContent>
-                    </Card>
+
+                        {previewUrl && (
+                          <img
+                            src={previewUrl}
+                            alt="Invoice preview"
+                            className="w-full h-48 object-contain rounded-md border"
+                          />
+                        )}
+
+                      </div>
+                    </CardContent>
+                  </Card>
                 </>
               )}
             </div>
           )}
         </CardContent>
       </Card>
-
+          <FileSizeDialog open={showSizeDialog} onClose={() => setShowSizeDialog(false)} />
       {/* Navigation Buttons */}
       {/* {type === "upload" && <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
