@@ -84,7 +84,7 @@ const getErrorMessage = (error: unknown, defaultMessage: string): string => {
   return defaultMessage;
 };
 
-const AttributeValueField = React.memo(
+export const AttributeValueField = React.memo(
   ({
     entityId,
     value,
