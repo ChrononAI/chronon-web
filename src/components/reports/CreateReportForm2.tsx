@@ -30,7 +30,7 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 import { reportService } from "@/services/reportService";
-import { Expense, ApprovalWorkflow, ExpenseComment } from "@/types/expense";
+import { Expense, ApprovalWorkflow, ExpenseComment, PolicyCategory } from "@/types/expense";
 import { AdditionalFieldMeta, CustomAttribute } from "@/types/report";
 import { useAuthStore } from "@/store/authStore";
 import {
@@ -62,6 +62,7 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import { getExpenseType } from "@/pages/MyExpensesPage";
+import CustomReportExpenseToolbar from "./CustomReportExpenseToolbar";
 
 // Dynamic form schema creation function
 const createReportSchema = (customAttributes: CustomAttribute[]) => {
@@ -365,7 +366,8 @@ export function CreateReportForm2({
   const getAllCategories = async () => {
     try {
       const res = await categoryService.getAllCategories();
-      setCategories(res.data.data);
+      const newCategories = res.data.data.map((cat: PolicyCategory) => cat.name)
+      setCategories(newCategories);
     } catch (error) {
       console.log(error);
     }
@@ -1011,9 +1013,9 @@ export function CreateReportForm2({
                       border: "0.2px solid #f3f4f6",
                     },
                     "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                      {
-                        outline: "none",
-                      },
+                    {
+                      outline: "none",
+                    },
                     "& .MuiDataGrid-cell:focus-within": {
                       outline: "none",
                     },
@@ -1091,17 +1093,12 @@ export function CreateReportForm2({
               columns={columns}
               loading={loadingExpenses}
               slots={{
-                toolbar: () => (
-                  <CustomToolbar
-                    categories={categories}
-                    selectedCategory={selectedCategory}
-                    setSelectedCategory={setSelectedCategory}
-                    dateFrom={dateFrom}
-                    dateTo={dateTo}
-                    setDateFrom={setDateFrom}
-                    setDateTo={setDateTo}
-                  />
-                ),
+                toolbar: CustomReportExpenseToolbar,
+              }}
+              slotProps={{
+                toolbar: {
+                  allCategories: categories,
+                } as any,
               }}
               sx={{
                 border: 0,
@@ -1137,9 +1134,9 @@ export function CreateReportForm2({
                   border: "0.2px solid #f3f4f6",
                 },
                 "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                  {
-                    outline: "none",
-                  },
+                {
+                  outline: "none",
+                },
                 "& .MuiDataGrid-cell:focus-within": {
                   outline: "none",
                 },
