@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, NavLink } from "react-router-dom";
+import { useLocation, NavLink, useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -18,6 +18,8 @@ import {
   Store,
   TicketCheck,
   Receipt,
+  FileText,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -150,7 +152,6 @@ const navigation: NavigationItem[] = [
 ];
 
 const permissionMap: any = {
-  "Pre Approval": "pre_approval_settings",
   Advances: "advance_settings",
   Transactions: "mobile_payment_settings",
   Admin: "admin_dashboard_settings",
@@ -159,8 +160,18 @@ const permissionMap: any = {
 
 export function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed } =
     useAuthStore();
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitioningTo, setTransitioningTo] = useState<"expenses" | "flow">("expenses");
+  const [activeAccount, setActiveAccount] = useState<"account1" | "account2">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("activeAccount");
+      return (saved === "account2" ? "account2" : "account1") as "account1" | "account2";
+    }
+    return "account1";
+  });
   const [openItems, setOpenItems] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("sidebarOpenItems");
@@ -218,7 +229,18 @@ export function Sidebar() {
           permissions: permission,
           children,
         };
-      } else if (item.name === "Pre Approval" || item.name === "Advances") {
+      } else if (item.name === "Pre Approval") {
+        // Pre Approval always enabled, no permission check
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+
+        return {
+          ...item,
+          permissions: { enabled: true, allowed: true },
+          children,
+        };
+      } else if (item.name === "Advances") {
         const key = permissionMap[item.name];
         const permission =
           key && permissions
@@ -279,9 +301,15 @@ export function Sidebar() {
   };
 
   useEffect(() => {
-    const newNav: NavigationItem[] = mergePermissions(navigation, orgSettings);
+    // In Account 2 (flow mode), show the same navigation items as Account 1
+    // The routes will work in both modes since they're accessible from both layouts
+    let navToUse = navigation;
+    
+    const newNav: NavigationItem[] = mergePermissions(navToUse, orgSettings);
     setNewNavItems(newNav);
   }, [orgSettings]);
+
+  // Note: Browser back button prevention removed since both accounts use the same routes
 
   const handleLogout = () => {
     trackEvent("Logout Button Clicked", {
@@ -295,6 +323,12 @@ export function Sidebar() {
       localStorage.setItem("sidebarOpenItems", JSON.stringify(openItems));
     }
   }, [openItems]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("activeAccount", activeAccount);
+    }
+  }, [activeAccount]);
 
   useEffect(() => {
     const path = location.pathname;
@@ -407,8 +441,9 @@ export function Sidebar() {
           key={item.name}
           to={item.href}
           className={({ isActive }) => {
-            const active =
-              isActive || (item.name === "Admin Settings" && isAdminActive);
+            // For Approval tab, also check if we're on approval detail pages
+            const isApprovalActive = item.name === "Approval" && location.pathname.startsWith("/flow/approvals");
+            const active = isActive || isApprovalActive || (item.name === "Admin Settings" && isAdminActive);
 
             return cn(
               "flex items-center py-2 text-sm rounded-md transition-colors",
@@ -446,6 +481,71 @@ export function Sidebar() {
         sidebarCollapsed ? "w-12" : "w-64"
       )}
     >
+      {/* Futuristic Workspace Transition Overlay */}
+      {isTransitioning && (
+        <div 
+          className="fixed inset-0 z-[9999] pointer-events-none overflow-hidden animate-[workspaceFadeIn_0.3s_ease-out]"
+          style={{ 
+            animation: 'workspaceFadeIn 0.3s ease-out',
+          }}
+        >
+          {/* Animated gradient background with blur */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/98 via-purple-50/95 to-indigo-50/98 backdrop-blur-xl" />
+          
+          {/* Animated floating orbs/particles */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-300/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          </div>
+
+          {/* Main Content Container */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative z-10 text-center animate-[workspaceSlideUp_0.5s_ease-out]">
+              {/* Icon container with morphing rings */}
+              <div className="relative w-32 h-32 flex items-center justify-center mb-8 mx-auto">
+                {/* Outer animated rings */}
+                <div className="absolute inset-0 border-2 border-blue-300/30 rounded-full animate-spin" style={{ animationDuration: '8s' }} />
+                <div className="absolute inset-2 border-2 border-purple-300/30 rounded-full animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }} />
+                <div className="absolute inset-4 border border-indigo-300/20 rounded-full animate-spin" style={{ animationDuration: '10s' }} />
+                
+                {/* Main icon with glow */}
+                <div className="relative w-24 h-24 flex items-center justify-center">
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400/40 to-purple-400/40 rounded-full blur-xl animate-pulse" />
+                  
+                  {/* Icon background with glassmorphism */}
+                  <div className="relative w-20 h-20 flex items-center justify-center bg-white/90 backdrop-blur-xl rounded-full border-2 border-white/60 shadow-2xl transform transition-all duration-500 hover:scale-110">
+                    {transitioningTo === "expenses" ? (
+                      <Wallet className="h-10 w-10 text-blue-600 animate-[workspaceFadeIn_0.4s_ease-out]" />
+                    ) : (
+                      <FileText className="h-10 w-10 text-purple-600 animate-[workspaceFadeIn_0.4s_ease-out]" />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Workspace name with smooth animation */}
+              <div className="space-y-3 animate-[workspaceSlideUp_0.6s_ease-out]">
+                <div className="text-gray-800 text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  {transitioningTo === "expenses" ? "Account 1" : "Account 2"}
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                  <div className="text-gray-600 text-sm font-medium">Switching workspace</div>
+                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Animated progress bar at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 overflow-hidden">
+            <div className="h-full w-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-[workspaceProgress_1.2s_ease-in-out_infinite]" style={{ transform: 'translateX(-100%)' }} />
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="flex items-center justify-between p-4">
         {!sidebarCollapsed && (
@@ -525,25 +625,109 @@ export function Sidebar() {
 
           {!sidebarCollapsed && (
             <DropdownMenuContent
-              className="w-56 ml-4"
+              className="w-64 ml-4 p-0"
               side="right"
               align="end"
               forceMount
             >
+              {/* Workspaces Section */}
+              <div className="px-3 pt-2.5 pb-2">
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Workspaces
+                </p>
+                <div className="space-y-0.5">
+                  {/* Account 1 */}
+                  <div
+                    onClick={() => {
+                      if (activeAccount !== "account1") {
+                        setActiveAccount("account1");
+                        setTransitioningTo("expenses");
+                        setIsTransitioning(true);
+                        setTimeout(() => {
+                          window.history.replaceState(null, "", "/expenses");
+                          navigate("/expenses", { replace: true });
+                          setTimeout(() => setIsTransitioning(false), 1200);
+                        }, 1000);
+                      }
+                    }}
+                    className={cn(
+                      "relative flex items-center gap-2.5 p-2 rounded-md cursor-pointer transition-all",
+                      activeAccount === "account1"
+                        ? "bg-blue-50 border-l-4 border-blue-600"
+                        : "hover:bg-muted/50"
+                    )}
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-blue-600 text-white">
+                        <Wallet className="h-3.5 w-3.5" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground leading-tight">
+                        Account 1
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Account 2 */}
+                  <div
+                    onClick={() => {
+                      if (activeAccount !== "account2") {
+                        setActiveAccount("account2");
+                        // Account 2 uses the same routes as Account 1
+                        setTransitioningTo("flow");
+                        setIsTransitioning(true);
+                        setTimeout(() => {
+                          window.history.replaceState(null, "", "/expenses");
+                          navigate("/expenses", { replace: true });
+                          setTimeout(() => setIsTransitioning(false), 1200);
+                        }, 1000);
+                      }
+                    }}
+                    className={cn(
+                      "relative flex items-center gap-2.5 p-2 rounded-md cursor-pointer transition-all",
+                      activeAccount === "account2"
+                        ? "bg-blue-50 border-l-4 border-blue-600"
+                        : "hover:bg-muted/50"
+                    )}
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-purple-600 text-white">
+                        <FileText className="h-3.5 w-3.5" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground leading-tight">
+                        Account 2
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link to="/profile" className="flex items-center">
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="cursor-pointer text-red-600 focus:text-red-600"
-                onClick={handleLogout}
-              >
-                <span>Log out</span>
-              </DropdownMenuItem>
+
+              {/* Account Section */}
+              <div className="px-3 pt-2 pb-2.5">
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Account
+                </p>
+                <div className="space-y-0.5">
+                  <DropdownMenuItem asChild className="cursor-pointer px-2 py-1.5">
+                    <Link to="/profile" className="flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 px-2 py-1.5"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </div>
+              </div>
             </DropdownMenuContent>
           )}
         </DropdownMenu>

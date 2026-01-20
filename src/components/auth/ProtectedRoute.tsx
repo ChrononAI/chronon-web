@@ -10,7 +10,8 @@ export function ProtectedRoute() {
   let enabled: boolean;
 
   if (location.pathname.includes("pre-approvals") ) {
-    enabled = orgSettings?.pre_approval_settings?.enabled || false;
+    // Pre-approval always enabled, no permission check
+    enabled = true;
   } else if (location.pathname.includes("advances") || location.pathname.includes('/advance_accounts')) {
     enabled = orgSettings?.advance_settings?.enabled || false;
   } else if (location.pathname.includes("transactions")) {

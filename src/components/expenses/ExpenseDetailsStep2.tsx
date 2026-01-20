@@ -75,6 +75,7 @@ import { getEntities, type Entity } from "@/services/admin/entities";
 import { FormFooter } from "../layout/FormFooter";
 import ReceiptViewer from "./ReceiptViewer";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
+import { preApprovalService, PreApprovalType } from "@/services/preApprovalService";
 
 // Form schema
 const expenseSchema = z.object({
@@ -108,6 +109,7 @@ const expenseSchema = z.object({
   foreign_amount: z.string().optional().nullable(),
   user_conversion_rate: z.string().optional().nullable(),
   api_conversion_rate: z.string().optional().nullable(),
+  pre_approval_id: z.string().optional().nullable(),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema> & Record<string, any>;
@@ -172,6 +174,9 @@ export function ExpenseDetailsStep2({
   const [advanceAccounts, setAdvanceAccounts] = useState([]);
   const [selectedAdvanceAccount, setSelectedAdvanceAccount] =
     useState<any>(null);
+  const [preApprovals, setPreApprovals] = useState<PreApprovalType[]>([]);
+  const [selectedPreApproval, setSelectedPreApproval] =
+    useState<PreApprovalType | null>(null);
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string[]>([]);
   const [showConversion, setShowConversion] = useState(false);
   const [templateEntities, setTemplateEntities] = useState<TemplateEntity[]>(
@@ -372,6 +377,16 @@ export function ExpenseDetailsStep2({
     }
   };
 
+  const fetchPreApprovals = async () => {
+    try {
+      const res = await preApprovalService.fetchAllPreApprovals();
+      setPreApprovals(res.data?.data || []);
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to fetch pre-approvals");
+    }
+  };
+
   useEffect(() => {
     if (!currency) return;
 
@@ -436,11 +451,18 @@ export function ExpenseDetailsStep2({
       );
       setSelectedAdvanceAccount(adv);
     }
-  }, [expense, advanceAccounts]);
+    if (expense && preApprovals.length > 0 && expense?.pre_approval_id) {
+      const preApproval = preApprovals.find(
+        (pa) => pa.id === expense.pre_approval_id
+      );
+      setSelectedPreApproval(preApproval || null);
+    }
+  }, [expense, advanceAccounts, preApprovals]);
 
   useEffect(() => {
     loadPoliciesWithCategories();
     getAccounts();
+    fetchPreApprovals();
   }, []);
 
   useEffect(() => {
@@ -1354,6 +1376,80 @@ export function ExpenseDetailsStep2({
                             )}
                           />
                         )}
+
+                      <FormField
+                        control={form.control}
+                        name="pre_approval_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Pre Approval</FormLabel>
+                            <Select
+                              value={field.value || ""}
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                const preApproval = preApprovals.find(
+                                  (pa) => pa.id === value
+                                );
+                                setSelectedPreApproval(preApproval || null);
+                              }}
+                              disabled={readOnly}
+                            >
+                              <FormControl>
+                                <SelectTrigger
+                                  className={`${selectTriggerClass} relative`}
+                                >
+                                  <SelectValue placeholder="Select a pre-approval">
+                                    {field.value && selectedPreApproval
+                                      ? selectedPreApproval.title
+                                      : "Select a pre-approval"}
+                                  </SelectValue>
+
+                                  {field.value && !readOnly && (
+                                    <button
+                                      type="button"
+                                      onPointerDown={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        field.onChange("");
+                                        setSelectedPreApproval(null);
+                                      }}
+                                      className="absolute right-8 top-1/2 mr-2 -translate-y-1/2 text-muted-foreground hover:text-foreground pointer-events-auto"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {preApprovals.length > 0 ? (
+                                  preApprovals.map((preApproval) => (
+                                    <SelectItem
+                                      key={preApproval.id}
+                                      value={preApproval.id}
+                                    >
+                                      <div>
+                                        <div className="font-medium">
+                                          {preApproval.title}
+                                        </div>
+                                        {preApproval.description && (
+                                          <div className="text-sm text-muted-foreground">
+                                            {preApproval.description}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                    No pre-approvals available
+                                  </div>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
                       {templateEntities?.map((entity) => {
                         const entityId = getEntityId(entity);
