@@ -104,7 +104,7 @@ function AttachmentViewer({
                                 <div className="relative h-full w-full">
                                     <div
                                         className={cn(
-                                            "flex items-center justify-between",
+                                            "flex items-center justify-center",
                                             isPdfAttachment && "h-full"
                                         )}
                                     >
@@ -122,7 +122,7 @@ function AttachmentViewer({
                                             <img
                                                 src={currentReceiptUrl ?? ""}
                                                 alt="Receipt preview"
-                                                className="w-[70%] xl:w-[60%] bg-white object-contain mx-auto"
+                                                className="w-full bg-white object-contain mx-auto"
                                                 style={{
                                                     transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
                                                     transformOrigin: "center",
@@ -247,8 +247,8 @@ function AttachmentViewer({
                 </div>
             </div>
             {isReceiptFullscreen && hasAttachment && (
-                <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
-                    <div className="relative w-full h-full flex flex-col">
+                <div className="fixed inset-0 z-50 bg-black bg-opacity-70 flex items-center justify-center p-4">
+                    <div className="relative w-[96%] h-[96%] flex flex-col">
                         {/* Fullscreen Header */}
                         <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
                             <div className="flex items-center gap-4">

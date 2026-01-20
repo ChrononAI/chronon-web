@@ -294,7 +294,7 @@ function ReceiptViewer({
                       <img
                         src={currentReceiptUrl ?? ""}
                         alt="Receipt preview"
-                        className="w-[70%] xl:w-[60%] bg-white object-contain mx-auto"
+                        className="w-full bg-white object-contain mx-auto"
                         style={{
                           transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
                           transformOrigin: "center",

@@ -72,7 +72,7 @@ const columns: GridColDef[] = [
 export function ApprovalsReportsPage() {
   const navigate = useNavigate();
   const { orgSettings } = useAuthStore();
-  const customIdEnabled = orgSettings.custom_report_id_settings ?? false;
+  const customIdEnabled = orgSettings?.custom_report_id_settings?.enabled ?? false;
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<
