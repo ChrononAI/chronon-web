@@ -147,7 +147,7 @@ export function AdminReportsApprovalPage() {
       const prevFilters: FieldFilter[] = prev[key] ?? [];
 
       if (
-        value == null ||
+        value === undefined ||
         (typeof value === "string" && value.trim() === "") ||
         (Array.isArray(value) && value.length === 0)
       ) {
