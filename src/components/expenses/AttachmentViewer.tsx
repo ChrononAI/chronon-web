@@ -37,7 +37,7 @@ function AttachmentViewer({
     const currentReceiptUrl = attachmentArr[activeReceiptIndex];
     const hasAttachment = attachmentArr.length > 0;
 
-    const receiptDisplayName = "Receipt preview"
+    const receiptDisplayName = "Receipt preview";
 
     const hasMultipleAttachments = attachmentArr.length > 1;
 

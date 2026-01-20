@@ -321,7 +321,7 @@ export function ExpenseDetailsStep2({
       console.log(error);
       throw error;
     }
-  }
+  };
 
   const [activeReceiptTab, setActiveReceiptTab] = useState<
     "receipt" | "comments"
