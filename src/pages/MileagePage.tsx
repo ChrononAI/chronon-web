@@ -185,7 +185,6 @@ const MileagePage = ({
   const [fileIds, setFileIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachmentLoading, setAttachmentLoading] = useState(true);
-  console.log(fileIds);
   
   const generateUploadUrl = async (file: File): Promise<{
     downloadUrl: string;
@@ -1003,7 +1002,6 @@ const MileagePage = ({
           const fetched = await Promise.all(
             fileIdsToFetch.map(async (fileId) => {
               const res = await expenseService.generatePreviewUrl(fileId);
-              console.log(res);
               return { fileId, url: res.data.data.download_url };
             })
           );
