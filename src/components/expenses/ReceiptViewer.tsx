@@ -321,7 +321,7 @@ function ReceiptViewer({
                 </div>
               )}
             </div>
-            <div className="sticky bottom-0 z-10 bg-white border-t border-gray-200 flex items-center justify-between">
+            <div className="sticky bottom-0 z-10 bg-white border-t border-gray-200 mx-auto w-48 flex items-center justify-between">
               {hasMultipleReceipts && (
                 <Button
                   variant="ghost"

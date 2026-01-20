@@ -41,7 +41,6 @@ export function AttachmentUploader({
 
             try {
                 const { uploadUrl, fileId, downloadUrl } = await generateUploadUrl(file);
-
                 await fetch(uploadUrl, {
                     method: "PUT",
                     body: file,
@@ -52,11 +51,10 @@ export function AttachmentUploader({
 
                 uploadedAttachments.push({ fileId, url: downloadUrl });
                 uploadedFileIds.push(fileId);
-            } catch {
-
+            } catch (error) {
+                console.error(error);
             }
         }
-
         onChange((prev) => [...prev, ...uploadedAttachments]);
         setFileIds((prev) => [...prev, ...uploadedFileIds]);
         toast.success('Successfully uploaded attachments');
@@ -73,7 +71,7 @@ export function AttachmentUploader({
                 onClick={() => inputRef.current?.click()}
             >
                 <Paperclip className="mr-2 h-4 w-4" />
-                Add attachment
+                Add Attachment
             </Button>
 
             <input
