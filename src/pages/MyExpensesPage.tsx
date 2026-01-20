@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { expenseService } from "@/services/expenseService";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { useExpenseStore } from "@/store/expenseStore";
+import { useAuthStore } from "@/store/authStore";
 import { Box } from "@mui/material";
 import {
   DataGrid,
@@ -235,7 +236,7 @@ const columns: GridColDef[] = [
 ];
 
 export function MyExpensesPage() {
-  const {
+const {
     allExpenses,
     query,
     draftExpenses,
@@ -251,6 +252,7 @@ export function MyExpensesPage() {
     setDraftExpensesPagination,
     setReportedExpensesPagination,
   } = useExpenseStore();
+  const { activeAccount } = useAuthStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
@@ -358,24 +360,46 @@ export function MyExpensesPage() {
         signal,
       });
 
+      // Filter expenses by workspace account tag
+      // Expenses created in a workspace should always be visible in that workspace (100%)
+      let filteredExpenses = response.data.data;
+      
+      filteredExpenses = filteredExpenses.filter((expense: any) => {
+        const workspaceTag = expense.custom_attributes?.workspace_account || 
+                            expense.custom_attributes?.["workspace_account"];
+        
+        // Show expenses that match the current workspace account
+        if (workspaceTag === activeAccount) {
+          return true;
+        }
+        
+        // For backward compatibility: show expenses without workspace tag in account1
+        if (!workspaceTag && activeAccount === "account1") {
+          return true;
+        }
+        
+        // Don't show expenses from other workspace (unless they have no tag and we're in account1)
+        return false;
+      });
+
       switch (activeTab) {
         case "draft":
-          setDraftExpenses(response.data.data);
-          setDraftExpensesPagination({ total: response.data.count });
+          setDraftExpenses(filteredExpenses);
+          setDraftExpensesPagination({ total: filteredExpenses.length });
           break;
 
         case "reported":
-          setReportedExpenses(response.data.data);
-          setReportedExpensesPagination({ total: response.data.count });
+          setReportedExpenses(filteredExpenses);
+          setReportedExpensesPagination({ total: filteredExpenses.length });
           break;
 
         case "all":
         default:
-          setAllExpenses(response.data.data);
-          setAllExpensesPagination({ total: response.data.count });
+          setAllExpenses(filteredExpenses);
+          setAllExpensesPagination({ total: filteredExpenses.length });
       }
     },
-    [query, activeTab, paginationModel?.page, paginationModel?.pageSize]
+    [query, activeTab, paginationModel?.page, paginationModel?.pageSize, activeAccount]
   );
 
   useEffect(() => {

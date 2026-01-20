@@ -68,7 +68,7 @@ const navigation: NavigationItem[] = [
     icon: FilePlus,
     children: [
       {
-        name: "Pre Approval",
+        name: "Trip Request",
         href: "/requests/pre-approvals",
         icon: CheckSquare,
       },
@@ -103,7 +103,7 @@ const navigation: NavigationItem[] = [
         icon: CheckSquare,
       },
       {
-        name: "Pre Approval",
+        name: "Trip Request",
         href: "/approvals/pre-approvals",
         icon: ClipboardCheck,
       },
@@ -161,17 +161,10 @@ const permissionMap: any = {
 export function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed } =
+  const { user, orgSettings, logout, sidebarCollapsed, setSidebarCollapsed, activeAccount, setActiveAccount } =
     useAuthStore();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitioningTo, setTransitioningTo] = useState<"expenses" | "flow">("expenses");
-  const [activeAccount, setActiveAccount] = useState<"account1" | "account2">(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("activeAccount");
-      return (saved === "account2" ? "account2" : "account1") as "account1" | "account2";
-    }
-    return "account1";
-  });
   const [openItems, setOpenItems] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("sidebarOpenItems");
@@ -229,8 +222,8 @@ export function Sidebar() {
           permissions: permission,
           children,
         };
-      } else if (item.name === "Pre Approval") {
-        // Pre Approval always enabled, no permission check
+      } else if (item.name === "Trip Request") {
+        // Trip Request always enabled, no permission check
         const children = item.children
           ? mergePermissions(item.children, permissions)
           : undefined;
@@ -323,12 +316,6 @@ export function Sidebar() {
       localStorage.setItem("sidebarOpenItems", JSON.stringify(openItems));
     }
   }, [openItems]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("activeAccount", activeAccount);
-    }
-  }, [activeAccount]);
 
   useEffect(() => {
     const path = location.pathname;
@@ -527,8 +514,13 @@ export function Sidebar() {
 
               {/* Workspace name with smooth animation */}
               <div className="space-y-3 animate-[workspaceSlideUp_0.6s_ease-out]">
-                <div className="text-gray-800 text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  {transitioningTo === "expenses" ? "Account 1" : "Account 2"}
+                <div>
+                  <div className="text-gray-800 text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    Pradeep Chhabria
+                  </div>
+                  <div className="text-gray-600 text-sm font-medium mt-1">
+                    {transitioningTo === "expenses" ? "Keelnex PVT Limited" : "Chronon PVT Limited"}
+                  </div>
                 </div>
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
@@ -664,7 +656,10 @@ export function Sidebar() {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground leading-tight">
-                        Account 1
+                        Pradeep Chhabria
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-tight mt-0.5">
+                        Keelnex PVT Limited
                       </p>
                     </div>
                   </div>
@@ -698,7 +693,10 @@ export function Sidebar() {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground leading-tight">
-                        Account 2
+                        Pradeep Chhabria
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-tight mt-0.5">
+                        Chronon PVT Limited
                       </p>
                     </div>
                   </div>

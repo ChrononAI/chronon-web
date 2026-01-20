@@ -21,7 +21,7 @@ const columns: GridColDef[] = [
   },
   {
     field: "is_pre_approval_required",
-    headerName: "PRE APPROVAL",
+    headerName: "TRIP REQUEST",
     minWidth: 200,
     flex: 1,
   },

@@ -57,7 +57,7 @@ const OPERATOR_OPTIONS: { value: Operator; label: string }[] = [
 const WORKFLOW_EVENT_OPTIONS: { value: WorkflowEvent; label: string }[] = [
   { value: "ADVANCE", label: "Advance" },
   { value: "REPORT", label: "Report" },
-  { value: "PREAPPROVAL", label: "Pre Approval" },
+  { value: "PREAPPROVAL", label: "Trip Request" },
   { value: "STORE", label: "Store" },
 ];
 

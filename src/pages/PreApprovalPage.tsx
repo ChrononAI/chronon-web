@@ -23,7 +23,7 @@ import CustomNoRows from "@/components/shared/CustomNoRows";
 const columns: GridColDef[] = [
   {
     field: "sequence_number",
-    headerName: "PRE APPROVAL ID",
+    headerName: "TRIP REQUEST ID",
     minWidth: 160,
     flex: 1,
   },
@@ -247,7 +247,7 @@ function PreApprovalPage() {
 
   return (
     <ReportsPageWrapper
-      title="Pre Approval"
+      title="Trip Request"
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={(tabId) => {
@@ -268,7 +268,7 @@ function PreApprovalPage() {
       showFilters={false}
       showDateFilter={false}
       showCreateButton={true}
-      createButtonText="Create Pre Approval"
+      createButtonText="Create Trip Request"
       createButtonLink="/requests/pre-approvals/create"
     >
       <Box
@@ -284,7 +284,7 @@ function PreApprovalPage() {
           rows={loading ? [] : rows}
           loading={loading}
           slots={{
-            noRowsOverlay: () => <CustomNoRows title="No pre apporvals found" description="There are currently no pre approvals." />,
+            noRowsOverlay: () => <CustomNoRows title="No trip requests found" description="There are currently no trip requests." />,
             loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           sx={{

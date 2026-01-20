@@ -189,15 +189,15 @@ function ProcessPreApprovalPage() {
         payload,
       });
       if (action === "approve") {
-        toast.success("Pre approval approved successfully");
+        toast.success("Trip request approved successfully");
       } else {
-        toast.success("Pre approval rejected successfully");
+        toast.success("Trip request rejected successfully");
       }
       navigate("/approvals/pre-approvals");
     } catch (error: any) {
       console.log(error);
       toast.error(
-        error?.response?.data?.message || "Failed to process pre approval"
+        error?.response?.data?.message || "Failed to process trip request"
       );
     } finally {
       // setLoading(false);
@@ -205,7 +205,7 @@ function ProcessPreApprovalPage() {
   };
   const handleAction = async (action: string) => {
     const text =
-      action === "approve" ? "Approve Pre Approval" : "Reject Pre Approval";
+      action === "approve" ? "Approve Trip Request" : "Reject Trip Request";
     trackEvent(text + " Button Clicked", {
       button_name: text,
     });
@@ -221,7 +221,7 @@ function ProcessPreApprovalPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-bold mb-6">Pre Approval Approval</h1>
+        <h1 className="text-2xl font-bold mb-6">Trip Request Approval</h1>
       </div>
       <div className="space-y-6">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
@@ -284,7 +284,7 @@ function ProcessPreApprovalPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5" />
-                    Pre Approval Information
+                    Trip Request Information
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">

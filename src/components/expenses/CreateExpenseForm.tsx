@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { UploadReceiptStep } from "./UploadReceiptStep";
 import { useExpenseStore } from "@/store/expenseStore";
+import { useAuthStore } from "@/store/authStore";
 import { formatCurrency, getOrgCurrency } from "@/lib/utils";
 import { ExpenseDetailsStep2 } from "./ExpenseDetailsStep2";
 import { getTemplates, type Template } from "@/services/admin/templates";
@@ -48,6 +49,7 @@ export function CreateExpenseForm() {
   const location = useLocation();
   const { parsedData, setParsedData, setSelectedPreApproval } =
     useExpenseStore();
+  const { activeAccount } = useAuthStore();
   const baseCurrency = getOrgCurrency();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -167,6 +169,10 @@ export function CreateExpenseForm() {
       }
 
       const customAttributes: Record<string, string> = {};
+      
+      // Tag expense with workspace account
+      customAttributes["workspace_account"] = activeAccount || "account1";
+      
       if (entitiesToUse && entitiesToUse.length > 0) {
         const entityIdSet = new Set(
           entitiesToUse

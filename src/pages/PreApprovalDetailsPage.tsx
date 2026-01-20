@@ -101,7 +101,7 @@ function PreApprovalDetailsPage() {
   return (
     <>
             <div>
-          <h1 className="text-2xl font-bold mb-6">Pre Approval Details</h1>
+          <h1 className="text-2xl font-bold mb-6">Trip Request Details</h1>
         </div>
       {report?.status === "COMPLETE" || report?.status === "INCOMPLETE" ? (
         <CreatePreApprovalForm mode="edit" showHeader={false} />

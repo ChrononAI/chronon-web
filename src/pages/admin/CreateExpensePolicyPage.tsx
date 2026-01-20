@@ -174,7 +174,7 @@ function CreateExpensePolicyPage() {
                   />
                 </div>
                 <div className="flex flex-col gap-3 my-2">
-                  <Label>Pre Approval Required</Label>
+                  <Label>Trip Request Required</Label>
                   <div className="my-2">
                     <Switch
                       checked={formData.is_pre_approval_required}

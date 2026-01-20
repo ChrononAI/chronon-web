@@ -152,7 +152,7 @@ export function ExpenseDetailsStep2({
   expense,
 }: ExpenseDetailsStepProps) {
   const navigate = useNavigate();
-  const { orgSettings } = useAuthStore();
+  const { orgSettings, activeAccount } = useAuthStore();
   const baseCurrency = getOrgCurrency();
   const orgId = getOrgIdFromToken();
   const { parsedData, setParsedData } = useExpenseStore();
@@ -1315,7 +1315,86 @@ export function ExpenseDetailsStep2({
                         )}
                       />
 
-                      {orgSettings?.advance_settings?.enabled &&
+                      {/* Show Trip Request only in Account 1 (Keelnex) */}
+                      {activeAccount === "account1" && (
+                        <FormField
+                          control={form.control}
+                          name="pre_approval_id"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Trip Request</FormLabel>
+                              <Select
+                                value={field.value || ""}
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  const preApproval = preApprovals.find(
+                                    (pa) => pa.id === value
+                                  );
+                                  setSelectedPreApproval(preApproval || null);
+                                }}
+                                disabled={readOnly}
+                              >
+                                <FormControl>
+                                  <SelectTrigger
+                                    className={`${selectTriggerClass} relative`}
+                                  >
+                                    <SelectValue placeholder="Select a trip request">
+                                      {field.value && selectedPreApproval
+                                        ? selectedPreApproval.title
+                                        : "Select a trip request"}
+                                    </SelectValue>
+
+                                    {field.value && !readOnly && (
+                                      <button
+                                        type="button"
+                                        onPointerDown={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          field.onChange("");
+                                          setSelectedPreApproval(null);
+                                        }}
+                                        className="absolute right-8 top-1/2 mr-2 -translate-y-1/2 text-muted-foreground hover:text-foreground pointer-events-auto"
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {preApprovals.length > 0 ? (
+                                    preApprovals.map((preApproval) => (
+                                      <SelectItem
+                                        key={preApproval.id}
+                                        value={preApproval.id}
+                                      >
+                                        <div>
+                                          <div className="font-medium">
+                                            {preApproval.title}
+                                          </div>
+                                          {preApproval.description && (
+                                            <div className="text-sm text-muted-foreground">
+                                              {preApproval.description}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </SelectItem>
+                                    ))
+                                  ) : (
+                                    <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                      No trip requests available
+                                    </div>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      {/* Show Advance Account only in Account 2 (Chronon) */}
+                      {activeAccount === "account2" &&
+                        orgSettings?.advance_settings?.enabled &&
                         advanceAccounts.length > 0 && (
                           <FormField
                             control={form.control}
@@ -1376,80 +1455,6 @@ export function ExpenseDetailsStep2({
                             )}
                           />
                         )}
-
-                      <FormField
-                        control={form.control}
-                        name="pre_approval_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Pre Approval</FormLabel>
-                            <Select
-                              value={field.value || ""}
-                              onValueChange={(value) => {
-                                field.onChange(value);
-                                const preApproval = preApprovals.find(
-                                  (pa) => pa.id === value
-                                );
-                                setSelectedPreApproval(preApproval || null);
-                              }}
-                              disabled={readOnly}
-                            >
-                              <FormControl>
-                                <SelectTrigger
-                                  className={`${selectTriggerClass} relative`}
-                                >
-                                  <SelectValue placeholder="Select a pre-approval">
-                                    {field.value && selectedPreApproval
-                                      ? selectedPreApproval.title
-                                      : "Select a pre-approval"}
-                                  </SelectValue>
-
-                                  {field.value && !readOnly && (
-                                    <button
-                                      type="button"
-                                      onPointerDown={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        field.onChange("");
-                                        setSelectedPreApproval(null);
-                                      }}
-                                      className="absolute right-8 top-1/2 mr-2 -translate-y-1/2 text-muted-foreground hover:text-foreground pointer-events-auto"
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </button>
-                                  )}
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {preApprovals.length > 0 ? (
-                                  preApprovals.map((preApproval) => (
-                                    <SelectItem
-                                      key={preApproval.id}
-                                      value={preApproval.id}
-                                    >
-                                      <div>
-                                        <div className="font-medium">
-                                          {preApproval.title}
-                                        </div>
-                                        {preApproval.description && (
-                                          <div className="text-sm text-muted-foreground">
-                                            {preApproval.description}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                                    No pre-approvals available
-                                  </div>
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
 
                       {templateEntities?.map((entity) => {
                         const entityId = getEntityId(entity);

@@ -22,7 +22,7 @@ import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 const columns: GridColDef[] = [
   {
     field: "sequence_number",
-    headerName: "PRE APPROVAL ID",
+    headerName: "TRIP REQUEST ID",
     minWidth: 160,
     flex: 1,
   },
@@ -281,7 +281,7 @@ function ApprovalsPreApprovalsPage() {
           rows={loading ? [] : rows}
           loading={loading}
           slots={{
-            noRowsOverlay: () => <CustomNoRows title="No pre approvals found" description="There are currently no pre approvals." />,
+            noRowsOverlay: () => <CustomNoRows title="No trip requests found" description="There are currently no trip requests." />,
             loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           sx={{

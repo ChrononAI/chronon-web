@@ -115,14 +115,14 @@ function CreatePreApprovalForm({
   );
 
   const onSubmit = async (formData: PreApprovalFormValues) => {
-    trackEvent("Create Pre Approval Button Clicked", {
-      button_name: "Create Pre Approval",
+    trackEvent("Create Trip Request Button Clicked", {
+      button_name: "Create Trip Request",
     });
     setLoading(true);
     if (selectedPreApproval?.status === "COMPLETE") {
       try {
         await preApprovalService.submitPreApproval(selectedPreApproval?.id);
-        toast.success("Pre approval submitted successfully");
+        toast.success("Trip request submitted successfully");
         navigate("/requests/pre-approvals");
       } catch (error: any) {
         console.log(error);
@@ -141,7 +141,7 @@ function CreatePreApprovalForm({
       try {
         const response: any = await preApprovalService.createPreApproval(rest);
         await preApprovalService.submitPreApproval(response.data.data.id);
-        toast.success("Pre approval created successfully");
+        toast.success("Trip request created successfully");
         navigate("/requests/pre-approvals");
       } catch (error) {
         console.log(error);
@@ -191,10 +191,10 @@ function CreatePreApprovalForm({
       {showHeader && (
         <h1 className="text-2xl font-bold">
           {mode === "create"
-            ? "Create Pre Approval"
+            ? "Create Trip Request"
             : mode === "edit"
-            ? "Edit Pre Approval"
-            : "Pre Approval Details"}
+            ? "Edit Trip Request"
+            : "Trip Request Details"}
         </h1>
       )}
       <Form {...form}>
@@ -475,9 +475,9 @@ function CreatePreApprovalForm({
                     {mode === "edit" ? "Submitting..." : "Creating..."}
                   </>
                 ) : selectedPreApproval?.status === "COMPLETE" ? (
-                  "Resubmit Pre Approval"
+                  "Resubmit Trip Request"
                 ) : (
-                  "Create Pre Approval"
+                  "Create Trip Request"
                 )}
               </Button>
             )}

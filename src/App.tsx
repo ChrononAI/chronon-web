@@ -110,7 +110,7 @@ function App() {
               <Route path="/reports/:id" element={<ReportDetailPage2 />} />
               <Route path="/reports/:id/:expenseId" element={<ExpenseDetailPage />} />
 
-              {/* PRE APPROVALS */}
+              {/* TRIP REQUESTS */}
               <Route path="/requests/pre-approvals" element={<PreApprovalPage />} />
               <Route path="/requests/pre-approvals/create" element={<CreatePreApprovalPage />} />
               <Route path="/requests/pre-approvals/:id" element={<PreApprovalDetailsPage />} />
