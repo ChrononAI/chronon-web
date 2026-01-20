@@ -6,7 +6,6 @@ import { Plus } from "lucide-react";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
-import { Report } from "@/types/expense";
 import { GridPaginationModel } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
 import { useAuthStore } from "@/store/authStore";
@@ -58,6 +57,15 @@ const columns: GridColDef[] = [
     valueFormatter: (params) => formatCurrency(params),
   },
   {
+    field: "created_by",
+    headerName: "CREATED BY",
+    minWidth: 140,
+    flex: 1,
+    renderCell: (params) => (
+      <span className="whitespace-nowrap">{params.row.user_info?.email}</span>
+    ),
+  },
+  {
     field: "created_at",
     headerName: "CREATED DATE",
     minWidth: 120,
@@ -66,32 +74,20 @@ const columns: GridColDef[] = [
   },
 ];
 
-const REPORT_STATUSES = [
-  "DRAFT",
-  "UNDER_REVIEW",
-  "APPROVED",
-  "REJECTED",
-  "SENT_BACK",
-];
+const PENDING_REPORT_STATUSES = ["UNDER_REVIEW"];
 
-const UNSUBMITTED_REPORT_STATUSES = ["DRAFT"];
-
-const SUBMITTED_REPORT_STATUSES = ["APPROVED", "REJECTED", "UNDER_REVIEW"];
+const PROCESSED_REPORT_STATUSES = ["APPROVED", "REJECTED"];
 
 export function AdminReportsApprovalPage() {
   const {
-    allReports,
-    unsubmittedReports,
-    submittedReports,
-    setAllReports,
-    setUnsubmittedReports,
-    setSubmittedReports,
-    setAllReportsPagination,
-    setUnsubmittedReportsPagination,
-    setSubmittedReportsPagination,
-    allReportsPagination,
-    unsubmittedReportsPagination,
-    submittedReportsPagination,
+    pendingReports,
+    processedReports,
+    setPendingReports,
+    setProcessedReports,
+    pendingReportsPagination,
+    processedReportsPagination,
+    setPendingReportsPagination,
+    setProcessedReportsPagination,
     query,
     setQuery,
   } = useAdminReportsStore();
@@ -100,7 +96,7 @@ export function AdminReportsApprovalPage() {
   const customIdEnabled =
     orgSettings?.custom_report_id_settings?.enabled ?? false;
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("pending");
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
@@ -126,11 +122,9 @@ export function AdminReportsApprovalPage() {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const allowedStatus =
-    activeTab === "all"
-      ? REPORT_STATUSES
-      : activeTab === "unsubmitted"
-        ? UNSUBMITTED_REPORT_STATUSES
-        : SUBMITTED_REPORT_STATUSES;
+    activeTab === "pending"
+      ? PENDING_REPORT_STATUSES
+        : PROCESSED_REPORT_STATUSES;
 
   const newCols = useMemo<GridColDef[]>(() => {
     return [
@@ -196,12 +190,9 @@ export function AdminReportsApprovalPage() {
       ...prev,
       page: 0,
     }));
-    const filter =
-      tab === "all"
-        ? []
-        : tab === "unsubmitted"
-          ? ["DRAFT"]
-          : ["APPROVED", "REJECTED", "UNDER_REVIEW"];
+    const filter = tab === "pending"
+          ? ["UNDER_REVIEW"]
+          : ["APPROVED", "REJECTED"];
 
     updateQuery("status", "in", filter);
   };
@@ -215,11 +206,11 @@ export function AdminReportsApprovalPage() {
         let newQuery: FilterMap = query;
 
         if (!query?.status) {
-          if (activeTab === "unsubmitted") {
-            newQuery = { ...query, status: [{ operator: "in", value: UNSUBMITTED_REPORT_STATUSES }] }
-          } else if (activeTab === "submitted") {
-            newQuery = { ...query, status: [{ operator: "in", value: SUBMITTED_REPORT_STATUSES }] }
-          } else newQuery = query;
+          if (activeTab === "pending") {
+            newQuery = { ...query, status: [{ operator: "in", value: PENDING_REPORT_STATUSES }] }
+          } else if (activeTab === "processed") {
+            newQuery = { ...query, status: [{ operator: "in", value: PROCESSED_REPORT_STATUSES }] }
+          }
         }
 
         const res = await settlementsService.getFilteredReports({
@@ -230,21 +221,15 @@ export function AdminReportsApprovalPage() {
           role: "admin",
         });
 
-        if (activeTab === "all") {
-          setAllReports(res.data.data);
-          setAllReportsPagination({
-            count: res.data.count,
-            offset: res.data.offset,
-          });
-        } else if (activeTab === "unsubmitted") {
-          setUnsubmittedReports(res.data.data);
-          setUnsubmittedReportsPagination({
+        if (activeTab === "pending") {
+          setPendingReports(res.data.data);
+          setPendingReportsPagination({
             count: res.data.count,
             offset: res.data.offset,
           });
         } else {
-          setSubmittedReports(res.data.data);
-          setSubmittedReportsPagination({
+          setProcessedReports(res.data.data);
+          setProcessedReportsPagination({
             count: res.data.count,
             offset: res.data.offset,
           });
@@ -295,12 +280,7 @@ export function AdminReportsApprovalPage() {
     };
   }, [fetchFilteredReports]);
 
-  const reportsArr =
-    activeTab === "all"
-      ? allReports
-      : activeTab === "unsubmitted"
-        ? unsubmittedReports
-        : submittedReports;
+  const reportsArr = activeTab === "pending" ? pendingReports : processedReports;
 
   useEffect(() => {
     setRowSelection({
@@ -316,29 +296,18 @@ export function AdminReportsApprovalPage() {
     });
   }, [activeTab]);
 
-  const handleReportClick = (report: Report) => {
-    if (report.status === "DRAFT" || report.status === "SENT_BACK") {
-      navigate("/reports/create", {
-        state: {
-          editMode: true,
-          reportData: {
-            id: report.id,
-            title: report.title,
-            description: report.description,
-            custom_attributes: report.custom_attributes,
-            expenses: report.expenses || [],
-          },
-        },
-      });
-    } else {
-      navigate(`/reports/${report.id}`);
-    }
-  };
-
   useEffect(() => {
+    const filter: FieldFilter[] = [
+      {
+        operator: "in",
+        value: [
+          "UNDER_REVIEW"
+        ]
+      }
+    ]
     setQuery((prev) => {
       const { status, ...rest } = prev;
-      return { ...rest };
+      return { status: filter, ...rest };
     });
   }, []);
 
@@ -360,16 +329,11 @@ export function AdminReportsApprovalPage() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         tabs={[
-          { key: "all", label: "All", count: allReportsPagination.count },
+          { key: "pending", label: "Pending", count: pendingReportsPagination.count },
           {
-            key: "unsubmitted",
-            label: "Unsubmitted",
-            count: unsubmittedReportsPagination.count,
-          },
-          {
-            key: "submitted",
-            label: "Submitted",
-            count: submittedReportsPagination.count,
+            key: "processed",
+            label: "Processed",
+            count: processedReportsPagination.count,
           },
         ]}
         className="mb-8"
@@ -388,11 +352,7 @@ export function AdminReportsApprovalPage() {
           onRowClick={(params, event) => {
             event.stopPropagation();
             const report = params.row;
-            if (report.status === "DRAFT" || report.status === "SENT_BACK") {
-              handleReportClick(report);
-            } else {
-              navigate(`/admin/admin-reports/${report.id}`);
-            }
+            navigate(`/admin/admin-reports/${report.id}`);
           }}
           slots={{
             toolbar: CustomAdminReportsToolbar,
@@ -451,11 +411,9 @@ export function AdminReportsApprovalPage() {
           showToolbar
           checkboxSelection
           rowCount={
-            activeTab === "all"
-              ? allReportsPagination.count
-              : activeTab === "unsubmitted"
-                ? unsubmittedReportsPagination.count
-                : submittedReportsPagination.count
+            activeTab === "pending"
+              ? pendingReportsPagination.count
+                : processedReportsPagination.count
           }
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={setRowSelection}

@@ -4,27 +4,21 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
 interface AdminReportsState {
-  allReports: Report[];
-  allReportsPagination: NewPaginationMeta;
+  pendingReports: Report[];
+  pendingReportsPagination: NewPaginationMeta;
   query: FilterMap;
 
-  unsubmittedReports: Report[];
-  unsubmittedReportsPagination: NewPaginationMeta;
-
-  submittedReports: Report[];
-  submittedReportsPagination: NewPaginationMeta;
+  processedReports: Report[];
+  processedReportsPagination: NewPaginationMeta;
 
   // Methods
 
-  setAllReports: (data: Report[]) => void;
-  setAllReportsPagination: (pagination: NewPaginationMeta) => void;
+  setPendingReports: (data: Report[]) => void;
+  setPendingReportsPagination: (pagination: NewPaginationMeta) => void;
   setQuery: (data: FilterMap | ((prev: FilterMap) => FilterMap)) => void;
 
-  setUnsubmittedReports: (data: Report[]) => void;
-  setUnsubmittedReportsPagination: (pagination: NewPaginationMeta) => void;
-
-  setSubmittedReports: (data: Report[]) => void;
-  setSubmittedReportsPagination: (pagination: NewPaginationMeta) => void;
+  setProcessedReports: (data: Report[]) => void;
+  setProcessedReportsPagination: (pagination: NewPaginationMeta) => void;
 }
 
 export const useAdminReportsStore = create<AdminReportsState>()(
@@ -32,28 +26,23 @@ export const useAdminReportsStore = create<AdminReportsState>()(
     persist(
       (set) => ({
         query: {},
-        allReports: [],
-        allReportsPagination: {
+        pendingReports: [],
+        pendingReportsPagination: {
           count: 0,
           offset: 0,
         },
-        unsubmittedReports: [],
-        unsubmittedReportsPagination: {
-          count: 0,
-          offset: 0,
-        },
-        submittedReports: [],
-        submittedReportsPagination: {
+        processedReports: [],
+        processedReportsPagination: {
           count: 0,
           offset: 0,
         },
 
-        setAllReports: (data) =>
-          set({ allReports: data }, false, "adminReports/setAllReports"),
+        setPendingReports: (data) =>
+          set({ pendingReports: data }, false, "adminReports/setAllReports"),
 
-        setAllReportsPagination: (pagination) =>
+        setPendingReportsPagination: (pagination) =>
           set(
-            { allReportsPagination: pagination },
+            { pendingReportsPagination: pagination },
             false,
             "adminReports/setAllReportsPagination"
           ),
@@ -67,30 +56,16 @@ export const useAdminReportsStore = create<AdminReportsState>()(
             "adminReports/setQuery"
           ),
 
-        setUnsubmittedReports: (data) =>
+        setProcessedReports: (data) =>
           set(
-            { unsubmittedReports: data },
-            false,
-            "adminReports/setUnsubmittedReports"
-          ),
-
-        setUnsubmittedReportsPagination: (pagination) =>
-          set(
-            { unsubmittedReportsPagination: pagination },
-            false,
-            "adminReports/setUnsubmittedReportsPagination"
-          ),
-
-        setSubmittedReports: (data) =>
-          set(
-            { submittedReports: data },
+            { processedReports: data },
             false,
             "adminReports/setSubmittedReports"
           ),
 
-        setSubmittedReportsPagination: (pagination) =>
+        setProcessedReportsPagination: (pagination) =>
           set(
-            { submittedReportsPagination: pagination },
+            { processedReportsPagination: pagination },
             false,
             "adminReports/setSubmittedReportsPagination"
           ),

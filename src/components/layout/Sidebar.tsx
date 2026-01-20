@@ -210,6 +210,19 @@ export function Sidebar() {
           permissions: permission,
           children,
         };
+      } else if (item?.href === "/admin/admin-reports") {
+        const permission = {
+          enabled: orgSettings?.admin_approval_settings?.enabled && user?.role === "SUPER_ADMIN",
+          allowed: orgSettings?.admin_approval_settings?.enabled && user?.role === "SUPER_ADMIN"
+        };
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
       } else if (item.name === "Accounts") {
         const permission = {
           enabled: orgSettings?.advance_settings?.enabled || false,

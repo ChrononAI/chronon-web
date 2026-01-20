@@ -246,7 +246,6 @@ export function ReportDetailPage2() {
           approval_steps: newSteps,
           total_steps: newSteps.length,
           current_step: currentStepIdx !== -1 ? currentStepIdx + 1 : 0,
-          // ...workflowResponse.data[0]
         });
       } else {
         console.warn(
@@ -374,7 +373,30 @@ export function ReportDetailPage2() {
   };
 
   const executeAdminAction = async () => {
-    console.log('inside admin action');
+    if (!report || !actionType) return;
+
+    if (!comments.trim()) {
+      toast.error("Comments are required");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      let result = await approvalService.adminReportAction({
+        reportId: report.id,
+        reason: comments,
+        action: actionType
+      });
+      toast.success(result.message);
+      setShowActionDialog(false);
+      await fetchReport();
+    } catch (error: any) {
+      console.error(`Failed to ${actionType} report`, error);
+      toast.error(
+        error?.response?.data?.message || `Failed to ${actionType} report`
+      );
+    } finally {
+      setActionLoading(false);
+    }
   }
 
   const executeAction = async () => {

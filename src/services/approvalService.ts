@@ -89,10 +89,27 @@ export const approvalService = {
       };
     } catch (error) {
       console.error('Error sending report back to draft:', error);
-      // return {
-      //   success: false,
-      //   message: error instanceof Error ? error.message : 'Failed to send report back to draft'
-      // };
+      throw error;
+    }
+  },
+
+  async adminReportAction({ reportId, reason, action } : { reportId: string; reason: string; action: "approve" | "reject" | "send_back" }):
+    Promise<{
+      success: boolean;
+      message: string
+    }> {
+    try {
+      const response = await api.post(`/api/v1/reports/admin/${reportId}/action`, JSON.stringify({
+        action,
+        reason
+      }))
+      
+      const result = await handleApiResponse(response);
+      return {
+        success: true,
+        message: result.message
+      };
+    } catch (error) {
       throw error;
     }
   },
