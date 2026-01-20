@@ -585,7 +585,7 @@ export function ReportDetailPage2() {
             className="mb-0"
           />
           {activeTab === "expenses" && (
-            <div className="space-y-6 mt-6">
+            <div className="space-y-6 mt-6 flex-1">
               <div className="rounded-lg border">
                 <DataGrid
                   className="rounded border-[0.2px] border-[#f3f4f6] h-full"
@@ -642,7 +642,7 @@ export function ReportDetailPage2() {
           )}
 
           {activeTab === "history" && (
-            <div className="w-1/3">
+            <div className="w-1/2 flex-1">
               {approvalWorkflow && approvalWorkflow.approval_steps && (
                 <div className="mt-6">
                   <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
@@ -652,7 +652,7 @@ export function ReportDetailPage2() {
           )}
 
           {activeTab === "comments" && (
-            <div className="flex flex-col h-[40vh] overflow-hidden">
+            <div className="flex flex-col h-[56vh] overflow-hidden">
               <ExpenseComments
                 expenseId={id}
                 loadingComments={loadingReportComments}
@@ -667,7 +667,7 @@ export function ReportDetailPage2() {
           )}
 
           {activeTab === "logs" && (
-            <div className="flex flex-col h-[40vh] overflow-hidden">
+            <div className="flex flex-col flex-1 overflow-auto">
               <ExpenseLogs
                 logs={reportLogs}
                 loading={loadingReportComments}
