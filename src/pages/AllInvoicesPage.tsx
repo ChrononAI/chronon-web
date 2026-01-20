@@ -145,7 +145,7 @@ export function AllInvoicesPage() {
     fetchInvoices();
   }, [fetchInvoices]);
 
-  const hasPendingInvoices = invoices.some((inv) => inv.status === "Pending" || inv.status === "OCR_PENDING");
+  const hasPendingInvoices = invoices.some((inv) => inv.status === "Pending" || inv.status === "OCR_PENDING" || inv.status === "OCR_PROCESSING");
 
   useEffect(() => {
     if (!hasPendingInvoices) return;
@@ -160,7 +160,7 @@ export function AllInvoicesPage() {
   const handleRowClick = (params: any) => {
     if (params?.row?.uploadState === "uploading") return;
     const status = params?.row?.status;
-    if (status === "Pending" || status === "OCR_PENDING") return;
+    if (status === "Pending" || status === "OCR_PENDING" || status === "OCR_PROCESSING") return;
     const invoiceId = params.row.invoiceId || params.id;
     navigate(`/flow/invoice/${invoiceId}`, { state: { listRow: params.row } });
   };
@@ -198,6 +198,17 @@ export function AllInvoicesPage() {
       </div>
     );
 
+    const isProcessing = (row: any): boolean => {
+      const uploadState = row?.uploadState;
+      const status = String(row?.status ?? "");
+      return (
+        uploadState === "uploading" ||
+        status === "Pending" ||
+        status === "OCR_PENDING" ||
+        status === "OCR_PROCESSING"
+      );
+    };
+
     return [
       {
         field: "vendorName",
@@ -205,10 +216,10 @@ export function AllInvoicesPage() {
         flex: 1,
         minWidth: 200,
         renderCell: (params) => {
-          const isUploading = (params.row as any)?.uploadState === "uploading";
+          const processing = isProcessing(params.row);
           return (
             <div className="flex items-center h-full">
-              {isUploading ? (
+              {processing ? (
                 renderSkeleton("w-40")
               ) : (
                 <span className="text-sm">{params.value}</span>
@@ -223,10 +234,10 @@ export function AllInvoicesPage() {
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
-          const isUploading = (params.row as any)?.uploadState === "uploading";
+          const processing = isProcessing(params.row);
           return (
             <div className="flex items-center h-full">
-              {isUploading ? (
+              {processing ? (
                 renderSkeleton("w-28")
               ) : (
                 <span className="text-sm">{params.value}</span>
@@ -241,10 +252,10 @@ export function AllInvoicesPage() {
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
-          const isUploading = (params.row as any)?.uploadState === "uploading";
+          const processing = isProcessing(params.row);
           return (
             <div className="flex items-center h-full">
-              {isUploading ? (
+              {processing ? (
                 renderSkeleton("w-24")
               ) : (
                 <span className="text-sm">{params.value}</span>
@@ -259,10 +270,10 @@ export function AllInvoicesPage() {
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
-          const isUploading = (params.row as any)?.uploadState === "uploading";
+          const processing = isProcessing(params.row);
           return (
             <div className="flex items-center h-full">
-              {isUploading ? (
+              {processing ? (
                 renderSkeleton("w-24")
               ) : (
                 <span className="text-sm">{params.value}</span>
@@ -298,9 +309,11 @@ export function AllInvoicesPage() {
             normalizedStatus = "Pending";
           } else if (value === "OCR_PROCESSED") {
             normalizedStatus = "Processed";
+          } else if (value === "OCR_PROCESSING") {
+            normalizedStatus = "Processing";
           }
 
-          if (normalizedStatus === "Pending") {
+          if (normalizedStatus === "Pending" || normalizedStatus === "Processing" || value === "OCR_PROCESSING") {
             return (
               <div className="flex items-center gap-2 h-full">
                 <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
@@ -336,10 +349,10 @@ export function AllInvoicesPage() {
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
-          const isUploading = (params.row as any)?.uploadState === "uploading";
+          const processing = isProcessing(params.row);
           return (
             <div className="flex items-center h-full justify-end">
-              {isUploading ? (
+              {processing ? (
                 renderSkeleton("w-20")
               ) : (
                 <span className="text-sm">{params.value}</span>
@@ -461,11 +474,10 @@ export function AllInvoicesPage() {
         showCreateButton={true}
         createButtonText="Upload Invoice"
         onCreateButtonClick={() => handleBulkDialogChange(true)}
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search by number/vendor/PO/GRN"
-        showFilters={true}
+        createButtonClassName="bg-[#161B53] hover:bg-[#1a205f] text-white"
+        showFilters={false}
         showDateFilter={false}
+        marginBottom="mb-0"
       >
         <Box
           sx={{
@@ -474,7 +486,7 @@ export function AllInvoicesPage() {
           }}
         >
           <DataGrid
-            className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+            className="rounded h-full"
             rows={filteredInvoices}
             columns={columns}
             loading={loadingInvoices}
@@ -484,7 +496,7 @@ export function AllInvoicesPage() {
                 return "invoice-uploading-row";
               }
               const status = row?.status;
-              if (status === "Pending" || status === "OCR_PENDING") {
+              if (status === "Pending" || status === "OCR_PENDING" || status === "OCR_PROCESSING") {
                 return "invoice-processing-row";
               }
               return "";
@@ -494,20 +506,44 @@ export function AllInvoicesPage() {
             }}
             sx={{
               border: 0,
+              outline: "none",
+              "& .MuiDataGrid-root": {
+                border: "none",
+                outline: "none",
+              },
               "& .MuiDataGrid-columnHeaderTitle": {
-                color: "#9AA0A6",
-                fontWeight: "bold",
+                fontFamily: "Inter",
+                fontWeight: 600,
                 fontSize: "12px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                textTransform: "uppercase",
+                color: "#8D94A2",
               },
               "& .MuiDataGrid-main": {
-                border: "0.2px solid #f3f4f6",
+                border: "none",
+                outline: "none",
               },
               "& .MuiDataGrid-columnHeader": {
-                backgroundColor: "#f3f4f6",
+                backgroundColor: "transparent",
                 border: "none",
+                borderTop: "none",
+                borderBottom: "none",
+                borderLeft: "none",
+                borderRight: "none",
+                outline: "none",
               },
               "& .MuiDataGrid-columnHeaders": {
                 border: "none",
+                borderTop: "none",
+                borderBottom: "none",
+                outline: "none",
+              },
+              "& .MuiDataGrid-columnHeader:focus": {
+                outline: "none",
+              },
+              "& .MuiDataGrid-columnHeader:focus-within": {
+                outline: "none",
               },
               "& .MuiDataGrid-row:hover": {
                 cursor: "pointer",
@@ -546,7 +582,7 @@ export function AllInvoicesPage() {
                 outline: "none",
               },
               "& .MuiDataGrid-columnSeparator": {
-                color: "#f3f4f6",
+                display: "none",
               },
             }}
             paginationModel={paginationModel}

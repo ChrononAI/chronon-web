@@ -1,13 +1,23 @@
 import { useState } from "react";
 import { useLocation, NavLink } from "react-router-dom";
-import { ChevronLeft, ChevronRight, FileText, Store } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Store, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 const flowNavigation = [
   { name: "Invoice", href: "/flow/invoice", icon: FileText },
   { name: "Vendor", href: "/flow/vendors", icon: Store },
+];
+
+const itemsNavigation = [
+  { name: "TDS Code", href: "/flow/items/tds-code", icon: FileText },
+  { name: "Tax Code", href: "/flow/items/tax-code", icon: FileText },
 ];
 
 export function FlowSidebar() {
@@ -53,7 +63,7 @@ export function FlowSidebar() {
               return cn(
                 "flex items-center py-2 text-sm rounded-md transition-colors",
                 isActive
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  ? "bg-[#0D9C99] text-white hover:bg-[#0b8a87]"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
               );
             }}
@@ -63,6 +73,34 @@ export function FlowSidebar() {
             {!sidebarCollapsed && item.name}
           </NavLink>
         ))}
+        
+        {!sidebarCollapsed && (
+          <Collapsible defaultOpen={false} className="mt-2">
+            <CollapsibleTrigger className="flex items-center w-full py-2 text-sm rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted px-3">
+              <List className="mr-3 h-4 w-4" />
+              <span>Items</span>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pl-6 mt-1 space-y-1">
+              {itemsNavigation.map((item) => (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  className={({ isActive }) => {
+                    return cn(
+                      "flex items-center py-2 text-sm rounded-md transition-colors",
+                      isActive
+                        ? "bg-[#0D9C99] text-white hover:bg-[#0b8a87]"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    );
+                  }}
+                >
+                  {item.icon && <item.icon className="mr-3 h-4 w-4" />}
+                  {item.name}
+                </NavLink>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </nav>
     </div>
   );

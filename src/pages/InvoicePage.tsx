@@ -53,6 +53,7 @@ export function InvoicePage() {
   const [vendorEmail, setVendorEmail] = useState("");
   const [vendorPan, setVendorPan] = useState("");
   const [billingAddress, setBillingAddress] = useState("");
+  const [shippingAddress, setShippingAddress] = useState("");
   const [vendorSearchResults, setVendorSearchResults] = useState<VendorData[]>([]);
   const [vendorSearchLoading, setVendorSearchLoading] = useState(false);
   const vendorSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -187,6 +188,7 @@ export function InvoicePage() {
           setInvoiceDate(formatDate(invoice.invoice_date));
           setVendorId(invoice.vendor_id || "");
           setBillingAddress(invoice.billing_address || "");
+          setShippingAddress(invoice.shipping_address || "");
           
           setSubtotalAmount(invoice.subtotal_amount || "0.00");
           setCgstAmount(invoice.cgst_amount || "0.00");
@@ -245,6 +247,7 @@ export function InvoicePage() {
             setVendorEmail("");
             setVendorPan("");
             setBillingAddress("");
+            setShippingAddress("");
             setTableRows([]);
             setOriginalOcrValues({});
             setSubtotalAmount("0.00");
@@ -282,7 +285,7 @@ export function InvoicePage() {
   }, []);
 
   const searchVendors = useCallback(async (searchTerm: string) => {
-    if (!searchTerm.trim()) {
+    if (!searchTerm.trim() || searchTerm.trim().length < 3) {
       setVendorSearchResults([]);
       return;
     }
@@ -309,7 +312,7 @@ export function InvoicePage() {
 
     // Debounce search - wait 300ms after user stops typing
     vendorSearchTimeoutRef.current = setTimeout(() => {
-      if (value.trim()) {
+      if (value.trim() && value.trim().length >= 3) {
         searchVendors(value);
       } else {
         setVendorSearchResults([]);
@@ -328,12 +331,14 @@ export function InvoicePage() {
       // User typed a custom GST number
       setGstNumber(vendor);
       setVendorName("");
+      setVendorId("");
       setVendorEmail("");
       setVendorPan("");
     } else {
       // Clear vendor data when selection is cleared
       setGstNumber("");
       setVendorName("");
+      setVendorId("");
       setVendorEmail("");
       setVendorPan("");
     }
@@ -586,19 +591,6 @@ export function InvoicePage() {
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label htmlFor="vendor" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
-                        Vendor ID
-                      </Label>
-                      <Input
-                        id="vendor"
-                        value={vendorId}
-                        onChange={(e) => setVendorId(e.target.value)}
-                        className="mt-0.5 h-8 text-sm font-normal"
-                        placeholder="Enter vendor ID"
-                        disabled={isApprovalMode}
-                      />
-                    </div>
-                    <div className="col-span-2">
                       <Label htmlFor="gst-number" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
                         GST Number
                       </Label>
@@ -667,6 +659,19 @@ export function InvoicePage() {
                           />
                         </div>
                         <div className="col-span-2">
+                          <Label htmlFor="vendor-id" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                            Vendor ID
+                          </Label>
+                          <Input
+                            id="vendor-id"
+                            value={vendorId}
+                            onChange={(e) => setVendorId(e.target.value)}
+                            className="mt-0.5 h-8 text-sm font-normal"
+                            placeholder="Vendor ID"
+                            disabled={isApprovalMode}
+                          />
+                        </div>
+                        <div className="col-span-2">
                           <Label htmlFor="vendor-email" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
                             Vendor Email
                           </Label>
@@ -710,8 +715,21 @@ export function InvoicePage() {
                         id="billing-address"
                         value={billingAddress}
                         onChange={(e) => setBillingAddress(e.target.value)}
-                        className="mt-1 font-normal min-h-[80px] resize-none"
+                        className="mt-1 font-normal min-h-[120px] resize-none"
                         placeholder="Enter billing address..."
+                        disabled={isApprovalMode}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="shipping-address" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                        Shipping Address
+                      </Label>
+                      <Textarea
+                        id="shipping-address"
+                        value={shippingAddress}
+                        onChange={(e) => setShippingAddress(e.target.value)}
+                        className="mt-1 font-normal min-h-[120px] resize-none"
+                        placeholder="Enter shipping address..."
                         disabled={isApprovalMode}
                       />
                     </div>

@@ -67,7 +67,7 @@ export function LineItemsTable({
   }, []);
 
   const searchTDSCodes = useCallback(async (searchTerm: string) => {
-    if (!searchTerm.trim()) {
+    if (!searchTerm.trim() || searchTerm.trim().length < 3) {
       setTdsSearchResults([]);
       return;
     }
@@ -100,7 +100,7 @@ export function LineItemsTable({
 
     // Debounce search - wait 300ms after user stops typing
     tdsSearchTimeoutRef.current[rowId] = setTimeout(() => {
-      if (newValue.trim()) {
+      if (newValue.trim() && newValue.trim().length >= 3) {
         searchTDSCodes(newValue);
       } else {
         setTdsSearchResults([]);
@@ -162,7 +162,7 @@ export function LineItemsTable({
 
   // GST Code Search Functions
   const searchGSTCodes = useCallback(async (searchTerm: string) => {
-    if (!searchTerm.trim()) {
+    if (!searchTerm.trim() || searchTerm.trim().length < 3) {
       setGstSearchResults([]);
       return;
     }
@@ -195,7 +195,7 @@ export function LineItemsTable({
 
     // Debounce search - wait 300ms after user stops typing
     gstSearchTimeoutRef.current[rowId] = setTimeout(() => {
-      if (newValue.trim()) {
+      if (newValue.trim() && newValue.trim().length >= 3) {
         searchGSTCodes(newValue);
       } else {
         setGstSearchResults([]);
@@ -294,22 +294,82 @@ export function LineItemsTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows.map(r => `${r.id}-${r.quantity}-${r.rate}-${r.gstCode}`).join(',')]); // Re-run when quantity, rate, or GST codes change
 
+  const tableHeaderStyle: React.CSSProperties = {
+    fontFamily: "Inter",
+    fontWeight: 600,
+    fontSize: "12px",
+    lineHeight: "100%",
+    letterSpacing: "0%",
+    textTransform: "uppercase",
+    color: "#8D94A2",
+  };
+
   return (
     <div className="border-t bg-white">
       <div className="py-6 pr-6 pl-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="px-4 min-w-[200px] text-xs font-medium py-2">ITEM DESCRIPTION</TableHead>
-              <TableHead className="px-4 w-[80px] max-w-[80px] text-xs font-medium py-2">QTY</TableHead>
-              <TableHead className="px-4 min-w-[120px] text-xs font-medium py-2">RATE</TableHead>
-              <TableHead className="px-4 min-w-[150px] text-xs font-medium py-2">TDS CODE</TableHead>
-              <TableHead className="px-4 text-xs font-medium py-2">TDS AMOUNT</TableHead>
-              <TableHead className="px-4 min-w-[150px] text-xs font-medium py-2">GST CODE</TableHead>
-              <TableHead className="px-4 text-xs font-medium py-2">IGST</TableHead>
-              <TableHead className="px-4 text-xs font-medium py-2">CGST</TableHead>
-              <TableHead className="px-4 text-xs font-medium py-2">SGST</TableHead>
-              <TableHead className="pl-4 pr-6 text-right text-xs font-medium py-2">NET AMOUNT</TableHead>
+              <TableHead 
+                className="px-4 min-w-[200px] py-2"
+                style={tableHeaderStyle}
+              >
+                ITEM DESCRIPTION
+              </TableHead>
+              <TableHead 
+                className="px-4 w-[80px] max-w-[80px] py-2"
+                style={tableHeaderStyle}
+              >
+                QTY
+              </TableHead>
+              <TableHead 
+                className="px-4 min-w-[120px] py-2"
+                style={tableHeaderStyle}
+              >
+                RATE
+              </TableHead>
+              <TableHead 
+                className="px-4 min-w-[150px] py-2"
+                style={tableHeaderStyle}
+              >
+                TDS CODE
+              </TableHead>
+              <TableHead 
+                className="px-4 py-2"
+                style={tableHeaderStyle}
+              >
+                TDS AMOUNT
+              </TableHead>
+              <TableHead 
+                className="px-4 min-w-[150px] py-2"
+                style={tableHeaderStyle}
+              >
+                GST CODE
+              </TableHead>
+              <TableHead 
+                className="px-4 py-2"
+                style={tableHeaderStyle}
+              >
+                IGST
+              </TableHead>
+              <TableHead 
+                className="px-4 py-2"
+                style={tableHeaderStyle}
+              >
+                CGST
+              </TableHead>
+              <TableHead 
+                className="px-4 py-2"
+                style={tableHeaderStyle}
+              >
+                SGST
+              </TableHead>
+              <TableHead 
+                className="pl-4 pr-6 text-right py-2"
+                style={tableHeaderStyle}
+              >
+                NET AMOUNT
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -394,6 +454,18 @@ export function LineItemsTable({
                         '& .MuiAutocomplete-inputRoot': {
                           padding: '0 !important',
                         },
+                        '& .MuiAutocomplete-popper': {
+                          zIndex: 1300,
+                        },
+                        '& .MuiPaper-root': {
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                          border: '1px solid #e5e7eb',
+                          marginTop: '4px',
+                        },
+                        '& .MuiAutocomplete-listbox': {
+                          padding: '4px',
+                        },
                       }}
                       renderInput={(params) => (
                         <TextField
@@ -423,16 +495,26 @@ export function LineItemsTable({
                         />
                       )}
                       renderOption={(props, option) => (
-                        <li {...props} key={option.id}>
-                          <div className="flex flex-col w-full">
-                            <span className="font-medium">{option.tds_code}</span>
+                        <li 
+                          {...props} 
+                          key={option.id}
+                          className="px-3 py-2.5 rounded-md cursor-pointer transition-colors hover:bg-gray-50 active:bg-gray-100"
+                        >
+                          <div className="flex flex-col w-full gap-0.5">
+                            <span className="font-semibold text-sm text-gray-900">{option.tds_code}</span>
                             {option.description && (
-                              <span className="text-xs text-gray-500">{option.description}</span>
+                              <span className="text-xs text-gray-600 leading-relaxed">{option.description}</span>
                             )}
                           </div>
                         </li>
                       )}
-                      noOptionsText={row.tdsCode ? "No TDS codes found" : "Start typing to search..."}
+                      noOptionsText={
+                        <div className="px-3 py-4 text-center">
+                          <span className="text-sm text-gray-500">
+                            {row.tdsCode ? "No TDS codes found" : "Type at least 3 characters to search..."}
+                          </span>
+                        </div>
+                      }
                     />
                   </TableCell>
                   <TableCell className="px-4 py-1">
@@ -469,6 +551,18 @@ export function LineItemsTable({
                         '& .MuiAutocomplete-inputRoot': {
                           padding: '0 !important',
                         },
+                        '& .MuiAutocomplete-popper': {
+                          zIndex: 1300,
+                        },
+                        '& .MuiPaper-root': {
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                          border: '1px solid #e5e7eb',
+                          marginTop: '4px',
+                        },
+                        '& .MuiAutocomplete-listbox': {
+                          padding: '4px',
+                        },
                       }}
                       renderInput={(params) => (
                         <TextField
@@ -498,16 +592,26 @@ export function LineItemsTable({
                         />
                       )}
                       renderOption={(props, option) => (
-                        <li {...props} key={option.id}>
-                          <div className="flex flex-col w-full">
-                            <span className="font-medium">{option.tax_code}</span>
+                        <li 
+                          {...props} 
+                          key={option.id}
+                          className="px-3 py-2.5 rounded-md cursor-pointer transition-colors hover:bg-gray-50 active:bg-gray-100"
+                        >
+                          <div className="flex flex-col w-full gap-0.5">
+                            <span className="font-semibold text-sm text-gray-900">{option.tax_code}</span>
                             {option.description && (
-                              <span className="text-xs text-gray-500">{option.description}</span>
+                              <span className="text-xs text-gray-600 leading-relaxed">{option.description}</span>
                             )}
                           </div>
                         </li>
                       )}
-                      noOptionsText={row.gstCode ? "No GST codes found" : "Start typing to search..."}
+                      noOptionsText={
+                        <div className="px-3 py-4 text-center">
+                          <span className="text-sm text-gray-500">
+                            {row.gstCode ? "No GST codes found" : "Type at least 3 characters to search..."}
+                          </span>
+                        </div>
+                      }
                     />
                   </TableCell>
                   <TableCell className="px-4 py-1">

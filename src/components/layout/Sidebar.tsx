@@ -288,6 +288,23 @@ export function Sidebar() {
         },
         { name: "Invoice", href: "/flow/invoice", icon: FileText },
         { name: "Approval", href: "/flow/approvals", icon: SlidersHorizontal },
+        {
+          name: "Items",
+          href: "/flow/items/tds-code",
+          icon: FileText,
+          children: [
+            {
+              name: "TDS Code",
+              href: "/flow/items/tds-code",
+              icon: FileText,
+            },
+            {
+              name: "Tax Code",
+              href: "/flow/items/tax-code",
+              icon: FileText,
+            },
+          ],
+        },
       ];
     }
     
@@ -447,7 +464,7 @@ export function Sidebar() {
               "flex items-center py-2 text-sm rounded-md transition-colors",
               item.isBold && "font-bold",
               active
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                ? "bg-[#0D9C99] text-white hover:bg-[#0b8a87]"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
             );
           }}
