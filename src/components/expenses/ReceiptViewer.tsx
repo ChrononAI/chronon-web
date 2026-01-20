@@ -1,10 +1,11 @@
 import {
+  ChevronLeft,
+  ChevronRight,
   Download,
   FileText,
   Loader2,
-  Maximize2,
-  RefreshCw,
   RotateCw,
+  X,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -17,6 +18,17 @@ import { expenseService } from "@/services/expenseService";
 import ExpenseLogs from "./ExpenseLogs";
 import { ExpenseComment } from "@/types/expense";
 import { toast } from "sonner";
+import { Attachment } from "./ExpenseDetailsStep2";
+
+const isPdfUrl = (url: string | null | undefined) => {
+  if (!url) return false;
+  const lowerUrl = url.toLowerCase();
+  return (
+    lowerUrl.includes(".pdf") ||
+    lowerUrl.startsWith("data:application/pdf") ||
+    lowerUrl.includes("application%2Fpdf")
+  );
+};
 
 function ReceiptViewer({
   activeReceiptTab,
@@ -27,34 +39,65 @@ function ReceiptViewer({
   replaceRecLoading,
   loading,
   isLoadingReceipt,
-  isPdfReceipt,
   activeReceiptUrl,
+  attachments,
   receiptZoom,
   receiptRotation,
-  handleReceiptFullscreen,
   handleReceiptDownload,
   uploadReceipt,
   receiptDisplayName,
-  receiptDisplayType,
   expense,
   uploadedFile,
   handleReceiptRotate,
   handleReceiptZoomIn,
   handleReceiptZoomOut,
-  handleReceiptReset,
 }: any) {
   const [validations, setValidations] = useState<ValidationItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [validationLoading, setValidationLoading] = useState(false);
   const [expenseLogs, setExpenseLogs] = useState<ExpenseComment[]>([]);
   const [commentError, setCommentError] = useState<string | null>(null);
+  const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
+  const [activeReceiptIndex, setReceiptIndex] = useState(0);
+  const receiptArr = [
+    ...(activeReceiptUrl ? [activeReceiptUrl] : []),
+    ...(attachments?.map((a: Attachment) => a.url) ?? []),
+  ];
+  const currentReceiptUrl = receiptArr[activeReceiptIndex];
 
+  const hasMultipleReceipts = receiptArr.length > 1;
+
+  const goPrev = () => {
+    setReceiptIndex((i) => (i === 0 ? receiptArr.length - 1 : i - 1));
+  };
+
+  const goNext = () => {
+    setReceiptIndex((i) => (i === receiptArr.length - 1 ? 0 : i + 1));
+  };
+
+  const [newComment, setNewComment] = useState<string>();
+  const [postingComment, setPostingComment] = useState(false);
   const [comments, setComments] = useState<ExpenseComment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const validationCount = validations?.length ?? 0;
 
-  const [newComment, setNewComment] = useState<string>();
-  const [postingComment, setPostingComment] = useState(false);
+  const handleReceiptFullscreen = () => {
+    setIsReceiptFullscreen(true);
+  };
+
+  const receiptDisplayType = uploadedFile
+    ? uploadedFile.type.toLowerCase().includes("pdf")
+      ? "PDF"
+      : "Image"
+    : activeReceiptUrl
+      ? isPdfUrl(activeReceiptUrl)
+        ? "PDF"
+        : "Image"
+      : null;
+
+  const isPdfReceipt =
+    (uploadedFile && uploadedFile.type.toLowerCase().includes("pdf")) ||
+    isPdfUrl(currentReceiptUrl);
 
   const handlePostComment = async () => {
     if (!expense?.id || !newComment?.trim() || postingComment) return;
@@ -158,6 +201,7 @@ function ReceiptViewer({
   }, [expense?.id]);
 
   return (
+    <>
     <div className="flex flex-col h-full">
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
         <div className="flex flex-wrap items-center gap-3">
@@ -210,16 +254,14 @@ function ReceiptViewer({
         )}
       </div>
       <div
-        className={`h-full flex-1 overflow-hidden ${
-          activeReceiptTab !== "receipt" && "overflow-hidden"
-        }`}
+        className={`h-full flex-1 overflow-hidden ${activeReceiptTab !== "receipt" && "overflow-hidden"
+          }`}
       >
         {activeReceiptTab === "receipt" ? (
           <div className="flex flex-col h-full">
-            {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto min-h-0 bg-gray-50 p-2">
+            <div className="flex-1 overflow-y-auto min-h-0 bg-gray-50 p-2 flex items-center">
               {isLoadingReceipt ? (
-                <div className="flex flex-col items-center justify-center gap-3 p-16 text-center">
+                <div className="flex flex-col items-center justify-center mx-auto gap-3 p-16 text-center">
                   <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
                   <div>
                     <p className="text-sm font-medium text-gray-700">
@@ -231,34 +273,36 @@ function ReceiptViewer({
                   </div>
                 </div>
               ) : hasReceipt ? (
-                <div
-                  className={cn(
-                    "flex items-center justify-center p-4",
-                    isPdfReceipt && "h-full"
-                  )}
-                >
-                  {isPdfReceipt ? (
-                    <embed
-                      src={`${activeReceiptUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                      type="application/pdf"
-                      className="w-full h-full block rounded-xl border border-gray-200 bg-white"
-                      style={{
-                        transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
-                        transformOrigin: "center",
-                      }}
-                    />
-                  ) : (
-                    <img
-                      src={activeReceiptUrl ?? ""}
-                      alt="Receipt preview"
-                      className="w-[70%] bg-white object-contain"
-                      style={{
-                        transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
-                        transformOrigin: "center",
-                      }}
-                      onClick={handleReceiptFullscreen}
-                    />
-                  )}
+                <div className="relative h-full w-full">
+                  <div
+                    className={cn(
+                      "flex items-center justify-between",
+                      isPdfReceipt && "h-full"
+                    )}
+                  >
+                    {isPdfReceipt ? (
+                      <embed
+                        src={`${currentReceiptUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                        type="application/pdf"
+                        className="w-full h-full block rounded-xl border border-gray-200 bg-white"
+                        style={{
+                          transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
+                          transformOrigin: "center",
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src={currentReceiptUrl ?? ""}
+                        alt="Receipt preview"
+                        className="w-[70%] xl:w-[60%] bg-white object-contain mx-auto"
+                        style={{
+                          transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
+                          transformOrigin: "center",
+                        }}
+                        onClick={handleReceiptFullscreen}
+                      />
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-3 p-16 text-center">
@@ -277,7 +321,45 @@ function ReceiptViewer({
                 </div>
               )}
             </div>
-
+            <div className="sticky bottom-0 z-10 bg-white border-t border-gray-200 flex items-center justify-between">
+              {hasMultipleReceipts && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={goPrev}
+                  className="z-20 bg-white/70 hover:bg-white"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+              )}
+              {hasMultipleReceipts && (
+                <div className="flex justify-center gap-2 py-2">
+                  {receiptArr.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setReceiptIndex(index)}
+                      className={cn(
+                        "h-2 w-2 rounded-full transition-colors",
+                        index === activeReceiptIndex
+                          ? "bg-gray-600"
+                          : "bg-gray-300 hover:bg-gray-400"
+                      )}
+                      aria-label={`Go to receipt ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+              {hasMultipleReceipts && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={goNext}
+                  className="z-20 bg-white/70 hover:bg-white"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
+              )}
+            </div>
             {/* Sticky Footer */}
             <div className="sticky bottom-0 z-10 bg-white border-t border-gray-200 p-3 flex items-center justify-between">
               <div className="text-xs text-muted-foreground">
@@ -325,27 +407,6 @@ function ReceiptViewer({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-9 w-9 p-0"
-                  onClick={handleReceiptReset}
-                  disabled={!hasReceipt}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 px-3"
-                  onClick={handleReceiptFullscreen}
-                  disabled={!hasReceipt}
-                >
-                  <Maximize2 className="mr-2 h-4 w-4" />
-                  View
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
                   className="h-9 px-3"
                   onClick={handleReceiptDownload}
                   disabled={!hasReceipt && !uploadedFile}
@@ -383,6 +444,104 @@ function ReceiptViewer({
         )}
       </div>
     </div>
+    {isReceiptFullscreen && hasReceipt && (
+              <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
+                <div className="relative w-full h-full flex flex-col">
+                  {/* Fullscreen Header */}
+                  <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+                    <div className="flex items-center gap-4">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Receipt Viewer
+                      </h3>
+                      <span className="text-sm text-gray-500">
+                        {receiptDisplayName}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleReceiptZoomOut}
+                        disabled={receiptZoom <= 0.5}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ZoomOut className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm text-gray-600 min-w-[3rem] text-center">
+                        {Math.round(receiptZoom * 100)}%
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleReceiptZoomIn}
+                        disabled={receiptZoom >= 3}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ZoomIn className="h-4 w-4" />
+                      </Button>
+                      <div className="w-px h-6 bg-gray-300 mx-2" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleReceiptRotate}
+                        className="h-8 w-8 p-0"
+                      >
+                        <RotateCw className="h-4 w-4" />
+                      </Button>
+                      <div className="w-px h-6 bg-gray-300 mx-2" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleReceiptDownload}
+                        className="h-8 px-3 text-xs"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Download
+                      </Button>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsReceiptFullscreen(false)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+    
+                  {/* Fullscreen Content */}
+                  <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
+                    {(() => {
+                      const fullscreenSourceUrl = currentReceiptUrl;
+                      return fullscreenSourceUrl?.toLowerCase().includes(".pdf") ? (
+                        <div className="w-full h-full bg-white rounded">
+                          <embed
+                            src={`${fullscreenSourceUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
+                            type="application/pdf"
+                            className="w-full h-full border-0 rounded"
+                            style={{
+                              transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
+                              transformOrigin: "center",
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <img
+                          src={fullscreenSourceUrl || ""}
+                          alt="Receipt fullscreen"
+                          className="max-w-full max-h-full object-contain"
+                          style={{
+                            transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
+                            transformOrigin: "center",
+                          }}
+                        />
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
+    </>
   );
 }
 
