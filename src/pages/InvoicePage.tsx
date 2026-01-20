@@ -21,6 +21,8 @@ import { LineItemsTable, type InvoiceLineRow } from "@/components/invoice/LineIt
 import { getInvoiceById, getFileDownloadUrl } from "@/services/invoice/invoice";
 import { DateField } from "@/components/ui/date-field";
 import { formatCurrency } from "@/lib/utils";
+import { Autocomplete, TextField } from "@mui/material";
+import { vendorService, VendorData } from "@/services/vendorService";
 
 type InvoiceUploadState = {
   files?: File[];
@@ -46,7 +48,14 @@ export function InvoicePage() {
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState("");
   const [vendorId, setVendorId] = useState("");
+  const [gstNumber, setGstNumber] = useState("");
+  const [vendorName, setVendorName] = useState("");
+  const [vendorEmail, setVendorEmail] = useState("");
+  const [vendorPan, setVendorPan] = useState("");
   const [billingAddress, setBillingAddress] = useState("");
+  const [vendorSearchResults, setVendorSearchResults] = useState<VendorData[]>([]);
+  const [vendorSearchLoading, setVendorSearchLoading] = useState(false);
+  const vendorSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
@@ -207,7 +216,7 @@ export function InvoicePage() {
               rate: item.unit_price || "",
               tdsCode: "",
               tdsAmount: "",
-              gstCode: item.hsn_sac || "",
+              gstCode: "",
               igst: item.igst_amount || "",
               cgst: item.cgst_amount || "",
               sgst: item.sgst_amount || "",
@@ -231,6 +240,10 @@ export function InvoicePage() {
             setInvoiceNumber("");
             setInvoiceDate("");
             setVendorId("");
+            setGstNumber("");
+            setVendorName("");
+            setVendorEmail("");
+            setVendorPan("");
             setBillingAddress("");
             setTableRows([]);
             setOriginalOcrValues({});
@@ -258,6 +271,73 @@ export function InvoicePage() {
       isActive = false;
     };
   }, [location.pathname, location.state, id]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (vendorSearchTimeoutRef.current) {
+        clearTimeout(vendorSearchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const searchVendors = useCallback(async (searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      setVendorSearchResults([]);
+      return;
+    }
+
+    setVendorSearchLoading(true);
+    try {
+      const response = await vendorService.searchVendorsByGst(searchTerm);
+      setVendorSearchResults(response?.data || []);
+    } catch (error) {
+      console.error("Error searching vendors:", error);
+      setVendorSearchResults([]);
+    } finally {
+      setVendorSearchLoading(false);
+    }
+  }, []);
+
+  const handleGstNumberChange = useCallback((value: string) => {
+    setGstNumber(value);
+    
+    // Clear previous timeout
+    if (vendorSearchTimeoutRef.current) {
+      clearTimeout(vendorSearchTimeoutRef.current);
+    }
+
+    // Debounce search - wait 300ms after user stops typing
+    vendorSearchTimeoutRef.current = setTimeout(() => {
+      if (value.trim()) {
+        searchVendors(value);
+      } else {
+        setVendorSearchResults([]);
+      }
+    }, 300);
+  }, [searchVendors]);
+
+  const handleVendorSelect = useCallback((vendor: VendorData | string | null) => {
+    if (vendor && typeof vendor === 'object') {
+      setGstNumber(vendor.gstin);
+      setVendorName(vendor.vendor_name || "");
+      setVendorEmail(vendor.email || "");
+      setVendorPan(vendor.pan || "");
+      setVendorId(vendor.vendor_code || "");
+    } else if (typeof vendor === 'string') {
+      // User typed a custom GST number
+      setGstNumber(vendor);
+      setVendorName("");
+      setVendorEmail("");
+      setVendorPan("");
+    } else {
+      // Clear vendor data when selection is cleared
+      setGstNumber("");
+      setVendorName("");
+      setVendorEmail("");
+      setVendorPan("");
+    }
+  }, []);
 
   const addTableRow = useCallback(() => {
     const newRow: InvoiceLineRow = {
@@ -474,12 +554,12 @@ export function InvoicePage() {
         </div>
 
         {/* Middle Panel - Form Fields */}
-        <div className="w-2/5 border-r overflow-y-auto p-4 bg-white">
-          <div className="space-y-3">
+        <div className="w-2/5 border-r overflow-y-auto p-3 bg-white">
+          <div className="space-y-2">
             {/* Basic Details */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
             <h2 className="font-medium text-[12px] leading-[100%] tracking-[0%] text-gray-500 uppercase">CHOOSE BASIC DETAILS</h2>
-              <div className="grid grid-cols-2 gap-3 items-end">
+              <div className="grid grid-cols-2 gap-2 items-end">
                     <div>
                       <Label htmlFor="invoice-number" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
                         Invoice Number
@@ -488,7 +568,7 @@ export function InvoicePage() {
                         id="invoice-number"
                         value={invoiceNumber}
                         onChange={(e) => setInvoiceNumber(e.target.value)}
-                        className="mt-1 font-normal"
+                        className="mt-0.5 h-8 text-sm font-normal"
                         placeholder="Enter invoice number"
                         disabled={isApprovalMode}
                       />
@@ -502,7 +582,7 @@ export function InvoicePage() {
                         value={invoiceDate}
                         onChange={(value) => setInvoiceDate(value || "")}
                         disabled={isApprovalMode}
-                        className="mt-1"
+                        className="mt-0.5 h-8"
                       />
                     </div>
                     <div className="col-span-2">
@@ -513,11 +593,108 @@ export function InvoicePage() {
                         id="vendor"
                         value={vendorId}
                         onChange={(e) => setVendorId(e.target.value)}
-                        className="mt-1 font-normal"
+                        className="mt-0.5 h-8 text-sm font-normal"
                         placeholder="Enter vendor ID"
                         disabled={isApprovalMode}
                       />
                     </div>
+                    <div className="col-span-2">
+                      <Label htmlFor="gst-number" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                        GST Number
+                      </Label>
+                      <Autocomplete
+                        id="gst-number"
+                        options={vendorSearchResults}
+                        getOptionLabel={(option) => typeof option === 'string' ? option : option.gstin}
+                        value={vendorSearchResults.find(v => v.gstin === gstNumber) || null}
+                        onInputChange={(_event, newInputValue) => {
+                          handleGstNumberChange(newInputValue);
+                        }}
+                        onChange={(_event, newValue) => {
+                          handleVendorSelect(newValue);
+                        }}
+                        loading={vendorSearchLoading}
+                        disabled={isApprovalMode}
+                        freeSolo
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            placeholder="Search GST number..."
+                            className="mt-0.5"
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                height: '32px',
+                                fontSize: '14px',
+                                '& fieldset': {
+                                  borderColor: '#e5e7eb',
+                                },
+                                '&:hover fieldset': {
+                                  borderColor: '#d1d5db',
+                                },
+                                '&.Mui-focused fieldset': {
+                                  borderColor: '#9333ea',
+                                },
+                              },
+                            }}
+                          />
+                        )}
+                        renderOption={(props, option) => (
+                          <li {...props} key={option.id}>
+                            <div className="flex flex-col w-full">
+                              <span className="font-medium">{option.gstin}</span>
+                              {option.vendor_name && (
+                                <span className="text-xs text-gray-500">{option.vendor_name}</span>
+                              )}
+                            </div>
+                          </li>
+                        )}
+                        noOptionsText={gstNumber ? "No vendors found" : "Start typing to search..."}
+                      />
+                    </div>
+                    {vendorName && (
+                      <>
+                        <div className="col-span-2">
+                          <Label htmlFor="vendor-name" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                            Vendor Name
+                          </Label>
+                          <Input
+                            id="vendor-name"
+                            value={vendorName}
+                            onChange={(e) => setVendorName(e.target.value)}
+                            className="mt-0.5 h-8 text-sm font-normal"
+                            placeholder="Vendor name"
+                            disabled={isApprovalMode}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label htmlFor="vendor-email" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                            Vendor Email
+                          </Label>
+                          <Input
+                            id="vendor-email"
+                            type="email"
+                            value={vendorEmail}
+                            onChange={(e) => setVendorEmail(e.target.value)}
+                            className="mt-0.5 h-8 text-sm font-normal"
+                            placeholder="Vendor email"
+                            disabled={isApprovalMode}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label htmlFor="vendor-pan" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                            PAN
+                          </Label>
+                          <Input
+                            id="vendor-pan"
+                            value={vendorPan}
+                            onChange={(e) => setVendorPan(e.target.value)}
+                            className="mt-0.5 h-8 text-sm font-normal"
+                            placeholder="PAN number"
+                            disabled={isApprovalMode}
+                          />
+                        </div>
+                      </>
+                    )}
               </div>
             </div>
 
@@ -596,64 +773,46 @@ export function InvoicePage() {
         />
 
         {/* Summary Section */}
-        <div className="bg-white border-t border-gray-200 px-6 py-3">
-          <div className="flex justify-end">
-            <div className="w-full max-w-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="font-medium text-xs text-gray-700">Subtotal</Label>
-                <Input
-                  value={formatCurrency(parseFloat(subtotalAmount) || 0)}
-                  readOnly
-                  disabled
-                  className="w-40 h-8 text-right font-medium bg-gray-50 text-sm"
-                />
+        <div className="bg-white border-t border-gray-200">
+          <div className="flex justify-end pr-6 pl-0 py-1">
+            <div className="flex flex-col items-end min-w-[140px]">
+              <div className="flex items-center justify-end gap-3 w-full py-1">
+                <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">Subtotal</Label>
+                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                  <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(subtotalAmount) || 0)}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="font-medium text-xs text-gray-700">CGST</Label>
-                <Input
-                  value={formatCurrency(parseFloat(cgstAmount) || 0)}
-                  readOnly
-                  disabled
-                  className="w-40 h-8 text-right font-medium bg-gray-50 text-sm"
-                />
+              <div className="flex items-center justify-end gap-3 w-full py-1">
+                <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">CGST</Label>
+                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                  <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(cgstAmount) || 0)}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="font-medium text-xs text-gray-700">SGST</Label>
-                <Input
-                  value={formatCurrency(parseFloat(sgstAmount) || 0)}
-                  readOnly
-                  disabled
-                  className="w-40 h-8 text-right font-medium bg-gray-50 text-sm"
-                />
+              <div className="flex items-center justify-end gap-3 w-full py-1">
+                <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">SGST</Label>
+                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                  <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(sgstAmount) || 0)}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="font-medium text-xs text-gray-700">IGST</Label>
-                <Input
-                  value={formatCurrency(parseFloat(igstAmount) || 0)}
-                  readOnly
-                  disabled
-                  className="w-40 h-8 text-right font-medium bg-gray-50 text-sm"
-                />
+              <div className="flex items-center justify-end gap-3 w-full py-1">
+                <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">IGST</Label>
+                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                  <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(igstAmount) || 0)}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="font-medium text-xs text-gray-700">TDS</Label>
-                <Input
-                  value={formatCurrency(
+              <div className="flex items-center justify-end gap-3 w-full py-1">
+                <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">TDS</Label>
+                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                  <span className="text-xs font-medium text-right">{formatCurrency(
                     tableRows.reduce((sum, row) => sum + (parseFloat(row.tdsAmount) || 0), 0)
-                  )}
-                  readOnly
-                  disabled
-                  className="w-40 h-8 text-right font-medium bg-gray-50 text-sm"
-                />
+                  )}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between border-t border-gray-300 pt-2">
-                <Label className="font-semibold text-sm text-gray-900">Total</Label>
-                <Input
-                  value={formatCurrency(parseFloat(totalAmount) || 0)}
-                  readOnly
-                  disabled
-                  className="w-40 h-9 text-right font-semibold text-sm bg-gray-50"
-                />
+              <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
+                <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Total</Label>
+                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                  <span className="text-xs font-semibold text-right">{formatCurrency(parseFloat(totalAmount) || 0)}</span>
+                </div>
               </div>
             </div>
           </div>

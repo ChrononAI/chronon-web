@@ -5,7 +5,7 @@ import { trackApiError } from "@/mixpanel";
 // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://in.pulse.chronon.co.in';
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  "https://staging-api.chronon.com.chronon.co.in";
+  "http://localhost:5555";
 const API_BASE_URL_V2 =
   import.meta.env.VITE_API_BASE_URL_V2 || "https://stageapi.auth.chronon.co.in";
 

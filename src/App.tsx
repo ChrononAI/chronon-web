@@ -77,6 +77,7 @@ import TransactionDetailPage from "./pages/transactions/TransactionDetailPage";
 import { InvoicePage } from "./pages/InvoicePage";
 import { AllInvoicesPage } from "./pages/AllInvoicesPage";
 import { AllVendorsPage } from "./pages/AllVendorsPage";
+import { VendorDetailsPage } from "./pages/VendorDetailsPage";
 import { AllApprovalsPage } from "./pages/AllApprovalsPage";
 import { FlowLayout } from "./components/layout/FlowLayout";
 
@@ -100,6 +101,8 @@ function App() {
               <Route path="/flow/invoice/upload" element={<InvoicePage />} />
               <Route path="/flow/invoice/:id" element={<InvoicePage />} />
               <Route path="/flow/vendors" element={<AllVendorsPage />} />
+              <Route path="/flow/vendors/new" element={<VendorDetailsPage />} />
+              <Route path="/flow/vendors/:id" element={<VendorDetailsPage />} />
               <Route path="/flow/approvals" element={<AllApprovalsPage />} />
               <Route path="/flow/approvals/:id" element={<InvoicePage />} />
             </Route>
