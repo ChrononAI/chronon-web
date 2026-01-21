@@ -184,10 +184,6 @@ export function CreateExpenseForm() {
         });
       }
 
-      // if (formData.advance_account_id) {
-      //   customAttributes["advance_account_id"] = formData.advance_account_id;
-      // }
-
       let result;
       if (formData.invoice_number) {
 
@@ -207,7 +203,9 @@ export function CreateExpenseForm() {
           currency: formData.currency || baseCurrency || "INR",
           advance_account_id: formData.advance_account_id
         };
-
+        if (formData.file_ids) {
+          expensePayload.file_ids = formData.file_ids;
+        }
         if (formData.advance_id)
           expensePayload.advance_id = formData.advance_id;
         if (formData.pre_approval_id)
