@@ -103,11 +103,10 @@ export const approvalService = {
         action,
         reason
       }))
-      
       const result = await handleApiResponse(response);
       return {
         success: true,
-        message: result.message
+        message: result.data.message
       };
     } catch (error) {
       throw error;
