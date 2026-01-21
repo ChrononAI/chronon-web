@@ -379,7 +379,7 @@ export function ExpenseDetailsStep2({
 
   const fetchPreApprovals = async () => {
     try {
-      const res = await preApprovalService.fetchAllPreApprovals();
+      const res = await preApprovalService.getAllPreApprovalByStatus('APPROVED');
       setPreApprovals(res.data?.data || []);
     } catch (error) {
       console.log(error);

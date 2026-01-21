@@ -71,6 +71,14 @@ fetchAllPreApprovals: async () => {
         }
     },
 
+    getAllPreApprovalByStatus: async (status: string) => {
+        try {
+            return await api.get(`/api/v1/pre_approvals?status=${status}`);
+        } catch (error) {
+            throw error;
+        }
+    },
+
     createPreApproval: async (payload: CreatePreApprovalPayloadType) => {
         try {
             return await api.post('/api/v1/pre_approvals', payload);
