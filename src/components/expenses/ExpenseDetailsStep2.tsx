@@ -70,7 +70,6 @@ import { getEntities, type Entity } from "@/services/admin/entities";
 import { FormFooter } from "../layout/FormFooter";
 import ReceiptViewer from "./ReceiptViewer";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
-import { AttachmentUploader } from "./AttachmentUploader";
 
 export type Attachment = {
   fileId: string;
@@ -885,6 +884,10 @@ useEffect(() => {
               handleReceiptRotate={handleReceiptRotate}
               handleReceiptZoomIn={handleReceiptZoomIn}
               handleReceiptZoomOut={handleReceiptZoomOut}
+              setAttachments={setAttachments}
+              fileIds={fileIds}
+              setFileIds={setFileIds}
+              generateUploadUrl={generateUploadUrl}
             />
           </div>
 
@@ -1496,11 +1499,6 @@ useEffect(() => {
                           />
                         );
                       })}
-                      <AttachmentUploader
-                        onChange={setAttachments}
-                        setFileIds={setFileIds}
-                        generateUploadUrl={generateUploadUrl}
-                      />
                     </div>
                   </section>
                 </div>

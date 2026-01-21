@@ -51,7 +51,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { AttachmentUploader } from "@/components/expenses/AttachmentUploader";
 import { Attachment } from "@/components/expenses/ExpenseDetailsStep2";
 import AttachmentViewer from "@/components/expenses/AttachmentViewer";
 
@@ -596,7 +595,15 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
             <div className="h-full flex-1 overflow-hidden">
               {activePerdiemTab === "attachment" ? (
-                <AttachmentViewer activeTab={activePerdiemTab} attachments={attachments} isLoadingReceipt={attachmentLoading} />
+                <AttachmentViewer
+                  activeTab={activePerdiemTab}
+                  attachments={attachments}
+                  isLoadingReceipt={attachmentLoading}
+                  setAttachments={setAttachments}
+                  fileIds={fileIds}
+                  setFileIds={setFileIds}
+                  generateUploadUrl={generateUploadUrl}
+                />
               ) : activePerdiemTab === "comments" ? (
                 <ExpenseComments
                   expenseId={expenseData?.id}
@@ -661,26 +668,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         </FormItem>
                       )}
                     />
-
-                    {/* <div className="space-y-2">
-                      <Label
-                        htmlFor="days"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Number of Days
-                      </Label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-                        <Input
-                          id="days"
-                          type="text"
-                          value={days}
-                          readOnly
-                          className="bg-gray-50 pl-10"
-                          disabled={mode === "view"}
-                        />
-                      </div>
-                    </div> */}
 
                     {!singleDate?.enabled && (
                       <FormField
@@ -844,11 +831,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                       )}
                     />
                   </div>
-                  <AttachmentUploader
-                    onChange={setAttachments}
-                    setFileIds={setFileIds}
-                    generateUploadUrl={generateUploadUrl}
-                  />
                 </div>
               </div>
 
