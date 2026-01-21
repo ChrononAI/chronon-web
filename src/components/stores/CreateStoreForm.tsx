@@ -51,6 +51,14 @@ const getFieldName = (entity: TemplateEntity): string => {
   return entity?.display_name || entity?.field_name || getEntityId(entity);
 };
 
+const getEntityByName = (entityName: string, templateEntities: any[]) => {
+  return templateEntities.find(ent => ent.field_name === entityName);
+};
+
+const FIELD_NAME_ARRAY = [
+  "Store ID", 'Cost Center', "Store Location", "Business Area", "Staff Count", "Advance Amount", "Region"
+]
+
 // Form schema
 const storeSchema = z
   .object({
@@ -95,6 +103,9 @@ export function CreateStoreForm({
   const [templateEntities, setTemplateEntities] = useState<TemplateEntity[]>(
     []
   );
+
+  console.log(selectedUser, selectedStoreManager);
+
   const [entityOptions, setEntityOptions] = useState<
     Record<string, Array<{ id: string; label: string }>>
   >({});
@@ -128,7 +139,6 @@ export function CreateStoreForm({
     try {
       const res: any = await storesService.getStoreById(id);
       let store = res.data.data;
-      console.log(store);
       if (store) {
         if (store.custom_attributes) {
           store = {
@@ -203,8 +213,8 @@ export function CreateStoreForm({
       } catch (error: any) {
         toast.error(
           error.response?.data?.message ||
-            error.message ||
-            "Failed to resubmit store"
+          error.message ||
+          "Failed to resubmit store"
         );
       } finally {
         setLoading(false);
@@ -273,6 +283,98 @@ export function CreateStoreForm({
       }
     }
   };
+
+  const renderTemplateField = ((entity: TemplateEntity) => {
+    const entityId = getEntityId(entity);
+    const fieldName = getFieldName(entity);
+    if (!entityId) return null;
+
+    return (
+      <FormField
+        key={entityId}
+        control={form.control}
+        name={entityId as any}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>
+              {fieldName}
+              {entity.is_mandatory && <span>*</span>}
+            </FormLabel>
+            {entity.field_type === "SELECT" ? (
+              <Popover
+                open={entityDropdownOpen[entityId] || false}
+                onOpenChange={(open) =>
+                  setEntityDropdownOpen((prev) => ({
+                    ...prev,
+                    [entityId]: open,
+                  }))
+                }
+              >
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={entityDropdownOpen[entityId]}
+                      className="h-11 w-full justify-between"
+                      disabled={mode === "view"}
+                    >
+                      <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
+                        {field.value
+                          ? entityOptions[entityId]?.find(
+                            (opt) => opt.id === field.value
+                          )?.label || `Select ${fieldName}`
+                          : `Select ${fieldName}`}
+                      </span>
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                    <CommandInput
+                      placeholder={`Search ${fieldName}...`}
+                    />
+                    <CommandList className="max-h-[180px] overflow-y-auto">
+                      <CommandEmpty>
+                        No {fieldName.toLowerCase()} found.
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {entityOptions[entityId]?.map((opt) => (
+                          <CommandItem
+                            key={opt.id}
+                            value={opt.label}
+                            onSelect={() => {
+                              field.onChange(opt.id);
+                              setEntityDropdownOpen((prev) => ({
+                                ...prev,
+                                [entityId]: false,
+                              }));
+                            }}
+                          >
+                            {opt.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <FormControl>
+                <Input
+                  {...field}
+                  placeholder={`Enter ${fieldName}`}
+                  disabled={mode === "view"}
+                />
+              </FormControl>
+            )}
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    );
+  });
 
   useEffect(() => {
     const loadTemplates = async () => {
@@ -343,42 +445,90 @@ export function CreateStoreForm({
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name *</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    placeholder="Name"
-                    disabled={mode === "view"}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name *</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="Name"
+                      disabled={mode === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          {/* Amount Field */}
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Description"
-                    {...field}
-                    disabled={mode === "view"}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            {/* Amount Field */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Description"
+                      {...field}
+                      disabled={mode === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="store_code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Store Code *</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Store code"
+                      {...field}
+                      disabled={mode === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {getEntityByName("Store ID", templateEntities) && renderTemplateField(getEntityByName("Store ID", templateEntities))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {getEntityByName("Cost Center", templateEntities) && renderTemplateField(getEntityByName("Cost Center", templateEntities))}
+
+            <FormField
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City *</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="City"
+                      {...field}
+                      disabled={mode === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {getEntityByName("Store Location", templateEntities) && renderTemplateField(getEntityByName("Store Location", templateEntities))}
 
           <FormField
             control={form.control}
@@ -397,24 +547,11 @@ export function CreateStoreForm({
               </FormItem>
             )}
           />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="city"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>City *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="City"
-                      {...field}
-                      disabled={mode === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {getEntityByName("Region", templateEntities) && renderTemplateField(getEntityByName("Region", templateEntities))}
+            {getEntityByName("Business Area", templateEntities) && renderTemplateField(getEntityByName("Business Area", templateEntities))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
               name="opening_date"
@@ -457,24 +594,14 @@ export function CreateStoreForm({
                 </FormItem>
               )}
             />
+
+            {getEntityByName("Staff Count", templateEntities) && renderTemplateField(getEntityByName("Staff Count", templateEntities))}
           </div>
-          <FormField
-            control={form.control}
-            name="store_code"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Store Code *</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Store code"
-                    {...field}
-                    disabled={mode === "view"}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+
+          {getEntityByName("Advance Amount", templateEntities) && renderTemplateField(getEntityByName("Advance Amount", templateEntities))}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {!(mode === "view" && !selectedStore?.store_manager_id) && (
               <FormField
@@ -482,7 +609,7 @@ export function CreateStoreForm({
                 name="store_manager_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Store Manager</FormLabel>
+                    <FormLabel>Store Manager EMP Code</FormLabel>
                     <Popover
                       open={storeManagerDropdown}
                       onOpenChange={setStoreManagerDropdown}
@@ -499,7 +626,7 @@ export function CreateStoreForm({
                             <>
                               <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
                                 {selectedStoreManager
-                                  ? `${selectedStoreManager?.first_name} ${selectedStoreManager?.last_name}`
+                                  ? `${selectedStoreManager?.username}`
                                   : "Select a manager"}
                               </span>
                               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -523,7 +650,10 @@ export function CreateStoreForm({
                                     setStoreManagerDropdown(false);
                                   }}
                                 >
-                                  {`${user.first_name} ${user.last_name}`}
+                                  <div>
+                                    {`${user.username}`}
+                                    <div className="text-xs text-muted-foreground">{user.first_name} {user.last_name}</div>
+                                  </div>
                                 </CommandItem>
                               ))}
                             </CommandGroup>
@@ -536,13 +666,50 @@ export function CreateStoreForm({
                 )}
               />
             )}
+            <FormItem>
+              <FormLabel>Store Manager EMP Name</FormLabel>
+              <FormControl>
+                <Input
+                  value={selectedStoreManager ? `${selectedStoreManager?.first_name} ${selectedStoreManager?.last_name}` : ""}
+                  placeholder={selectedStoreManager ? "Store Manager EMP Name" : "Select Store Manager"}
+                  disabled={mode === "view" || !selectedStoreManager}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormItem>
+              <FormLabel>Store Manager Mobile No</FormLabel>
+              <FormControl>
+                <Input
+                  value={selectedStoreManager ? `${selectedStoreManager?.phone_number}` : ""}
+                  placeholder={selectedStoreManager ? "Store Manager Mobile No" : "Select Store Manager"}
+                  disabled={mode === "view" || !selectedStoreManager}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+            <FormItem>
+              <FormLabel>Store Manager EMP Mail ID</FormLabel>
+              <FormControl>
+                <Input
+                  value={selectedStoreManager ? `${selectedStoreManager?.email}` : ""}
+                  placeholder={selectedStoreManager ? "Store Manager Mail ID" : "Select Store Manager"}
+                  disabled={mode === "view" || !selectedStoreManager}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {!(mode === "view" && !selectedStore?.area_manager_id) && (
               <FormField
                 control={form.control}
                 name="area_manager_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Area Manager</FormLabel>
+                    <FormLabel>Area Manager EMP Code</FormLabel>
                     <Popover
                       open={areaManagerDropdown}
                       onOpenChange={setAreaManagerDropdown}
@@ -559,7 +726,7 @@ export function CreateStoreForm({
                             <>
                               <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
                                 {selectedUser
-                                  ? `${selectedUser?.first_name} ${selectedUser?.last_name}`
+                                  ? `${selectedUser?.username}`
                                   : "Select a manager"}
                               </span>
                               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -583,7 +750,10 @@ export function CreateStoreForm({
                                     setAreaManagerDropdown(false);
                                   }}
                                 >
-                                  {`${user.first_name} ${user.last_name}`}
+                                  <div>
+                                    {`${user.username}`}
+                                    <div className="text-xs text-muted-foreground">{user.first_name} {user.last_name}</div>
+                                  </div>
                                 </CommandItem>
                               ))}
                             </CommandGroup>
@@ -596,97 +766,24 @@ export function CreateStoreForm({
                 )}
               />
             )}
-            {templateEntities?.map((entity) => {
-              const entityId = getEntityId(entity);
-              const fieldName = getFieldName(entity);
-              if (!entityId) return null;
-
-              return (
-                <FormField
-                  key={entityId}
-                  control={form.control}
-                  name={entityId as any}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {fieldName}
-                        {entity.is_mandatory && <span>*</span>}
-                      </FormLabel>
-                      {entity.field_type === "SELECT" ? (
-                        <Popover
-                          open={entityDropdownOpen[entityId] || false}
-                          onOpenChange={(open) =>
-                            setEntityDropdownOpen((prev) => ({
-                              ...prev,
-                              [entityId]: open,
-                            }))
-                          }
-                        >
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={entityDropdownOpen[entityId]}
-                                className="h-11 w-full justify-between"
-                                disabled={mode === "view"}
-                              >
-                                <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
-                                  {field.value
-                                    ? entityOptions[entityId]?.find(
-                                        (opt) => opt.id === field.value
-                                      )?.label || `Select ${fieldName}`
-                                    : `Select ${fieldName}`}
-                                </span>
-                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                              <CommandInput
-                                placeholder={`Search ${fieldName}...`}
-                              />
-                              <CommandList className="max-h-[180px] overflow-y-auto">
-                                <CommandEmpty>
-                                  No {fieldName.toLowerCase()} found.
-                                </CommandEmpty>
-                                <CommandGroup>
-                                  {entityOptions[entityId]?.map((opt) => (
-                                    <CommandItem
-                                      key={opt.id}
-                                      value={opt.label}
-                                      onSelect={() => {
-                                        field.onChange(opt.id);
-                                        setEntityDropdownOpen((prev) => ({
-                                          ...prev,
-                                          [entityId]: false,
-                                        }));
-                                      }}
-                                    >
-                                      {opt.label}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      ) : (
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder={`Enter ${fieldName}`}
-                            disabled={mode === "view"}
-                          />
-                        </FormControl>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
+             <FormItem>
+              <FormLabel>Store Manager EMP Name</FormLabel>
+              <FormControl>
+                <Input
+                  value={selectedUser ? `${selectedUser?.first_name} ${selectedUser?.last_name}` : ""}
+                  placeholder={selectedStoreManager ? "Store Manager EMP Name" : "Select Store Manager"}
+                  disabled={mode === "view" || !selectedStoreManager}
                 />
-              );
-            })}
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {templateEntities
+              ?.filter(
+                (entity) => !FIELD_NAME_ARRAY.includes(entity.field_name || "")
+              )
+              .map((entity) => renderTemplateField(entity))}
           </div>
           <FormFooter>
             <Button
