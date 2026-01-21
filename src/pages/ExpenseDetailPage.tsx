@@ -110,7 +110,7 @@ export function ExpenseDetailPage() {
 
   const isAdminUpdatingExpense =
     isAdmin &&
-    location.pathname.includes("/approvals") &&
+    (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
     expense?.status !== "APPROVED" &&
     expense?.status !== "REJECTED";
 
@@ -428,7 +428,7 @@ export function ExpenseDetailPage() {
               expense.status === "INCOMPLETE" ||
               expense.status === "SENT_BACK" ||
               (isAdmin &&
-                location.pathname.includes("/approvals") &&
+                (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
                 expense.status !== "APPROVED" &&
                 expense.status !== "REJECTED")
                 ? "edit"
@@ -452,7 +452,7 @@ export function ExpenseDetailPage() {
               expense.status === "INCOMPLETE" ||
               expense.status === "SENT_BACK" ||
               (isAdmin &&
-                location.pathname.includes("/approvals") &&
+                (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
                 expense.status !== "APPROVED" &&
                 expense.status !== "REJECTED")
                 ? "edit"
@@ -472,7 +472,7 @@ export function ExpenseDetailPage() {
               expense.status === "INCOMPLETE" ||
               expense.status === "SENT_BACK" ||
               (isAdmin &&
-                location.pathname.includes("/approvals") &&
+                (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
                 expense.status !== "APPROVED" &&
                 expense.status !== "REJECTED")
                 ? "edit"
@@ -505,6 +505,7 @@ export function ExpenseDetailPage() {
             <Textarea
               placeholder="Enter reason for editing this expense"
               value={adminEditReason}
+              className="resize-none"
               onChange={(e) => setAdminEditReason(e.target.value)}
               rows={3}
             />

@@ -195,6 +195,9 @@ export function ReportDetailPage2() {
   const [postingComment, setPostingComment] = useState(false);
   const [newComment, setNewComment] = useState<string>();
 
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  const adminApprover = isAdmin && pathname.includes("admin-reports") && report?.status === "UNDER_REVIEW";
+
   const tabs = [
     { key: "expenses", label: "Expenses", count: 0 },
     { key: "history", label: "Audit History", count: 0 },
@@ -243,7 +246,6 @@ export function ReportDetailPage2() {
           approval_steps: newSteps,
           total_steps: newSteps.length,
           current_step: currentStepIdx !== -1 ? currentStepIdx + 1 : 0,
-          // ...workflowResponse.data[0]
         });
       } else {
         console.warn(
@@ -360,8 +362,8 @@ export function ReportDetailPage2() {
       type === "approve"
         ? "Approve Report"
         : type === "reject"
-        ? "Reject Report"
-        : "Send Back Report";
+          ? "Reject Report"
+          : "Send Back Report";
     trackEvent(text + " Button Clicked", {
       button_name: text,
     });
@@ -369,6 +371,33 @@ export function ReportDetailPage2() {
     setComments("");
     setShowActionDialog(true);
   };
+
+  const executeAdminAction = async () => {
+    if (!report || !actionType) return;
+
+    if (!comments.trim()) {
+      toast.error("Comments are required");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      let result = await approvalService.adminReportAction({
+        reportId: report.id,
+        reason: comments,
+        action: actionType
+      });
+      toast.success(result.message);
+      setShowActionDialog(false);
+      await fetchReport();
+    } catch (error: any) {
+      console.error(`Failed to ${actionType} report`, error);
+      toast.error(
+        error?.response?.data?.message || `Failed to ${actionType} report`
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  }
 
   const executeAction = async () => {
     if (!report || !actionType) return;
@@ -461,6 +490,8 @@ export function ReportDetailPage2() {
       navigate(`/approvals/reports/${report.id}/${expense.id}`);
     } else if (pathname.includes("/admin/settlements")) {
       navigate(`/admin/settlements/${report.id}/${expense.id}`);
+    } else if (pathname.includes("admin-reports")) {
+      navigate(`/admin/admin-reports/${report.id}/${expense.id}`)
     } else {
       navigate(`/reports/${report.id}/${expense.id}`);
     }
@@ -471,7 +502,7 @@ export function ReportDetailPage2() {
       <div className="flex flex-col space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Report Approval</h1>
-          {isFromApprovals && canApproveReport() && (
+          {((isFromApprovals && canApproveReport()) || adminApprover) && (
             <div className="flex gap-2">
               <Button
                 onClick={() => handleAction("approve")}
@@ -554,7 +585,7 @@ export function ReportDetailPage2() {
             className="mb-0"
           />
           {activeTab === "expenses" && (
-            <div className="space-y-6 mt-6">
+            <div className="space-y-6 mt-6 flex-1">
               <div className="rounded-lg border">
                 <DataGrid
                   className="rounded border-[0.2px] border-[#f3f4f6] h-full"
@@ -587,9 +618,9 @@ export function ReportDetailPage2() {
                       border: "0.2px solid #f3f4f6",
                     },
                     "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                      {
-                        outline: "none",
-                      },
+                    {
+                      outline: "none",
+                    },
                     "& .MuiDataGrid-cell:focus-within": {
                       outline: "none",
                     },
@@ -611,7 +642,7 @@ export function ReportDetailPage2() {
           )}
 
           {activeTab === "history" && (
-            <div className="w-1/3">
+            <div className="w-1/2 flex-1">
               {approvalWorkflow && approvalWorkflow.approval_steps && (
                 <div className="mt-6">
                   <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
@@ -621,7 +652,7 @@ export function ReportDetailPage2() {
           )}
 
           {activeTab === "comments" && (
-            <div className="flex flex-col h-[40vh] overflow-hidden">
+            <div className="flex flex-col h-[56vh] overflow-hidden">
               <ExpenseComments
                 expenseId={id}
                 loadingComments={loadingReportComments}
@@ -636,7 +667,7 @@ export function ReportDetailPage2() {
           )}
 
           {activeTab === "logs" && (
-            <div className="flex flex-col h-[40vh] overflow-hidden">
+            <div className="flex flex-col flex-1 overflow-auto">
               <ExpenseLogs
                 logs={reportLogs}
                 loading={loadingReportComments}
@@ -668,7 +699,7 @@ export function ReportDetailPage2() {
 
       {/* Action Dialog */}
       <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {actionType === "approve" ? (
@@ -681,15 +712,28 @@ export function ReportDetailPage2() {
               {actionType === "approve"
                 ? "Approve"
                 : actionType === "reject"
-                ? "Reject"
-                : "Send Back"}{" "}
+                  ? "Reject"
+                  : "Send Back"}{" "}
               Report
             </DialogTitle>
           </DialogHeader>
 
           {report && (
             <div className="space-y-4">
-              <div className="bg-muted/30 rounded-lg p-4">
+              {adminApprover && <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0 text-amber-600" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                      Administrator Action
+                  </p>
+                  <p className="text-sm text-amber-800">
+                      You are taking action on this report as an administrator. This action may
+                      override the configured approval workflow. Please provide comments to
+                      justify your decision.
+                  </p>
+                </div>
+              </div>}
+              <div className="bg-muted/30 rounded-lg space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">
@@ -729,8 +773,8 @@ export function ReportDetailPage2() {
                       actionType === "approve"
                         ? "Please provide comments for approval..."
                         : actionType === "reject"
-                        ? "Please provide reason for rejection..."
-                        : "Please provide reason for sending back to draft..."
+                          ? "Please provide reason for rejection..."
+                          : "Please provide reason for sending back to draft..."
                     }
                     value={comments}
                     onChange={(e) => setComments(e.target.value)}
@@ -741,7 +785,7 @@ export function ReportDetailPage2() {
                 </div>
               </div>
               <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 w-full text-center">
-                <div className="flex flex-row gap-3 justify-center w-full">
+                <div className="flex flex-row gap-3 justify-end w-full">
                   <Button
                     variant="outline"
                     onClick={() => setShowActionDialog(false)}
@@ -751,15 +795,14 @@ export function ReportDetailPage2() {
                     Cancel
                   </Button>
                   <Button
-                    onClick={executeAction}
+                    onClick={adminApprover ? executeAdminAction : executeAction}
                     disabled={actionLoading || !comments.trim()}
-                    className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-200 ${
-                      actionType === "approve"
-                        ? "bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md"
-                        : actionType === "reject"
+                    className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-200 ${actionType === "approve"
+                      ? "bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md"
+                      : actionType === "reject"
                         ? "bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md"
                         : "bg-orange-600 hover:bg-orange-700 text-white shadow-sm hover:shadow-md"
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {actionLoading ? (
                       <>
@@ -767,8 +810,8 @@ export function ReportDetailPage2() {
                         {actionType === "approve"
                           ? "Approving..."
                           : actionType === "reject"
-                          ? "Rejecting..."
-                          : "Sending Back..."}
+                            ? "Rejecting..."
+                            : "Sending Back..."}
                       </>
                     ) : (
                       <>
@@ -782,8 +825,8 @@ export function ReportDetailPage2() {
                         {actionType === "approve"
                           ? "Approve Report"
                           : actionType === "reject"
-                          ? "Reject Report"
-                          : "Send Back"}
+                            ? "Reject Report"
+                            : "Send Back"}
                       </>
                     )}
                   </Button>
