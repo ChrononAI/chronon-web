@@ -7,7 +7,6 @@ import { AlertCircle, Trash2, Loader2 } from "lucide-react";
 import { expenseService, UpdateExpenseData } from "@/services/expenseService";
 import { Expense } from "@/types/expense";
 import { getOrgCurrency, getStatusColor } from "@/lib/utils";
-import { toast } from "sonner";
 import { useExpenseStore } from "@/store/expenseStore";
 import {
   AlertDialog,
@@ -27,6 +26,7 @@ import { useAuthStore } from "@/store/authStore";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE", "SENT_BACK"];
 
@@ -37,6 +37,7 @@ const filterFormData = (data: Record<string, any>): UpdateExpenseData => {
     "description",
     "expense_date",
     "expense_policy_id",
+    "file_ids",
     "vendor",
     "receipt_id",
     "invoice_number",
@@ -228,6 +229,7 @@ export function ExpenseDetailPage() {
           filteredData.foreign_currency = null;
         }
         filteredData.advance_account_id = formData.advance_account_id?.length > 0 ? formData.advance_account_id : null;
+        console.log(filteredData);
 
         if (isAdminUpdatingExpense) {
           setShowAdminEditConfirm(true);
@@ -244,6 +246,7 @@ export function ExpenseDetailPage() {
           description: formData.description,
           expense_date: formData.expense_date,
           expense_policy_id: formData.expense_policy_id,
+          file_ids: formData.file_ids,
           vendor: formData.merchant,
           receipt_id: isReceiptReplaced
             ? parsedData?.id ?? null

@@ -146,11 +146,11 @@ const columns: GridColDef[] = [
     renderCell: (params) => getExpenseType(params.row.expense_type),
   },
   {
-    field: "policy",
+    field: "policy_name",
     headerName: "POLICY",
     minWidth: 140,
     flex: 1,
-    valueGetter: (params: any) => params?.name || "No Policy",
+    valueGetter: (params: any) => params || "No Policy",
   },
   {
     field: "category",
