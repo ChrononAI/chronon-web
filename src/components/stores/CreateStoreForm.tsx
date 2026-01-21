@@ -104,8 +104,6 @@ export function CreateStoreForm({
     []
   );
 
-  console.log(selectedUser, selectedStoreManager);
-
   const [entityOptions, setEntityOptions] = useState<
     Record<string, Array<{ id: string; label: string }>>
   >({});
