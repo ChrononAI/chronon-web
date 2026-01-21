@@ -13,6 +13,8 @@ import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Attachment } from "./ExpenseDetailsStep2";
+import { AttachmentUploader } from "./AttachmentUploader";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 const isPdfUrl = (url: string | null | undefined) => {
     if (!url) return false;
@@ -28,6 +30,10 @@ function AttachmentViewer({
     activeTab,
     loading,
     attachments,
+    setAttachments,
+    fileIds,
+    setFileIds,
+    generateUploadUrl
 }: any) {
     const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
     const [activeReceiptIndex, setReceiptIndex] = useState(0);
@@ -122,7 +128,7 @@ function AttachmentViewer({
                                             <img
                                                 src={currentReceiptUrl ?? ""}
                                                 alt="Receipt preview"
-                                                className="w-full bg-white object-contain mx-auto"
+                                                className="w-[70%] bg-white object-contain mx-auto"
                                                 style={{
                                                     transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
                                                     transformOrigin: "center",
@@ -148,7 +154,7 @@ function AttachmentViewer({
                                 </div>
                             )}
                         </div>
-                        <div className="sticky bottom-0 z-10 bg-white border-t border-gray-200 w-48 mx-auto flex items-center justify-between">
+                        <div className="sticky bottom-0 z-10 bg-white w-48 mx-auto flex items-center justify-between">
                             {hasMultipleAttachments && (
                                 <Button
                                     variant="ghost"
@@ -201,46 +207,76 @@ function AttachmentViewer({
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-9 w-9 p-0"
-                                    onClick={handleReceiptZoomOut}
-                                    disabled={!hasAttachment || receiptZoom <= 0.5}
-                                >
-                                    <ZoomOut className="h-4 w-4" />
-                                </Button>
-
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-9 w-9 p-0"
-                                    onClick={handleReceiptZoomIn}
-                                    disabled={!hasAttachment || receiptZoom >= 3}
-                                >
-                                    <ZoomIn className="h-4 w-4" />
-                                </Button>
-
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-9 w-9 p-0"
-                                    onClick={handleReceiptRotate}
-                                    disabled={!hasAttachment}
-                                >
-                                    <RotateCw className="h-4 w-4" />
-                                </Button>
-
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-9 px-3"
-                                    onClick={handleReceiptDownload}
-                                    disabled={!hasAttachment}
-                                >
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Download
-                                </Button>
+                                <AttachmentUploader
+                                    onChange={setAttachments}
+                                    fileIds={fileIds}
+                                    setFileIds={setFileIds}
+                                    generateUploadUrl={generateUploadUrl}
+                                />
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-9 w-9 p-0"
+                                            onClick={handleReceiptZoomOut}
+                                            disabled={!hasAttachment || receiptZoom <= 0.5}
+                                        >
+                                            <ZoomOut className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-white text-black border border-[0.5]">
+                                        <p>Zoom out</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-9 w-9 p-0"
+                                            onClick={handleReceiptZoomIn}
+                                            disabled={!hasAttachment || receiptZoom >= 3}
+                                        >
+                                            <ZoomIn className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-white text-black border border-[0.5]">
+                                        <p>Zoom in</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-9 w-9 p-0"
+                                            onClick={handleReceiptRotate}
+                                            disabled={!hasAttachment}
+                                        >
+                                            <RotateCw className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-white text-black border border-[0.5]">
+                                        <p>Rotate</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-9 px-3"
+                                            onClick={handleReceiptDownload}
+                                            disabled={!hasAttachment}
+                                        >
+                                            <Download className="mr-2 h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-white text-black border border-[0.5]">
+                                        <p>Download</p>
+                                    </TooltipContent>
+                                </Tooltip>
                             </div>
                         </div>
                     </div>
@@ -298,7 +334,6 @@ function AttachmentViewer({
                                     className="h-8 px-3 text-xs"
                                 >
                                     <Download className="h-4 w-4 mr-1" />
-                                    Download
                                 </Button>
                             </div>
                             <Button
