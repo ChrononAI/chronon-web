@@ -25,6 +25,7 @@ import {
   X,
   Copy,
   ExternalLink,
+  ChevronDown,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LocationAutocomplete } from "@/components/ui/location-autocomplete";
@@ -61,6 +62,8 @@ import { trackEvent } from "@/mixpanel";
 import ExpenseLogs from "@/components/expenses/ExpenseLogs";
 import { Attachment } from "@/components/expenses/ExpenseDetailsStep2";
 import AttachmentViewer from "@/components/expenses/AttachmentViewer";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -184,7 +187,10 @@ const MileagePage = ({
   const [fileIds, setFileIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachmentLoading, setAttachmentLoading] = useState(true);
-  
+
+  const [selectedCategory, setSelectedCategory] = useState<PolicyCategory | null>(null);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+
   const generateUploadUrl = async (file: File): Promise<{
     downloadUrl: string;
     uploadUrl: string;
@@ -781,11 +787,11 @@ const MileagePage = ({
         endLocationId: "",
         distance: expenseData.distance
           ? formatDistance(
-              typeof expenseData.distance === "string"
-                ? parseFloat(expenseData.distance) || 0
-                : expenseData.distance,
-              expenseData.distance_unit || getDistanceUnit().toUpperCase()
-            )
+            typeof expenseData.distance === "string"
+              ? parseFloat(expenseData.distance) || 0
+              : expenseData.distance,
+            expenseData.distance_unit || getDistanceUnit().toUpperCase()
+          )
           : "",
         chargeableDistance: (expenseData as any).chargeable_distance || "",
         amount:
@@ -822,6 +828,10 @@ const MileagePage = ({
       if (policy) {
         setSelectedPolicy(policy);
         if (policy.categories) {
+          if (data.categoryId) {
+            const selectedCat = policy.categories.find(cat => cat.id === data.categoryId);
+            if (selectedCat) setSelectedCategory(selectedCat);
+          }
           setCategories(policy.categories);
         }
       }
@@ -885,9 +895,9 @@ const MileagePage = ({
         const endLabel = defaults?.end_location_name ?? "";
         const hasDefaults = Boolean(
           defaults?.start_location &&
-            defaults?.end_location &&
-            startLabel &&
-            endLabel
+          defaults?.end_location &&
+          startLabel &&
+          endLabel
         );
 
         setHasPrefilledLocations(hasDefaults);
@@ -978,57 +988,57 @@ const MileagePage = ({
     }
   }, [formData.stops, lastAddedStopId]);
 
-    useEffect(() => {
-      if (!fileIds.length) {
-        setAttachmentLoading(false);
-        return;
-      }
-    
-      const existingMap = new Map(
-        attachments.map((a) => [a.fileId, a.url])
-      );
-    
-      const fileIdsToFetch = fileIds.filter(
-        (id) => !existingMap.has(id) || !existingMap.get(id)
-      );
-    
-      if (!fileIdsToFetch.length) return;
-    
-      let cancelled = false;
-    
-      const fetchUrls = async () => {
-        try {
-          const fetched = await Promise.all(
-            fileIdsToFetch.map(async (fileId) => {
-              const res = await expenseService.generatePreviewUrl(fileId);
-              return { fileId, url: res.data.data.download_url };
-            })
-          );
-    
-          if (cancelled) return;
-    
-          setAttachments((prev) => {
-            const map = new Map(prev.map((a) => [a.fileId, a]));
-    
-            fetched.forEach((a) => {
-              map.set(a.fileId, a);
-            });
-    
-            return Array.from(map.values());
+  useEffect(() => {
+    if (!fileIds.length) {
+      setAttachmentLoading(false);
+      return;
+    }
+
+    const existingMap = new Map(
+      attachments.map((a) => [a.fileId, a.url])
+    );
+
+    const fileIdsToFetch = fileIds.filter(
+      (id) => !existingMap.has(id) || !existingMap.get(id)
+    );
+
+    if (!fileIdsToFetch.length) return;
+
+    let cancelled = false;
+
+    const fetchUrls = async () => {
+      try {
+        const fetched = await Promise.all(
+          fileIdsToFetch.map(async (fileId) => {
+            const res = await expenseService.generatePreviewUrl(fileId);
+            return { fileId, url: res.data.data.download_url };
+          })
+        );
+
+        if (cancelled) return;
+
+        setAttachments((prev) => {
+          const map = new Map(prev.map((a) => [a.fileId, a]));
+
+          fetched.forEach((a) => {
+            map.set(a.fileId, a);
           });
-        } catch (err) {
-          console.error("Failed to fetch attachment URLs", err);
-        } finally {
-          setAttachmentLoading(false);
-        }
-      };
-    
-      fetchUrls();
-    
-      return () => {
-        cancelled = true;
-      };
-    }, [fileIds]);
+
+          return Array.from(map.values());
+        });
+      } catch (err) {
+        console.error("Failed to fetch attachment URLs", err);
+      } finally {
+        setAttachmentLoading(false);
+      }
+    };
+
+    fetchUrls();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fileIds]);
 
   useEffect(() => {
     loadMileagePolicies();
@@ -1060,11 +1070,10 @@ const MileagePage = ({
 
       <div className="grid gap-6 md:grid-cols-2">
         <div
-          className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
-            pathname.includes("create")
-              ? "md:h-[calc(100vh-18rem)]"
-              : "md:h-[calc(100vh-13rem)]"
-          } md:overflow-y-auto`}
+          className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${pathname.includes("create")
+            ? "md:h-[calc(100vh-18rem)]"
+            : "md:h-[calc(100vh-13rem)]"
+            } md:overflow-y-auto`}
         >
           <div className="flex flex-col h-full">
             <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
@@ -1168,36 +1177,35 @@ const MileagePage = ({
                   setFileIds={setFileIds}
                   generateUploadUrl={generateUploadUrl}
                 />
-              : activeMapTab === "comments" ? (
-                <ExpenseComments
-                  expenseId={expenseData?.id}
-                  readOnly={false}
-                  comments={comments}
-                  commentError={commentError}
-                  loadingComments={loadingComments}
-                  postComment={handlePostComment}
-                  postingComment={postingComment}
-                  newComment={newComment || ""}
-                  setNewComment={setNewComment}
-                />
-              ) : (
-                <ExpenseLogs
-                  logs={expenseLogs}
-                  loading={loadingComments}
-                  error={commentError || ""}
-                />
-              )}
+                : activeMapTab === "comments" ? (
+                  <ExpenseComments
+                    expenseId={expenseData?.id}
+                    readOnly={false}
+                    comments={comments}
+                    commentError={commentError}
+                    loadingComments={loadingComments}
+                    postComment={handlePostComment}
+                    postingComment={postingComment}
+                    newComment={newComment || ""}
+                    setNewComment={setNewComment}
+                  />
+                ) : (
+                  <ExpenseLogs
+                    logs={expenseLogs}
+                    loading={loadingComments}
+                    error={commentError || ""}
+                  />
+                )}
             </div>
           </div>
         </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <div
-              className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
-                pathname.includes("create")
-                  ? "md:h-[calc(100vh-16rem)]"
-                  : "md:h-[calc(100vh-13rem)]"
-              } md:overflow-y-auto`}
+              className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${pathname.includes("create")
+                ? "md:h-[calc(100vh-16rem)]"
+                : "md:h-[calc(100vh-13rem)]"
+                } md:overflow-y-auto`}
             >
               <div className="px-6 py-4 space-y-6">
                 {/* 🚗 Route Section */}
@@ -1330,11 +1338,10 @@ const MileagePage = ({
                   {/* Round Trip Toggle */}
                   <div className="flex items-center justify-end gap-3 my-2">
                     <Label
-                      className={`text-sm font-medium ${
-                        formData.stops.length > 0
-                          ? "text-gray-400"
-                          : "text-gray-700"
-                      }`}
+                      className={`text-sm font-medium ${formData.stops.length > 0
+                        ? "text-gray-400"
+                        : "text-gray-700"
+                        }`}
                     >
                       Round Trip
                     </Label>
@@ -1363,10 +1370,6 @@ const MileagePage = ({
                         value={field.value}
                         onValueChange={(v) => {
                           handleInputChange("vehiclesType", v);
-                          // const sel = mileageRates.find(
-                          //   (rate: any) => rate.id === +v
-                          // );
-                          // setSelectedVehicle(sel);
                           field.onChange(v);
                         }}
                         disabled={mode === "view" && !editMode}
@@ -1395,29 +1398,60 @@ const MileagePage = ({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category *</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={(v) => {
-                          handleInputChange("categoryId", v);
-                          field.onChange(v);
-                        }}
-                        disabled={
-                          loadingPolicies || (mode === "view" && !editMode)
-                        }
+                      <Popover
+                        open={categoryDropdownOpen}
+                        onOpenChange={setCategoryDropdownOpen}
                       >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories?.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={categoryDropdownOpen}
+                              className="h-11 w-full justify-between"
+                              disabled={
+                                loadingPolicies || (mode === "view" && !editMode)
+                              }
+                            >
+                              <>
+                                <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
+                                  {selectedCategory
+                                    ? selectedCategory.name
+                                    : !selectedPolicy
+                                      ? "Select policy first"
+                                      : "Select a category"}
+                                </span>
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </>
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                          <Command>
+                            <CommandInput placeholder="Search categories..." />
+                            <CommandList>
+                              <CommandEmpty>
+                                No category found.
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {categories.map((category) => (
+                                  <CommandItem
+                                    key={category.id}
+                                    value={category.name}
+                                    onSelect={() => {
+                                      field.onChange(category.id);
+                                      setSelectedCategory(category);
+                                      setCategoryDropdownOpen(false);
+                                    }}
+                                  >
+                                    {category.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1470,7 +1504,7 @@ const MileagePage = ({
                                 isCalculating
                                   ? "Calculating..."
                                   : formData.chargeableDistance ||
-                                    "Auto-calculated"
+                                  "Auto-calculated"
                               }
                               onChange={(e) => {
                                 handleInputChange(
@@ -1564,8 +1598,8 @@ const MileagePage = ({
                         formatCurrency(0, orgSettings.currency)}
                     </div>
                     {chargeableDistanceValue &&
-                    mileagePrice &&
-                    !usesMetricSystem() ? (
+                      mileagePrice &&
+                      !usesMetricSystem() ? (
                       <p className="text-sm font-semibold text-gray-600 mt-1">
                         {chargeableDistanceValue.toFixed(2)} {getDistanceUnit()}{" "}
                         × {formatCurrency(mileagePrice, orgSettings.currency)}{" "}
@@ -1613,8 +1647,8 @@ const MileagePage = ({
                               formatCurrency(0, orgSettings.currency)}
                           </span>
                           {chargeableDistanceValue &&
-                          mileagePrice &&
-                          !usesMetricSystem() ? (
+                            mileagePrice &&
+                            !usesMetricSystem() ? (
                             <div className="text-sm font-semibold text-gray-600 mb-1 block">
                               {chargeableDistanceValue.toFixed(2)}{" "}
                               {getDistanceUnit()} ×{" "}

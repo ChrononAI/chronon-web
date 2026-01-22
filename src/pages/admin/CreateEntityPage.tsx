@@ -60,6 +60,8 @@ export const CreateEntityPage = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['catwL26GkbekJ']);
   const [searchTerm, setSearchTerm] = useState("");
   const popupRef = useRef<HTMLDivElement | null>(null);
+  const debounceRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const form = useForm<EntityFormValues>({
     resolver: zodResolver(entitySchema),
@@ -111,19 +113,52 @@ export const CreateEntityPage = () => {
     setPopupIndex(null);
   };
 
-  const getAllCategories = async () => {
-    try {
-      const res = await categoryService.getAllCategories();
-      setCategories(res.data.data);
-    } catch (error: any) {
-      console.log(error);
-      toast.error(
-        error?.response?.data?.message ||
-          error.message ||
-          "Failed to get categories"
-      );
-    }
-  };
+ useEffect(() => {
+   if (debounceRef.current) {
+     clearTimeout(debounceRef.current);
+   }
+ 
+   debounceRef.current = window.setTimeout(async () => {
+     if (abortRef.current) {
+       abortRef.current.abort();
+     }
+ 
+     const controller = new AbortController();
+     abortRef.current = controller;
+ 
+     try {
+       let res;
+ 
+       if (searchTerm.trim()) {
+         const term = encodeURIComponent(searchTerm.trim());
+ 
+         res = await categoryService.getFilteredCategories({
+           query: `name=ilike.%${term}%`,
+           signal: controller.signal,
+         });
+       } else {
+         res = await categoryService.getFilteredCategories({
+           query: "",
+           limit: 20,
+           offset: 0,
+           signal: controller.signal,
+         });
+       }
+ 
+       setCategories([...res.data.data]);
+     } catch (err: any) {
+       if (err.name !== "AbortError" && err.name !== "CanceledError") {
+         console.error(err);
+       }
+     }
+   }, 400);
+ 
+   return () => {
+     if (debounceRef.current) {
+       clearTimeout(debounceRef.current);
+     }
+   };
+ }, [searchTerm]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -132,7 +167,6 @@ export const CreateEntityPage = () => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    getAllCategories();
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
@@ -411,7 +445,7 @@ export const CreateEntityPage = () => {
                   setSearchTerm={setSearchTerm}
                   handleSelectAllFiltered={handleSelectAllFiltered}
                   handleDeselectAllFiltered={handleDeselectAllFiltered}
-                  filteredCategories={filteredCategories}
+                  filteredCategories={categories}
                   toggleCategory={toggleCategory}
                 />
               </div>
