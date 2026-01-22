@@ -829,7 +829,7 @@ const MileagePage = ({
         setSelectedPolicy(policy);
         if (policy.categories) {
           if (data.categoryId) {
-            const selectedCat = policy.categories.find(cat => cat.id === data.categoryId)
+            const selectedCat = policy.categories.find(cat => cat.id === data.categoryId);
             if (selectedCat) setSelectedCategory(selectedCat);
           }
           setCategories(policy.categories);
