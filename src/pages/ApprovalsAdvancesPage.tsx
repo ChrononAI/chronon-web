@@ -170,8 +170,7 @@ function ApprovalsAdvancesPage() {
       const prevFilters: FieldFilter[] = prev[key] ?? [];
 
       if (
-        value === undefined ||
-        value === null ||
+        !value ||
         (typeof value === "string" && value.trim() === "") ||
         (Array.isArray(value) && value.length === 0)
       ) {
