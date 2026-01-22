@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -34,25 +34,13 @@ function CreateExpensePolicyPage() {
     description: "",
     is_pre_approval_required: false,
   });
+  const debounceRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const toggleCategory = (id: string) => {
     setSelectedCategories((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
     );
-  };
-
-  const getAllCategories = async () => {
-    try {
-      const res = await categoryService.getAllCategories();
-      setCategories(res.data.data);
-    } catch (error: any) {
-      console.log(error);
-      toast.error(
-        error?.response?.data?.message ||
-          error.message ||
-          "Failed to get categories"
-      );
-    }
   };
 
   const createPolicy = async (payload: CreatePolicyPayload) => {
@@ -64,23 +52,15 @@ function CreateExpensePolicyPage() {
         navigate("/admin-settings/product-config/expense-policies");
       }, 100);
     } catch (error: any) {
-      console.log(error);
       toast.error(
         error?.response?.data.message ||
-          error.message ||
-          "Failed to create policy"
+        error.message ||
+        "Failed to create policy"
       );
     } finally {
       setLoading(false);
     }
   };
-
-  const filteredCategories = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-    if (!q) return categories;
-
-    return categories.filter((c) => c.name.toLowerCase().includes(q));
-  }, [categories, searchTerm]);
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({
@@ -90,12 +70,12 @@ function CreateExpensePolicyPage() {
   };
 
   const handleSelectAllFiltered = () => {
-    const ids = filteredCategories.map((c) => c.id);
+    const ids = categories.map((c) => c.id);
     setSelectedCategories((prev) => Array.from(new Set([...prev, ...ids])));
   };
 
   const handleDeselectAllFiltered = () => {
-    const filteredIds = new Set(filteredCategories.map((c) => c.id));
+    const filteredIds = new Set(categories.map((c) => c.id));
     setSelectedCategories((prev) => prev.filter((id) => !filteredIds.has(id)));
   };
 
@@ -110,11 +90,55 @@ function CreateExpensePolicyPage() {
     }
   };
 
-  useEffect(() => {
-    getAllCategories();
+useEffect(() => {
+  if (debounceRef.current) {
+    clearTimeout(debounceRef.current);
+  }
 
+  debounceRef.current = window.setTimeout(async () => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      let res;
+
+      if (searchTerm.trim()) {
+        const term = encodeURIComponent(searchTerm.trim());
+
+        res = await categoryService.getFilteredCategories({
+          query: `name=ilike.%${term}%`,
+          signal: controller.signal,
+        });
+      } else {
+        res = await categoryService.getFilteredCategories({
+          query: "",
+          limit: 20,
+          offset: 0,
+          signal: controller.signal,
+        });
+      }
+
+      setCategories([...res.data.data]);
+    } catch (err: any) {
+      if (err.name !== "AbortError" && err.name !== "CanceledError") {
+        console.error(err);
+      }
+    }
+  }, 400);
+
+  return () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+  };
+}, [searchTerm]);
+
+  useEffect(() => {
     if (row) {
-      console.log(row);
       setSelectedCategories(row.categories.map((cat: PolicyCategory) => cat.id));
       setFormData({
         name: row.name,
@@ -167,7 +191,7 @@ function CreateExpensePolicyPage() {
                   <SearchableMultiSelect
                     selectedCategories={selectedCategories}
                     setSearchTerm={setSearchTerm}
-                    filteredCategories={filteredCategories}
+                    filteredCategories={categories}
                     handleDeselectAllFiltered={handleDeselectAllFiltered}
                     handleSelectAllFiltered={handleSelectAllFiltered}
                     toggleCategory={toggleCategory}
@@ -186,8 +210,6 @@ function CreateExpensePolicyPage() {
                   </div>
                 </div>
               </div>
-              {/* {mode === "create" && ( */}
-              {/* )} */}
             </form>
           </div>
         </div>
@@ -209,7 +231,7 @@ function CreateExpensePolicyPage() {
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Submitting...
             </>
-          ) : 
+          ) :
             "Submit"}
         </Button>}
       </FormFooter>

@@ -37,5 +37,37 @@ export const categoryService = {
         } catch (error) {
             throw error;
         }
+    },
+
+  async getFilteredCategories({
+    query,
+    limit,
+    offset,
+    signal,
+  }: {
+    query: string;
+    limit?: number;
+    offset?: number;
+    signal: AbortSignal;
+  }) {
+    try {
+      return await api.get(`/api/v1/categories_v2?${query}`, {
+        params: {
+          limit,
+          offset,
+        },
+        signal,
+      });
+    } catch (error) {
+      throw error;
     }
+  },
+
+  async getCategoryById(id: string) {
+    try {
+        return await api.get(`/api/v1/categories_v2?id=eq.${id}`);
+    } catch (error) {
+        throw error;
+    }
+  }
 }
