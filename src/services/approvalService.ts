@@ -10,6 +10,30 @@ const handleApiResponse = async (response: AxiosResponse) => {
 
 export const approvalService = {
 
+  async getFilteredReportsToApprove({
+    query,
+    limit,
+    offset,
+    signal,
+  }: {
+    query: string;
+    limit: number;
+    offset: number;
+    signal: AbortSignal;
+  }) {
+    try {
+      return await api.get(`/api/v1/reports/approvers/reports?${query}`, {
+        params: {
+          limit,
+          offset,
+        },
+        signal,
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async getAllReports(limit: number, offset: number) {
   try {
       const orgId = getOrgIdFromToken();

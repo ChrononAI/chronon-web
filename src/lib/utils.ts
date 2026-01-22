@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format } from "date-fns";
 import { useAuthStore } from "@/store/authStore";
+import { FilterMap } from "@/pages/MyExpensesPage";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -110,7 +111,7 @@ export const getStatusColor = (status: string): string => {
 
 export const getBulkUploadStatusColor = (status: string): string => {
   switch (status.toUpperCase()) {
-      case "NEED_FIXES":
+    case "NEED_FIXES":
       return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
     case "FINALIZED":
       return "bg-green-100 text-green-800 hover:bg-green-100";
@@ -150,3 +151,56 @@ export const generateIdWithPrefix = (prefix: string, length = 10): string => {
 
   return `${prefix}${id}`;
 };
+
+export function buildApprovalBackendQuery(filters: FilterMap): string {
+  const params: string[] = [];
+
+  Object.entries(filters).forEach(([key, fieldFilters]) => {
+    if (key === "q") {
+      const value = fieldFilters?.[0]?.value;
+
+      if (typeof value !== "string" || value.trim() === "") {
+        return;
+      }
+
+      const finalValue = value.endsWith(":*") ? value : `${value}:*`;
+
+      params.push(`q=${finalValue}`);
+      return;
+    }
+
+    fieldFilters?.forEach(({ operator, value }) => {
+      if (
+        !value ||
+        (typeof value === "string" && value.trim() === "") ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        return;
+      }
+
+      switch (operator) {
+        case "in":
+          let values = value as string[];
+          if (key === "status" && values.includes("PENDING_APPROVAL")) {
+            values = values.map((v) =>
+              v === "PENDING_APPROVAL" ? "IN_PROGRESS" : v
+            );
+          }
+          const joined = values.join(",");
+          params.push(
+            key === "status" ? `${key}=${joined}` : `${key}=in.(${joined})`
+          );
+          break;
+
+        case "ilike":
+          params.push(`${key}=ilike.%${value}%`);
+          break;
+
+        default:
+          params.push(`${key}=${operator}.${value}`);
+      }
+    });
+  });
+
+  return params.join("&");
+}
