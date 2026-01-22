@@ -311,7 +311,7 @@ function ReceiptViewer({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center gap-3 p-16 text-center">
+                  <div className="flex flex-col mx-auto items-center justify-center gap-3 p-16 text-center">
                     <FileText className="h-14 w-14 text-gray-300" />
                     <div className="space-y-6">
                       <div>
@@ -385,6 +385,7 @@ function ReceiptViewer({
                     fileIds={fileIds}
                     setFileIds={setFileIds}
                     generateUploadUrl={generateUploadUrl}
+                    disabled={!hasReceipt}
                   />
                   <Tooltip>
                     <TooltipTrigger asChild>
