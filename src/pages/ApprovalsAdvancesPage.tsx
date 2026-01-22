@@ -123,7 +123,7 @@ function ApprovalsAdvancesPage() {
 
   const GRID_OFFSET = 240;
   const ROW_HEIGHT = 38;
-  const HEADER_HEIGHT = 0;
+  const HEADER_HEIGHT = 56;
 
   const calculatePageSize = () => {
     const availableHeight =
