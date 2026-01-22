@@ -109,6 +109,7 @@ export function CreateAdvanceForm({
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [loading, setLoading] = useState(false);
+  console.log(pathname);
 
   const { id } = useParams<{ id: string }>();
 
@@ -235,8 +236,9 @@ export function CreateAdvanceForm({
   };
 
   const getAdvancebyId = async (id: string) => {
+    const role = pathname.includes("approvals") ? "approvers" : "user";
     try {
-      const res: any = await AdvanceService.getAdvanceById(id);
+      const res: any = await AdvanceService.getAdvanceById(id, role);
       const advanceData = res.data.data[0];
       form.reset(advanceData);
       setSelectedAdvance(advanceData);

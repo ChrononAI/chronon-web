@@ -1,11 +1,10 @@
 import { Badge, Box } from "@mui/material";
 import { Button } from "../ui/button";
-import { Filter, Loader2, Search } from "lucide-react";
+import { Filter, Search } from "lucide-react";
 import MultiSelectDropdown from "../shared/MultiSelectDropdown";
 import { Input } from "../ui/input";
 import { useState } from "react";
 import {
-  GridRowSelectionModel,
   GridToolbarProps,
   Toolbar,
   ToolbarPropsOverrides,
@@ -13,43 +12,25 @@ import {
 import { FilterMap, getFilterValue } from "@/pages/MyExpensesPage";
 import DateRangePicker from "../shared/DateRangePicker";
 import FilterModal, { AllowedFilter } from "../expenses/FilterModal";
-import { useSettlementStore } from "@/store/settlementsStore";
+import { useAdvanceStore } from "@/store/advanceStore";
 
 export interface CustomExpenseToolbarProps {
   allStatuses: string[];
-  marking: boolean;
-  onCustomClick: () => void;
-  rowSelection: GridRowSelectionModel;
-  rowCount: number;
-  activeTab: string;
 }
 
 type Props = GridToolbarProps &
   ToolbarPropsOverrides &
   Partial<CustomExpenseToolbarProps>;
 
-function CustomSettlementsToolbar({
-  allStatuses,
-  onCustomClick,
-  rowSelection,
-  activeTab,
-  marking,
-  rowCount,
-}: Props) {
-  const { query, setQuery } = useSettlementStore();
+function CustomAdvanceToolbar({ allStatuses }: Props) {
+  const { query, setQuery } = useAdvanceStore();
 
   const hasFilters = Object.keys(query).length > 0;
-
-  const disabled =
-    marking ||
-    (rowSelection?.type === "include"
-      ? Array.from(rowSelection.ids).length === 0
-      : Array.from(rowSelection?.ids ?? new Set()).length === rowCount);
 
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const searchValue = (getFilterValue(query, "q", "eq") as string) ?? "";
   const selectedStatuses =
-    (getFilterValue(query, "payment_state", "in") as string[]) ?? [];
+    (getFilterValue(query, "status", "in") as string[]) ?? [];
 
   const dateFrom =
     (getFilterValue(query, "created_at", "gte") as string) ?? undefined;
@@ -80,14 +61,14 @@ function CustomSettlementsToolbar({
 
   const filters: AllowedFilter[] = [
     {
-      key: "payment_state",
+      key: "status",
       operators: ["in"],
       type: "multi-select",
-      label: "State",
+      label: "Status",
       options: allStatuses,
     },
     {
-      key: "total_amount",
+      key: "amount",
       label: "Amount",
       operators: ["eq", "lte", "gte"],
       type: "number",
@@ -100,6 +81,8 @@ function CustomSettlementsToolbar({
       setDate: setDate,
     },
   ];
+
+  /* -------------------- HANDLERS -------------------- */
 
   const updateSearch = (value: string) => {
     setQuery((prev: FilterMap) => {
@@ -123,9 +106,9 @@ function CustomSettlementsToolbar({
     setQuery((prev) => {
       const nextQuery = { ...prev };
       if (!next.length) {
-        delete nextQuery.payment_state;
+        delete nextQuery.status;
       } else {
-        nextQuery.payment_state = [{ operator: "in", value: next }];
+        nextQuery.status = [{ operator: "in", value: next }];
       }
       return nextQuery;
     });
@@ -133,7 +116,7 @@ function CustomSettlementsToolbar({
 
   const deselectAllStatus = () => {
     setQuery((prev) => {
-      const { payment_state, ...rest } = prev;
+      const { status, ...rest } = prev;
       return rest;
     });
   };
@@ -174,29 +157,14 @@ function CustomSettlementsToolbar({
           onClick={() => setFilterModalOpen(true)}
           className="text-muted-foreground h-11 w-[10%] max-w-[48px] p-3"
         >
-          {hasFilters && (
-            <Badge
-              color="error"
-              variant="dot"
-              className="relative -top-4 -right-7"
-              overlap="circular"
-            ></Badge>
-          )}
+          {hasFilters && <Badge
+            color="error"
+            variant="dot"
+            className="relative -top-4 -right-7"
+            overlap="circular"
+          ></Badge>}
           <Filter className="h-8 w-8" />
         </Button>
-
-      {activeTab === "unpaid" && (
-        <Button disabled={disabled} onClick={onCustomClick}>
-          {marking ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Marking...
-            </>
-          ) : (
-            "Mark As Paid"
-          )}
-        </Button>
-      )}
       </Toolbar>
 
       <FilterModal
@@ -210,4 +178,4 @@ function CustomSettlementsToolbar({
   );
 }
 
-export default CustomSettlementsToolbar;
+export default CustomAdvanceToolbar;

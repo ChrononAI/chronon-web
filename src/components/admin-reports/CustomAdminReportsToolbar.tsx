@@ -134,7 +134,7 @@ function CustomAdminReportsToolbar({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search"
-            className="pl-9 bg-white h-10 w-full"
+            className="pl-9 bg-white h-11 w-full"
             value={searchValue}
             onChange={(e) => updateSearch(e.target.value)}
           />

@@ -1,3 +1,4 @@
+import { FilterMap } from "@/pages/MyExpensesPage";
 import { CurrencyConversionRate } from "@/pages/ProcessPreApprovalPage";
 import { ApprovalWorkflow } from "@/types/expense";
 import { create } from "zustand";
@@ -45,10 +46,14 @@ export interface AdvanceType {
 interface AdvanceState {
   selectedAdvance: AdvanceType | null;
   selectedAdvanceToApprove: AdvanceType | null;
+  query: FilterMap;
+  approvalQuery: FilterMap;
 
   // Methods
   setSelectedAdvance: (data: AdvanceType | null) => void;
   setSelectedAdvanceToApprove: (data: AdvanceType | null) => void;
+  setQuery: (data: FilterMap | ((prev: FilterMap) => FilterMap)) => void;
+  setApprovalQuery: (data: FilterMap | ((prev: FilterMap) => FilterMap)) => void;
 }
 
 export const useAdvanceStore = create<AdvanceState>()(
@@ -57,6 +62,8 @@ export const useAdvanceStore = create<AdvanceState>()(
       (set) => ({
         selectedAdvanceToApprove: null,
         selectedAdvance: null,
+        query: {},
+        approvalQuery: {},
 
         setSelectedAdvance: (data) =>
           set({ selectedAdvance: data }, false, "advance/setSelectedAdvance"),
@@ -66,6 +73,22 @@ export const useAdvanceStore = create<AdvanceState>()(
             { selectedAdvanceToApprove: data },
             false,
             "advance/setAdvanceToApprove"
+          ),
+        setQuery: (data: FilterMap | ((prev: FilterMap) => FilterMap)) =>
+          set(
+            (state) => ({
+              query: typeof data === "function" ? data(state.query) : data,
+            }),
+            false,
+            "advances/setQuery"
+          ),
+        setApprovalQuery: (data: FilterMap | ((prev: FilterMap) => FilterMap)) =>
+          set(
+            (state) => ({
+              approvalQuery: typeof data === "function" ? data(state.approvalQuery) : data,
+            }),
+            false,
+            "advances/approval/setQuery"
           ),
       }),
       {

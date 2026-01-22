@@ -106,6 +106,54 @@ export const AdvanceService = {
     }
   },
 
+  async getFilteredAdvances({
+    query,
+    limit,
+    offset,
+    signal,
+  }: {
+    query: string;
+    limit: number;
+    offset: number;
+    signal: AbortSignal;
+  }) {
+    try {
+      return await api.get(`/api/v1/advances_v2/user?${query}`, {
+        params: {
+          limit,
+          offset,
+        },
+        signal,
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async getFilteredAdvancesToApprove({
+    query,
+    limit,
+    offset,
+    signal,
+  }: {
+    query: string;
+    limit: number;
+    offset: number;
+    signal: AbortSignal;
+  }) {
+    try {
+      return await api.get(`/api/v1/advances_v2/approvers/advances?${query}`, {
+        params: {
+          limit,
+          offset,
+        },
+        signal,
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+
   submitAdvance: async (advance_id: string) => {
     try {
       return await api.post("/api/v1/advances/submit", {
@@ -116,9 +164,13 @@ export const AdvanceService = {
     }
   },
 
-  getAdvanceById: async (id: string) => {
+  getAdvanceById: async (id: string, role: "user" | "approvers") => {
     try {
-      return api.get(`/api/v1/advances?id=${id}`);
+      if (role === "user") {
+        return api.get(`/api/v1/advances_v2/${role}?id=eq.${id}`);
+      } else {
+        return api.get(`/api/v1/advances_v2/${role}/advances?id=eq.${id}`);
+      }
     } catch (error) {
       throw error;
     }
@@ -166,7 +218,15 @@ export const AdvanceService = {
     }
   },
 
-  processAdvance: async ({ id, action, payload }: { id: string; action: string, payload?: any }) => {
+  processAdvance: async ({
+    id,
+    action,
+    payload,
+  }: {
+    id: string;
+    action: string;
+    payload?: any;
+  }) => {
     try {
       return await api.post(`/api/v1/advances/${id}/${action}`, payload);
     } catch (error) {
