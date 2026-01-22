@@ -7,6 +7,7 @@ interface ReportsState {
   allReports: Report[];
   allReportsPagination: NewPaginationMeta;
   query: FilterMap;
+  approvalQuery: FilterMap;
 
   unsubmittedReports: Report[];
   unsubmittedReportsPagination: NewPaginationMeta;
@@ -19,6 +20,7 @@ interface ReportsState {
   setAllReports: (data: Report[]) => void;
   setAllReportsPagination: (pagination: NewPaginationMeta) => void;
   setQuery: (data: FilterMap | ((prev: FilterMap) => FilterMap)) => void;
+  setApprovalQuery: (data: FilterMap | ((prev: FilterMap) => FilterMap)) => void;
 
   setUnsubmittedReports: (data: Report[]) => void;
   setUnsubmittedReportsPagination: (pagination: NewPaginationMeta) => void;
@@ -32,6 +34,7 @@ export const useReportsStore = create<ReportsState>()(
     persist(
       (set) => ({
         query: {},
+        approvalQuery: {},
         allReports: [],
         allReportsPagination: {
           count: 0,
@@ -65,6 +68,15 @@ export const useReportsStore = create<ReportsState>()(
             }),
             false,
             "reports/setQuery"
+          ),
+        
+        setApprovalQuery: (data: FilterMap | ((prev: FilterMap) => FilterMap)) =>
+          set(
+            (state) => ({
+              approvalQuery: typeof data === "function" ? data(state.approvalQuery) : data,
+            }),
+            false,
+            "reportsApproval/setQuery"
           ),
 
         setUnsubmittedReports: (data) =>

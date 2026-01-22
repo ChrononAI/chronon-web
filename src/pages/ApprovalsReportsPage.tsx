@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { approvalService } from "@/services/approvalService";
-import { NewPaginationMeta, Report } from "@/types/expense";
-import { formatDate, formatCurrency, getStatusColor } from "@/lib/utils";
+import { Report } from "@/types/expense";
+import { formatDate, formatCurrency, getStatusColor, buildApprovalBackendQuery } from "@/lib/utils";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { Badge } from "@/components/ui/badge";
 import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
@@ -11,6 +11,20 @@ import { GridPaginationModel } from "@mui/x-data-grid";
 import { useAuthStore } from "@/store/authStore";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import CustomReportsApprovalToolbar from "@/components/reports/CustomReportsApprovalToolbar";
+import { useReportsStore } from "@/store/reportsStore";
+import { FieldFilter, FilterMap, FilterValue, Operator } from "./MyExpensesPage";
+import { PaginationInfo } from "@/store/expenseStore";
+
+const REPORT_STATUSES = [
+  "PENDING_APPROVAL",
+  "APPROVED",
+  "REJECTED",
+];
+
+const PENDING_REPORT_STATUSES = ["PENDING_APPROVAL"];
+
+const PROCESSED_REPORT_STATUSES = ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
 
 const columns: GridColDef[] = [
   {
@@ -72,36 +86,46 @@ const columns: GridColDef[] = [
 export function ApprovalsReportsPage() {
   const navigate = useNavigate();
   const { orgSettings } = useAuthStore();
+  const { approvalQuery, setApprovalQuery } = useReportsStore();
   const customIdEnabled = orgSettings?.custom_report_id_settings?.enabled ?? false;
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<
-    "unsubmitted" | "submitted" | "all"
+    "processed" | "pending" | "all"
   >("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [allReportsPagination, setAllReportsPagination] =
-    useState<NewPaginationMeta>();
+    useState<PaginationInfo>();
   const [pendingReports, setPendingReports] = useState<Report[]>([]);
   const [pendingReportsPagination, setPendingReportsPagination] =
-    useState<NewPaginationMeta>();
+    useState<PaginationInfo>();
   const [processedReports, setProcessedReports] = useState<Report[]>([]);
   const [processedReportsPagination, setProcessedReportsPagination] =
-    useState<NewPaginationMeta>();
+    useState<PaginationInfo>();
   const rows =
     activeTab === "all"
       ? allReports
-      : activeTab === "unsubmitted"
+      : activeTab === "pending"
         ? pendingReports
         : processedReports;
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const GRID_OFFSET = 240;
   const ROW_HEIGHT = 38;
-  const HEADER_HEIGHT = 0;
+  const HEADER_HEIGHT = 56;
+
+  const allowedStatus =
+    activeTab === "all"
+      ? REPORT_STATUSES
+      : activeTab === "pending"
+        ? PENDING_REPORT_STATUSES
+        : PROCESSED_REPORT_STATUSES;
 
   const calculatePageSize = () => {
     const availableHeight =
@@ -131,6 +155,47 @@ export function ApprovalsReportsPage() {
     ];
   }, [columns, customIdEnabled]);
 
+  function updateQuery(key: string, operator: Operator, value: FilterValue) {
+    setApprovalQuery((prev) => {
+      const prevFilters: FieldFilter[] = prev[key] ?? [];
+
+      if (
+        value === undefined ||
+        value === null ||
+        (typeof value === "string" && value.trim() === "") ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        const nextFilters = prevFilters.filter((f) => f.operator !== operator);
+
+        if (nextFilters.length === 0) {
+          const { [key]: _, ...rest } = prev;
+          return rest;
+        }
+
+        return {
+          ...prev,
+          [key]: nextFilters,
+        };
+      }
+
+      const existingIndex = prevFilters.findIndex(
+        (f) => f.operator === operator
+      );
+
+      const nextFilters =
+        existingIndex >= 0
+          ? prevFilters.map((f, i) =>
+            i === existingIndex ? { operator, value } : f
+          )
+          : [...prevFilters, { operator, value }];
+
+      return {
+        ...prev,
+        [key]: nextFilters,
+      };
+    });
+  }
+
   useEffect(() => {
     setRowSelection({
       type: "include",
@@ -138,82 +203,7 @@ export function ApprovalsReportsPage() {
     });
   }, [activeTab]);
 
-  const fetchAllReports = async () => {
-    try {
-      const limit = paginationModel?.pageSize || 10;
-      const offset = (paginationModel?.page || 0) * limit;
-      const response = await approvalService.getReportsByStatus(
-        limit,
-        offset,
-        "IN_PROGRESS,APPROVED,REJECTED"
-      );
-      setAllReports(response?.data.data);
-      setAllReportsPagination({
-        count: response?.data.count,
-        offset: response?.data.offset,
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const fetchUnsubmittedReports = async () => {
-    try {
-      const limit = paginationModel?.pageSize || 10;
-      const offset = (paginationModel?.page || 0) * limit;
-      const response = await approvalService.getReportsByStatus(
-        limit,
-        offset,
-        "IN_PROGRESS"
-      );
-      setPendingReports(response.data.data);
-      setPendingReportsPagination({
-        count: response?.data.count,
-        offset: response?.data.offset,
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const fetchSubmittedReports = async () => {
-    try {
-      const limit = paginationModel?.pageSize || 10;
-      const offset = (paginationModel?.page || 0) * limit;
-      const response = await approvalService.getReportsByStatus(
-        limit,
-        offset,
-        "APPROVED,REJECTED"
-      );
-      setProcessedReports(response.data.data);
-      setProcessedReportsPagination({
-        count: response?.data.count,
-        offset: response?.data.offset,
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      await Promise.all([
-        fetchAllReports(),
-        fetchSubmittedReports(),
-        fetchUnsubmittedReports(),
-      ]);
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (paginationModel) {
-      fetchData();
-    }
     setRowSelection({
       type: "include",
       ids: new Set(),
@@ -225,16 +215,16 @@ export function ApprovalsReportsPage() {
   };
 
   const tabs = [
-    { key: "all", label: "All", count: allReportsPagination?.count || 0 },
+    { key: "all", label: "All", count: allReportsPagination?.total || 0 },
     {
-      key: "unsubmitted",
+      key: "pending",
       label: "Pending",
-      count: pendingReportsPagination?.count || 0,
+      count: pendingReportsPagination?.total || 0,
     },
     {
-      key: "submitted",
+      key: "processed",
       label: "Processed",
-      count: processedReportsPagination?.count || 0,
+      count: processedReportsPagination?.total || 0,
     },
   ];
 
@@ -245,14 +235,114 @@ export function ApprovalsReportsPage() {
     { value: "rejected", label: "Rejected" },
   ];
 
+    const fetchFilteredReports = useCallback(
+      async ({ signal }: { signal: AbortSignal }) => {
+        const limit = paginationModel?.pageSize ?? 10;
+        const offset = (paginationModel?.page ?? 0) * limit;
+  
+        let newQuery: FilterMap = approvalQuery;
+  
+        if (!approvalQuery?.status) {
+          if (activeTab === "pending") {
+            newQuery = { ...approvalQuery, status: [{operator: "in", value: ["PENDING_APPROVAL"]}] }
+          } else if (activeTab === "processed") {
+            newQuery = { ...approvalQuery, status: [{ operator: "in", value: ["APPROVED","REJECTED"] }] }
+          } else if (activeTab === "all") {
+            newQuery = { ...approvalQuery, status: [{ operator: "in", value: ["APPROVED","REJECTED","PENDING_APPROVAL"] }] }
+          }  else newQuery = approvalQuery;
+        }
+  
+        const response = await approvalService.getFilteredReportsToApprove({
+          query: buildApprovalBackendQuery(newQuery),
+          limit,
+          offset,
+          signal,
+        });
+  
+        switch (activeTab) {
+          case "pending":
+            setPendingReports(response.data.data);
+            setPendingReportsPagination({ total: response.data.count });
+            break;
+  
+          case "processed":
+            setProcessedReports(response.data.data);
+            setProcessedReportsPagination({ total: response.data.count });
+            break;
+  
+          case "all":
+          default:
+            setAllReports(response.data.data);
+            setAllReportsPagination({ total: response.data.count });
+        }
+      },
+      [approvalQuery, activeTab, paginationModel?.page, paginationModel?.pageSize]
+    );
+
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      setLoading(true);
+
+      fetchFilteredReports({ signal: controller.signal })
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            console.error(err);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setLoading(false);
+            setRowSelection({ type: "include", ids: new Set() });
+          }
+        });
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [fetchFilteredReports]);
+
+  useEffect(() => {
+    setApprovalQuery((prev) => {
+      const { status, ...rest } = prev;
+      return { ...rest }
+    })
+  }, []);
+
   return (
     <ReportsPageWrapper
       title="Approver Dashboard"
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) =>
-        setActiveTab(tabId as "unsubmitted" | "submitted")
-      }
+      onTabChange={(tabId) => {
+        setLoading(true);
+        setActiveTab(tabId as "all" | "pending" | "processed");
+        const filter =
+          tabId === "all"
+            ? []
+            : tabId === "pending"
+              ? ["PENDING_APPROVAL"]
+              : ["APPROVED", "REJECTED"];
+
+        updateQuery("status", "in", filter);
+        setPaginationModel((prev) => ({
+          ...prev,
+          page: 0
+        }))
+      }}
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
       searchPlaceholder="Search reports..."
@@ -275,8 +365,14 @@ export function ApprovalsReportsPage() {
           columns={newCols}
           loading={loading}
           slots={{
+            toolbar: CustomReportsApprovalToolbar,
             noRowsOverlay: () => <CustomNoRows title="No reports found" description="There are currently no reports." />,
             loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          }}
+          slotProps={{
+            toolbar: {
+              allStatuses: allowedStatus,
+            } as any,
           }}
           sx={{
             border: 0,
@@ -317,6 +413,7 @@ export function ApprovalsReportsPage() {
             },
           }}
           density="compact"
+          showToolbar
           checkboxSelection
           disableRowSelectionOnClick
           showCellVerticalBorder
@@ -329,10 +426,10 @@ export function ApprovalsReportsPage() {
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "all"
-              ? allReportsPagination?.count
-              : activeTab === "unsubmitted"
-                ? pendingReportsPagination?.count
-                : processedReportsPagination?.count) || 0
+              ? allReportsPagination?.total
+              : activeTab === "pending"
+                ? pendingReportsPagination?.total
+                : processedReportsPagination?.total) || 0
           }
         />
       </Box>

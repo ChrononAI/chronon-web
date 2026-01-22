@@ -75,7 +75,7 @@ export function ReportsPageWrapper({
   return (
     <>
       {/* Header Section */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex h-9 justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
         </div>
