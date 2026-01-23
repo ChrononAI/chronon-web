@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,15 +14,17 @@ import {
   ZoomOut,
   RotateCw,
   RefreshCw,
+  ArrowLeft,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { FormFooter } from "@/components/layout/FormFooter";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 import { LineItemsTable, type InvoiceLineRow } from "@/components/invoice/LineItemsTable";
-import { getInvoiceById, getFileDownloadUrl } from "@/services/invoice/invoice";
+import { getInvoiceById, getFileDownloadUrl, updateInvoice } from "@/services/invoice/invoice";
 import { DateField } from "@/components/ui/date-field";
 import { formatCurrency } from "@/lib/utils";
 import { Autocomplete, TextField } from "@mui/material";
 import { vendorService, VendorData } from "@/services/vendorService";
+import { toast } from "sonner";
 
 type InvoiceUploadState = {
   files?: File[];
@@ -33,6 +35,7 @@ export function InvoicePage() {
   const { setSidebarCollapsed } = useAuthStore();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const isApprovalMode = location.pathname.startsWith("/flow/approvals/");
 
   // Minimize sidebar when invoice page opens
@@ -54,6 +57,9 @@ export function InvoicePage() {
   const [vendorPan, setVendorPan] = useState("");
   const [billingAddress, setBillingAddress] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
+  const [currency, setCurrency] = useState("INR");
+  const [invoiceType, setInvoiceType] = useState("PO");
+  const [submitting, setSubmitting] = useState(false);
   const [vendorSearchResults, setVendorSearchResults] = useState<VendorData[]>([]);
   const [vendorSearchLoading, setVendorSearchLoading] = useState(false);
   const vendorSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -186,7 +192,6 @@ export function InvoicePage() {
 
           setInvoiceNumber(invoice.invoice_number || "");
           setInvoiceDate(formatDate(invoice.invoice_date));
-          setVendorId(invoice.vendor_id || "");
           setBillingAddress(invoice.billing_address || "");
           setShippingAddress(invoice.shipping_address || "");
           
@@ -222,6 +227,7 @@ export function InvoicePage() {
               igst: item.igst_amount || "",
               cgst: item.cgst_amount || "",
               sgst: item.sgst_amount || "",
+              utgst: item.utgst_amount || "",
               netAmount: item.total || "",
             }));
             
@@ -284,6 +290,26 @@ export function InvoicePage() {
     };
   }, []);
 
+  // Auto-fill vendor details when GST number reaches exactly 15 characters
+  useEffect(() => {
+    if (gstNumber.length === 15) {
+      // Check if we have a matching vendor in search results
+      const matchedVendor = vendorSearchResults.find(v => v.gstin === gstNumber);
+      if (matchedVendor) {
+        setVendorName(matchedVendor.vendor_name || "");
+        setVendorEmail(matchedVendor.email || "");
+        setVendorPan(matchedVendor.pan || "");
+        setVendorId(matchedVendor.vendor_code || "");
+      }
+    } else if (gstNumber.length > 0 && gstNumber.length !== 15) {
+      // Clear vendor details if GST number is not exactly 15 characters
+      setVendorName("");
+      setVendorId("");
+      setVendorEmail("");
+      setVendorPan("");
+    }
+  }, [gstNumber, vendorSearchResults]);
+
   const searchVendors = useCallback(async (searchTerm: string) => {
     if (!searchTerm.trim() || searchTerm.trim().length < 3) {
       setVendorSearchResults([]);
@@ -303,7 +329,17 @@ export function InvoicePage() {
   }, []);
 
   const handleGstNumberChange = useCallback((value: string) => {
-    setGstNumber(value);
+    // Limit GST number to 15 characters
+    const limitedValue = value.slice(0, 15);
+    setGstNumber(limitedValue);
+    
+    // Clear vendor details if GST number is not exactly 15 characters
+    if (limitedValue.length !== 15) {
+      setVendorName("");
+      setVendorId("");
+      setVendorEmail("");
+      setVendorPan("");
+    }
     
     // Clear previous timeout
     if (vendorSearchTimeoutRef.current) {
@@ -312,8 +348,8 @@ export function InvoicePage() {
 
     // Debounce search - wait 300ms after user stops typing
     vendorSearchTimeoutRef.current = setTimeout(() => {
-      if (value.trim() && value.trim().length >= 3) {
-        searchVendors(value);
+      if (limitedValue.trim() && limitedValue.trim().length >= 3) {
+        searchVendors(limitedValue);
       } else {
         setVendorSearchResults([]);
       }
@@ -322,18 +358,48 @@ export function InvoicePage() {
 
   const handleVendorSelect = useCallback((vendor: VendorData | string | null) => {
     if (vendor && typeof vendor === 'object') {
-      setGstNumber(vendor.gstin);
-      setVendorName(vendor.vendor_name || "");
-      setVendorEmail(vendor.email || "");
-      setVendorPan(vendor.pan || "");
-      setVendorId(vendor.vendor_code || "");
+      const gstin = vendor.gstin || "";
+      setGstNumber(gstin);
+      
+      // Only fill vendor details if GST number is exactly 15 characters
+      if (gstin.length === 15) {
+        setVendorName(vendor.vendor_name || "");
+        setVendorEmail(vendor.email || "");
+        setVendorPan(vendor.pan || "");
+        setVendorId(vendor.vendor_code || "");
+      } else {
+        // Clear vendor details if GST is not 15 characters
+        setVendorName("");
+        setVendorId("");
+        setVendorEmail("");
+        setVendorPan("");
+      }
     } else if (typeof vendor === 'string') {
       // User typed a custom GST number
       setGstNumber(vendor);
-      setVendorName("");
-      setVendorId("");
-      setVendorEmail("");
-      setVendorPan("");
+      
+      // Only fill vendor details if GST number is exactly 15 characters
+      if (vendor.length === 15) {
+        // Check if we have cached vendor data for this GST
+        const cachedVendor = vendorSearchResults.find(v => v.gstin === vendor);
+        if (cachedVendor) {
+          setVendorName(cachedVendor.vendor_name || "");
+          setVendorEmail(cachedVendor.email || "");
+          setVendorPan(cachedVendor.pan || "");
+          setVendorId(cachedVendor.vendor_code || "");
+        } else {
+          setVendorName("");
+          setVendorId("");
+          setVendorEmail("");
+          setVendorPan("");
+        }
+      } else {
+        // Clear vendor details if GST is not 15 characters
+        setVendorName("");
+        setVendorId("");
+        setVendorEmail("");
+        setVendorPan("");
+      }
     } else {
       // Clear vendor data when selection is cleared
       setGstNumber("");
@@ -342,7 +408,7 @@ export function InvoicePage() {
       setVendorEmail("");
       setVendorPan("");
     }
-  }, []);
+  }, [vendorSearchResults]);
 
   const addTableRow = useCallback(() => {
     const newRow: InvoiceLineRow = {
@@ -356,6 +422,7 @@ export function InvoicePage() {
       igst: "",
       cgst: "",
       sgst: "",
+      utgst: "",
       netAmount: "",
     };
     setTableRows((prev) => [...prev, newRow]);
@@ -393,6 +460,52 @@ export function InvoicePage() {
     setUploadedFile(null);
   };
 
+  const handleSubmitInvoice = async () => {
+    if (!id) return;
+    
+    setSubmitting(true);
+    try {
+      // Format date from DD/MM/YYYY to YYYY-MM-DD
+      const formatDateForAPI = (dateStr: string): string => {
+        if (!dateStr) return "";
+        const parts = dateStr.split("/");
+        if (parts.length === 3) {
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        return dateStr;
+      };
+
+      const lineItems = tableRows.map((row, index) => ({
+        id: row.id.toString(),
+        description: row.itemDescription || "",
+        line_num: (index + 1).toString(),
+        hsn_sac: "",
+        gl_code: "",
+        unit_of_measure: "",
+        total_tax_amount: parseFloat(row.igst || "0") + parseFloat(row.cgst || "0") + parseFloat(row.sgst || "0") + parseFloat(row.utgst || "0"),
+        discount: parseFloat(row.netAmount || "0"),
+      }));
+
+      await updateInvoice(id, {
+        invoice_number: invoiceNumber,
+        type: invoiceType,
+        invoice_date: formatDateForAPI(invoiceDate),
+        currency: currency,
+        billing_address: billingAddress,
+        shipping_address: shippingAddress,
+        invoice_lineitems: lineItems,
+      });
+
+      toast.success("Invoice updated successfully!");
+      navigate("/flow/invoice");
+    } catch (error) {
+      console.error("Error updating invoice:", error);
+      toast.error("Failed to update invoice. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleInvoiceZoomIn = () => {
     setInvoiceZoom((prev) => Math.min(prev + 0.25, 3));
   };
@@ -427,10 +540,18 @@ export function InvoicePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-sky-100">
-      <div className="bg-white border-b px-6 py-4 sticky top-0 z-10">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {isApprovalMode ? "Approval" : invoiceNumber || "Invoice"}
-        </h1>
+      <div className="bg-white border-b px-0 py-4 sticky top-0 z-10">
+        <div className="flex items-center gap-3 px-2">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center justify-center hover:bg-gray-100 rounded p-1 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-900" />
+          </button>
+          <h1 className="text-xl font-bold text-gray-900">
+            {isApprovalMode ? "Approval" : invoiceNumber || "Invoice"}
+          </h1>
+        </div>
       </div>
       <div className="flex flex-shrink-0" style={{ height: 'calc(100vh - 240px)', minHeight: '450px' }}>
         {/* Left Panel - Invoice Document */}
@@ -612,6 +733,10 @@ export function InvoicePage() {
                           <TextField
                             {...params}
                             placeholder="Search GST number..."
+                            inputProps={{
+                              ...params.inputProps,
+                              maxLength: 15,
+                            }}
                             className="mt-0.5"
                             sx={{
                               '& .MuiOutlinedInput-root': {
@@ -624,7 +749,7 @@ export function InvoicePage() {
                                   borderColor: '#d1d5db',
                                 },
                                 '&.Mui-focused fieldset': {
-                                  borderColor: '#9333ea',
+                                  borderColor: '#0D9C99',
                                 },
                               },
                             }}
@@ -643,63 +768,59 @@ export function InvoicePage() {
                         noOptionsText={gstNumber ? "No vendors found" : "Start typing to search..."}
                       />
                     </div>
-                    {vendorName && (
-                      <>
-                        <div className="col-span-2">
-                          <Label htmlFor="vendor-name" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
-                            Vendor Name
-                          </Label>
-                          <Input
-                            id="vendor-name"
-                            value={vendorName}
-                            onChange={(e) => setVendorName(e.target.value)}
-                            className="mt-0.5 h-8 text-sm font-normal"
-                            placeholder="Vendor name"
-                            disabled={isApprovalMode}
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Label htmlFor="vendor-id" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
-                            Vendor ID
-                          </Label>
-                          <Input
-                            id="vendor-id"
-                            value={vendorId}
-                            onChange={(e) => setVendorId(e.target.value)}
-                            className="mt-0.5 h-8 text-sm font-normal"
-                            placeholder="Vendor ID"
-                            disabled={isApprovalMode}
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Label htmlFor="vendor-email" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
-                            Vendor Email
-                          </Label>
-                          <Input
-                            id="vendor-email"
-                            type="email"
-                            value={vendorEmail}
-                            onChange={(e) => setVendorEmail(e.target.value)}
-                            className="mt-0.5 h-8 text-sm font-normal"
-                            placeholder="Vendor email"
-                            disabled={isApprovalMode}
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Label htmlFor="vendor-pan" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
-                            PAN
-                          </Label>
-                          <Input
-                            id="vendor-pan"
-                            value={vendorPan}
-                            onChange={(e) => setVendorPan(e.target.value)}
-                            className="mt-0.5 h-8 text-sm font-normal"
-                            placeholder="PAN number"
-                            disabled={isApprovalMode}
-                          />
-                        </div>
-                      </>
-                    )}
+                    <div className="col-span-2">
+                      <Label htmlFor="vendor-id" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                        Vendor ID
+                      </Label>
+                      <Input
+                        id="vendor-id"
+                        value={vendorId}
+                        readOnly
+                        className="mt-0.5 h-8 text-sm font-normal bg-gray-50"
+                        placeholder={gstNumber.length === 15 ? "Vendor ID" : "Fill GST number first"}
+                        disabled={isApprovalMode || gstNumber.length !== 15}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label htmlFor="vendor-name" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                        Vendor Name
+                      </Label>
+                      <Input
+                        id="vendor-name"
+                        value={vendorName}
+                        readOnly
+                        className="mt-0.5 h-8 text-sm font-normal bg-gray-50"
+                        placeholder={gstNumber.length === 15 ? "Vendor name" : "Fill GST number first"}
+                        disabled={isApprovalMode || gstNumber.length !== 15}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label htmlFor="vendor-pan" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                        PAN
+                      </Label>
+                      <Input
+                        id="vendor-pan"
+                        value={vendorPan}
+                        readOnly
+                        className="mt-0.5 h-8 text-sm font-normal bg-gray-50"
+                        placeholder={gstNumber.length === 15 ? "PAN number" : "Fill GST number first"}
+                        disabled={isApprovalMode || gstNumber.length !== 15}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label htmlFor="vendor-email" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                        Vendor Email
+                      </Label>
+                      <Input
+                        id="vendor-email"
+                        type="email"
+                        value={vendorEmail}
+                        readOnly
+                        className="mt-0.5 h-8 text-sm font-normal bg-gray-50"
+                        placeholder={gstNumber.length === 15 ? "Vendor email" : "Fill GST number first"}
+                        disabled={isApprovalMode || gstNumber.length !== 15}
+                      />
+                    </div>
               </div>
             </div>
 
@@ -744,19 +865,19 @@ export function InvoicePage() {
             <TabsList className="w-full border-b border-gray-200 mb-3 h-auto p-0 bg-transparent inline-flex items-center justify-start rounded-none">
               <TabsTrigger
                 value="validation"
-                className="relative text-xs font-medium text-gray-600 data-[state=active]:text-purple-600 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 rounded-none border-b-2 border-transparent pb-1.5 px-2 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                className="relative text-xs font-medium text-gray-600 data-[state=active]:text-[#0D9C99] data-[state=active]:border-b-2 data-[state=active]:border-[#0D9C99] rounded-none border-b-2 border-transparent pb-1.5 px-2 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
               >
                 Validation
               </TabsTrigger>
               <TabsTrigger
                 value="comment"
-                className="text-xs font-medium text-gray-600 data-[state=active]:text-purple-600 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 rounded-none border-b-2 border-transparent pb-1.5 px-2 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                className="text-xs font-medium text-gray-600 data-[state=active]:text-[#0D9C99] data-[state=active]:border-b-2 data-[state=active]:border-[#0D9C99] rounded-none border-b-2 border-transparent pb-1.5 px-2 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
               >
                 Comment
               </TabsTrigger>
               <TabsTrigger
                 value="activity"
-                className="text-xs font-medium text-gray-600 data-[state=active]:text-purple-600 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 rounded-none border-b-2 border-transparent pb-1.5 px-2 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                className="text-xs font-medium text-gray-600 data-[state=active]:text-[#0D9C99] data-[state=active]:border-b-2 data-[state=active]:border-[#0D9C99] rounded-none border-b-2 border-transparent pb-1.5 px-2 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
               >
                 Activity
               </TabsTrigger>
@@ -818,6 +939,17 @@ export function InvoicePage() {
                   <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(igstAmount) || 0)}</span>
                 </div>
               </div>
+              <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
+                <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Total Amount</Label>
+                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                  <span className="text-xs font-semibold text-right">{formatCurrency(
+                    (parseFloat(subtotalAmount) || 0) +
+                    (parseFloat(cgstAmount) || 0) +
+                    (parseFloat(sgstAmount) || 0) +
+                    (parseFloat(igstAmount) || 0)
+                  )}</span>
+                </div>
+              </div>
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">TDS</Label>
                 <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
@@ -827,7 +959,7 @@ export function InvoicePage() {
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
-                <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Total</Label>
+                <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Payable Amount</Label>
                 <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
                   <span className="text-xs font-semibold text-right">{formatCurrency(parseFloat(totalAmount) || 0)}</span>
                 </div>
@@ -837,29 +969,28 @@ export function InvoicePage() {
         </div>
       </div>
 
-      <FormFooter>
-        {isApprovalMode ? (
-          <>
-            <Button 
-              variant="outline" 
-              className="border-red-500 text-red-600 hover:bg-red-50"
-              onClick={() => {}}
-            >
-              Reject
-            </Button>
-            <Button 
-              className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => {}}
-            >
-              Approval
-            </Button>
-          </>
-        ) : (
-          <Button className="bg-purple-600 hover:bg-purple-700 text-white">
-            Submit Invoice
-          </Button>
-        )}
-      </FormFooter>
+      {isApprovalMode ? (
+        <FormActionFooter
+          secondaryButton={{
+            label: "Reject",
+            onClick: () => {},
+          }}
+          primaryButton={{
+            label: "Approval",
+            onClick: () => {},
+          }}
+        />
+      ) : (
+        <FormActionFooter
+          primaryButton={{
+            label: "Submit Invoice",
+            onClick: handleSubmitInvoice,
+            disabled: submitting || !id,
+            loading: submitting,
+            loadingText: "Submitting...",
+          }}
+        />
+      )}
 
       {/* Fullscreen Invoice Modal */}
       {isInvoiceFullscreen && hasInvoice && (

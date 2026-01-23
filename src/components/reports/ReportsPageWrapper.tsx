@@ -22,8 +22,6 @@ interface ReportsPageWrapperProps {
   showCreateButton?: boolean;
   createButtonText?: string;
   createButtonLink?: string;
-  onCreateButtonClick?: () => void;
-  createButtonClassName?: string;
   
   // Tabs configuration
   tabs?: TabConfig[];
@@ -52,8 +50,6 @@ export function ReportsPageWrapper({
   showCreateButton = false,
   createButtonText = "Create New Report",
   createButtonLink = "/reports/create",
-  onCreateButtonClick,
-  createButtonClassName,
   tabs,
   activeTab,
   onTabChange,
@@ -84,25 +80,12 @@ export function ReportsPageWrapper({
           <h1 className="text-2xl font-bold">{title}</h1>
         </div>
         {showCreateButton && (
-          onCreateButtonClick ? (
-            <Button 
-              onClick={onCreateButtonClick}
-              className={createButtonClassName}
-            >
+          <Button asChild>
+            <Link to={createButtonLink}>
               <Plus className="mr-2 h-4 w-4" />
               {createButtonText}
-            </Button>
-          ) : createButtonLink ? (
-            <Button 
-              asChild
-              className={createButtonClassName}
-            >
-              <Link to={createButtonLink}>
-                <Plus className="mr-2 h-4 w-4" />
-                {createButtonText}
-              </Link>
-            </Button>
-          ) : null
+            </Link>
+          </Button>
         )}
       </div>
 

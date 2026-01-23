@@ -40,7 +40,7 @@ export const itemsCodeService = {
   // TDS Code APIs
   async getTDSCodes(): Promise<TDSCodeResponse> {
     try {
-      const response = await api.get("/api/v1/tds");
+      const response = await api.get("/api/v1/tax/tds");
       return response.data;
     } catch (error) {
       throw error;
@@ -50,7 +50,7 @@ export const itemsCodeService = {
   async searchTDSCodes(searchTerm: string): Promise<TDSCodeResponse> {
     try {
       const response = await api.get(
-        `/api/v1/tds?tds_code=ilike.%25${encodeURIComponent(searchTerm)}%25`
+        `/api/v1/tax/tds?tds_code=ilike.%25${encodeURIComponent(searchTerm)}%25`
       );
       return response.data;
     } catch (error) {
@@ -64,7 +64,21 @@ export const itemsCodeService = {
     description?: string;
   }): Promise<any> {
     try {
-      const response = await api.post("/api/v1/tds", data);
+      const response = await api.post("/api/v1/tax/tds", data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async updateTDSCode(id: string, data: {
+    tds_code?: string;
+    tds_percentage?: number;
+    description?: string;
+    active_flag?: boolean;
+  }): Promise<any> {
+    try {
+      const response = await api.put(`/api/v1/tax/tds/${id}`, data);
       return response.data;
     } catch (error) {
       throw error;
@@ -100,9 +114,28 @@ export const itemsCodeService = {
     igst_percentage?: number;
     utgst_percentage?: number;
     description?: string;
+    is_active?: boolean;
   }): Promise<any> {
     try {
       const response = await api.post("/api/v1/tax", data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async updateTaxCode(id: string, data: {
+    tax_code?: string;
+    tax_percentage?: number;
+    cgst_percentage?: number;
+    sgst_percentage?: number;
+    igst_percentage?: number;
+    utgst_percentage?: number;
+    description?: string;
+    active_flag?: boolean;
+  }): Promise<any> {
+    try {
+      const response = await api.put(`/api/v1/tax/${id}`, data);
       return response.data;
     } catch (error) {
       throw error;

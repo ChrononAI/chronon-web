@@ -20,7 +20,7 @@ export function ReportTabs({
   className
 }: ReportTabsProps) {
   return (
-    <div className={cn("flex space-x-8 border-b border-gray-200", className)}>
+    <div className={cn("flex gap-8 border-b border-gray-200", className)}>
       {tabs?.map((tab) => (
         <button
           key={tab.key}

@@ -19,7 +19,7 @@ export interface TDSResponse {
 export const tdsService = {
   async getTDS(): Promise<TDSResponse> {
     try {
-      const response = await api.get("/api/v1/tds");
+      const response = await api.get("/api/v1/tax/tds");
       return response.data;
     } catch (error) {
       throw error;
@@ -29,7 +29,7 @@ export const tdsService = {
   async searchTDSCodes(searchTerm: string): Promise<TDSResponse> {
     try {
       const response = await api.get(
-        `/api/v1/tds?tds_code=ilike.%25${encodeURIComponent(searchTerm)}%25`
+        `/api/v1/tax/tds?tds_code=ilike.%25${encodeURIComponent(searchTerm)}%25`
       );
       return response.data;
     } catch (error) {

@@ -24,6 +24,7 @@ export type InvoiceLineRow = {
   igst: string;
   cgst: string;
   sgst: string;
+  utgst: string;
   netAmount: string;
 };
 
@@ -113,12 +114,14 @@ export function LineItemsTable({
       // TDS code selected from dropdown
       onRowUpdate(rowId, "tdsCode", tdsData.tds_code);
       
-      // Calculate TDS amount: (net amount * tds_percentage) / 100
+      // Calculate TDS amount: (quantity × rate) × (tds_percentage / 100)
       const row = rows.find(r => r.id === rowId);
       if (row) {
-        const netAmount = parseFloat(row.netAmount) || 0;
+        const quantity = parseFloat(row.quantity) || 0;
+        const rate = parseFloat(row.rate) || 0;
+        const baseAmount = quantity * rate;
         const tdsPercentage = parseFloat(tdsData.tds_percentage) || 0;
-        const tdsAmount = (netAmount * tdsPercentage) / 100;
+        const tdsAmount = (baseAmount * tdsPercentage) / 100;
         onRowUpdate(rowId, "tdsAmount", tdsAmount.toFixed(2));
       }
     } else if (typeof tdsData === 'string') {
@@ -130,24 +133,28 @@ export function LineItemsTable({
       if (cachedTds) {
         const row = rows.find(r => r.id === rowId);
         if (row) {
-          const netAmount = parseFloat(row.netAmount) || 0;
+          const quantity = parseFloat(row.quantity) || 0;
+          const rate = parseFloat(row.rate) || 0;
+          const baseAmount = quantity * rate;
           const tdsPercentage = parseFloat(cachedTds.tds_percentage) || 0;
-          const tdsAmount = (netAmount * tdsPercentage) / 100;
+          const tdsAmount = (baseAmount * tdsPercentage) / 100;
           onRowUpdate(rowId, "tdsAmount", tdsAmount.toFixed(2));
         }
       }
     }
   }, [onRowUpdate, rows]);
 
-  // Recalculate TDS amount when net amount changes
+  // Recalculate TDS amount when quantity or rate changes
   useEffect(() => {
     rows.forEach((row) => {
-      if (row.tdsCode && row.netAmount) {
+      if (row.tdsCode && row.quantity && row.rate) {
         const cachedTds = tdsDataCacheRef.current[row.tdsCode];
         if (cachedTds) {
-          const netAmount = parseFloat(row.netAmount) || 0;
+          const quantity = parseFloat(row.quantity) || 0;
+          const rate = parseFloat(row.rate) || 0;
+          const baseAmount = quantity * rate;
           const tdsPercentage = parseFloat(cachedTds.tds_percentage) || 0;
-          const calculatedTdsAmount = (netAmount * tdsPercentage) / 100;
+          const calculatedTdsAmount = (baseAmount * tdsPercentage) / 100;
           const currentTdsAmount = parseFloat(row.tdsAmount) || 0;
           
           // Only update if the calculated amount is different
@@ -158,7 +165,7 @@ export function LineItemsTable({
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows.map(r => `${r.id}-${r.netAmount}-${r.tdsCode}`).join(',')]); // Re-run when net amounts or TDS codes change
+  }, [rows.map(r => `${r.id}-${r.quantity}-${r.rate}-${r.tdsCode}`).join(',')]); // Re-run when quantity, rate, or TDS codes change
 
   // GST Code Search Functions
   const searchGSTCodes = useCallback(async (searchTerm: string) => {
@@ -208,7 +215,7 @@ export function LineItemsTable({
       // GST code selected from dropdown
       onRowUpdate(rowId, "gstCode", taxData.tax_code);
       
-      // Calculate IGST, CGST, SGST amounts: (quantity × rate) × (percentage / 100)
+      // Calculate IGST, CGST, SGST, UTGST amounts: (quantity × rate) × (percentage / 100)
       const row = rows.find(r => r.id === rowId);
       if (row) {
         const quantity = parseFloat(row.quantity) || 0;
@@ -218,14 +225,17 @@ export function LineItemsTable({
         const igstPercentage = parseFloat(taxData.igst_percentage) || 0;
         const cgstPercentage = parseFloat(taxData.cgst_percentage) || 0;
         const sgstPercentage = parseFloat(taxData.sgst_percentage) || 0;
+        const utgstPercentage = parseFloat(taxData.utgst_percentage) || 0;
         
         const igstAmount = (baseAmount * igstPercentage) / 100;
         const cgstAmount = (baseAmount * cgstPercentage) / 100;
         const sgstAmount = (baseAmount * sgstPercentage) / 100;
+        const utgstAmount = (baseAmount * utgstPercentage) / 100;
         
         onRowUpdate(row.id, "igst", igstAmount.toFixed(2));
         onRowUpdate(row.id, "cgst", cgstAmount.toFixed(2));
         onRowUpdate(row.id, "sgst", sgstAmount.toFixed(2));
+        onRowUpdate(row.id, "utgst", utgstAmount.toFixed(2));
       }
     } else if (typeof taxData === 'string') {
       // User typed a custom GST code
@@ -243,14 +253,17 @@ export function LineItemsTable({
           const igstPercentage = parseFloat(cachedTax.igst_percentage) || 0;
           const cgstPercentage = parseFloat(cachedTax.cgst_percentage) || 0;
           const sgstPercentage = parseFloat(cachedTax.sgst_percentage) || 0;
+          const utgstPercentage = parseFloat(cachedTax.utgst_percentage) || 0;
           
           const igstAmount = (baseAmount * igstPercentage) / 100;
           const cgstAmount = (baseAmount * cgstPercentage) / 100;
           const sgstAmount = (baseAmount * sgstPercentage) / 100;
+          const utgstAmount = (baseAmount * utgstPercentage) / 100;
           
           onRowUpdate(row.id, "igst", igstAmount.toFixed(2));
           onRowUpdate(row.id, "cgst", cgstAmount.toFixed(2));
           onRowUpdate(row.id, "sgst", sgstAmount.toFixed(2));
+          onRowUpdate(row.id, "utgst", utgstAmount.toFixed(2));
         }
       }
     }
@@ -269,14 +282,17 @@ export function LineItemsTable({
           const igstPercentage = parseFloat(cachedTax.igst_percentage) || 0;
           const cgstPercentage = parseFloat(cachedTax.cgst_percentage) || 0;
           const sgstPercentage = parseFloat(cachedTax.sgst_percentage) || 0;
+          const utgstPercentage = parseFloat(cachedTax.utgst_percentage) || 0;
           
           const calculatedIgst = (baseAmount * igstPercentage) / 100;
           const calculatedCgst = (baseAmount * cgstPercentage) / 100;
           const calculatedSgst = (baseAmount * sgstPercentage) / 100;
+          const calculatedUtgst = (baseAmount * utgstPercentage) / 100;
           
           const currentIgst = parseFloat(row.igst) || 0;
           const currentCgst = parseFloat(row.cgst) || 0;
           const currentSgst = parseFloat(row.sgst) || 0;
+          const currentUtgst = parseFloat(row.utgst) || 0;
           
           // Only update if the calculated amount is different
           if (Math.abs(calculatedIgst - currentIgst) > 0.01) {
@@ -287,6 +303,9 @@ export function LineItemsTable({
           }
           if (Math.abs(calculatedSgst - currentSgst) > 0.01) {
             onRowUpdate(row.id, "sgst", calculatedSgst.toFixed(2));
+          }
+          if (Math.abs(calculatedUtgst - currentUtgst) > 0.01) {
+            onRowUpdate(row.id, "utgst", calculatedUtgst.toFixed(2));
           }
         }
       }
@@ -365,6 +384,12 @@ export function LineItemsTable({
                 SGST
               </TableHead>
               <TableHead 
+                className="px-4 py-2"
+                style={tableHeaderStyle}
+              >
+                UTGST
+              </TableHead>
+              <TableHead 
                 className="pl-4 pr-6 text-right py-2"
                 style={tableHeaderStyle}
               >
@@ -375,7 +400,7 @@ export function LineItemsTable({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={10} className="px-4 py-10">
+                <TableCell colSpan={11} className="px-4 py-10">
                   <div className="flex items-center justify-center gap-2 text-gray-500">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="text-sm">Processing invoice…</span>
@@ -384,7 +409,7 @@ export function LineItemsTable({
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="px-4 py-10">
+                <TableCell colSpan={11} className="px-4 py-10">
                   <div className="text-center text-sm text-gray-500">
                     No line items yet. Upload an invoice or click "Add Row".
                   </div>
@@ -642,6 +667,17 @@ export function LineItemsTable({
                       onChange={(e) => onRowUpdate(row.id, "sgst", e.target.value)}
                       className={`h-8 border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-0 ${
                         isFieldChanged(row.id, "sgst", row.sgst) ? "bg-yellow-100" : ""
+                      }`}
+                      placeholder="₹ 0.00"
+                      disabled={isApprovalMode}
+                    />
+                  </TableCell>
+                  <TableCell className="px-4 py-1">
+                    <Input
+                      value={row.utgst}
+                      onChange={(e) => onRowUpdate(row.id, "utgst", e.target.value)}
+                      className={`h-8 border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-0 ${
+                        isFieldChanged(row.id, "utgst", row.utgst) ? "bg-yellow-100" : ""
                       }`}
                       placeholder="₹ 0.00"
                       disabled={isApprovalMode}

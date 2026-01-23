@@ -43,6 +43,7 @@ export interface InvoiceLineItem {
   subtotal: string | null;
   total: string | null;
   unit_price: string | null;
+  utgst_amount: string | null;
 }
 
 export interface InvoiceResponse {
@@ -59,6 +60,7 @@ export interface InvoiceResponse {
   invoice_lineitems: InvoiceLineItem[];
   invoice_number: string | null;
   org_id: string;
+  ocr_status?: string;
   po_number: string | null;
   sgst_amount: string | null;
   shipping_address: string | null;
@@ -121,5 +123,50 @@ export const getFileDownloadUrl = async (
   fileId: string
 ): Promise<GetFileDownloadUrlResponse> => {
   const response = await baseAPI.post(`/v1/files/generate_upload_url?id=${fileId}`);
+  return response.data;
+};
+
+export interface InvoiceFileItem {
+  created_at: string;
+  file_name: string;
+  invoice_id: string;
+  ocr_status: string;
+}
+
+export interface GetInvoiceFilesResponse {
+  count: number;
+  data: InvoiceFileItem[];
+  offset: number;
+}
+
+export const getInvoiceFiles = async (offset: number = 0, limit: number = 100): Promise<GetInvoiceFilesResponse> => {
+  const response = await baseAPI.get(`/v1/invoices/files?offset=${offset}&limit=${limit}`);
+  return response.data;
+};
+
+export interface UpdateInvoiceRequest {
+  invoice_number: string;
+  type: string;
+  invoice_date: string;
+  currency: string;
+  billing_address: string;
+  shipping_address: string;
+  invoice_lineitems: Array<{
+    id?: string;
+    description: string;
+    line_num: string;
+    hsn_sac?: string;
+    gl_code?: string;
+    unit_of_measure?: string;
+    total_tax_amount?: number;
+    discount?: number;
+  }>;
+}
+
+export const updateInvoice = async (
+  invoiceId: string,
+  data: UpdateInvoiceRequest
+): Promise<any> => {
+  const response = await baseAPI.put(`/v1/invoice/${invoiceId}`, data);
   return response.data;
 };

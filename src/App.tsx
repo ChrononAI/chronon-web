@@ -82,6 +82,7 @@ import { TDSCodePage } from "./pages/admin/TDSCodePage";
 import { TaxCodePage } from "./pages/admin/TaxCodePage";
 import { AllApprovalsPage } from "./pages/AllApprovalsPage";
 import { FlowLayout } from "./components/layout/FlowLayout";
+import { BulkInvoiceUploadPage } from "./pages/BulkInvoiceUploadPage";
 
 function App() {
   return (
@@ -100,6 +101,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/flow" element={<Navigate to="/flow/invoice" replace />} />
               <Route path="/flow/invoice" element={<AllInvoicesPage />} />
+              <Route path="/flow/invoice/bulk-upload" element={<BulkInvoiceUploadPage />} />
               <Route path="/flow/invoice/upload" element={<InvoicePage />} />
               <Route path="/flow/invoice/:id" element={<InvoicePage />} />
               <Route path="/flow/vendors" element={<AllVendorsPage />} />

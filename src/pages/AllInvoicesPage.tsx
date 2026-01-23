@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box } from "@mui/material";
+import { Box, useTheme, useMediaQuery } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
@@ -8,26 +8,16 @@ import {
   GridOverlay,
 } from "@mui/x-data-grid";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
-import { FileText, Upload, Loader2, X } from "lucide-react";
+import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
+import CustomInvoiceToolbar from "@/components/invoice/CustomInvoiceToolbar";
+import { FileText, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInvoiceFlowStore, InvoiceListRow } from "@/services/invoice/invoiceflowstore";
 import {
-  createFileMetadata,
-  uploadFileToS3,
-  createInvoiceFromFile,
   getAllInvoices,
   type InvoiceResponse,
 } from "@/services/invoice/invoice";
+import { useLayoutStore } from "@/store/layoutStore";
 
 function CustomNoRows() {
   return (
@@ -47,19 +37,27 @@ function CustomNoRows() {
 
 export function AllInvoicesPage() {
   const navigate = useNavigate();
-  const { invoices, prependInvoices, updateInvoice } = useInvoiceFlowStore();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
+  const { invoices } = useInvoiceFlowStore();
+  const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "processed">("all");
+  const [rowsCalculated, setRowsCalculated] = useState(false);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 10,
   });
-  const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [bulkFiles, setBulkFiles] = useState<File[]>([]);
-  const [uploadingBulk, setUploadingBulk] = useState(false);
-  const [bulkInputKey, setBulkInputKey] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [loadingInvoices, setLoadingInvoices] = useState(true);
+
+  useEffect(() => {
+    setNoPadding(true);
+    return () => {
+      setNoPadding(false);
+    };
+  }, [setNoPadding]);
 
   const formatCurrency = (currency: string, amount: number = 0): string => {
     if (currency === "INR") {
@@ -97,9 +95,15 @@ export function AllInvoicesPage() {
   };
 
   const convertInvoiceToRow = (invoice: InvoiceResponse): InvoiceListRow => {
-    // Normalize status: OCR_PENDING -> Pending, OCR_PROCESSED -> Processed
+    // Check ocr_status first, then normalize status
     let normalizedStatus = invoice.status;
-    if (invoice.status === "OCR_PENDING") {
+    
+    // If ocr_status exists, use it to determine processing state
+    if (invoice.ocr_status === "OCR_PROCESSING" || invoice.ocr_status === "OCR_PENDING") {
+      normalizedStatus = "Processing";
+    } else if (invoice.ocr_status === "OCR_PROCESSED") {
+      normalizedStatus = "Processed";
+    } else if (invoice.status === "OCR_PENDING") {
       normalizedStatus = "Pending";
     } else if (invoice.status === "OCR_PROCESSED") {
       normalizedStatus = "Processed";
@@ -117,9 +121,9 @@ export function AllInvoicesPage() {
       : 0;
     
     return {
-      id: invoice.id, // Use invoice ID as stable ID for existing invoices
-      invoiceId: invoice.id, // Also store as invoiceId for consistency
-      vendorName: invoice.vendor_id || "—", // API only returns vendor_id, not vendor name
+      id: invoice.id,
+      invoiceId: invoice.id,
+      vendorName: invoice.vendor_id || "—", 
       invoiceNumber: invoice.invoice_number || "",
       invoiceDate: formatDate(invoice.invoice_date),
       poNumber: invoice.po_number || "",
@@ -145,17 +149,28 @@ export function AllInvoicesPage() {
     fetchInvoices();
   }, [fetchInvoices]);
 
-  const hasPendingInvoices = invoices.some((inv) => inv.status === "Pending" || inv.status === "OCR_PENDING" || inv.status === "OCR_PROCESSING");
 
   useEffect(() => {
-    if (!hasPendingInvoices) return;
+    const calculatePageSize = () => {
+      const headerHeight = 80; // Header height
+      const paginationHeight = 52; // Pagination bar height
+      const padding = 48; // Top and bottom padding
+      const gridHeight = window.innerHeight - headerHeight - paginationHeight - padding;
+      const rowHeight = 41; // Row height from Figma specs
+      const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+      const pageSize = isMobile ? 10 : isTablet ? 15 : Math.max(calculatedPageSize, 10);
+      setPaginationModel((prev) => ({ ...prev, pageSize }));
+    };
 
-    const pollInterval = setInterval(() => {
-      fetchInvoices();
-    }, 5000);
+    if (!rowsCalculated) {
+      calculatePageSize();
+      setRowsCalculated(true);
+    }
 
-    return () => clearInterval(pollInterval);
-  }, [hasPendingInvoices, fetchInvoices]);
+    window.addEventListener("resize", calculatePageSize);
+    return () => window.removeEventListener("resize", calculatePageSize);
+  }, [isMobile, isTablet, rowsCalculated]);
+
 
   const handleRowClick = (params: any) => {
     if (params?.row?.uploadState === "uploading") return;
@@ -165,15 +180,59 @@ export function AllInvoicesPage() {
     navigate(`/flow/invoice/${invoiceId}`, { state: { listRow: params.row } });
   };
 
-  const filteredInvoices = invoices.filter((invoice) => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      (invoice.vendorName || "").toLowerCase().includes(searchLower) ||
-      (invoice.invoiceNumber || "").toLowerCase().includes(searchLower) ||
-      (invoice.poNumber || "").toLowerCase().includes(searchLower)
+  const filteredInvoices = useMemo(() => {
+    // First, filter out processing invoices
+    let filtered = invoices.filter(
+      (invoice) => 
+        invoice.status !== "Pending" && 
+        invoice.status !== "Processing" &&
+        invoice.status !== "OCR_PENDING" && 
+        invoice.status !== "OCR_PROCESSING" &&
+        invoice.uploadState !== "uploading"
     );
-  });
+
+    // Filter by tab
+    if (activeTab === "processed") {
+      filtered = filtered.filter(
+        (invoice) =>
+          invoice.status === "Processed" ||
+          invoice.status === "OCR_PROCESSED" ||
+          invoice.status === "Approved"
+      );
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (invoice) =>
+          (invoice.vendorName || "").toLowerCase().includes(searchLower) ||
+          (invoice.invoiceNumber || "").toLowerCase().includes(searchLower) ||
+          (invoice.poNumber || "").toLowerCase().includes(searchLower)
+      );
+    }
+
+    return filtered;
+  }, [invoices, activeTab, searchTerm]);
+
+  const tabs = useMemo(() => {
+    const allCount = invoices.length;
+    const processedCount = invoices.filter(
+      (invoice) =>
+        invoice.status === "Processed" ||
+        invoice.status === "OCR_PROCESSED" ||
+        invoice.status === "Approved"
+    ).length;
+
+    return [
+      { key: "all", label: "All", count: allCount },
+      { key: "processed", label: "Processed", count: processedCount },
+    ];
+  }, [invoices]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab as "all" | "processed");
+  };
 
   const hasUploading = invoices.some((inv) => inv.uploadState === "uploading");
 
@@ -218,11 +277,28 @@ export function AllInvoicesPage() {
         renderCell: (params) => {
           const processing = isProcessing(params.row);
           return (
-            <div className="flex items-center h-full">
+            <div className="flex items-center h-full w-full overflow-hidden">
               {processing ? (
                 renderSkeleton("w-40")
               ) : (
-                <span className="text-sm">{params.value}</span>
+                <span 
+                  style={{
+                    fontFamily: "Inter",
+                    fontWeight: 500,
+                    fontSize: "14px",
+                    lineHeight: "100%",
+                    letterSpacing: "0%",
+                    textTransform: "capitalize",
+                    color: "#1A1A1A",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    maxWidth: "100%",
+                  }}
+                  title={params.value}
+                >
+                  {params.value}
+                </span>
               )}
             </div>
           );
@@ -294,8 +370,8 @@ export function AllInvoicesPage() {
           if (uploadState === "uploading") {
             return (
               <div className="flex items-center gap-2 h-full">
-                <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
-                <span className="text-sm font-medium text-purple-700">
+                <Loader2 className="h-4 w-4 animate-spin text-[#0D9C99]" />
+                <span className="text-sm font-medium text-[#0D9C99]">
                   Uploading
                 </span>
               </div>
@@ -316,8 +392,8 @@ export function AllInvoicesPage() {
           if (normalizedStatus === "Pending" || normalizedStatus === "Processing" || value === "OCR_PROCESSING") {
             return (
               <div className="flex items-center gap-2 h-full">
-                <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
-                <span className="text-sm font-medium text-purple-700">
+                <Loader2 className="h-4 w-4 animate-spin text-[#0D9C99]" />
+                <span className="text-sm font-medium text-[#0D9C99]">
                   Processing
                 </span>
               </div>
@@ -348,14 +424,29 @@ export function AllInvoicesPage() {
         headerName: "TOTAL AMOUNT",
         flex: 1,
         minWidth: 150,
+        align: "right",
+        headerAlign: "right",
         renderCell: (params) => {
           const processing = isProcessing(params.row);
           return (
-            <div className="flex items-center h-full justify-end">
+            <div className="flex items-center h-full" style={{ justifyContent: "flex-end", width: "100%" }}>
               {processing ? (
                 renderSkeleton("w-20")
               ) : (
-                <span className="text-sm">{params.value}</span>
+                <span 
+                  style={{
+                    fontFamily: "Inter",
+                    fontWeight: 500,
+                    fontSize: "14px",
+                    lineHeight: "100%",
+                    letterSpacing: "0%",
+                    textTransform: "capitalize",
+                    color: "#1A1A1A",
+                    textAlign: "right",
+                  }}
+                >
+                  {params.value}
+                </span>
               )}
             </div>
           );
@@ -364,125 +455,26 @@ export function AllInvoicesPage() {
     ];
   }, [nowMs]);
 
-  const handleBulkDialogChange = (open: boolean) => {
-    setShowBulkUpload(open);
-    if (!open) {
-      setBulkFiles([]);
-      setBulkInputKey((key) => key + 1);
-      setUploadingBulk(false);
-    }
-  };
-
-  const handleBulkFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      setBulkFiles(files);
-    }
-  };
-
-  const handleBulkUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (bulkFiles.length === 0) return;
-
-    const createdAt = Date.now();
-
-    const loadingRows: InvoiceListRow[] = bulkFiles.map((file, idx) => {
-      // Use stable temp ID that never changes - this prevents DataGrid issues
-      const stableId = `uploading-${createdAt}-${idx}`;
-      return {
-        id: stableId, // Stable ID - never changes
-        vendorName: file.name,
-        invoiceNumber: "",
-        invoiceDate: "",
-        poNumber: "",
-        status: "Uploading",
-        totalAmount: "",
-        uploadState: "uploading",
-        uploadStartedAt: createdAt,
-      };
-    });
-
-    // Add loading rows to table immediately
-    prependInvoices(loadingRows);
-
-    // Close dialog and reset form immediately so user sees table with loading rows
-    const filesToUpload = [...bulkFiles];
-    setBulkFiles([]);
-    setBulkInputKey((prev) => prev + 1);
-    handleBulkDialogChange(false);
-
-    // Upload files sequentially in the background
-    for (let idx = 0; idx < filesToUpload.length; idx++) {
-      const file = filesToUpload[idx];
-      const rowId = loadingRows[idx].id;
-
-      try {
-        const fileMetaResponse = await createFileMetadata(file.name);
-        const fileId = fileMetaResponse.data.id;
-        const uploadUrl = fileMetaResponse.data.upload_url;
-
-        await uploadFileToS3(uploadUrl, file);
-
-        const invoiceResponse = await createInvoiceFromFile(fileId);
-        const invoiceData = invoiceResponse.data[0];
-
-        // Normalize status: OCR_PENDING -> Pending, OCR_PROCESSED -> Processed
-        let normalizedStatus = invoiceData.status;
-        if (invoiceData.status === "OCR_PENDING") {
-          normalizedStatus = "Pending";
-        } else if (invoiceData.status === "OCR_PROCESSED") {
-          normalizedStatus = "Processed";
-        }
-
-        // Parse total_amount from API (can be string or null)
-        const totalAmount = invoiceData.total_amount 
-          ? parseFloat(invoiceData.total_amount) 
-          : 0;
-
-        // Keep the stable temp ID, store real invoice ID separately
-        updateInvoice(rowId, {
-          invoiceId: invoiceData.id, // Store real invoice ID separately
-          vendorName: invoiceData.vendor_id || "—", // API only returns vendor_id, not vendor name
-          invoiceNumber: invoiceData.invoice_number || "",
-          invoiceDate: formatDate(invoiceData.invoice_date),
-          poNumber: invoiceData.po_number || "",
-          status: normalizedStatus,
-          totalAmount: formatCurrency(invoiceData.currency, totalAmount),
-          uploadState: "done",
-          uploadStartedAt: undefined,
-        });
-      } catch (error) {
-        console.error(`Error processing file ${file.name}:`, error);
-
-        updateInvoice(rowId, {
-          status: "Failed",
-          uploadState: "done",
-          uploadStartedAt: undefined,
-        });
-      }
-    }
-  };
-
-  const removeFile = (index: number) => {
-    setBulkFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
   return (
     <>
-      <ReportsPageWrapper
+      <InvoicePageWrapper
         title="Invoices"
-        showCreateButton={true}
-        createButtonText="Upload Invoice"
-        onCreateButtonClick={() => handleBulkDialogChange(true)}
-        createButtonClassName="bg-[#161B53] hover:bg-[#1a205f] text-white"
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        showCreateButton={false}
         showFilters={false}
         showDateFilter={false}
         marginBottom="mb-0"
       >
         <Box
           sx={{
-            height: "calc(100vh - 240px)",
+            height: "calc(100vh - 160px)",
             width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            paddingLeft: "10px",
           }}
         >
           <DataGrid
@@ -490,6 +482,7 @@ export function AllInvoicesPage() {
             rows={filteredInvoices}
             columns={columns}
             loading={loadingInvoices}
+            getRowHeight={() => 41}
             getRowClassName={(params) => {
               const row = params.row as any;
               if (row?.uploadState === "uploading") {
@@ -503,6 +496,24 @@ export function AllInvoicesPage() {
             }}
             slots={{
               noRowsOverlay: CustomNoRows,
+              toolbar: CustomInvoiceToolbar,
+            }}
+            slotProps={{
+              toolbar: {
+                searchTerm,
+                onSearchChange: setSearchTerm,
+                onFilterClick: () => {
+                  // Handle filter click - can open filter modal
+                },
+                onShareClick: () => {
+                  // Handle share click
+                },
+                onDownloadClick: () => {
+                  // Handle download click
+                },
+                onCreateClick: () => navigate("/flow/invoice/bulk-upload"),
+                createButtonText: "Upload Invoice",
+              } as any,
             }}
             sx={{
               border: 0,
@@ -528,10 +539,20 @@ export function AllInvoicesPage() {
                 backgroundColor: "transparent",
                 border: "none",
                 borderTop: "none",
-                borderBottom: "none",
+                borderBottom: "0.7px solid #EBEBEB",
                 borderLeft: "none",
                 borderRight: "none",
                 outline: "none",
+                height: "39px",
+                minHeight: "39px",
+                maxHeight: "39px",
+                paddingTop: "12px",
+                paddingRight: "18px",
+                paddingBottom: "12px",
+                paddingLeft: "18px",
+              },
+              "& .MuiDataGrid-columnHeader[data-field='vendorName']": {
+                paddingLeft: "12px",
               },
               "& .MuiDataGrid-columnHeaders": {
                 border: "none",
@@ -545,35 +566,73 @@ export function AllInvoicesPage() {
               "& .MuiDataGrid-columnHeader:focus-within": {
                 outline: "none",
               },
+              "& .MuiDataGrid-row": {
+                height: "41px",
+                minHeight: "41px",
+                maxHeight: "41px",
+                borderBottom: "0.7px solid #EBEBEB",
+              },
               "& .MuiDataGrid-row:hover": {
                 cursor: "pointer",
                 backgroundColor: "#f5f5f5",
               },
               "& .invoice-uploading-row": {
-                backgroundColor: "#FAF5FF",
-                borderLeft: "3px solid #9333ea",
+                backgroundColor: "#E6FFFA",
+                borderLeft: "3px solid #0D9C99",
               },
               "& .invoice-uploading-row:hover": {
                 cursor: "not-allowed",
-                backgroundColor: "#FAF5FF",
+                backgroundColor: "#E6FFFA",
               },
               "& .invoice-uploading-row .MuiDataGrid-cell": {
                 color: "#6B7280",
               },
               "& .invoice-processing-row": {
-                backgroundColor: "#FAF5FF",
-                borderLeft: "3px solid #9333ea",
+                backgroundColor: "#E6FFFA",
+                borderLeft: "3px solid #0D9C99",
               },
               "& .invoice-processing-row:hover": {
                 cursor: "not-allowed",
-                backgroundColor: "#FAF5FF",
+                backgroundColor: "#E6FFFA",
               },
               "& .invoice-processing-row .MuiDataGrid-cell": {
                 color: "#6B7280",
               },
               "& .MuiDataGrid-cell": {
-                color: "#2E2E2E",
-                border: "0.2px solid #f3f4f6",
+                color: "#1A1A1A",
+                border: "none",
+                borderBottom: "0.7px solid #EBEBEB",
+                paddingTop: "12px",
+                paddingRight: "18px",
+                paddingBottom: "12px",
+                paddingLeft: "18px",
+                fontFamily: "Inter",
+                fontWeight: 500,
+                fontSize: "14px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                textTransform: "capitalize",
+              },
+              "& .MuiDataGrid-cell[data-field='vendorName']": {
+                paddingLeft: "12px",
+              },
+              "& .MuiDataGrid-cellContent": {
+                fontFamily: "Inter",
+                fontWeight: 500,
+                fontSize: "14px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                textTransform: "capitalize",
+                color: "#1A1A1A",
+              },
+              "& .MuiDataGrid-cell > *": {
+                fontFamily: "Inter",
+                fontWeight: 500,
+                fontSize: "14px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                textTransform: "capitalize",
+                color: "#1A1A1A",
               },
               "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
                 outline: "none",
@@ -584,124 +643,37 @@ export function AllInvoicesPage() {
               "& .MuiDataGrid-columnSeparator": {
                 display: "none",
               },
+              "& .MuiDataGrid-columnsContainer": {
+                gap: "10px",
+              },
+              "& .MuiDataGrid-footerContainer": {
+                borderTop: "0.7px solid #EBEBEB",
+                minHeight: "52px",
+              },
+              "& .MuiDataGridToolbar-root": {
+                paddingLeft: "0",
+                paddingRight: "0",
+                width: "100%",
+                justifyContent: "start",
+              },
+              "& .MuiDataGridToolbar": {
+                justifyContent: "start",
+                border: "none !important",
+                paddingLeft: "0",
+                paddingRight: "0",
+              },
             }}
+            showToolbar
             paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
             density="compact"
             disableRowSelectionOnClick
             onRowClick={handleRowClick}
-            showCellVerticalBorder
+            showCellVerticalBorder={false}
+            autoHeight={false}
           />
         </Box>
-      </ReportsPageWrapper>
-
-      <Dialog open={showBulkUpload} onOpenChange={handleBulkDialogChange}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Upload Bulk Invoices</DialogTitle>
-            <DialogDescription>
-              Upload invoice files to process them in bulk. Supported formats:
-              PDF, images (JPG, PNG).
-            </DialogDescription>
-          </DialogHeader>
-          <form className="space-y-6" onSubmit={handleBulkUpload}>
-            <div className="flex flex-col gap-3">
-              <input
-                key={bulkInputKey}
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                multiple
-                onChange={handleBulkFileSelect}
-                className="hidden"
-              />
-              <div
-                className={cn(
-                  "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-                  bulkFiles.length > 0
-                    ? "border-primary/50 bg-primary/5"
-                    : "border-muted-foreground/25 hover:border-primary/50"
-                )}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Upload className="h-8 w-8 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-semibold mb-2">
-                      {bulkFiles.length > 0
-                        ? `${bulkFiles.length} file(s) selected`
-                        : "Upload Invoice Files"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Drag and drop files here, or click to browse
-                    </p>
-                  </div>
-                  {bulkFiles.length === 0 && (
-                    <Button type="button" variant="outline">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Choose Files
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {bulkFiles.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Selected Files:</p>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {bulkFiles.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 p-3 bg-muted rounded-lg overflow-hidden"
-                      >
-                        <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        <div className="flex-1 min-w-0 overflow-hidden">
-                          <p className="text-sm truncate">{file.name}</p>
-                        </div>
-                        <span className="text-xs text-muted-foreground flex-shrink-0 whitespace-nowrap">
-                          ({(file.size / 1024).toFixed(1)} KB)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeFile(index)}
-                          className="p-1 hover:bg-muted-foreground/20 rounded flex-shrink-0"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleBulkDialogChange(false)}
-                disabled={uploadingBulk}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={bulkFiles.length === 0 || uploadingBulk}
-              >
-                {uploadingBulk ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  "Upload"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      </InvoicePageWrapper>
     </>
   );
 }
