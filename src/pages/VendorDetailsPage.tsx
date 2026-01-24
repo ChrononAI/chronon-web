@@ -171,8 +171,8 @@ const VendorDetailsForm = ({
 
           if (values.pan?.trim()) updatePayload.pan = values.pan.trim();
           if (values.phoneNumber?.trim()) updatePayload.phone_number = values.phoneNumber.trim();
-          if (values.address?.trim()) updatePayload.address = values.address.trim();
-          if (values.address2?.trim()) updatePayload.address2 = values.address2.trim();
+          if (values.address?.trim()) updatePayload.address_line1 = values.address.trim();
+          if (values.address2?.trim()) updatePayload.address_line2 = values.address2.trim();
           if (values.type?.trim()) updatePayload.vendor_type = values.type.trim();
 
           await vendorService.updateVendor(vendorId, updatePayload);
@@ -191,8 +191,8 @@ const VendorDetailsForm = ({
           if (values.pan?.trim()) createPayload.pan = values.pan.trim();
           if (values.phoneNumber?.trim()) createPayload.phone_number = values.phoneNumber.trim();
           if (values.email?.trim()) createPayload.email = values.email.trim();
-          if (values.address?.trim()) createPayload.address = values.address.trim();
-          if (values.address2?.trim()) createPayload.address2 = values.address2.trim();
+          if (values.address?.trim()) createPayload.address_line1 = values.address.trim();
+          if (values.address2?.trim()) createPayload.address_line2 = values.address2.trim();
           if (values.city?.trim()) createPayload.city = values.city.trim();
           if (values.state?.trim()) createPayload.state = values.state.trim();
           if (values.postCode?.trim()) createPayload.pincode = values.postCode.trim();
@@ -586,8 +586,8 @@ export const VendorDetailsPage = () => {
             pan: vendorData.pan || "",
             email: vendorData.email || "",
             phoneNumber: vendorData.phone_number || "",
-            address: vendorData.address || "",
-            address2: vendorData.address2 || "",
+            address: vendorData.address_line1 || "",
+            address2: vendorData.address_line2 || "",
             city: vendorData.city || "",
             state: vendorData.state || "",
             postCode: vendorData.pincode || "",

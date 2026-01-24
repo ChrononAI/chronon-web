@@ -8,8 +8,8 @@ export interface VendorData {
   pan?: string;
   email?: string;
   phone_number?: string;
-  address?: string;
-  address2?: string;
+  address_line1?: string;
+  address_line2?: string;
   city?: string;
   pincode?: string;
   state?: string;
@@ -26,8 +26,8 @@ export interface CreateVendorPayload {
   pan?: string;
   phone_number?: string;
   email?: string;
-  address?: string;
-  address2?: string;
+  address_line1?: string;
+  address_line2?: string;
   city?: string;
   state?: string;
   pincode?: string;
@@ -41,8 +41,8 @@ export interface UpdateVendorPayload {
   gstin: string;
   pan?: string;
   phone_number?: string;
-  address?: string;
-  address2?: string;
+  address_line1?: string;
+  address_line2?: string;
   vendor_type?: string;
 }
 
@@ -61,8 +61,8 @@ export interface CreateVendorResponse {
     pan?: string;
     email?: string;
     phone_number?: string;
-    address?: string;
-    address2?: string;
+    address_line1?: string;
+    address_line2?: string;
     city?: string;
     pincode?: string;
     state?: string;
