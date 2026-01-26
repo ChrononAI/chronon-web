@@ -26,26 +26,6 @@ import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 const columns: GridColDef[] = [
   {
-    field: "title",
-    headerName: "TITLE",
-    minWidth: 200,
-    flex: 1,
-    renderCell: (params) => (
-      <span className="font-medium hover:underline whitespace-nowrap">
-        {params.value}
-      </span>
-    ),
-  },
-  {
-    field: "description",
-    headerName: "DESCRIPTION",
-    minWidth: 180,
-    flex: 1,
-    renderCell: (params) => (
-      <span className="whitespace-nowrap">{params.value}</span>
-    ),
-  },
-  {
     field: "status",
     headerName: "STATUS",
     flex: 1,
@@ -103,8 +83,9 @@ export function MyReportsPage() {
   } = useReportsStore();
   const navigate = useNavigate();
   const { orgSettings } = useAuthStore();
-  const customIdEnabled =
-    orgSettings?.custom_report_id_settings?.enabled ?? false;
+  const customIdEnabled = orgSettings?.custom_report_id_settings?.enabled ?? false;
+  const showDescription = orgSettings?.report_description_settings?.enabled ?? true;
+
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
@@ -140,7 +121,6 @@ export function MyReportsPage() {
 
   const newCols = useMemo<GridColDef[]>(() => {
     return [
-      ...columns,
       ...(customIdEnabled
         ? [
           {
@@ -151,8 +131,29 @@ export function MyReportsPage() {
           } as GridColDef,
         ]
         : []),
+      ...[{
+        field: "title",
+        headerName: "TITLE",
+        minWidth: 200,
+        flex: 1,
+        renderCell: (params: any) => (
+          <span className="font-medium hover:underline whitespace-nowrap">
+            {params.value}
+          </span>
+        ),
+      }],
+      ...(showDescription ? [{
+        field: "description",
+        headerName: "DESCRIPTION",
+        minWidth: 180,
+        flex: 1,
+        renderCell: (params: any) => (
+          <span className="whitespace-nowrap">{params.value}</span>
+        ),
+      },] : []),
+      ...columns,
     ];
-  }, [columns, customIdEnabled]);
+  }, [columns, customIdEnabled, showDescription]);
 
   function updateQuery(key: string, operator: Operator, value: FilterValue) {
     setQuery((prev) => {

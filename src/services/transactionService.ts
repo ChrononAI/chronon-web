@@ -19,7 +19,7 @@ export interface Transaction {
   org_account_id: string;
   org_id: string;
   source_transaction_id: string | null;
-  transaction_date: string;
+  transaction_date: Date;
   transaction_entry_type: "CREDIT" | "DEBIT" | null;
   transaction_id: string;
   transaction_source: "DECENTRO" | string;

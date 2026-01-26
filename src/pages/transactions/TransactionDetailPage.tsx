@@ -1,16 +1,17 @@
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getStatusColor } from "@/lib/utils";
 import { Transaction, transactionService } from "@/services/transactionService";
+import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
-function Info({ label, value }: { label: string; value?: string | null }) {
+function Info({ label, value }: { label: string; value?: string | number | Date | null }) {
   if (!value) return null;
   return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium break-all">{value}</p>
+    <div className="flex itemx-center justify-between">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="font-medium break-all">{value.toString()}</p>
     </div>
   );
 }
@@ -36,66 +37,34 @@ function TransactionDetailPage() {
     }
   }, []);
 
+  console.log(transaction);
+
   return (
-    <div className="w-full">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Transaction Details</h1>
-      </div>
+    <>
       <div>
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">
-                ID: {transaction?.id}
-              </p>
-            </div>
-            <Badge variant="outline">{transaction?.transaction_status}</Badge>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Transaction Details</h1>
+        </div>
+        <div className="flex flex-col items-center gap-6">
+          <div className="rounded-md text-center bg-gray-50 w-1/3 space-y-2 p-8">
+            <p className="text-sm text-center text-muted-foreground">Amount</p>
+            {transaction?.amount && <p className="text-5xl text-center font-semibold">
+              {formatCurrency(+transaction.amount)}
+            </p>}
+            {transaction?.transaction_status && <Badge className={`${getStatusColor(transaction?.transaction_status)}`}>
+              {transaction?.transaction_status}
+            </Badge>}
           </div>
-
-          {/* Amount & Merchant */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <p className="text-sm text-muted-foreground">Amount</p>
-              <p className="text-2xl font-semibold">
-                {formatCurrency(transaction?.amount ? +transaction?.amount : 0)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Merchant</p>
-              <p className="font-medium">{transaction?.merchant_name}</p>
-            </div>
-          </div>
-
-          {/* Core Info */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="w-1/3 space-y-6">
+            <Info label="Transaction ID" value={transaction?.id} />
+            <Info label="Merchant" value={transaction?.merchant_name} />
             <Info label="Type" value={transaction?.transaction_type} />
             <Info label="Entry" value={transaction?.transaction_entry_type} />
-            <Info label="Source" value={transaction?.transaction_source} />
-          </div>
-
-          {/* Dates */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Info
-              label="Transaction Date"
-              value={transaction?.transaction_date}
-            />
-            <Info label="Created At" value={transaction?.created_at} />
-          </div>
-
-          {/* Audit */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-muted-foreground">
-              Audit Information
-            </h3>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Info label="Created By" value={transaction?.created_by.email} />
-              <Info label="Updated By" value={transaction?.updated_by.email} />
-            </div>
+            {transaction?.transaction_date && <Info label="Date" value={format(new Date(transaction?.transaction_date), "yyyy-MM-dd")} />}
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
