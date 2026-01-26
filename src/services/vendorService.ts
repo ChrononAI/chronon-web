@@ -21,7 +21,7 @@ export interface VendorData {
 export interface CreateVendorPayload {
   vendor_name: string;
   vendor_code: string;
-  status: string;
+  is_active: boolean;
   gstin: string;
   pan?: string;
   phone_number?: string;

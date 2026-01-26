@@ -6,6 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Download,
   X,
   FileText,
@@ -15,11 +21,17 @@ import {
   RotateCw,
   RefreshCw,
   ArrowLeft,
+  CheckCircle,
+  XCircle,
+  Loader2,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { FormActionFooter } from "@/components/layout/FormActionFooter";
 import { LineItemsTable, type InvoiceLineRow } from "@/components/invoice/LineItemsTable";
-import { getInvoiceById, getFileDownloadUrl, updateInvoice } from "@/services/invoice/invoice";
+import { InvoiceComment } from "@/components/invoice/InvoiceComment";
+import { InvoiceValidation } from "@/components/invoice/InvoiceValidation";
+import { InvoiceActivity } from "@/components/invoice/InvoiceActivity";
+import { getInvoiceById, getApprovalInvoiceById, getFileDownloadUrl, approveOrRejectInvoice, submitInvoice, updateInvoice, type UpdateInvoiceData } from "@/services/invoice/invoice";
 import { DateField } from "@/components/ui/date-field";
 import { formatCurrency } from "@/lib/utils";
 import { Autocomplete, TextField } from "@mui/material";
@@ -38,14 +50,9 @@ export function InvoicePage() {
   const navigate = useNavigate();
   const isApprovalMode = location.pathname.startsWith("/flow/approvals/");
 
-  // Minimize sidebar when invoice page opens
+  // Force sidebar to stay collapsed on invoice page - not expandable
   useEffect(() => {
     setSidebarCollapsed(true);
-    
-    // Cleanup: expand sidebar when leaving the page
-    return () => {
-      setSidebarCollapsed(false);
-    };
   }, [setSidebarCollapsed]);
 
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -60,6 +67,7 @@ export function InvoicePage() {
   const [currency, setCurrency] = useState("INR");
   const [invoiceType, setInvoiceType] = useState("PO");
   const [submitting, setSubmitting] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [vendorSearchResults, setVendorSearchResults] = useState<VendorData[]>([]);
   const [vendorSearchLoading, setVendorSearchLoading] = useState(false);
   const vendorSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -71,6 +79,8 @@ export function InvoicePage() {
   const [isInvoiceFullscreen, setIsInvoiceFullscreen] = useState(false);
 
   const [tableLoading, setTableLoading] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [invoiceStatus, setInvoiceStatus] = useState<string | null>(null);
   const [tableRows, setTableRows] = useState<InvoiceLineRow[]>([]);
   const [originalOcrValues, setOriginalOcrValues] = useState<Record<number, Partial<InvoiceLineRow>>>({});
   const [subtotalAmount, setSubtotalAmount] = useState<string>("0.00");
@@ -81,6 +91,13 @@ export function InvoicePage() {
   const nextRowIdRef = useRef(1);
   const previewUrlRef = useRef<string | null>(null);
   const lastLoadedRef = useRef<{ id?: string; fileKey?: string; routeKey?: string }>({});
+  const [rawOcrPayload, setRawOcrPayload] = useState<any>(null);
+  
+  // Approval dialog state
+  const [showActionDialog, setShowActionDialog] = useState(false);
+  const [actionType, setActionType] = useState<"approve" | "reject" | null>(null);
+  const [comments, setComments] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (previewUrlRef.current) {
@@ -159,13 +176,19 @@ export function InvoicePage() {
     if (!needsFetch) return;
 
     setTableLoading(true);
+    // Set invoice loading immediately if we're loading from ID
+    if (shouldLoadFromId && id) {
+      setInvoiceLoading(true);
+    }
 
     let isActive = true;
 
     const fetchData = async () => {
       try {
         if (shouldLoadFromId && id) {
-          const response = await getInvoiceById(id);
+          const response = isApprovalDetailRoute 
+            ? await getApprovalInvoiceById(id)
+            : await getInvoiceById(id);
           
           if (!response || !response.data) {
             if (isActive) {
@@ -181,8 +204,14 @@ export function InvoicePage() {
           if (!invoice || !isActive) {
             if (isActive) {
               setTableLoading(false);
+              setInvoiceLoading(false);
             }
             return;
+          }
+
+          // Set invoice status
+          if (isActive) {
+            setInvoiceStatus(invoice.status || null);
           }
 
           const formatDate = (dateString: string | null): string => {
@@ -195,29 +224,56 @@ export function InvoicePage() {
           setBillingAddress(invoice.billing_address || "");
           setShippingAddress(invoice.shipping_address || "");
           
+          if (invoice.gst_number) {
+            setGstNumber(invoice.gst_number);
+            if (invoice.gst_number.length === 15) {
+              try {
+                const vendorResponse = await vendorService.searchVendorsByGst(invoice.gst_number);
+                const matchedVendor = vendorResponse?.data?.find(v => v.gstin === invoice.gst_number);
+                if (matchedVendor) {
+                  setVendorName(matchedVendor.vendor_name || "");
+                  setVendorEmail(matchedVendor.email || "");
+                  setVendorPan(matchedVendor.pan || "");
+                  setVendorId(matchedVendor.vendor_code || "");
+                }
+              } catch (error) {
+                console.error("Error fetching vendor details:", error);
+              }
+            }
+          }
+          
           setSubtotalAmount(invoice.subtotal_amount || "0.00");
           setCgstAmount(invoice.cgst_amount || "0.00");
           setSgstAmount(invoice.sgst_amount || "0.00");
           setIgstAmount(invoice.igst_amount || "0.00");
           setTotalAmount(invoice.total_amount || "0.00");
           
+          setRawOcrPayload(invoice.raw_ocr_payload || null);
+          
           if (invoice.file_ids && invoice.file_ids.length > 0) {
             try {
+              // Loading state already set above, just fetch the URL
               const fileId = invoice.file_ids[0];
               const downloadUrlResponse = await getFileDownloadUrl(fileId);
               if (downloadUrlResponse?.data?.download_url) {
                 setDownloadUrl(downloadUrlResponse.data.download_url);
+              } else {
+                setDownloadUrl(null);
               }
             } catch (error) {
               setDownloadUrl(null);
+            } finally {
+              setInvoiceLoading(false);
             }
           } else {
             setDownloadUrl(null);
+            setInvoiceLoading(false);
           }
           
           if (invoice.invoice_lineitems && Array.isArray(invoice.invoice_lineitems) && invoice.invoice_lineitems.length > 0) {
             const rowsWithIds: InvoiceLineRow[] = invoice.invoice_lineitems.map((item, idx) => ({
               id: idx + 1,
+              invoiceLineItemId: item.id || undefined,
               itemDescription: item.description || "",
               quantity: item.quantity ? parseFloat(item.quantity).toString() : "",
               rate: item.unit_price || "",
@@ -256,6 +312,7 @@ export function InvoicePage() {
             setShippingAddress("");
             setTableRows([]);
             setOriginalOcrValues({});
+            setRawOcrPayload(null);
             setSubtotalAmount("0.00");
             setCgstAmount("0.00");
             setSgstAmount("0.00");
@@ -263,6 +320,7 @@ export function InvoicePage() {
             setTotalAmount("0.00");
             nextRowIdRef.current = 1;
             setTableLoading(false);
+            setInvoiceLoading(false);
           }
         }
       } catch (error) {
@@ -413,6 +471,7 @@ export function InvoicePage() {
   const addTableRow = useCallback(() => {
     const newRow: InvoiceLineRow = {
       id: nextRowIdRef.current++,
+      invoiceLineItemId: undefined, // New rows don't have an invoice line item ID yet
       itemDescription: "",
       quantity: "",
       rate: "",
@@ -430,17 +489,131 @@ export function InvoicePage() {
 
   const isFieldChanged = useCallback(
     (rowId: number, field: keyof Omit<InvoiceLineRow, "id">, currentValue: string): boolean => {
+      const currentRow = tableRows.find(r => r.id === rowId);
+      let ocrLineItem = null;
+      
+      if (rawOcrPayload && rawOcrPayload.invoice_lineitems && currentRow) {
+        const descriptionToMatch = field === "itemDescription" 
+          ? (originalOcrValues[rowId]?.itemDescription || currentRow.itemDescription)
+          : currentRow.itemDescription;
+        
+        const matchingByDescription = rawOcrPayload.invoice_lineitems.find(
+          (item: any) => item.description && 
+          String(item.description).trim() === String(descriptionToMatch || "").trim()
+        );
+        
+        ocrLineItem = matchingByDescription || rawOcrPayload.invoice_lineitems[rowId - 1];
+      } else if (rawOcrPayload && rawOcrPayload.invoice_lineitems) {
+        ocrLineItem = rawOcrPayload.invoice_lineitems[rowId - 1];
+      }
+      
+      if (ocrLineItem) {
+        let ocrValue: any = null;
+        switch (field) {
+          case "itemDescription":
+            ocrValue = ocrLineItem.description;
+            break;
+          case "quantity":
+            ocrValue = ocrLineItem.quantity;
+            break;
+          case "rate":
+            ocrValue = ocrLineItem.unit_price;
+            break;
+          case "igst":
+            ocrValue = ocrLineItem.igst_amount;
+            break;
+          case "cgst":
+            ocrValue = ocrLineItem.cgst_amount;
+            break;
+          case "sgst":
+            ocrValue = ocrLineItem.sgst_amount;
+            break;
+          case "netAmount":
+            ocrValue = ocrLineItem.total;
+            break;
+        }
+        
+        if (ocrValue !== undefined && ocrValue !== null) {
+          if (typeof ocrValue === 'number') {
+            const currentNum = parseFloat(currentValue);
+            if (!isNaN(currentNum)) {
+              return Math.abs(ocrValue - currentNum) > 0.01;
+            }
+          } else {
+            const normalizedOcr = String(ocrValue).trim();
+            const normalizedCurrent = String(currentValue || "").trim();
+            if (normalizedOcr && normalizedCurrent && normalizedOcr !== normalizedCurrent) {
+              return true;
+            }
+          }
+        }
+      }
+      
       const original = originalOcrValues[rowId];
-      if (!original) return false;
-      const originalValue = original[field];
-      if (originalValue === undefined || originalValue === null) return false;
-      const normalizedOriginal = String(originalValue).trim();
-      const normalizedCurrent = String(currentValue || "").trim();
-      if (!normalizedOriginal && !normalizedCurrent) return false;
-      return normalizedOriginal !== normalizedCurrent;
+      if (original) {
+        const originalValue = original[field];
+        if (originalValue !== undefined && originalValue !== null) {
+          const normalizedOriginal = String(originalValue).trim();
+          const normalizedCurrent = String(currentValue || "").trim();
+          if (normalizedOriginal && normalizedCurrent && normalizedOriginal !== normalizedCurrent) {
+            return true;
+          }
+        }
+      }
+      
+      return false;
     },
-    [originalOcrValues]
+    [originalOcrValues, rawOcrPayload, tableRows]
   );
+
+  const compareWithOcr = (field: string, currentValue: string | number | null): boolean => {
+    if (!rawOcrPayload) return false;
+    
+    let ocrField = field;
+    if (field === "vendor_id") {
+      ocrField = "vendor_id";
+    }
+    
+    const ocrValue = (rawOcrPayload as any)[ocrField];
+    if (ocrValue === undefined || ocrValue === null) {
+      if (field === "vendor_id" && rawOcrPayload.gst_number) {
+        const gstFromOcr = rawOcrPayload.gst_number;
+        const currentGst = gstNumber;
+        return String(gstFromOcr).trim() !== String(currentGst || "").trim();
+      }
+      return false;
+    }
+    
+    if (field === "invoice_date") {
+      const ocrDate = String(ocrValue).split("T")[0];
+      const currentDate = String(currentValue || "").split("T")[0];
+      if (currentDate.includes("/")) {
+        const parts = currentDate.split("/");
+        if (parts.length === 3) {
+          const normalizedCurrent = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          return ocrDate !== normalizedCurrent;
+        }
+      }
+      return ocrDate !== currentDate;
+    }
+    
+    if (typeof ocrValue === 'number') {
+      const currentNum = typeof currentValue === 'string' ? parseFloat(currentValue) : currentValue;
+      if (typeof currentNum === 'number' && !isNaN(currentNum)) {
+        return Math.abs(ocrValue - currentNum) > 0.01;
+      }
+    }
+    
+    const normalizedOcr = String(ocrValue).trim();
+    const normalizedCurrent = String(currentValue || "").trim();
+    
+    if (!normalizedOcr && !normalizedCurrent) return false;
+    return normalizedOcr !== normalizedCurrent;
+  };
+
+  const getFieldHighlightClass = (field: string, currentValue: string | number | null): string => {
+    return compareWithOcr(field, currentValue) ? "bg-yellow-100" : "";
+  };
 
   const updateTableRow = useCallback(
     (rowId: number, field: keyof Omit<InvoiceLineRow, "id">, value: string) => {
@@ -460,47 +633,116 @@ export function InvoicePage() {
     setUploadedFile(null);
   };
 
-  const handleSubmitInvoice = async () => {
-    if (!id) return;
-    
-    setSubmitting(true);
+  const executeAction = async () => {
+    if (!id || !actionType) return;
+
+    if (!comments.trim()) {
+      toast.error("Notes are required");
+      return;
+    }
+
+    setActionLoading(true);
     try {
-      // Format date from DD/MM/YYYY to YYYY-MM-DD
-      const formatDateForAPI = (dateStr: string): string => {
-        if (!dateStr) return "";
-        const parts = dateStr.split("/");
-        if (parts.length === 3) {
-          return `${parts[2]}-${parts[1]}-${parts[0]}`;
-        }
-        return dateStr;
+      const result = await approveOrRejectInvoice(id, {
+        action: actionType,
+        notes: comments,
+      });
+      toast.success(result.message);
+      setShowActionDialog(false);
+      setComments("");
+      // Navigate back to approvals list
+      navigate("/flow/approvals");
+    } catch (error: any) {
+      console.error(`Failed to ${actionType} invoice`, error);
+      toast.error(
+        error?.response?.data?.message || `Failed to ${actionType} invoice`
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateInvoice = async () => {
+    if (!id) {
+      toast.error("Invoice ID is missing");
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const updateData: UpdateInvoiceData = {
+        invoice_number: invoiceNumber || null,
+        type: invoiceType || null,
+        invoice_date: invoiceDate || null,
+        gst_number: gstNumber || null,
+        billing_address: billingAddress || null,
+        shipping_address: shippingAddress || null,
+        currency: currency,
+        invoice_lineitems: tableRows.map((row, index) => {
+          const lineItem: any = {
+            line_num: index + 1,
+            description: row.itemDescription || null,
+            quantity: row.quantity ? parseFloat(row.quantity).toFixed(4) : null,
+            cgst_amount: row.cgst || null,
+            sgst_amount: row.sgst || null,
+            igst_amount: row.igst || null,
+            utgst_amount: row.utgst || null,
+            discount: "0.0000",
+            gst_code: null,
+            hsn_sac: null,
+            tax_code: null,
+            tds_amount: row.tdsAmount || null,
+          };
+
+          // Calculate subtotal from quantity * rate
+          const quantity = parseFloat(row.quantity) || 0;
+          const rate = parseFloat(row.rate) || 0;
+          const subtotal = quantity * rate;
+
+          // Use netAmount as total if provided, otherwise calculate
+          const cgst = parseFloat(row.cgst) || 0;
+          const sgst = parseFloat(row.sgst) || 0;
+          const igst = parseFloat(row.igst) || 0;
+          const utgst = parseFloat(row.utgst) || 0;
+          const calculatedTotal = subtotal + cgst + sgst + igst + utgst;
+
+          lineItem.subtotal = subtotal.toFixed(2);
+          lineItem.total = row.netAmount || calculatedTotal.toFixed(2);
+
+          // Include id if this is an existing line item
+          if (row.invoiceLineItemId) {
+            lineItem.id = row.invoiceLineItemId;
+          }
+
+          return lineItem;
+        }),
       };
 
-      const lineItems = tableRows.map((row, index) => ({
-        id: row.id.toString(),
-        description: row.itemDescription || "",
-        line_num: (index + 1).toString(),
-        hsn_sac: "",
-        gl_code: "",
-        unit_of_measure: "",
-        total_tax_amount: parseFloat(row.igst || "0") + parseFloat(row.cgst || "0") + parseFloat(row.sgst || "0") + parseFloat(row.utgst || "0"),
-        discount: parseFloat(row.netAmount || "0"),
-      }));
-
-      await updateInvoice(id, {
-        invoice_number: invoiceNumber,
-        type: invoiceType,
-        invoice_date: formatDateForAPI(invoiceDate),
-        currency: currency,
-        billing_address: billingAddress,
-        shipping_address: shippingAddress,
-        invoice_lineitems: lineItems,
-      });
-
-      toast.success("Invoice updated successfully!");
+      const response = await updateInvoice(id, updateData);
+      toast.success(response.message || "Invoice updated successfully");
       navigate("/flow/invoice");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating invoice:", error);
-      toast.error("Failed to update invoice. Please try again.");
+      toast.error(error?.response?.data?.message || "Failed to update invoice. Please try again.");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleSubmitInvoice = async () => {
+    if (!id) {
+      toast.error("Invoice ID is missing");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await submitInvoice(id);
+      toast.success(response.message || "Invoice submitted for approval");
+      navigate("/flow/invoice");
+    } catch (error: any) {
+      console.error("Error submitting invoice:", error);
+      toast.error(error?.response?.data?.message || "Failed to submit invoice. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -537,6 +779,9 @@ export function InvoicePage() {
   const activeInvoiceUrl = downloadUrl || previewUrl;
   const isPdfInvoice = activeInvoiceUrl?.toLowerCase().includes(".pdf") || activeInvoiceUrl?.toLowerCase().includes("pdf");
   const hasInvoice = !!activeInvoiceUrl;
+  const isInvoiceFinalized = invoiceStatus === "APPROVED" || invoiceStatus === "REJECTED";
+  const isFieldDisabled = isApprovalMode || isInvoiceFinalized;
+  const shouldShowButtons = !tableLoading && (invoiceStatus !== null || !id);
 
   return (
     <div className="flex flex-col min-h-screen bg-sky-100">
@@ -560,7 +805,19 @@ export function InvoicePage() {
           <div className="flex-1 border-2 border-gray-400 rounded-lg bg-white shadow-lg flex flex-col overflow-hidden">
             {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto min-h-0 bg-gray-50 p-2">
-              {hasInvoice ? (
+              {invoiceLoading || (tableLoading && id && !uploadedFile && !previewUrl) ? (
+                <div className="flex flex-col items-center justify-center gap-3 p-16 text-center h-full">
+                  <Loader2 className="h-12 w-12 text-[#0D9C99] animate-spin" />
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-700">
+                      Loading invoice...
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Please wait while we fetch the document
+                    </p>
+                  </div>
+                </div>
+              ) : hasInvoice ? (
                 <div className="flex items-center justify-center p-4 h-full">
                   {isPdfInvoice ? (
                     <embed
@@ -687,39 +944,41 @@ export function InvoicePage() {
             <h2 className="font-medium text-[12px] leading-[100%] tracking-[0%] text-gray-500 uppercase">CHOOSE BASIC DETAILS</h2>
               <div className="grid grid-cols-2 gap-2 items-end">
                     <div>
-                      <Label htmlFor="invoice-number" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                      <Label htmlFor="invoice-number" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
                         Invoice Number
                       </Label>
                       <Input
                         id="invoice-number"
                         value={invoiceNumber}
                         onChange={(e) => setInvoiceNumber(e.target.value)}
-                        className="mt-0.5 h-8 text-sm font-normal"
+                        className={`mt-0.5 h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 text-sm font-normal ${getFieldHighlightClass("invoice_number", invoiceNumber)}`}
+                        style={{ borderWidth: '0.7px' }}
                         placeholder="Enter invoice number"
-                        disabled={isApprovalMode}
+                        disabled={isFieldDisabled}
                       />
                     </div>
                     <div>
-                      <Label htmlFor="invoice-date" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                      <Label htmlFor="invoice-date" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
                         Invoice Date
                       </Label>
                       <DateField
                         id="invoice-date"
                         value={invoiceDate}
                         onChange={(value) => setInvoiceDate(value || "")}
-                        disabled={isApprovalMode}
-                        className="mt-0.5 h-8"
+                        disabled={isFieldDisabled}
+                        className={`mt-0.5 h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] ${getFieldHighlightClass("invoice_date", invoiceDate)}`}
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label htmlFor="gst-number" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                      <Label htmlFor="gst-number" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
                         GST Number
                       </Label>
                       <Autocomplete
                         id="gst-number"
                         options={vendorSearchResults}
                         getOptionLabel={(option) => typeof option === 'string' ? option : option.gstin}
-                        value={vendorSearchResults.find(v => v.gstin === gstNumber) || null}
+                        value={vendorSearchResults.find(v => v.gstin === gstNumber) || (gstNumber ? gstNumber : null)}
+                        inputValue={gstNumber}
                         onInputChange={(_event, newInputValue) => {
                           handleGstNumberChange(newInputValue);
                         }}
@@ -727,7 +986,7 @@ export function InvoicePage() {
                           handleVendorSelect(newValue);
                         }}
                         loading={vendorSearchLoading}
-                        disabled={isApprovalMode}
+                        disabled={isFieldDisabled}
                         freeSolo
                         renderInput={(params) => (
                           <TextField
@@ -740,16 +999,27 @@ export function InvoicePage() {
                             className="mt-0.5"
                             sx={{
                               '& .MuiOutlinedInput-root': {
-                                height: '32px',
+                                height: '33px',
                                 fontSize: '14px',
+                                borderRadius: '4px',
+                                backgroundColor: (() => {
+                                  if (!rawOcrPayload) return 'white';
+                                  const ocrGst = rawOcrPayload.gst_number;
+                                  if (ocrGst && String(ocrGst).trim() !== String(gstNumber || "").trim()) {
+                                    return '#FEF3C7';
+                                  }
+                                  return 'white';
+                                })(),
                                 '& fieldset': {
-                                  borderColor: '#e5e7eb',
+                                  borderColor: '#E9EAEE',
+                                  borderWidth: '0.7px',
                                 },
                                 '&:hover fieldset': {
-                                  borderColor: '#d1d5db',
+                                  borderColor: '#E9EAEE',
                                 },
                                 '&.Mui-focused fieldset': {
                                   borderColor: '#0D9C99',
+                                  borderWidth: '0.7px',
                                 },
                               },
                             }}
@@ -769,56 +1039,56 @@ export function InvoicePage() {
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label htmlFor="vendor-id" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                      <Label htmlFor="vendor-id" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
                         Vendor ID
                       </Label>
                       <Input
                         id="vendor-id"
                         value={vendorId}
                         readOnly
-                        className="mt-0.5 h-8 text-sm font-normal bg-gray-50"
+                        className={`mt-0.5 h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${getFieldHighlightClass("vendor_id", vendorId)}`}
+                        style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor ID" : "Fill GST number first"}
-                        disabled={isApprovalMode || gstNumber.length !== 15}
+                        disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label htmlFor="vendor-name" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
+                      <Label htmlFor="vendor-name" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
                         Vendor Name
                       </Label>
                       <Input
                         id="vendor-name"
                         value={vendorName}
                         readOnly
-                        className="mt-0.5 h-8 text-sm font-normal bg-gray-50"
+                        className="mt-0.5 h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50"
+                        style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor name" : "Fill GST number first"}
-                        disabled={isApprovalMode || gstNumber.length !== 15}
+                        disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label htmlFor="vendor-pan" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
-                        PAN
-                      </Label>
+                      <Label htmlFor="vendor-pan" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>PAN</Label>
                       <Input
                         id="vendor-pan"
                         value={vendorPan}
                         readOnly
-                        className="mt-0.5 h-8 text-sm font-normal bg-gray-50"
+                        className="mt-0.5 h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50"
+                        style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "PAN number" : "Fill GST number first"}
-                        disabled={isApprovalMode || gstNumber.length !== 15}
+                        disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label htmlFor="vendor-email" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
-                        Vendor Email
-                      </Label>
+                      <Label htmlFor="vendor-email" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Vendor Email</Label>
                       <Input
                         id="vendor-email"
                         type="email"
                         value={vendorEmail}
                         readOnly
-                        className="mt-0.5 h-8 text-sm font-normal bg-gray-50"
+                        className="mt-0.5 h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50"
+                        style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor email" : "Fill GST number first"}
-                        disabled={isApprovalMode || gstNumber.length !== 15}
+                        disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
                     </div>
               </div>
@@ -829,29 +1099,27 @@ export function InvoicePage() {
               <h2 className="font-medium text-[12px] leading-[100%] tracking-[0%] text-gray-500 uppercase">ADDRESSES</h2>
               <div className="space-y-3">
                     <div>
-                      <Label htmlFor="billing-address" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
-                        Billing Address
-                      </Label>
+                      <Label htmlFor="billing-address" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Billing Address</Label>
                       <Textarea
                         id="billing-address"
                         value={billingAddress}
                         onChange={(e) => setBillingAddress(e.target.value)}
-                        className="mt-1 font-normal min-h-[120px] resize-none"
+                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("billing_address", billingAddress)}`}
+                        style={{ borderWidth: '0.7px' }}
                         placeholder="Enter billing address..."
-                        disabled={isApprovalMode}
+                        disabled={isFieldDisabled}
                       />
                     </div>
                     <div>
-                      <Label htmlFor="shipping-address" className="font-medium text-[10px] leading-[100%] tracking-[0%] text-gray-600">
-                        Shipping Address
-                      </Label>
+                      <Label htmlFor="shipping-address" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Shipping Address</Label>
                       <Textarea
                         id="shipping-address"
                         value={shippingAddress}
                         onChange={(e) => setShippingAddress(e.target.value)}
-                        className="mt-1 font-normal min-h-[120px] resize-none"
+                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("shipping_address", shippingAddress)}`}
+                        style={{ borderWidth: '0.7px' }}
                         placeholder="Enter shipping address..."
-                        disabled={isApprovalMode}
+                        disabled={isFieldDisabled}
                       />
                     </div>
               </div>
@@ -860,43 +1128,41 @@ export function InvoicePage() {
         </div>
 
         {/* Right Panel - Validation Tabs */}
-        <div className="w-1/5 overflow-y-auto p-4 bg-white">
-          <Tabs defaultValue="validation" className="w-full">
-            <TabsList className="w-full border-b border-gray-200 mb-3 h-auto p-0 bg-transparent inline-flex items-center justify-start rounded-none">
-              <TabsTrigger
-                value="validation"
-                className="relative text-xs font-medium text-gray-600 data-[state=active]:text-[#0D9C99] data-[state=active]:border-b-2 data-[state=active]:border-[#0D9C99] rounded-none border-b-2 border-transparent pb-1.5 px-2 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
-              >
-                Validation
-              </TabsTrigger>
-              <TabsTrigger
-                value="comment"
-                className="text-xs font-medium text-gray-600 data-[state=active]:text-[#0D9C99] data-[state=active]:border-b-2 data-[state=active]:border-[#0D9C99] rounded-none border-b-2 border-transparent pb-1.5 px-2 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
-              >
-                Comment
-              </TabsTrigger>
-              <TabsTrigger
-                value="activity"
-                className="text-xs font-medium text-gray-600 data-[state=active]:text-[#0D9C99] data-[state=active]:border-b-2 data-[state=active]:border-[#0D9C99] rounded-none border-b-2 border-transparent pb-1.5 px-2 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
-              >
-                Activity
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="validation" className="space-y-0 mt-0">
-              <div className="text-center py-10 text-sm text-gray-500">
-                No validation issues found
-              </div>
-            </TabsContent>
-            <TabsContent value="comment" className="mt-0 space-y-0">
-              <div className="text-center py-10 text-sm text-gray-500">
-                No comments yet
-              </div>
-            </TabsContent>
-            <TabsContent value="activity" className="mt-0">
-              <div className="text-center py-10 text-sm text-gray-500">
-                No activity yet
-              </div>
-            </TabsContent>
+        <div className="w-1/5 flex flex-col bg-white border-l border-gray-200">
+          <Tabs defaultValue="validation" className="w-full h-full flex flex-col">
+            <div className="flex-shrink-0 border-b border-gray-200 px-4 pt-4">
+              <TabsList className="w-full border-b-0 mb-0 h-auto p-0 bg-transparent inline-flex items-center justify-start rounded-none gap-0">
+                <TabsTrigger
+                  value="validation"
+                  className="flex-1 text-xs font-medium text-gray-600 data-[state=active]:text-[#0D9C99] data-[state=active]:border-b-2 data-[state=active]:border-[#0D9C99] rounded-none border-b-2 border-transparent pb-2 px-2 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                >
+                  Validation
+                </TabsTrigger>
+                <TabsTrigger
+                  value="comment"
+                  className="flex-1 text-xs font-medium text-gray-600 data-[state=active]:text-[#0D9C99] data-[state=active]:border-b-2 data-[state=active]:border-[#0D9C99] rounded-none border-b-2 border-transparent pb-2 px-2 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                >
+                  Comment
+                </TabsTrigger>
+                <TabsTrigger
+                  value="activity"
+                  className="flex-1 text-xs font-medium text-gray-600 data-[state=active]:text-[#0D9C99] data-[state=active]:border-b-2 data-[state=active]:border-[#0D9C99] rounded-none border-b-2 border-transparent pb-2 px-2 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+                >
+                  Activity
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <TabsContent value="validation" className="h-full mt-0">
+                <InvoiceValidation invoiceId={id} />
+              </TabsContent>
+              <TabsContent value="comment" className="h-full mt-0">
+                <InvoiceComment invoiceId={id} readOnly={isFieldDisabled} />
+              </TabsContent>
+              <TabsContent value="activity" className="h-full mt-0">
+                <InvoiceActivity invoiceId={id} />
+              </TabsContent>
+            </div>
           </Tabs>
         </div>
       </div>
@@ -905,7 +1171,7 @@ export function InvoicePage() {
         <LineItemsTable
           rows={tableRows}
           isLoading={tableLoading}
-          isApprovalMode={isApprovalMode}
+          isApprovalMode={isApprovalMode || isInvoiceFinalized}
           onRowUpdate={updateTableRow}
           onAddRow={addTableRow}
           isFieldChanged={isFieldChanged}
@@ -917,31 +1183,31 @@ export function InvoicePage() {
             <div className="flex flex-col items-end min-w-[140px]">
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">Subtotal</Label>
-                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("subtotal_amount", parseFloat(subtotalAmount) || 0) ? "bg-yellow-100" : "bg-gray-50"}`}>
                   <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(subtotalAmount) || 0)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">CGST</Label>
-                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("cgst_amount", parseFloat(cgstAmount) || 0) ? "bg-yellow-100" : "bg-gray-50"}`}>
                   <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(cgstAmount) || 0)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">SGST</Label>
-                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("sgst_amount", parseFloat(sgstAmount) || 0) ? "bg-yellow-100" : "bg-gray-50"}`}>
                   <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(sgstAmount) || 0)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">IGST</Label>
-                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("igst_amount", parseFloat(igstAmount) || 0) ? "bg-yellow-100" : "bg-gray-50"}`}>
                   <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(igstAmount) || 0)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
                 <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Total Amount</Label>
-                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("total_amount", (parseFloat(subtotalAmount) || 0) + (parseFloat(cgstAmount) || 0) + (parseFloat(sgstAmount) || 0) + (parseFloat(igstAmount) || 0)) ? "bg-yellow-100" : "bg-gray-50"}`}>
                   <span className="text-xs font-semibold text-right">{formatCurrency(
                     (parseFloat(subtotalAmount) || 0) +
                     (parseFloat(cgstAmount) || 0) +
@@ -954,6 +1220,18 @@ export function InvoicePage() {
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">TDS</Label>
                 <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
                   <span className="text-xs font-medium text-right">{formatCurrency(
+                    tableRows.reduce((sum, row) => sum + (parseFloat(row.tdsAmount) || 0), 0)
+                  )}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
+                <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Total Payable</Label>
+                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
+                  <span className="text-xs font-semibold text-right">{formatCurrency(
+                    ((parseFloat(subtotalAmount) || 0) +
+                    (parseFloat(cgstAmount) || 0) +
+                    (parseFloat(sgstAmount) || 0) +
+                    (parseFloat(igstAmount) || 0)) -
                     tableRows.reduce((sum, row) => sum + (parseFloat(row.tdsAmount) || 0), 0)
                   )}</span>
                 </div>
@@ -973,15 +1251,32 @@ export function InvoicePage() {
         <FormActionFooter
           secondaryButton={{
             label: "Reject",
-            onClick: () => {},
+            onClick: () => {
+              setActionType("reject");
+              setComments("");
+              setShowActionDialog(true);
+            },
+            disabled: isInvoiceFinalized,
           }}
           primaryButton={{
-            label: "Approval",
-            onClick: () => {},
+            label: "Approve",
+            onClick: () => {
+              setActionType("approve");
+              setComments("");
+              setShowActionDialog(true);
+            },
+            disabled: isInvoiceFinalized,
           }}
         />
-      ) : (
+      ) : shouldShowButtons && !isInvoiceFinalized ? (
         <FormActionFooter
+          secondaryButton={{
+            label: "Update",
+            onClick: handleUpdateInvoice,
+            disabled: updating || !id,
+            loading: updating,
+            loadingText: "Updating...",
+          }}
           primaryButton={{
             label: "Submit Invoice",
             onClick: handleSubmitInvoice,
@@ -990,7 +1285,7 @@ export function InvoicePage() {
             loadingText: "Submitting...",
           }}
         />
-      )}
+      ) : null}
 
       {/* Fullscreen Invoice Modal */}
       {isInvoiceFullscreen && hasInvoice && (
@@ -1097,6 +1392,74 @@ export function InvoicePage() {
           </div>
         </div>
       )}
+
+      {/* Approval/Reject Dialog */}
+      <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {actionType === "approve" ? "Approve Invoice" : "Reject Invoice"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="notes">
+                Notes <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="notes"
+                placeholder={
+                  actionType === "approve"
+                    ? "Please provide notes for approval..."
+                    : "Please provide reason for rejection..."
+                }
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowActionDialog(false);
+                setComments("");
+              }}
+              disabled={actionLoading}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={executeAction}
+              disabled={actionLoading || !comments.trim()}
+              className={`w-full sm:w-auto ${
+                actionType === "approve"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-red-600 hover:bg-red-700"
+              }`}
+            >
+              {actionLoading ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  {actionType === "approve" ? "Approving..." : "Rejecting..."}
+                </>
+              ) : (
+                <>
+                  {actionType === "approve" ? (
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                  ) : (
+                    <XCircle className="h-4 w-4 mr-2" />
+                  )}
+                  {actionType === "approve" ? "Approve Invoice" : "Reject Invoice"}
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

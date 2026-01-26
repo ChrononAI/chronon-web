@@ -5,7 +5,7 @@ export interface TDSCodeData {
   tds_code: string;
   tds_percentage: string;
   description: string;
-  active_flag: boolean;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }

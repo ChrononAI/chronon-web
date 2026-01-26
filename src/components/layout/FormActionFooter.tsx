@@ -17,6 +17,8 @@ interface FormActionFooterProps {
     label: string;
     onClick: () => void;
     disabled?: boolean;
+    loading?: boolean;
+    loadingText?: string;
   };
 }
 
@@ -31,7 +33,7 @@ export const FormActionFooter: React.FC<FormActionFooterProps> = ({
       style={{
         position: "fixed",
         bottom: 0,
-        left: sidebarCollapsed ? "48px" : "256px",
+        left: sidebarCollapsed ? "48px" : "240px",
         right: 0,
         height: "59px",
         backgroundColor: "#FFFFFF",
@@ -45,6 +47,8 @@ export const FormActionFooter: React.FC<FormActionFooterProps> = ({
         justifyContent: "flex-end",
         gap: "12px",
         zIndex: 30,
+        boxSizing: "border-box",
+        margin: 0,
       }}
     >
       {secondaryButton && (
@@ -52,7 +56,7 @@ export const FormActionFooter: React.FC<FormActionFooterProps> = ({
           type="button"
           variant="outline"
           onClick={secondaryButton.onClick}
-          disabled={secondaryButton.disabled}
+          disabled={secondaryButton.disabled || secondaryButton.loading}
           style={{
             width: "auto",
             minWidth: "65px",
@@ -79,7 +83,14 @@ export const FormActionFooter: React.FC<FormActionFooterProps> = ({
             e.currentTarget.style.backgroundColor = "transparent";
           }}
         >
-          {secondaryButton.label}
+          {secondaryButton.loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {secondaryButton.loadingText || "Loading..."}
+            </>
+          ) : (
+            secondaryButton.label
+          )}
         </Button>
       )}
       <Button

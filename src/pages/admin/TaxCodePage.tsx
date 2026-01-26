@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Box } from "@mui/material";
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
   GridOverlay,
@@ -15,18 +13,19 @@ import ExpensesSkeletonOverlay from "@/components/expenses/ExpenseSkeletonOverla
 import { TaxCodeDialog } from "@/components/items/TaxCodeDialog";
 import { GridRowParams } from "@mui/x-data-grid";
 import { useLayoutStore } from "@/store/layoutStore";
+import { DataTable } from "@/components/shared/DataTable";
 
 function CustomNoRows() {
   return (
     <GridOverlay>
-      <Box className="w-full">
+      <div className="w-full">
         <div className="text-center">
           <h3 className="text-lg font-semibold mb-2">No Tax codes found</h3>
           <p className="text-muted-foreground">
             There are currently no Tax codes.
           </p>
         </div>
-      </Box>
+      </div>
     </GridOverlay>
   );
 }
@@ -265,187 +264,48 @@ export const TaxCodePage = () => {
       showDateFilter={false}
       marginBottom="mb-0"
     >
-      <Box
-        sx={{
-          height: "calc(100vh - 160px)",
-          width: "100%",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          paddingLeft: "10px",
+      <DataTable
+        rows={loading && isInitialLoad ? [] : filteredRows}
+        columns={columns}
+        loading={loading}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={handleRowClick}
+        firstColumnField="tax_code"
+        emptyStateComponent={<CustomNoRows />}
+        slots={{
+          toolbar: CustomInvoiceToolbar,
+          loadingOverlay:
+            loading && isInitialLoad
+              ? () => (
+                  <ExpensesSkeletonOverlay
+                    rowCount={paginationModel?.pageSize || 25}
+                  />
+                )
+              : undefined,
         }}
-      >
-        <DataGrid
-          className="rounded h-full"
-          rows={loading && isInitialLoad ? [] : filteredRows}
-          columns={columns}
-          loading={loading}
-          getRowHeight={() => 41}
-          slots={{
-            noRowsOverlay: CustomNoRows,
-            toolbar: CustomInvoiceToolbar,
-            loadingOverlay:
-              loading && isInitialLoad
-                ? () => (
-                    <ExpensesSkeletonOverlay
-                      rowCount={paginationModel?.pageSize || 25}
-                    />
-                  )
-                : undefined,
-          }}
-          slotProps={{
-            toolbar: {
-              searchTerm,
-              onSearchChange: setSearchTerm,
-              onFilterClick: () => {
-                // Handle filter click
-              },
-              onShareClick: () => {
-                // Handle share click
-              },
-              onDownloadClick: () => {
-                // Handle download click
-              },
-              onCreateClick: () => {
-                setCreateDialogOpen(true);
-              },
-              createButtonText: "Create Tax Code",
-            } as any,
-          }}
-          showToolbar
-          sx={{
-            border: 0,
-            outline: "none",
-            "& .MuiDataGridToolbar-root": {
-              paddingLeft: "0",
-              paddingRight: "0",
-              width: "100%",
-              justifyContent: "start",
+        slotProps={{
+          toolbar: {
+            searchTerm,
+            onSearchChange: setSearchTerm,
+            onFilterClick: () => {
+              // Handle filter click
             },
-            "& .MuiDataGridToolbar": {
-              justifyContent: "start",
-              border: "none !important",
-              paddingLeft: "0",
-              paddingRight: "0",
+            onShareClick: () => {
+              // Handle share click
             },
-            "& .MuiDataGrid-root": {
-              border: "none",
-              outline: "none",
+            onDownloadClick: () => {
+              // Handle download click
             },
-            "& .MuiDataGrid-columnHeaderTitle": {
-              fontFamily: "Inter",
-              fontWeight: 600,
-              fontSize: "12px",
-              lineHeight: "100%",
-              letterSpacing: "0%",
-              textTransform: "uppercase",
-              color: "#8D94A2",
+            onCreateClick: () => {
+              setCreateDialogOpen(true);
             },
-            "& .MuiDataGrid-main": {
-              border: "none",
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "transparent",
-              border: "none",
-              borderTop: "none",
-              borderBottom: "0.7px solid #EBEBEB",
-              borderLeft: "none",
-              borderRight: "none",
-              outline: "none",
-              height: "39px",
-              minHeight: "39px",
-              maxHeight: "39px",
-              paddingTop: "12px",
-              paddingRight: "18px",
-              paddingBottom: "12px",
-              paddingLeft: "18px",
-            },
-            "& .MuiDataGrid-columnHeader[data-field='tax_code']": {
-              paddingLeft: "12px",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-              borderTop: "none",
-              borderBottom: "none",
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnHeader:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-row": {
-              height: "41px",
-              minHeight: "41px",
-              maxHeight: "41px",
-              borderBottom: "0.7px solid #EBEBEB",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#1A1A1A",
-              border: "none",
-              borderBottom: "0.7px solid #EBEBEB",
-              paddingTop: "12px",
-              paddingRight: "18px",
-              paddingBottom: "12px",
-              paddingLeft: "18px",
-              fontFamily: "Inter",
-              fontWeight: 500,
-              fontSize: "14px",
-              lineHeight: "100%",
-              letterSpacing: "0%",
-            },
-            "& .MuiDataGrid-cell[data-field='tax_code']": {
-              paddingLeft: "12px",
-            },
-            "& .MuiDataGrid-cellContent": {
-              fontFamily: "Inter",
-              fontWeight: 500,
-              fontSize: "14px",
-              lineHeight: "100%",
-              letterSpacing: "0%",
-              color: "#1A1A1A",
-            },
-            "& .MuiDataGrid-cell > *": {
-              fontFamily: "Inter",
-              fontWeight: 500,
-              fontSize: "14px",
-              lineHeight: "100%",
-              letterSpacing: "0%",
-              color: "#1A1A1A",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              display: "none",
-            },
-            "& .MuiDataGrid-columnsContainer": {
-              gap: "10px",
-            },
-            "& .MuiDataGrid-footerContainer": {
-              borderTop: "0.7px solid #EBEBEB",
-              minHeight: "52px",
-            },
-          }}
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          density="compact"
-          disableRowSelectionOnClick
-          onRowClick={handleRowClick}
-          showCellVerticalBorder={false}
-          autoHeight={false}
-          pageSizeOptions={[10, 25, 50, 100]}
-        />
-      </Box>
+            createButtonText: "Create Tax Code",
+          } as any,
+        }}
+        showToolbar
+        pageSizeOptions={[10, 25, 50, 100]}
+      />
       <TaxCodeDialog
         open={createDialogOpen || updateDialogOpen}
         onOpenChange={(open) => {

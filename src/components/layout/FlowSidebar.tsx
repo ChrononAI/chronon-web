@@ -68,6 +68,12 @@ const flowNavigation: NavigationItem[] = [
 export function FlowSidebar() {
   const location = useLocation();
   const { user, logout, sidebarCollapsed, setSidebarCollapsed } = useAuthStore();
+  // Disable sidebar expansion on invoice detail pages (but allow on AllInvoicesPage)
+  // Invoice detail pages: /flow/invoice/:id or /flow/approvals/:id
+  // AllInvoicesPage: /flow/invoice (exact match)
+  const isInvoiceDetailPage = 
+    (location.pathname.startsWith("/flow/invoice/") && location.pathname !== "/flow/invoice") ||
+    location.pathname.startsWith("/flow/approvals/");
   const [openItems, setOpenItems] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("flowSidebarOpenItems");
@@ -134,14 +140,18 @@ export function FlowSidebar() {
           <CollapsibleTrigger asChild>
             <Button
               variant="ghost"
-              onClick={() => setSidebarCollapsed(false)}
+              onClick={() => {
+                if (!isInvoiceDetailPage) {
+                  setSidebarCollapsed(false);
+                }
+              }}
               className="transition-all duration-200"
               style={{
-                width: sidebarCollapsed ? "40px" : "224px",
-                height: "41px",
+                width: sidebarCollapsed ? "36px" : "224px",
+                height: sidebarCollapsed ? "36px" : "41px",
                 justifyContent: sidebarCollapsed ? "center" : "space-between",
-                borderRadius: "8px",
-                padding: sidebarCollapsed ? "8px" : "12px",
+                borderRadius: sidebarCollapsed ? "6px" : "8px",
+                padding: sidebarCollapsed ? "6px" : "12px",
               }}
             >
               <div 
@@ -156,7 +166,12 @@ export function FlowSidebar() {
                   color: "#47536C",
                 }}
               >
-                {item.icon && <item.icon className="mr-3 h-4 w-4" style={{ color: "#47536C" }} />}
+                {item.icon && (
+                  <item.icon 
+                    className={cn("h-4 w-4", !sidebarCollapsed && "mr-3")} 
+                    style={{ color: "#47536C" }} 
+                  />
+                )}
                 {!sidebarCollapsed && item.name}
               </div>
               {!sidebarCollapsed && (
@@ -178,13 +193,15 @@ export function FlowSidebar() {
     }
 
     if (item.href) {
+      const isApprovalActive = item.name === "Approval" && location.pathname.startsWith("/flow/approvals");
+      const isActive = location.pathname.startsWith(item.href) || isApprovalActive;
+      
       return (
         <NavLink
           key={item.name}
           to={item.href}
-          className={({ isActive }) => {
-            const isApprovalActive = item.name === "Approval" && location.pathname.startsWith("/flow/approvals");
-            const active = isActive || isApprovalActive;
+          className={({ isActive: navIsActive }) => {
+            const active = navIsActive || isApprovalActive;
 
             return cn(
               "flex items-center transition-colors",
@@ -194,11 +211,11 @@ export function FlowSidebar() {
             );
           }}
           style={{
-            width: sidebarCollapsed ? "40px" : "224px",
-            height: "41px",
+            width: sidebarCollapsed ? "36px" : "224px",
+            height: sidebarCollapsed ? "36px" : "41px",
             justifyContent: sidebarCollapsed ? "center" : "flex-start",
-            borderRadius: "8px",
-            padding: sidebarCollapsed ? "8px" : "12px",
+            borderRadius: sidebarCollapsed ? "6px" : "8px",
+            padding: sidebarCollapsed ? "6px" : "12px",
           }}
         >
           <div 
@@ -210,16 +227,16 @@ export function FlowSidebar() {
               fontSize: "14px",
               lineHeight: "100%",
               letterSpacing: "0%",
-              color: location.pathname.startsWith(item.href) || (item.name === "Approval" && location.pathname.startsWith("/flow/approvals"))
+              color: isActive
                 ? "#FFFFFF"
                 : "#47536C",
             }}
           >
             {item.icon && (
               <item.icon 
-                className="mr-3 h-4 w-4" 
+                className={cn("h-4 w-4", !sidebarCollapsed && "mr-3")} 
                 style={{ 
-                  color: location.pathname.startsWith(item.href) || (item.name === "Approval" && location.pathname.startsWith("/flow/approvals"))
+                  color: isActive
                     ? "#FFFFFF"
                     : "#47536C"
                 }} 
@@ -270,8 +287,14 @@ export function FlowSidebar() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          onClick={() => {
+            if (!isInvoiceDetailPage) {
+              setSidebarCollapsed(!sidebarCollapsed);
+            }
+          }}
+          disabled={isInvoiceDetailPage}
           className={sidebarCollapsed ? "" : "ml-auto"}
+          title={isInvoiceDetailPage ? "Sidebar cannot be expanded on invoice detail pages" : ""}
         >
           {sidebarCollapsed ? (
             <ChevronRight className="h-5 w-5" />
@@ -288,6 +311,7 @@ export function FlowSidebar() {
           width: sidebarCollapsed ? "48px" : "224px",
           marginTop: "10px",
           marginLeft: sidebarCollapsed ? "0px" : "8px",
+          marginRight: sidebarCollapsed ? "0px" : "0px",
           display: "flex",
           flexDirection: "column",
           gap: "4px",
@@ -304,7 +328,7 @@ export function FlowSidebar() {
             <div className="flex items-center justify-between cursor-pointer">
               <div
                 className={cn(
-                  "flex items-center space-x-2 transition-all duration-300",
+                  "flex items-center space-x-2 transition-all duration-300 min-w-0",
                   sidebarCollapsed && "justify-center w-full"
                 )}
               >
@@ -317,11 +341,11 @@ export function FlowSidebar() {
                 </Avatar>
 
                 {!sidebarCollapsed && (
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
+                  <div className="flex flex-col space-y-1 min-w-0 flex-1">
+                    <p className="text-sm font-medium leading-none truncate" title={`${user?.firstName} ${user?.lastName}`}>
                       {user?.firstName} {user?.lastName}
                     </p>
-                    <p className="text-xs leading-none text-muted-foreground">
+                    <p className="text-xs leading-none text-muted-foreground truncate" title={user?.email}>
                       {user?.email}
                     </p>
                   </div>

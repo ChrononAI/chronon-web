@@ -11,13 +11,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
@@ -37,7 +30,6 @@ type VendorFormValues = {
   state: string;
   postCode: string;
   country: string;
-  status: string;
   type: string;
 };
 
@@ -77,14 +69,8 @@ const vendorSchema = z.object({
     )
     .optional(),
   country: z.string().trim().optional(),
-  status: z.string().trim().min(1, "Status is required"),
   type: z.string().trim().optional(),
 });
-
-const STATUS_OPTIONS = [
-  { value: "ACTIVE", label: "Active" },
-  { value: "INACTIVE", label: "Inactive" },
-] as const;
 
 const createDefaultValues = (): VendorFormValues => ({
   vendorCode: "",
@@ -99,7 +85,6 @@ const createDefaultValues = (): VendorFormValues => ({
   state: "",
   postCode: "",
   country: "",
-  status: "ACTIVE",
   type: "",
 });
 
@@ -184,7 +169,7 @@ const VendorDetailsForm = ({
           const createPayload: CreateVendorPayload = {
             vendor_name: values.vendorName.trim(),
             vendor_code: values.vendorCode.trim(),
-            status: values.status,
+            is_active: true,
             gstin: values.gstin.trim(),
           };
 
@@ -221,7 +206,7 @@ const VendorDetailsForm = ({
       <form onSubmit={form.handleSubmit(onSubmit)} id="vendor-details-form">
         <fieldset
           disabled={submitting || loadingVendor}
-          className="space-y-6 pb-24"
+          className="space-y-2 pb-24"
         >
             {loadingVendor && isEditMode && (
               <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 text-sm">
@@ -231,21 +216,24 @@ const VendorDetailsForm = ({
             )}
 
             {/* Basic Information Section */}
-            <div className="space-y-4">
-              <h2 className="text-sm font-medium text-gray-900">Basic Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <h2 className="w-full max-w-[392px] h-[17px] text-sm font-semibold leading-none tracking-normal" style={{ fontFamily: 'Inter', fontSize: '14px', lineHeight: '100%', letterSpacing: '0%', color: '#47536C', fontWeight: 600 }}>
+                Basic Information
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <FormField
                   control={form.control}
                   name="vendorCode"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm text-gray-700">
+                    <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                      <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
                         Vendor Code <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter vendor code"
-                          className="h-10 border-gray-300"
+                          className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                          style={{ borderWidth: '0.7px' }}
                           {...field}
                         />
                       </FormControl>
@@ -258,14 +246,15 @@ const VendorDetailsForm = ({
                   control={form.control}
                   name="vendorName"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm text-gray-700">
+                    <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                      <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
                         Vendor Name <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="Enter vendor name" 
-                          className="h-10 border-gray-300"
+                          className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                          style={{ borderWidth: '0.7px' }}
                           {...field} 
                         />
                       </FormControl>
@@ -278,15 +267,16 @@ const VendorDetailsForm = ({
                   control={form.control}
                   name="gstin"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm text-gray-700">
+                    <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                      <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
                         GSTIN <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter GSTIN"
                           maxLength={15}
-                          className="h-10 border-gray-300"
+                          className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                          style={{ borderWidth: '0.7px' }}
                           {...field}
                         />
                       </FormControl>
@@ -299,13 +289,14 @@ const VendorDetailsForm = ({
                   control={form.control}
                   name="pan"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm text-gray-700">PAN</FormLabel>
+                    <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                      <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>PAN</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter PAN"
                           maxLength={10}
-                          className="h-10 border-gray-300"
+                          className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                          style={{ borderWidth: '0.7px' }}
                           {...field}
                         />
                       </FormControl>
@@ -316,44 +307,15 @@ const VendorDetailsForm = ({
 
                 <FormField
                   control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm text-gray-700">
-                        Status <span className="text-red-500">*</span>
-                      </FormLabel>
-                      <Select
-                        onValueChange={(val) => field.onChange(val || undefined)}
-                        value={field.value || ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="h-10 border-gray-300">
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {STATUS_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="type"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm text-gray-700">Type</FormLabel>
+                    <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                      <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Type</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="Enter type" 
-                          className="h-10 border-gray-300"
+                          className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                          style={{ borderWidth: '0.7px' }}
                           {...field} 
                         />
                       </FormControl>
@@ -365,20 +327,23 @@ const VendorDetailsForm = ({
             </div>
 
             {/* Contact Information Section */}
-            <div className="space-y-4">
-              <h2 className="text-sm font-medium text-gray-900">Contact Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <h2 className="w-full max-w-[392px] h-[17px] text-sm font-semibold leading-none tracking-normal" style={{ fontFamily: 'Inter', fontSize: '14px', lineHeight: '100%', letterSpacing: '0%', color: '#47536C', fontWeight: 600 }}>
+                Contact Information
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm text-gray-700">Email</FormLabel>
+                    <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                      <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Email</FormLabel>
                       <FormControl>
                         <Input
                           type="email"
                           placeholder="Enter email"
-                          className="h-10 border-gray-300"
+                          className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                          style={{ borderWidth: '0.7px' }}
                           {...field}
                         />
                       </FormControl>
@@ -391,13 +356,14 @@ const VendorDetailsForm = ({
                   control={form.control}
                   name="phoneNumber"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm text-gray-700">Phone Number</FormLabel>
+                    <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                      <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Phone Number</FormLabel>
                       <FormControl>
                         <Input
                           type="tel"
                           placeholder="Enter phone number"
-                          className="h-10 border-gray-300"
+                          className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                          style={{ borderWidth: '0.7px' }}
                           {...field}
                         />
                       </FormControl>
@@ -409,19 +375,22 @@ const VendorDetailsForm = ({
             </div>
 
             {/* Address Information Section */}
-            <div className="space-y-4">
-              <h2 className="text-sm font-medium text-gray-900">Address Information</h2>
+            <div className="space-y-1.5">
+              <h2 className="w-full max-w-[392px] h-[17px] text-sm font-semibold leading-none tracking-normal" style={{ fontFamily: 'Inter', fontSize: '14px', lineHeight: '100%', letterSpacing: '0%', color: '#47536C', fontWeight: 600 }}>
+                Address Information
+              </h2>
               <div className="space-y-4">
                 <FormField
                   control={form.control}
                   name="address"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm text-gray-700">Address</FormLabel>
+                    <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                      <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Address</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter address"
-                          className="h-10 border-gray-300"
+                          className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                          style={{ borderWidth: '0.7px' }}
                           {...field}
                         />
                       </FormControl>
@@ -434,12 +403,13 @@ const VendorDetailsForm = ({
                   control={form.control}
                   name="address2"
                   render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-sm text-gray-700">Address 2</FormLabel>
+                    <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                      <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Address 2</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter address line 2"
-                          className="h-10 border-gray-300"
+                          className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                          style={{ borderWidth: '0.7px' }}
                           {...field}
                         />
                       </FormControl>
@@ -448,17 +418,18 @@ const VendorDetailsForm = ({
                   )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                   <FormField
                     control={form.control}
                     name="city"
                     render={({ field }) => (
-                      <FormItem className="space-y-2">
-                        <FormLabel className="text-sm text-gray-700">City</FormLabel>
+                      <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                        <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>City</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="Enter city" 
-                            className="h-10 border-gray-300"
+                            className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                            style={{ borderWidth: '0.7px' }}
                             {...field} 
                           />
                         </FormControl>
@@ -471,14 +442,15 @@ const VendorDetailsForm = ({
                     control={form.control}
                     name="state"
                     render={({ field }) => (
-                      <FormItem className="space-y-2">
-                        <FormLabel className="text-sm text-gray-700">
+                      <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                        <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
                           State <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="Enter state" 
-                            className="h-10 border-gray-300"
+                            className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                            style={{ borderWidth: '0.7px' }}
                             {...field} 
                           />
                         </FormControl>
@@ -491,13 +463,14 @@ const VendorDetailsForm = ({
                     control={form.control}
                     name="postCode"
                     render={({ field }) => (
-                      <FormItem className="space-y-2">
-                        <FormLabel className="text-sm text-gray-700">Post Code</FormLabel>
+                      <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                        <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Post Code</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="Enter post code"
                             maxLength={6}
-                            className="h-10 border-gray-300"
+                            className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                            style={{ borderWidth: '0.7px' }}
                             {...field}
                           />
                         </FormControl>
@@ -510,12 +483,13 @@ const VendorDetailsForm = ({
                     control={form.control}
                     name="country"
                     render={({ field }) => (
-                      <FormItem className="space-y-2">
-                        <FormLabel className="text-sm text-gray-700">Country</FormLabel>
+                      <FormItem className="space-y-[4px] w-full max-w-[653px] min-h-[73px]">
+                        <FormLabel className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Country</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="Enter country" 
-                            className="h-10 border-gray-300"
+                            className="h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3"
+                            style={{ borderWidth: '0.7px' }}
                             {...field} 
                           />
                         </FormControl>
@@ -592,7 +566,6 @@ export const VendorDetailsPage = () => {
             state: vendorData.state || "",
             postCode: vendorData.pincode || "",
             country: vendorData.country || "",
-            status: vendorData.status || "ACTIVE",
             type: vendorData.vendor_type || "",
           });
         } else {

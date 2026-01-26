@@ -1,12 +1,12 @@
 import { create } from "zustand";
 
 export interface InvoiceListRow {
-  id: string; // Stable ID for DataGrid (never changes)
-  invoiceId?: string; // Real invoice ID from API (set after upload completes)
+  id: string; 
+  invoiceId?: string; // 
   vendorName: string;
   invoiceNumber: string;
   invoiceDate: string;
-  poNumber: string;
+  currency: string;
   status: string;
   totalAmount: string;
   uploadState?: "uploading" | "done";

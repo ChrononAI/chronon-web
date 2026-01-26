@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, useTheme, useMediaQuery } from "@mui/material";
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
   GridOverlay,
 } from "@mui/x-data-grid";
-import { Badge } from "@/components/ui/badge";
 import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import CustomInvoiceToolbar from "@/components/invoice/CustomInvoiceToolbar";
 import { FileText, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StatusPill } from "@/components/shared/StatusPill";
+import { DataTable } from "@/components/shared/DataTable";
 import { useInvoiceFlowStore, InvoiceListRow } from "@/services/invoice/invoiceflowstore";
 import {
   getAllInvoices,
@@ -22,7 +21,7 @@ import { useLayoutStore } from "@/store/layoutStore";
 function CustomNoRows() {
   return (
     <GridOverlay>
-      <Box className="w-full">
+      <div className="w-full">
         <div className="text-center">
           <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No invoices found</h3>
@@ -30,16 +29,13 @@ function CustomNoRows() {
             There are currently no invoices.
           </p>
         </div>
-      </Box>
+      </div>
     </GridOverlay>
   );
 }
 
 export function AllInvoicesPage() {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
   const { invoices } = useInvoiceFlowStore();
   const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const [searchTerm, setSearchTerm] = useState("");
@@ -94,6 +90,7 @@ export function AllInvoicesPage() {
     return `${day} ${months[parseInt(month, 10) - 1]}, ${year}`;
   };
 
+
   const convertInvoiceToRow = (invoice: InvoiceResponse): InvoiceListRow => {
     // Check ocr_status first, then normalize status
     let normalizedStatus = invoice.status;
@@ -126,7 +123,7 @@ export function AllInvoicesPage() {
       vendorName: invoice.vendor_id || "—", 
       invoiceNumber: invoice.invoice_number || "",
       invoiceDate: formatDate(invoice.invoice_date),
-      poNumber: invoice.po_number || "",
+      currency: invoice.currency || "INR",
       status: normalizedStatus,
       totalAmount: formatCurrency(invoice.currency, totalAmount),
     };
@@ -158,7 +155,7 @@ export function AllInvoicesPage() {
       const gridHeight = window.innerHeight - headerHeight - paginationHeight - padding;
       const rowHeight = 41; // Row height from Figma specs
       const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-      const pageSize = isMobile ? 10 : isTablet ? 15 : Math.max(calculatedPageSize, 10);
+      const pageSize = Math.max(calculatedPageSize, 10);
       setPaginationModel((prev) => ({ ...prev, pageSize }));
     };
 
@@ -169,7 +166,7 @@ export function AllInvoicesPage() {
 
     window.addEventListener("resize", calculatePageSize);
     return () => window.removeEventListener("resize", calculatePageSize);
-  }, [isMobile, isTablet, rowsCalculated]);
+  }, [rowsCalculated]);
 
 
   const handleRowClick = (params: any) => {
@@ -208,7 +205,7 @@ export function AllInvoicesPage() {
         (invoice) =>
           (invoice.vendorName || "").toLowerCase().includes(searchLower) ||
           (invoice.invoiceNumber || "").toLowerCase().includes(searchLower) ||
-          (invoice.poNumber || "").toLowerCase().includes(searchLower)
+          (invoice.currency || "").toLowerCase().includes(searchLower)
       );
     }
 
@@ -341,8 +338,8 @@ export function AllInvoicesPage() {
         },
       },
       {
-        field: "poNumber",
-        headerName: "PO NUMBER",
+        field: "currency",
+        headerName: "CURRENCY",
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -401,21 +398,9 @@ export function AllInvoicesPage() {
           }
 
           return (
-            <Badge
-              className={
-                normalizedStatus === "Processed"
-                  ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                  : normalizedStatus === "Open"
-                  ? "bg-green-100 text-green-800 hover:bg-green-100"
-                  : normalizedStatus === "Approved"
-                  ? "bg-green-100 text-green-800 hover:bg-green-100"
-                  : normalizedStatus === "Rejected" || normalizedStatus === "Failed"
-                  ? "bg-red-100 text-red-800 hover:bg-red-100"
-                  : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-              }
-            >
-              {normalizedStatus}
-            </Badge>
+            <div className="flex items-center h-full">
+              <StatusPill status={normalizedStatus} />
+            </div>
           );
         },
       },
@@ -467,212 +452,48 @@ export function AllInvoicesPage() {
         showDateFilter={false}
         marginBottom="mb-0"
       >
-        <Box
-          sx={{
-            height: "calc(100vh - 160px)",
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            paddingLeft: "10px",
+        <DataTable
+          rows={filteredInvoices}
+          columns={columns}
+          loading={loadingInvoices}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          onRowClick={handleRowClick}
+          getRowClassName={(params) => {
+            const row = params.row as any;
+            if (row?.uploadState === "uploading") {
+              return "invoice-uploading-row";
+            }
+            const status = row?.status;
+            if (status === "Pending" || status === "OCR_PENDING" || status === "OCR_PROCESSING") {
+              return "invoice-processing-row";
+            }
+            return "";
           }}
-        >
-          <DataGrid
-            className="rounded h-full"
-            rows={filteredInvoices}
-            columns={columns}
-            loading={loadingInvoices}
-            getRowHeight={() => 41}
-            getRowClassName={(params) => {
-              const row = params.row as any;
-              if (row?.uploadState === "uploading") {
-                return "invoice-uploading-row";
-              }
-              const status = row?.status;
-              if (status === "Pending" || status === "OCR_PENDING" || status === "OCR_PROCESSING") {
-                return "invoice-processing-row";
-              }
-              return "";
-            }}
-            slots={{
-              noRowsOverlay: CustomNoRows,
-              toolbar: CustomInvoiceToolbar,
-            }}
-            slotProps={{
-              toolbar: {
-                searchTerm,
-                onSearchChange: setSearchTerm,
-                onFilterClick: () => {
-                  // Handle filter click - can open filter modal
-                },
-                onShareClick: () => {
-                  // Handle share click
-                },
-                onDownloadClick: () => {
-                  // Handle download click
-                },
-                onCreateClick: () => navigate("/flow/invoice/bulk-upload"),
-                createButtonText: "Upload Invoice",
-              } as any,
-            }}
-            sx={{
-              border: 0,
-              outline: "none",
-              "& .MuiDataGrid-root": {
-                border: "none",
-                outline: "none",
+          firstColumnField="vendorName"
+          emptyStateComponent={<CustomNoRows />}
+          slots={{
+            toolbar: CustomInvoiceToolbar,
+          }}
+          slotProps={{
+            toolbar: {
+              searchTerm,
+              onSearchChange: setSearchTerm,
+              onFilterClick: () => {
+                // Handle filter click - can open filter modal
               },
-              "& .MuiDataGrid-columnHeaderTitle": {
-                fontFamily: "Inter",
-                fontWeight: 600,
-                fontSize: "12px",
-                lineHeight: "100%",
-                letterSpacing: "0%",
-                textTransform: "uppercase",
-                color: "#8D94A2",
+              onShareClick: () => {
+                // Handle share click
               },
-              "& .MuiDataGrid-main": {
-                border: "none",
-                outline: "none",
+              onDownloadClick: () => {
+                // Handle download click
               },
-              "& .MuiDataGrid-columnHeader": {
-                backgroundColor: "transparent",
-                border: "none",
-                borderTop: "none",
-                borderBottom: "0.7px solid #EBEBEB",
-                borderLeft: "none",
-                borderRight: "none",
-                outline: "none",
-                height: "39px",
-                minHeight: "39px",
-                maxHeight: "39px",
-                paddingTop: "12px",
-                paddingRight: "18px",
-                paddingBottom: "12px",
-                paddingLeft: "18px",
-              },
-              "& .MuiDataGrid-columnHeader[data-field='vendorName']": {
-                paddingLeft: "12px",
-              },
-              "& .MuiDataGrid-columnHeaders": {
-                border: "none",
-                borderTop: "none",
-                borderBottom: "none",
-                outline: "none",
-              },
-              "& .MuiDataGrid-columnHeader:focus": {
-                outline: "none",
-              },
-              "& .MuiDataGrid-columnHeader:focus-within": {
-                outline: "none",
-              },
-              "& .MuiDataGrid-row": {
-                height: "41px",
-                minHeight: "41px",
-                maxHeight: "41px",
-                borderBottom: "0.7px solid #EBEBEB",
-              },
-              "& .MuiDataGrid-row:hover": {
-                cursor: "pointer",
-                backgroundColor: "#f5f5f5",
-              },
-              "& .invoice-uploading-row": {
-                backgroundColor: "#E6FFFA",
-                borderLeft: "3px solid #0D9C99",
-              },
-              "& .invoice-uploading-row:hover": {
-                cursor: "not-allowed",
-                backgroundColor: "#E6FFFA",
-              },
-              "& .invoice-uploading-row .MuiDataGrid-cell": {
-                color: "#6B7280",
-              },
-              "& .invoice-processing-row": {
-                backgroundColor: "#E6FFFA",
-                borderLeft: "3px solid #0D9C99",
-              },
-              "& .invoice-processing-row:hover": {
-                cursor: "not-allowed",
-                backgroundColor: "#E6FFFA",
-              },
-              "& .invoice-processing-row .MuiDataGrid-cell": {
-                color: "#6B7280",
-              },
-              "& .MuiDataGrid-cell": {
-                color: "#1A1A1A",
-                border: "none",
-                borderBottom: "0.7px solid #EBEBEB",
-                paddingTop: "12px",
-                paddingRight: "18px",
-                paddingBottom: "12px",
-                paddingLeft: "18px",
-                fontFamily: "Inter",
-                fontWeight: 500,
-                fontSize: "14px",
-                lineHeight: "100%",
-                letterSpacing: "0%",
-                textTransform: "capitalize",
-              },
-              "& .MuiDataGrid-cell[data-field='vendorName']": {
-                paddingLeft: "12px",
-              },
-              "& .MuiDataGrid-cellContent": {
-                fontFamily: "Inter",
-                fontWeight: 500,
-                fontSize: "14px",
-                lineHeight: "100%",
-                letterSpacing: "0%",
-                textTransform: "capitalize",
-                color: "#1A1A1A",
-              },
-              "& .MuiDataGrid-cell > *": {
-                fontFamily: "Inter",
-                fontWeight: 500,
-                fontSize: "14px",
-                lineHeight: "100%",
-                letterSpacing: "0%",
-                textTransform: "capitalize",
-                color: "#1A1A1A",
-              },
-              "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-                outline: "none",
-              },
-              "& .MuiDataGrid-cell:focus-within": {
-                outline: "none",
-              },
-              "& .MuiDataGrid-columnSeparator": {
-                display: "none",
-              },
-              "& .MuiDataGrid-columnsContainer": {
-                gap: "10px",
-              },
-              "& .MuiDataGrid-footerContainer": {
-                borderTop: "0.7px solid #EBEBEB",
-                minHeight: "52px",
-              },
-              "& .MuiDataGridToolbar-root": {
-                paddingLeft: "0",
-                paddingRight: "0",
-                width: "100%",
-                justifyContent: "start",
-              },
-              "& .MuiDataGridToolbar": {
-                justifyContent: "start",
-                border: "none !important",
-                paddingLeft: "0",
-                paddingRight: "0",
-              },
-            }}
-            showToolbar
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            density="compact"
-            disableRowSelectionOnClick
-            onRowClick={handleRowClick}
-            showCellVerticalBorder={false}
-            autoHeight={false}
-          />
-        </Box>
+              onCreateClick: () => navigate("/flow/invoice/bulk-upload"),
+              createButtonText: "Upload Invoice",
+            } as any,
+          }}
+          showToolbar
+        />
       </InvoicePageWrapper>
     </>
   );

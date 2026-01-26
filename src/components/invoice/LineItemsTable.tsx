@@ -15,6 +15,7 @@ import { taxService, TaxData } from "@/services/taxService";
 
 export type InvoiceLineRow = {
   id: number;
+  invoiceLineItemId?: string;
   itemDescription: string;
   quantity: string;
   rate: string;
@@ -348,7 +349,7 @@ export function LineItemsTable({
                 RATE
               </TableHead>
               <TableHead 
-                className="px-4 min-w-[150px] py-2"
+                className="px-4 min-w-[160px] py-2"
                 style={tableHeaderStyle}
               >
                 TDS CODE
@@ -360,7 +361,7 @@ export function LineItemsTable({
                 TDS AMOUNT
               </TableHead>
               <TableHead 
-                className="px-4 min-w-[150px] py-2"
+                className="px-4 min-w-[160px] py-2"
                 style={tableHeaderStyle}
               >
                 GST CODE
@@ -456,7 +457,7 @@ export function LineItemsTable({
                       disabled={isApprovalMode}
                     />
                   </TableCell>
-                  <TableCell className="px-4 py-1 min-w-[150px]">
+                  <TableCell className="px-4 py-1 min-w-[160px]">
                     <Autocomplete
                       freeSolo
                       options={tdsSearchResults}
@@ -472,7 +473,7 @@ export function LineItemsTable({
                       disabled={isApprovalMode}
                       sx={{ 
                         width: '100%', 
-                        minWidth: '150px',
+                        minWidth: '160px',
                         '& .MuiAutocomplete-root': {
                           padding: 0,
                         },
@@ -483,13 +484,19 @@ export function LineItemsTable({
                           zIndex: 1300,
                         },
                         '& .MuiPaper-root': {
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                          borderRadius: '12px',
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                           border: '1px solid #e5e7eb',
-                          marginTop: '4px',
+                          marginTop: '6px',
+                          overflow: 'hidden',
                         },
                         '& .MuiAutocomplete-listbox': {
-                          padding: '4px',
+                          padding: '6px',
+                          maxHeight: '300px',
+                          '& li:not(:last-child) span': {
+                            borderBottom: '1px solid #e5e7eb',
+                            paddingBottom: '8px',
+                          },
                         },
                       }}
                       renderInput={(params) => (
@@ -523,18 +530,15 @@ export function LineItemsTable({
                         <li 
                           {...props} 
                           key={option.id}
-                          className="px-3 py-2.5 rounded-md cursor-pointer transition-colors hover:bg-gray-50 active:bg-gray-100"
+                          className="px-4 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 active:bg-gray-100"
                         >
-                          <div className="flex flex-col w-full gap-0.5">
-                            <span className="font-semibold text-sm text-gray-900">{option.tds_code}</span>
-                            {option.description && (
-                              <span className="text-xs text-gray-600 leading-relaxed">{option.description}</span>
-                            )}
-                          </div>
+                          <span className="font-semibold text-[15px] text-gray-900 tracking-wide">
+                            {option.tds_code}
+                          </span>
                         </li>
                       )}
                       noOptionsText={
-                        <div className="px-3 py-4 text-center">
+                        <div className="px-4 py-6 text-center">
                           <span className="text-sm text-gray-500">
                             {row.tdsCode ? "No TDS codes found" : "Type at least 3 characters to search..."}
                           </span>
@@ -553,7 +557,7 @@ export function LineItemsTable({
                       disabled={isApprovalMode}
                     />
                   </TableCell>
-                  <TableCell className="px-4 py-1 min-w-[150px]">
+                  <TableCell className="px-4 py-1 min-w-[160px]">
                     <Autocomplete
                       freeSolo
                       options={gstSearchResults}
@@ -569,7 +573,7 @@ export function LineItemsTable({
                       disabled={isApprovalMode}
                       sx={{ 
                         width: '100%', 
-                        minWidth: '150px',
+                        minWidth: '160px',
                         '& .MuiAutocomplete-root': {
                           padding: 0,
                         },
@@ -580,13 +584,19 @@ export function LineItemsTable({
                           zIndex: 1300,
                         },
                         '& .MuiPaper-root': {
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                          borderRadius: '12px',
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                           border: '1px solid #e5e7eb',
-                          marginTop: '4px',
+                          marginTop: '6px',
+                          overflow: 'hidden',
                         },
                         '& .MuiAutocomplete-listbox': {
-                          padding: '4px',
+                          padding: '6px',
+                          maxHeight: '300px',
+                          '& li:not(:last-child) span': {
+                            borderBottom: '1px solid #e5e7eb',
+                            paddingBottom: '8px',
+                          },
                         },
                       }}
                       renderInput={(params) => (
@@ -620,18 +630,15 @@ export function LineItemsTable({
                         <li 
                           {...props} 
                           key={option.id}
-                          className="px-3 py-2.5 rounded-md cursor-pointer transition-colors hover:bg-gray-50 active:bg-gray-100"
+                          className="px-4 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 active:bg-gray-100"
                         >
-                          <div className="flex flex-col w-full gap-0.5">
-                            <span className="font-semibold text-sm text-gray-900">{option.tax_code}</span>
-                            {option.description && (
-                              <span className="text-xs text-gray-600 leading-relaxed">{option.description}</span>
-                            )}
-                          </div>
+                          <span className="font-semibold text-[15px] text-gray-900 tracking-wide">
+                            {option.tax_code}
+                          </span>
                         </li>
                       )}
                       noOptionsText={
-                        <div className="px-3 py-4 text-center">
+                        <div className="px-4 py-6 text-center">
                           <span className="text-sm text-gray-500">
                             {row.gstCode ? "No GST codes found" : "Type at least 3 characters to search..."}
                           </span>

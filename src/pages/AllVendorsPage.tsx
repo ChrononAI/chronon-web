@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, useTheme, useMediaQuery } from "@mui/material";
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
   GridOverlay,
@@ -11,8 +9,8 @@ import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import CustomInvoiceToolbar from "@/components/invoice/CustomInvoiceToolbar";
 import { vendorService, VendorData } from "@/services/vendorService";
 import { toast } from "sonner";
-import { FileText, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { FileText } from "lucide-react";
+import { DataTable } from "@/components/shared/DataTable";
 import { useLayoutStore } from "@/store/layoutStore";
 
 interface VendorRow {
@@ -26,7 +24,7 @@ interface VendorRow {
 function CustomNoRows() {
   return (
     <GridOverlay>
-      <Box className="w-full">
+      <div className="w-full">
         <div className="text-center">
           <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No vendors found</h3>
@@ -34,16 +32,13 @@ function CustomNoRows() {
             There are currently no vendors.
           </p>
         </div>
-      </Box>
+      </div>
     </GridOverlay>
   );
 }
 
 export function AllVendorsPage() {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
   const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const [vendors, setVendors] = useState<VendorRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +67,7 @@ export function AllVendorsPage() {
       const gridHeight = window.innerHeight - headerHeight - paginationHeight - padding;
       const rowHeight = 41;
       const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-      const pageSize = isMobile ? 10 : isTablet ? 15 : Math.max(calculatedPageSize, 10);
+      const pageSize = Math.max(calculatedPageSize, 10);
       setPaginationModel((prev) => ({ ...prev, pageSize }));
     };
 
@@ -83,7 +78,7 @@ export function AllVendorsPage() {
 
     window.addEventListener("resize", calculatePageSize);
     return () => window.removeEventListener("resize", calculatePageSize);
-  }, [isMobile, isTablet, rowsCalculated]);
+  }, [rowsCalculated]);
 
   const fetchVendors = async () => {
     try {
@@ -218,177 +213,35 @@ export function AllVendorsPage() {
         showDateFilter={false}
         marginBottom="mb-0"
       >
-        <Box
-          sx={{
-            height: "calc(100vh - 160px)",
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            paddingLeft: "10px",
+        <DataTable
+          rows={filtered}
+          columns={columns}
+          loading={loading}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          onRowClick={handleRowClick}
+          firstColumnField="vendorCode"
+          emptyStateComponent={<CustomNoRows />}
+          slots={{
+            toolbar: CustomInvoiceToolbar,
           }}
-        >
-          <DataGrid
-            className="rounded h-full"
-            rows={filtered}
-            columns={columns}
-            loading={loading}
-            getRowHeight={() => 41}
-            slots={{
-              noRowsOverlay: CustomNoRows,
-              toolbar: CustomInvoiceToolbar,
-            }}
-            slotProps={{
-              toolbar: {
-                onFilterClick: () => {
-                  // Handle filter click
-                },
-                onShareClick: () => {
-                  // Handle share click
-                },
-                onDownloadClick: () => {
-                  // Handle download click
-                },
-                onCreateClick: handleCreateVendor,
-                createButtonText: "Create Vendor",
-              } as any,
-            }}
-            sx={{
-              "& .MuiDataGridToolbar-root": {
-                paddingLeft: "0",
-                paddingRight: "0",
-                width: "100%",
-                justifyContent: "start",
+          slotProps={{
+            toolbar: {
+              onFilterClick: () => {
+                // Handle filter click
               },
-              "& .MuiDataGridToolbar": {
-                justifyContent: "start",
-                border: "none !important",
-                paddingLeft: "0",
-                paddingRight: "0",
+              onShareClick: () => {
+                // Handle share click
               },
-              border: 0,
-              outline: "none",
-              "& .MuiDataGrid-root": {
-                border: "none",
-                outline: "none",
+              onDownloadClick: () => {
+                // Handle download click
               },
-              "& .MuiDataGrid-columnHeaderTitle": {
-                fontFamily: "Inter",
-                fontWeight: 600,
-                fontSize: "12px",
-                lineHeight: "100%",
-                letterSpacing: "0%",
-                textTransform: "uppercase",
-                color: "#8D94A2",
-              },
-              "& .MuiDataGrid-main": {
-                border: "none",
-                outline: "none",
-              },
-              "& .MuiDataGrid-columnHeader": {
-                backgroundColor: "transparent",
-                border: "none",
-                borderTop: "none",
-                borderBottom: "0.7px solid #EBEBEB",
-                borderLeft: "none",
-                borderRight: "none",
-                outline: "none",
-                height: "39px",
-                minHeight: "39px",
-                maxHeight: "39px",
-                paddingTop: "12px",
-                paddingRight: "18px",
-                paddingBottom: "12px",
-                paddingLeft: "18px",
-              },
-              "& .MuiDataGrid-columnHeader[data-field='vendorCode']": {
-                paddingLeft: "12px",
-              },
-              "& .MuiDataGrid-columnHeaders": {
-                border: "none",
-                borderTop: "none",
-                borderBottom: "none",
-                outline: "none",
-              },
-              "& .MuiDataGrid-columnHeader:focus": {
-                outline: "none",
-              },
-              "& .MuiDataGrid-columnHeader:focus-within": {
-                outline: "none",
-              },
-              "& .MuiDataGrid-row": {
-                height: "41px",
-                minHeight: "41px",
-                maxHeight: "41px",
-                borderBottom: "0.7px solid #EBEBEB",
-              },
-              "& .MuiDataGrid-row:hover": {
-                cursor: "pointer",
-                backgroundColor: "#f5f5f5",
-              },
-              "& .MuiDataGrid-cell": {
-                color: "#1A1A1A",
-                border: "none",
-                borderBottom: "0.7px solid #EBEBEB",
-                paddingTop: "12px",
-                paddingRight: "18px",
-                paddingBottom: "12px",
-                paddingLeft: "18px",
-                fontFamily: "Inter",
-                fontWeight: 500,
-                fontSize: "14px",
-                lineHeight: "100%",
-                letterSpacing: "0%",
-                textTransform: "capitalize",
-              },
-              "& .MuiDataGrid-cell[data-field='vendorCode']": {
-                paddingLeft: "12px",
-              },
-              "& .MuiDataGrid-cellContent": {
-                fontFamily: "Inter",
-                fontWeight: 500,
-                fontSize: "14px",
-                lineHeight: "100%",
-                letterSpacing: "0%",
-                textTransform: "capitalize",
-                color: "#1A1A1A",
-              },
-              "& .MuiDataGrid-cell > *": {
-                fontFamily: "Inter",
-                fontWeight: 500,
-                fontSize: "14px",
-                lineHeight: "100%",
-                letterSpacing: "0%",
-                textTransform: "capitalize",
-                color: "#1A1A1A",
-              },
-              "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-                outline: "none",
-              },
-              "& .MuiDataGrid-cell:focus-within": {
-                outline: "none",
-              },
-              "& .MuiDataGrid-columnSeparator": {
-                display: "none",
-              },
-              "& .MuiDataGrid-columnsContainer": {
-                gap: "10px",
-              },
-              "& .MuiDataGrid-footerContainer": {
-                borderTop: "0.7px solid #EBEBEB",
-                minHeight: "52px",
-              },
-            }}
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            density="compact"
-            disableRowSelectionOnClick
-            onRowClick={handleRowClick}
-            showCellVerticalBorder={false}
-            autoHeight={false}
-            showToolbar
-          />
-        </Box>
+              onCreateClick: handleCreateVendor,
+              createButtonText: "Create Vendor",
+            } as any,
+          }}
+          showToolbar
+        />
       </InvoicePageWrapper>
     </>
   );

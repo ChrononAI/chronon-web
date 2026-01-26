@@ -29,6 +29,7 @@ export const uploadFileToS3 = async (uploadUrl:string,file:File): Promise<void> 
 }
 
 export interface InvoiceLineItem {
+  id?: string;
   cgst_amount: string | null;
   cost_center_id: string | null;
   description: string | null;
@@ -46,6 +47,38 @@ export interface InvoiceLineItem {
   utgst_amount: string | null;
 }
 
+export interface RawOcrPayload {
+  billing_address?: string | null;
+  cgst_amount?: number | null;
+  currency?: string;
+  discount_amount?: number | null;
+  due_date?: string | null;
+  grn_number?: string | null;
+  gst_number?: string | null;
+  igst_amount?: number | null;
+  invoice_date?: string | null;
+  invoice_lineitems?: Array<{
+    cgst_amount?: number | null;
+    description?: string | null;
+    discount?: number | null;
+    hsn_sac?: string | null;
+    igst_amount?: number | null;
+    quantity?: number | null;
+    sgst_amount?: number | null;
+    subtotal?: number | null;
+    total?: number | null;
+    unit_price?: number | null;
+  }>;
+  invoice_number?: string | null;
+  org_id?: string | null;
+  po_number?: string | null;
+  sgst_amount?: number | null;
+  shipping_address?: string | null;
+  subtotal_amount?: number | null;
+  total_amount?: number | null;
+  vendor_id?: string | null;
+}
+
 export interface InvoiceResponse {
   billing_address: string | null;
   cgst_amount: string | null;
@@ -54,6 +87,7 @@ export interface InvoiceResponse {
   due_date: string | null;
   file_ids: string[];
   grn_number: string | null;
+  gst_number: string | null;
   id: string;
   igst_amount: string | null;
   invoice_date: string | null;
@@ -62,6 +96,7 @@ export interface InvoiceResponse {
   org_id: string;
   ocr_status?: string;
   po_number: string | null;
+  raw_ocr_payload?: RawOcrPayload;
   sgst_amount: string | null;
   shipping_address: string | null;
   source_type: string;
@@ -144,29 +179,91 @@ export const getInvoiceFiles = async (offset: number = 0, limit: number = 100): 
   return response.data;
 };
 
-export interface UpdateInvoiceRequest {
-  invoice_number: string;
-  type: string;
-  invoice_date: string;
-  currency: string;
-  billing_address: string;
-  shipping_address: string;
-  invoice_lineitems: Array<{
-    id?: string;
-    description: string;
-    line_num: string;
-    hsn_sac?: string;
-    gl_code?: string;
-    unit_of_measure?: string;
-    total_tax_amount?: number;
-    discount?: number;
-  }>;
+export const getApprovalInvoices = async (): Promise<GetAllInvoicesResponse> => {
+  const response = await baseAPI.get("/v1/invoices/approvals");
+  return response.data;
+};
+
+export const getApprovalInvoiceById = async (
+  invoiceId: string
+): Promise<GetInvoiceByIdResponse> => {
+  const response = await baseAPI.get(`/v1/invoices/approvals?id=eq.${invoiceId}`);
+  return response.data;
+};
+
+export interface InvoiceActionRequest {
+  action: "approve" | "reject";
+  notes?: string;
+}
+
+export interface InvoiceActionResponse {
+  message: string;
+}
+
+export const approveOrRejectInvoice = async (
+  invoiceId: string,
+  data: InvoiceActionRequest
+): Promise<InvoiceActionResponse> => {
+  const response = await baseAPI.post(`/v1/invoices/${invoiceId}/action`, data);
+  return response.data;
+};
+
+export interface SubmitInvoiceRequest {
+  invoice_id: string;
+}
+
+export interface SubmitInvoiceResponse {
+  message: string;
+}
+
+export const submitInvoice = async (
+  invoiceId: string
+): Promise<SubmitInvoiceResponse> => {
+  const response = await baseAPI.post("/v1/invoices/submit", {
+    invoice_id: invoiceId,
+  });
+  return response.data;
+};
+
+export interface UpdateInvoiceLineItem {
+  id?: string;
+  cgst_amount?: string | null;
+  description?: string | null;
+  discount?: string | null;
+  gst_code?: string | null;
+  hsn_sac?: string | null;
+  igst_amount?: string | null;
+  line_num: number;
+  quantity?: string | null;
+  sgst_amount?: string | null;
+  subtotal?: string | null;
+  tax_code?: string | null;
+  tds_amount?: string | null;
+  total?: string | null;
+  utgst_amount?: string | null;
+}
+
+export interface UpdateInvoiceData {
+  invoice_number?: string | null;
+  type?: string | null;
+  invoice_date?: string | null;
+  vendor_id?: string | null;
+  gst_number?: string | null;
+  billing_address?: string | null;
+  shipping_address?: string | null;
+  currency?: string;
+  invoice_lineitems?: UpdateInvoiceLineItem[];
+}
+
+export interface UpdateInvoiceResponse {
+  message: string;
+  data?: InvoiceResponse[];
 }
 
 export const updateInvoice = async (
   invoiceId: string,
-  data: UpdateInvoiceRequest
-): Promise<any> => {
+  data: UpdateInvoiceData
+): Promise<UpdateInvoiceResponse> => {
   const response = await baseAPI.put(`/v1/invoice/${invoiceId}`, data);
   return response.data;
 };

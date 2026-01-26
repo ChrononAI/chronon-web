@@ -1,16 +1,21 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/store/authStore";
+import { StatusPill } from "@/components/shared/StatusPill";
+import { DataTable } from "@/components/shared/DataTable";
+import {
+  GridColDef,
+  GridPaginationModel,
+  GridOverlay,
+} from "@mui/x-data-grid";
 import {
   createFileMetadata,
   uploadFileToS3,
   createInvoiceFromFile,
   getInvoiceFiles,
-  getInvoiceById,
 } from "@/services/invoice/invoice";
-import { useInvoiceFlowStore, InvoiceListRow } from "@/services/invoice/invoiceflowstore";
+import { useInvoiceFlowStore } from "@/services/invoice/invoiceflowstore";
 
 interface FileQueueItem {
   id: string;
@@ -24,14 +29,31 @@ interface FileQueueItem {
   addedToTable: boolean;
 }
 
+function CustomNoRows() {
+  return (
+    <GridOverlay>
+      <div className="w-full">
+        <div className="text-center">
+          <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No files found</h3>
+          <p className="text-muted-foreground">
+            There are currently no files in the queue.
+          </p>
+        </div>
+      </div>
+    </GridOverlay>
+  );
+}
+
 export function BulkInvoiceUploadPage() {
-  const { prependInvoices, invoices } = useInvoiceFlowStore();
-  const { sidebarCollapsed } = useAuthStore();
+  const { invoices } = useInvoiceFlowStore();
   const [fileQueue, setFileQueue] = useState<FileQueueItem[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showQueueTable, setShowQueueTable] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 10,
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processSingleFile = async (file: File) => {
@@ -130,20 +152,6 @@ export function BulkInvoiceUploadPage() {
     }
   };
 
-  const formatCurrency = (currency: string, amount: number = 0): string => {
-    if (currency === "INR") {
-      return `₹ ${amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    }
-    return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const formatDate = (dateString: string | null): string => {
-    if (!dateString) return "";
-    const datePart = dateString.split("T")[0];
-    const [year, month, day] = datePart.split("-");
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return `${day} ${months[parseInt(month, 10) - 1]}, ${year}`;
-  };
 
   const formatTime = (date: Date): string => {
     const hours = date.getHours().toString().padStart(2, "0");
@@ -162,48 +170,6 @@ export function BulkInvoiceUploadPage() {
     return `Today, ${formatTime(date)}`;
   };
 
-  const getStatusBackgroundColor = (ocrStatus?: string): string => {
-    if (!ocrStatus) return "bg-gray-100";
-    switch (ocrStatus) {
-      case "OCR_PROCESSED":
-        return "bg-[#5DC364]/10";
-      case "OCR_PROCESSING":
-      case "OCR_PENDING":
-        return "bg-[#FFF7D6]";
-      case "OCR_FAILED":
-      case "FAILED":
-        return "bg-[#DC2627]/10";
-      default:
-        return "bg-gray-100";
-    }
-  };
-
-  const getStatusTextColor = (ocrStatus?: string): string => {
-    if (!ocrStatus) return "text-gray-600";
-    switch (ocrStatus) {
-      case "OCR_PROCESSED":
-        return "text-[#5DC364]";
-      case "OCR_PROCESSING":
-      case "OCR_PENDING":
-        return "text-[#F59E0B]";
-      case "OCR_FAILED":
-      case "FAILED":
-        return "text-[#DC2627]";
-      default:
-        return "text-gray-600";
-    }
-  };
-
-  const getStatusText = (ocrStatus?: string): string => {
-    if (!ocrStatus) return "Unknown";
-    // Remove OCR_ prefix and format
-    let status = ocrStatus.startsWith("OCR_") 
-      ? ocrStatus.replace("OCR_", "") 
-      : ocrStatus;
-    
-    // Convert to proper case (first letter uppercase, rest lowercase)
-    return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
-  };
 
   const getFileIcon = (fileName: string, ocrStatus?: string) => {
     if (ocrStatus === "OCR_FAILED" || ocrStatus === "FAILED") {
@@ -223,11 +189,109 @@ export function BulkInvoiceUploadPage() {
     processing: fileQueue.filter((f) => f.ocrStatus === "OCR_PROCESSING" || f.ocrStatus === "OCR_PENDING" || f.status === "UPLOADING" || f.status === "EXTRACTING_DATA").length,
   };
 
-  // Pagination calculations
-  const totalPages = Math.ceil(fileQueue.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedQueue = fileQueue.slice(startIndex, endIndex);
+  const columns: GridColDef[] = useMemo(() => {
+    return [
+      {
+        field: "fileName",
+        headerName: "FILE NAME",
+        flex: 1,
+        minWidth: 200,
+        renderCell: (params) => {
+          const queueItem = params.row as FileQueueItem;
+          return (
+            <div className="flex items-center gap-2 h-full">
+              {getFileIcon(queueItem.fileName, queueItem.ocrStatus)}
+              <span
+                style={{
+                  fontFamily: "Inter",
+                  fontWeight: 500,
+                  fontSize: "14px",
+                  lineHeight: "100%",
+                  letterSpacing: "0%",
+                  color: "#1A1A1A",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: "100%",
+                }}
+                title={queueItem.fileName}
+              >
+                {queueItem.fileName}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        field: "uploadedOn",
+        headerName: "UPLOADED ON",
+        flex: 1,
+        minWidth: 150,
+        renderCell: (params) => {
+          const queueItem = params.row as FileQueueItem;
+          return (
+            <span
+              style={{
+                fontFamily: "Inter",
+                fontWeight: 500,
+                fontSize: "14px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                color: "#1A1A1A",
+              }}
+            >
+              {formatUploadTime(queueItem.uploadedOn)}
+            </span>
+          );
+        },
+      },
+      {
+        field: "status",
+        headerName: "STATUS",
+        flex: 1,
+        minWidth: 160,
+        renderCell: (params) => {
+          const queueItem = params.row as FileQueueItem;
+          return (
+            <div className="flex items-center h-full">
+              <StatusPill
+                status={
+                  queueItem.ocrStatus
+                    ? queueItem.ocrStatus
+                    : queueItem.status === "UPLOADING"
+                    ? "UPLOADING"
+                    : "EXTRACTING_DATA"
+                }
+              />
+            </div>
+          );
+        },
+      },
+      {
+        field: "invoiceId",
+        headerName: "INVOICE ID",
+        flex: 1,
+        minWidth: 150,
+        renderCell: (params) => {
+          const queueItem = params.row as FileQueueItem;
+          return (
+            <span
+              style={{
+                fontFamily: "Inter",
+                fontWeight: 500,
+                fontSize: "14px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                color: queueItem.invoiceId ? "#0D9C99" : "#9CA3AF",
+              }}
+            >
+              {queueItem.invoiceId || "—"}
+            </span>
+          );
+        },
+      },
+    ];
+  }, []);
 
   const pollFileStatuses = async () => {
     try {
@@ -287,53 +351,7 @@ export function BulkInvoiceUploadPage() {
   };
 
   const addReadyFilesToInvoiceTable = async () => {
-    for (const queueItem of fileQueue) {
-      if (
-        queueItem.ocrStatus === "OCR_PROCESSED" && 
-        queueItem.invoiceId && 
-        !queueItem.addedToTable
-      ) {
-        const invoice = invoices.find((inv) => inv.invoiceId === queueItem.invoiceId);
-        if (!invoice) {
-          try {
-            // Fetch full invoice details
-            const invoiceResponse = await getInvoiceById(queueItem.invoiceId);
-            const invoiceData = invoiceResponse.data[0];
-            
-            if (invoiceData && invoiceData.ocr_status === "OCR_PROCESSED") {
-              let normalizedStatus = "Processed";
-              if (invoiceData.status === "DRAFT") normalizedStatus = "Processed";
-              if (invoiceData.status === "Open") normalizedStatus = "Open";
-              if (invoiceData.status === "Approved") normalizedStatus = "Approved";
-              if (invoiceData.status === "Rejected") normalizedStatus = "Rejected";
-
-              const totalAmount = invoiceData.total_amount ? parseFloat(invoiceData.total_amount) : 0;
-
-              const invoiceRow: InvoiceListRow = {
-                id: invoiceData.id,
-                invoiceId: invoiceData.id,
-                vendorName: invoiceData.vendor_id || "—",
-                invoiceNumber: invoiceData.invoice_number || "",
-                invoiceDate: formatDate(invoiceData.invoice_date),
-                poNumber: invoiceData.po_number || "",
-                status: normalizedStatus,
-                totalAmount: formatCurrency(invoiceData.currency, totalAmount),
-              };
-
-              prependInvoices([invoiceRow]);
-
-              setFileQueue((prev) =>
-                prev.map((item) =>
-                  item.id === queueItem.id ? { ...item, addedToTable: true } : item
-                )
-              );
-            }
-          } catch (error) {
-            console.error(`Error fetching invoice ${queueItem.invoiceId}:`, error);
-          }
-        }
-      }
-    }
+    // Removed getInvoiceById API call - invoices will be loaded from the main invoice list
   };
 
 
@@ -387,42 +405,7 @@ export function BulkInvoiceUploadPage() {
           setFileQueue(queueItems);
           setShowQueueTable(true);
           
-          // Add processed invoices to the invoice table
-          const processedFiles = allInvoiceFiles.filter((file) => file.ocr_status === "OCR_PROCESSED");
-          for (const file of processedFiles) {
-            const existingInvoice = invoices.find((inv) => inv.invoiceId === file.invoice_id);
-            if (!existingInvoice) {
-              try {
-                const invoiceResponse = await getInvoiceById(file.invoice_id);
-                const invoiceData = invoiceResponse.data[0];
-                
-                if (invoiceData && invoiceData.ocr_status === "OCR_PROCESSED") {
-                  let normalizedStatus = "Processed";
-                  if (invoiceData.status === "DRAFT") normalizedStatus = "Processed";
-                  if (invoiceData.status === "Open") normalizedStatus = "Open";
-                  if (invoiceData.status === "Approved") normalizedStatus = "Approved";
-                  if (invoiceData.status === "Rejected") normalizedStatus = "Rejected";
-
-                  const totalAmount = invoiceData.total_amount ? parseFloat(invoiceData.total_amount) : 0;
-
-                  const invoiceRow: InvoiceListRow = {
-                    id: invoiceData.id,
-                    invoiceId: invoiceData.id,
-                    vendorName: invoiceData.vendor_id || "—",
-                    invoiceNumber: invoiceData.invoice_number || "",
-                    invoiceDate: formatDate(invoiceData.invoice_date),
-                    poNumber: invoiceData.po_number || "",
-                    status: normalizedStatus,
-                    totalAmount: formatCurrency(invoiceData.currency, totalAmount),
-                  };
-
-                  prependInvoices([invoiceRow]);
-                }
-              } catch (error) {
-                console.error(`Error fetching invoice ${file.invoice_id}:`, error);
-              }
-            }
-          }
+          // Removed getInvoiceById API call - invoices will be loaded from the main invoice list
         }
       } catch (error) {
         console.error("Error loading file queue:", error);
@@ -435,11 +418,6 @@ export function BulkInvoiceUploadPage() {
   useEffect(() => {
     if (fileQueue.length > 0) {
       addReadyFilesToInvoiceTable();
-    }
-    // Reset to first page if current page is out of bounds
-    const maxPage = Math.ceil(fileQueue.length / itemsPerPage);
-    if (currentPage > maxPage && maxPage > 0) {
-      setCurrentPage(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileQueue]);
@@ -539,127 +517,17 @@ export function BulkInvoiceUploadPage() {
           </div>
 
           {/* Table */}
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      FILE NAME
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      UPLOADED ON
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      STATUS
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      INVOICE ID
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {paginatedQueue.map((queueItem) => (
-                    <tr key={queueItem.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          {getFileIcon(queueItem.fileName, queueItem.ocrStatus)}
-                          <span className="text-sm font-medium text-gray-900">
-                            {queueItem.fileName}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {formatUploadTime(queueItem.uploadedOn)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div 
-                          className={cn(
-                            "inline-flex items-center gap-[10px] rounded-lg px-2 py-1",
-                            getStatusBackgroundColor(queueItem.ocrStatus)
-                          )}
-                          style={{
-                            width: "fit-content",
-                            height: "23px",
-                            paddingTop: "4px",
-                            paddingRight: "8px",
-                            paddingBottom: "4px",
-                            paddingLeft: "8px",
-                          }}
-                        >
-                          <span className={cn("text-sm font-medium", getStatusTextColor(queueItem.ocrStatus))}>
-                            {queueItem.ocrStatus 
-                              ? getStatusText(queueItem.ocrStatus) 
-                              : (queueItem.status === "UPLOADING" 
-                                  ? "Uploading" 
-                                  : "Extracting Data")}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {queueItem.invoiceId ? (
-                          <span className="text-[#0D9C99] font-medium">
-                            {queueItem.invoiceId}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 px-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {startIndex + 1} to {Math.min(endIndex, fileQueue.length)} of {fileQueue.length} files
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {showQueueTable && fileQueue.length > 0 && (
-      <div 
-        className={`fixed bottom-0 right-0 bg-white border-t pt-4 pb-4 shadow-lg z-50 ${
-          sidebarCollapsed ? "left-[48px]" : "left-[256px]"
-        }`}
-      >
-        <div className="w-full px-6 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#0D9C99]/20 flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-[#0D9C99]" />
-              </div>
-          <p className="text-sm text-muted-foreground">
-                Processing happens asynchronously. You'll be notified via email when complete.
-              </p>
-            </div>
-          </div>
+          <DataTable
+            rows={fileQueue}
+            columns={columns}
+            loading={isRefreshing}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            height="calc(100vh - 400px)"
+            firstColumnField="fileName"
+            emptyStateComponent={<CustomNoRows />}
+            hoverCursor="default"
+          />
         </div>
       )}
     </div>
