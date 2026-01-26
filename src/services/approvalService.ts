@@ -156,4 +156,28 @@ export const approvalService = {
       };
     }
   },
+
+  async exportReports(reportIds: string[], includeReceipts: boolean = true): Promise<{ success: boolean; data: any }> {
+    try {
+      // Format report IDs for query params: id=in.(rptWPG3ivJV8I, rpttBHVeRVo9v)
+      const queryParams = `id=in.(${reportIds.join(', ')})`;
+      
+      const response = await api.post('/api/v1/report_exports', {
+        query_params: queryParams,
+        config: {
+          type: 'pdf',
+          include_receipts: includeReceipts
+        }
+      });
+      
+      const result = await handleApiResponse(response);
+      return {
+        success: true,
+        data: result.data
+      };
+    } catch (error: unknown) {
+      console.error('Error exporting reports:', error);
+      throw error;
+    }
+  },
 };

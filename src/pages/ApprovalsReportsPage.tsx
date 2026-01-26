@@ -11,6 +11,11 @@ import { GridPaginationModel } from "@mui/x-data-grid";
 import { useAuthStore } from "@/store/authStore";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { ExportDialog } from "@/components/reports/ExportDialog";
+import { ExportSuccessDialog } from "@/components/reports/ExportSuccessDialog";
+import { toast } from "sonner";
 
 const columns: GridColDef[] = [
   {
@@ -71,7 +76,7 @@ const columns: GridColDef[] = [
 
 export function ApprovalsReportsPage() {
   const navigate = useNavigate();
-  const { orgSettings } = useAuthStore();
+  const { orgSettings, user } = useAuthStore();
   const customIdEnabled = orgSettings?.custom_report_id_settings?.enabled ?? false;
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -98,6 +103,8 @@ export function ApprovalsReportsPage() {
     type: "include",
     ids: new Set(),
   });
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const GRID_OFFSET = 240;
   const ROW_HEIGHT = 38;
@@ -245,30 +252,78 @@ export function ApprovalsReportsPage() {
     { value: "rejected", label: "Rejected" },
   ];
 
-  return (
-    <ReportsPageWrapper
-      title="Approver Dashboard"
-      tabs={tabs}
-      activeTab={activeTab}
-      onTabChange={(tabId) =>
-        setActiveTab(tabId as "unsubmitted" | "submitted")
+  const selectedCount = rowSelection.ids instanceof Set ? rowSelection.ids.size : 0;
+  const hasSelection = selectedCount > 0;
+
+  const getSelectedReportIds = (): string[] => {
+    if (rowSelection.ids instanceof Set) {
+      return Array.from(rowSelection.ids) as string[];
+    }
+    return [];
+  };
+
+  // Handle export
+  const handleExport = async (includeReceipts: boolean) => {
+    const selectedIds = getSelectedReportIds();
+    if (selectedIds.length === 0) {
+      toast.error("Please select at least one report to export");
+      return;
+    }
+
+    try {
+      const response = await approvalService.exportReports(selectedIds, includeReceipts);
+      if (response.success) {
+        setShowSuccessDialog(true);
+        // Clear selection after successful export
+        setRowSelection({
+          type: "include",
+          ids: new Set(),
+        });
       }
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      searchPlaceholder="Search reports..."
-      statusOptions={statusOptions}
-      selectedDate={selectedDate}
-      showFilters={false}
-      showDateFilter={false}
-      onDateChange={setSelectedDate}
-    >
-      <Box
-        sx={{
-          height: "calc(100vh - 160px)",
-          width: "100%",
-          marginTop: "-30px",
-        }}
+    } catch (error: any) {
+      console.error("Export failed:", error);
+      toast.error(
+        error?.response?.data?.message || "Failed to export reports. Please try again."
+      );
+    }
+  };
+
+  return (
+    <>
+      <ReportsPageWrapper
+        title="Approver Dashboard"
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={(tabId) =>
+          setActiveTab(tabId as "unsubmitted" | "submitted")
+        }
+        tabsRightContent={
+          hasSelection ? (
+            <Button
+              onClick={() => setShowExportDialog(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download ({selectedCount})
+            </Button>
+          ) : undefined
+        }
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search reports..."
+        statusOptions={statusOptions}
+        selectedDate={selectedDate}
+        showFilters={false}
+        showDateFilter={false}
+        onDateChange={setSelectedDate}
       >
+        <Box
+          sx={{
+            height: "calc(100vh - 160px)",
+            width: "100%",
+            marginTop: "-30px",
+          }}
+        >
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           rows={loading ? [] : rows}
@@ -336,6 +391,20 @@ export function ApprovalsReportsPage() {
           }
         />
       </Box>
-    </ReportsPageWrapper>
+      </ReportsPageWrapper>
+
+      <ExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        onExport={handleExport}
+        selectedCount={selectedCount}
+      />
+
+      <ExportSuccessDialog
+        open={showSuccessDialog}
+        onOpenChange={setShowSuccessDialog}
+        email={user?.email || ""}
+      />
+    </>
   );
 }
