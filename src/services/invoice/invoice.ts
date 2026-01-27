@@ -39,6 +39,7 @@ export interface InvoiceLineItem {
   line_num: number;
   project_id: string | null;
   quantity: string | null;
+  rate?: string | null;
   sgst_amount: string | null;
   subtotal: string | null;
   total: string | null;
@@ -228,7 +229,6 @@ export interface UpdateInvoiceLineItem {
   cgst_amount?: string | null;
   description?: string | null;
   discount?: string | null;
-  gst_code?: string | null;
   igst_amount?: string | null;
   line_num: number;
   quantity?: string | null;

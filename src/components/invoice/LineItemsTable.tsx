@@ -365,7 +365,7 @@ export function LineItemsTable({
                 QTY
               </TableHead>
               <TableHead 
-                className="px-4 min-w-[120px] py-2"
+                className="px-4 min-w-[150px] py-2"
                 style={tableHeaderStyle}
               >
                 RATE
@@ -377,7 +377,7 @@ export function LineItemsTable({
                 TDS CODE
               </TableHead>
               <TableHead 
-                className="px-4 py-2"
+                className="px-4 min-w-[130px] py-2"
                 style={tableHeaderStyle}
               >
                 TDS AMOUNT
@@ -389,25 +389,25 @@ export function LineItemsTable({
                 GST CODE
               </TableHead>
               <TableHead 
-                className="px-4 py-2"
+                className="px-4 min-w-[130px] py-2"
                 style={tableHeaderStyle}
               >
                 IGST
               </TableHead>
               <TableHead 
-                className="px-4 py-2"
+                className="px-4 min-w-[130px] py-2"
                 style={tableHeaderStyle}
               >
                 CGST
               </TableHead>
               <TableHead 
-                className="px-4 py-2"
+                className="px-4 min-w-[130px] py-2"
                 style={tableHeaderStyle}
               >
                 SGST
               </TableHead>
               <TableHead 
-                className="px-4 py-2"
+                className="px-4 min-w-[130px] py-2"
                 style={tableHeaderStyle}
               >
                 UTGST
@@ -648,11 +648,11 @@ export function LineItemsTable({
                       disabled={isApprovalMode}
                     />
                   </TableCell>
-                  <TableCell className="px-4 py-1 min-w-[120px]">
+                  <TableCell className="px-4 py-1 min-w-[150px]">
                     <Input
                       value={row.rate}
                       onChange={(e) => onRowUpdate(row.id, "rate", e.target.value)}
-                      className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-0 ${
+                      className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                         isFieldChanged(row.id, "rate", row.rate) ? "bg-yellow-100" : ""
                       }`}
                       placeholder="₹ 0.00"
@@ -786,11 +786,11 @@ export function LineItemsTable({
                       }
                     />
                   </TableCell>
-                  <TableCell className="px-4 py-1">
+                  <TableCell className="px-4 py-1 min-w-[130px]">
                     <Input
                       value={row.tdsAmount}
                       onChange={(e) => onRowUpdate(row.id, "tdsAmount", e.target.value)}
-                      className={`h-8 border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-0 ${
+                      className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                         isFieldChanged(row.id, "tdsAmount", row.tdsAmount) ? "bg-yellow-100" : ""
                       }`}
                       placeholder="₹ 0.00"
@@ -924,44 +924,44 @@ export function LineItemsTable({
                       }
                     />
                   </TableCell>
-                  <TableCell className="px-4 py-1">
+                  <TableCell className="px-4 py-1 min-w-[130px]">
                     <Input
                       value={row.igst}
                       onChange={(e) => onRowUpdate(row.id, "igst", e.target.value)}
-                      className={`h-8 border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-0 ${
+                      className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                         isFieldChanged(row.id, "igst", row.igst) ? "bg-yellow-100" : ""
                       }`}
                       placeholder="₹ 0.00"
                       disabled={isApprovalMode}
                     />
                   </TableCell>
-                  <TableCell className="px-4 py-1">
+                  <TableCell className="px-4 py-1 min-w-[130px]">
                     <Input
                       value={row.cgst}
                       onChange={(e) => onRowUpdate(row.id, "cgst", e.target.value)}
-                      className={`h-8 border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-0 ${
+                      className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                         isFieldChanged(row.id, "cgst", row.cgst) ? "bg-yellow-100" : ""
                       }`}
                       placeholder="₹ 0.00"
                       disabled={isApprovalMode}
                     />
                   </TableCell>
-                  <TableCell className="px-4 py-1">
+                  <TableCell className="px-4 py-1 min-w-[130px]">
                     <Input
                       value={row.sgst}
                       onChange={(e) => onRowUpdate(row.id, "sgst", e.target.value)}
-                      className={`h-8 border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-0 ${
+                      className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                         isFieldChanged(row.id, "sgst", row.sgst) ? "bg-yellow-100" : ""
                       }`}
                       placeholder="₹ 0.00"
                       disabled={isApprovalMode}
                     />
                   </TableCell>
-                  <TableCell className="px-4 py-1">
+                  <TableCell className="px-4 py-1 min-w-[130px]">
                     <Input
                       value={row.utgst}
                       onChange={(e) => onRowUpdate(row.id, "utgst", e.target.value)}
-                      className={`h-8 border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-0 ${
+                      className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                         isFieldChanged(row.id, "utgst", row.utgst) ? "bg-yellow-100" : ""
                       }`}
                       placeholder="₹ 0.00"
