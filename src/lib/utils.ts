@@ -12,6 +12,23 @@ export function formatDate(date: number[] | string): string {
     const [year, month, day] = date;
     return format(new Date(year, month - 1, day), "MMM dd, yyyy");
   }
+  
+  if (typeof date === "string") {
+    const dateOnlyMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnlyMatch) {
+      const [, year, month, day] = dateOnlyMatch;
+      return format(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)), "MMM dd, yyyy");
+    }
+    const datePart = date.split("T")[0];
+    if (datePart) {
+      const dateOnlyMatch = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (dateOnlyMatch) {
+        const [, year, month, day] = dateOnlyMatch;
+        return format(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)), "MMM dd, yyyy");
+      }
+    }
+  }
+  
   return format(new Date(date), "MMM dd, yyyy");
 }
 
