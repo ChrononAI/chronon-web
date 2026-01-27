@@ -181,9 +181,10 @@ export const TDSCodePage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [selectedTdsCode, setSelectedTdsCode] = useState<TDSCodeData | null>(null);
+  const [rowsCalculated, setRowsCalculated] = useState(false);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 25,
+    pageSize: 10,
   });
 
   useEffect(() => {
@@ -216,6 +217,27 @@ export const TDSCodePage = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    const calculatePageSize = () => {
+      const headerHeight = 80;
+      const paginationHeight = 52;
+      const padding = 48;
+      const gridHeight = window.innerHeight - headerHeight - paginationHeight - padding;
+      const rowHeight = 41;
+      const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+      const pageSize = Math.max(calculatedPageSize, 10);
+      setPaginationModel((prev) => ({ ...prev, pageSize }));
+    };
+
+    if (!rowsCalculated) {
+      calculatePageSize();
+      setRowsCalculated(true);
+    }
+
+    window.addEventListener("resize", calculatePageSize);
+    return () => window.removeEventListener("resize", calculatePageSize);
+  }, [rowsCalculated]);
 
   const filteredRows = useMemo(() => {
     if (!searchTerm.trim()) return rows;
@@ -258,7 +280,7 @@ export const TDSCodePage = () => {
             loading && isInitialLoad
               ? () => (
                   <ExpensesSkeletonOverlay
-                    rowCount={paginationModel?.pageSize || 25}
+                    rowCount={paginationModel?.pageSize || 10}
                   />
                 )
               : undefined,
@@ -283,7 +305,6 @@ export const TDSCodePage = () => {
           } as any,
         }}
         showToolbar
-        pageSizeOptions={[10, 25, 50, 100]}
       />
       <TDSCodeDialog
         open={createDialogOpen || updateDialogOpen}

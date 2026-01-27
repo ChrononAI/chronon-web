@@ -1,7 +1,6 @@
-import { useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Filter, Search, Share2, Download, X, Plus } from "lucide-react";
+import { Filter, Search, X, Plus } from "lucide-react";
 import {
   GridToolbarProps,
   Toolbar,
@@ -36,14 +35,7 @@ function CustomInvoiceToolbar({
   onCreateClick,
   createButtonText = "Upload Invoice",
 }: Props) {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  const handleSearchClick = () => {
-    setIsSearchOpen(true);
-  };
-
-  const handleCloseSearch = () => {
-    setIsSearchOpen(false);
+  const handleClearSearch = () => {
     onSearchChange?.("");
   };
 
@@ -61,39 +53,24 @@ function CustomInvoiceToolbar({
     >
       {/* Left side - Search and Tools */}
       <div className="flex items-center" style={{ gap: "17px" }}>
-        {isSearchOpen ? (
-          <>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search"
-                className="pl-9 bg-white h-10 w-64"
-                value={searchTerm}
-                onChange={(e) => onSearchChange?.(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCloseSearch}
-              className="text-muted-foreground hover:text-foreground"
-              style={{
-                width: "18px",
-                height: "18px",
-                minWidth: "18px",
-                padding: "0",
-              }}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </>
-        ) : (
+        {/* Search input - always visible */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search"
+            className="pl-9 bg-white h-10 w-96"
+            value={searchTerm}
+            onChange={(e) => onSearchChange?.(e.target.value)}
+          />
+        </div>
+        
+        {/* Clear search button */}
+        {searchTerm && (
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleSearchClick}
-            className="text-muted-foreground hover:text-foreground p-0 hover:bg-transparent"
+            onClick={handleClearSearch}
+            className="text-muted-foreground hover:text-foreground"
             style={{
               width: "18px",
               height: "18px",
@@ -101,13 +78,7 @@ function CustomInvoiceToolbar({
               padding: "0",
             }}
           >
-            <Search 
-              className="h-full w-full" 
-              style={{
-                width: "18px",
-                height: "18px",
-              }}
-            />
+            <X className="h-5 w-5" />
           </Button>
         )}
 
@@ -120,7 +91,7 @@ function CustomInvoiceToolbar({
           }}
         />
 
-        {/* Always show Filter, Share, Download icons */}
+        {/* Filter icon */}
         <div 
           className="flex items-center"
           style={{
@@ -142,68 +113,6 @@ function CustomInvoiceToolbar({
             }}
           >
             <Filter 
-              className="h-full w-full"
-              style={{
-                width: "18px",
-                height: "18px",
-              }}
-            />
-          </Button>
-
-          {/* Separator */}
-          <div 
-            style={{
-              width: "1px",
-              height: "18px",
-              backgroundColor: "#EBEBEB",
-            }}
-          />
-
-          {/* 📤 SHARE */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onShareClick}
-            className="text-muted-foreground hover:text-foreground p-0 hover:bg-transparent"
-            style={{
-              width: "18px",
-              height: "18px",
-              minWidth: "18px",
-              padding: "0",
-            }}
-          >
-            <Share2 
-              className="h-full w-full"
-              style={{
-                width: "18px",
-                height: "18px",
-              }}
-            />
-          </Button>
-
-          {/* Separator */}
-          <div 
-            style={{
-              width: "1px",
-              height: "18px",
-              backgroundColor: "#EBEBEB",
-            }}
-          />
-
-          {/* ⬇️ DOWNLOAD */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onDownloadClick}
-            className="text-muted-foreground hover:text-foreground p-0 hover:bg-transparent"
-            style={{
-              width: "18px",
-              height: "18px",
-              minWidth: "18px",
-              padding: "0",
-            }}
-          >
-            <Download 
               className="h-full w-full"
               style={{
                 width: "18px",

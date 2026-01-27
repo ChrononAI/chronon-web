@@ -3,6 +3,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useParams,
 } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -80,9 +81,16 @@ import { AllVendorsPage } from "./pages/AllVendorsPage";
 import { VendorDetailsPage } from "./pages/VendorDetailsPage";
 import { TDSCodePage } from "./pages/admin/TDSCodePage";
 import { TaxCodePage } from "./pages/admin/TaxCodePage";
-import { AllApprovalsPage } from "./pages/AllApprovalsPage";
+import { ItemsPage } from "./pages/admin/ItemsPage";
+import { AllInvoiceApprovalsPage } from "./pages/AllInvoiceApprovalsPage";
 import { FlowLayout } from "./components/layout/FlowLayout";
 import { BulkInvoiceUploadPage } from "./pages/BulkInvoiceUploadPage";
+
+// Redirect component for vendor routes with parameters
+function VendorRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/flow/master/vendors/${id}`} replace />;
+}
 
 function App() {
   return (
@@ -104,13 +112,14 @@ function App() {
               <Route path="/flow/invoice/bulk-upload" element={<BulkInvoiceUploadPage />} />
               <Route path="/flow/invoice/upload" element={<InvoicePage />} />
               <Route path="/flow/invoice/:id" element={<InvoicePage />} />
-              <Route path="/flow/vendors" element={<AllVendorsPage />} />
-              <Route path="/flow/vendors/new" element={<VendorDetailsPage />} />
-              <Route path="/flow/vendors/:id" element={<VendorDetailsPage />} />
-              <Route path="/flow/approvals" element={<AllApprovalsPage />} />
+              <Route path="/flow/approvals" element={<AllInvoiceApprovalsPage />} />
               <Route path="/flow/approvals/:id" element={<InvoicePage />} />
-              <Route path="/flow/items/tds-code" element={<TDSCodePage />} />
-              <Route path="/flow/items/tax-code" element={<TaxCodePage />} />
+              <Route path="/flow/master/vendors" element={<AllVendorsPage />} />
+              <Route path="/flow/master/vendors/new" element={<VendorDetailsPage />} />
+              <Route path="/flow/master/vendors/:id" element={<VendorDetailsPage />} />
+              <Route path="/flow/master/items" element={<ItemsPage />} />
+              <Route path="/flow/master/tds-code" element={<TDSCodePage />} />
+              <Route path="/flow/master/tax-code" element={<TaxCodePage />} />
             </Route>
           </Route>
 
@@ -214,7 +223,10 @@ function App() {
               <Route path="/invoice" element={<Navigate to="/flow/invoice" replace />} />
               <Route path="/invoice/upload" element={<Navigate to="/flow/invoice/upload" replace />} />
               <Route path="/invoice/:id" element={<InvoicePage />} />
-              <Route path="/vendors" element={<Navigate to="/flow/vendors" replace />} />
+              <Route path="/vendors" element={<Navigate to="/flow/master/vendors" replace />} />
+              <Route path="/flow/vendors" element={<Navigate to="/flow/master/vendors" replace />} />
+              <Route path="/flow/vendors/new" element={<Navigate to="/flow/master/vendors/new" replace />} />
+              <Route path="/flow/vendors/:id" element={<VendorRedirect />} />
 
               {/* OTHER PAGES */}
               <Route path="/admin/all-reports" element={<AllReportsPage />} />

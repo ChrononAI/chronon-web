@@ -38,27 +38,26 @@ interface NavigationItem {
 }
 
 const flowNavigation: NavigationItem[] = [
+  { name: "Invoice", href: "/flow/invoice", icon: FileText },
+  { name: "Approval", href: "/flow/approvals", icon: SlidersHorizontal },
   {
     name: "Master",
     icon: Building2,
     children: [
-      { name: "Vendor", href: "/flow/vendors", icon: Store },
-    ],
-  },
-  { name: "Invoice", href: "/flow/invoice", icon: FileText },
-  { name: "Approval", href: "/flow/approvals", icon: SlidersHorizontal },
-  {
-    name: "Items",
-    icon: FileText,
-    children: [
+      { name: "Vendor", href: "/flow/master/vendors", icon: Store },
+      {
+        name: "Items",
+        href: "/flow/master/items",
+        icon: FileText,
+      },
       {
         name: "TDS Code",
-        href: "/flow/items/tds-code",
+        href: "/flow/master/tds-code",
         icon: FileText,
       },
       {
         name: "Tax Code",
-        href: "/flow/items/tax-code",
+        href: "/flow/master/tax-code",
         icon: FileText,
       },
     ],
@@ -68,9 +67,6 @@ const flowNavigation: NavigationItem[] = [
 export function FlowSidebar() {
   const location = useLocation();
   const { user, logout, sidebarCollapsed, setSidebarCollapsed } = useAuthStore();
-  // Disable sidebar expansion on invoice detail pages (but allow on AllInvoicesPage)
-  // Invoice detail pages: /flow/invoice/:id or /flow/approvals/:id
-  // AllInvoicesPage: /flow/invoice (exact match)
   const isInvoiceDetailPage = 
     (location.pathname.startsWith("/flow/invoice/") && location.pathname !== "/flow/invoice") ||
     location.pathname.startsWith("/flow/approvals/");
@@ -193,8 +189,9 @@ export function FlowSidebar() {
     }
 
     if (item.href) {
-      const isApprovalActive = item.name === "Approval" && location.pathname.startsWith("/flow/approvals");
-      const isActive = location.pathname.startsWith(item.href) || isApprovalActive;
+      const currentPath = location.pathname;
+      const isApprovalActive = item.name === "Approval" && currentPath.startsWith("/flow/approvals");
+      const isActive = currentPath.startsWith(item.href) || isApprovalActive;
       
       return (
         <NavLink
@@ -258,7 +255,6 @@ export function FlowSidebar() {
         sidebarCollapsed ? "w-12 overflow-hidden" : "w-[240px] overflow-y-auto"
       )}
     >
-      {/* Header Section - Logo Container */}
       <div 
         className={cn(
           "flex items-center",
@@ -304,7 +300,6 @@ export function FlowSidebar() {
         </Button>
       </div>
 
-      {/* Navigation - Routes Container */}
       <nav
         className="flex-1"
         style={{
@@ -321,7 +316,6 @@ export function FlowSidebar() {
         {flowNavigation.map((item) => renderNavigationItem(item, 0))}
       </nav>
 
-      {/* Footer (User Menu) */}
       <div className="p-4 mt-auto">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

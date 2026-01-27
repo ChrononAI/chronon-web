@@ -25,7 +25,8 @@ export interface TaxCodeData {
   igst_percentage: string;
   utgst_percentage: string;
   description: string;
-  active_flag: boolean;
+  is_active: boolean;
+  active_flag?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +34,24 @@ export interface TaxCodeData {
 export interface TaxCodeResponse {
   count: number;
   data: TaxCodeData[];
+  offset: number;
+}
+
+export interface ItemData {
+  id: string;
+  item_code: string;
+  description: string;
+  tax_code: string;
+  tds_code: string;
+  hsn_sac_code: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ItemResponse {
+  count: number;
+  data: ItemData[];
   offset: number;
 }
 
@@ -136,6 +155,57 @@ export const itemsCodeService = {
   }): Promise<any> {
     try {
       const response = await api.put(`/api/v1/tax/${id}`, data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Item APIs
+  async getItems(): Promise<ItemResponse> {
+    try {
+      const response = await api.get("/api/v1/tax/items");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async searchItems(searchTerm: string): Promise<ItemResponse> {
+    try {
+      const response = await api.get(
+        `/api/v1/tax/items?item_code=ilike.%25${encodeURIComponent(searchTerm)}%25`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async createItem(data: {
+    item_code: string;
+    description: string;
+    tax_code: string;
+    tds_code: string;
+    hsn_sac_code: string;
+  }): Promise<any> {
+    try {
+      const response = await api.post("/api/v1/tax/items", data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async updateItem(id: string, data: {
+    item_code?: string;
+    description?: string;
+    tax_code?: string;
+    tds_code?: string;
+    hsn_sac_code?: string;
+  }): Promise<any> {
+    try {
+      const response = await api.put(`/api/v1/tax/items/${id}`, data);
       return response.data;
     } catch (error) {
       throw error;

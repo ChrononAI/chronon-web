@@ -35,7 +35,6 @@ export interface InvoiceLineItem {
   description: string | null;
   discount: string | null;
   gl_code: string | null;
-  hsn_sac: string | null;
   igst_amount: string | null;
   line_num: number;
   project_id: string | null;
@@ -61,7 +60,6 @@ export interface RawOcrPayload {
     cgst_amount?: number | null;
     description?: string | null;
     discount?: number | null;
-    hsn_sac?: string | null;
     igst_amount?: number | null;
     quantity?: number | null;
     sgst_amount?: number | null;
@@ -231,7 +229,6 @@ export interface UpdateInvoiceLineItem {
   description?: string | null;
   discount?: string | null;
   gst_code?: string | null;
-  hsn_sac?: string | null;
   igst_amount?: string | null;
   line_num: number;
   quantity?: string | null;

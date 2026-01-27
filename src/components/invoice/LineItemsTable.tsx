@@ -12,6 +12,7 @@ import { Plus, Loader2 } from "lucide-react";
 import { Autocomplete, TextField } from "@mui/material";
 import { tdsService, TDSData } from "@/services/tdsService";
 import { taxService, TaxData } from "@/services/taxService";
+import { itemsCodeService, ItemData } from "@/services/items/itemsCodeService";
 
 export type InvoiceLineRow = {
   id: number;
@@ -55,6 +56,27 @@ export function LineItemsTable({
   const [gstSearchLoading, setGstSearchLoading] = useState(false);
   const gstSearchTimeoutRef = useRef<Record<number, NodeJS.Timeout>>({});
   const gstDataCacheRef = useRef<Record<string, TaxData>>({});
+
+  const [itemsList, setItemsList] = useState<ItemData[]>([]);
+  const [itemsLoading, setItemsLoading] = useState(false);
+
+  // Fetch items on component mount
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        setItemsLoading(true);
+        const response = await itemsCodeService.getItems();
+        setItemsList(response?.data || []);
+      } catch (error) {
+        console.error("Error fetching items:", error);
+        setItemsList([]);
+      } finally {
+        setItemsLoading(false);
+      }
+    };
+
+    fetchItems();
+  }, []);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -420,14 +442,194 @@ export function LineItemsTable({
               rows.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="px-4 py-1">
-                    <Input
-                      value={row.itemDescription}
-                      onChange={(e) => onRowUpdate(row.id, "itemDescription", e.target.value)}
-                      className={`h-8 border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-0 whitespace-nowrap overflow-hidden text-ellipsis ${
-                        isFieldChanged(row.id, "itemDescription", row.itemDescription) ? "bg-yellow-100" : ""
-                      }`}
-                      placeholder="Enter item description"
+                    <Autocomplete
+                      freeSolo
+                      options={itemsList}
+                      getOptionLabel={(option) => typeof option === 'string' ? option : option.description}
+                      value={itemsList.find(item => item.description === row.itemDescription) || row.itemDescription || null}
+                      onInputChange={(_event, newValue) => {
+                        // Update field value when user types
+                        if (typeof newValue === 'string') {
+                          onRowUpdate(row.id, "itemDescription", newValue);
+                        }
+                      }}
+                      onChange={(_event, newValue) => {
+                        if (newValue && typeof newValue === 'object') {
+                          // Item selected from dropdown
+                          onRowUpdate(row.id, "itemDescription", newValue.description);
+                          // Optionally auto-populate tax_code and tds_code if they're empty
+                          if (!row.gstCode && newValue.tax_code) {
+                            onRowUpdate(row.id, "gstCode", newValue.tax_code);
+                            // Trigger GST code selection to calculate tax amounts
+                            const cachedTax = gstDataCacheRef.current[newValue.tax_code];
+                            if (cachedTax) {
+                              const quantity = parseFloat(row.quantity) || 0;
+                              const rate = parseFloat(row.rate) || 0;
+                              const baseAmount = quantity * rate;
+                              const igstPercentage = parseFloat(cachedTax.igst_percentage) || 0;
+                              const cgstPercentage = parseFloat(cachedTax.cgst_percentage) || 0;
+                              const sgstPercentage = parseFloat(cachedTax.sgst_percentage) || 0;
+                              const utgstPercentage = parseFloat(cachedTax.utgst_percentage) || 0;
+                              onRowUpdate(row.id, "igst", ((baseAmount * igstPercentage) / 100).toFixed(2));
+                              onRowUpdate(row.id, "cgst", ((baseAmount * cgstPercentage) / 100).toFixed(2));
+                              onRowUpdate(row.id, "sgst", ((baseAmount * sgstPercentage) / 100).toFixed(2));
+                              onRowUpdate(row.id, "utgst", ((baseAmount * utgstPercentage) / 100).toFixed(2));
+                            }
+                          }
+                          if (!row.tdsCode && newValue.tds_code) {
+                            onRowUpdate(row.id, "tdsCode", newValue.tds_code);
+                            // Trigger TDS code selection to calculate TDS amount
+                            const cachedTds = tdsDataCacheRef.current[newValue.tds_code];
+                            if (cachedTds) {
+                              const quantity = parseFloat(row.quantity) || 0;
+                              const rate = parseFloat(row.rate) || 0;
+                              const baseAmount = quantity * rate;
+                              const tdsPercentage = parseFloat(cachedTds.tds_percentage) || 0;
+                              onRowUpdate(row.id, "tdsAmount", ((baseAmount * tdsPercentage) / 100).toFixed(2));
+                            }
+                          }
+                        } else if (typeof newValue === 'string') {
+                          // User typed a custom description
+                          onRowUpdate(row.id, "itemDescription", newValue);
+                        }
+                      }}
+                      loading={itemsLoading}
                       disabled={isApprovalMode}
+                      sx={{ 
+                        width: '100%', 
+                        '& .MuiAutocomplete-root': {
+                          padding: 0,
+                        },
+                        '& .MuiAutocomplete-inputRoot': {
+                          padding: '0 !important',
+                        },
+                        '& .MuiAutocomplete-popper': {
+                          zIndex: 1300,
+                        },
+                        '& .MuiPaper-root': {
+                          borderRadius: '6px',
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                          border: '1px solid #e5e7eb',
+                          marginTop: '6px',
+                          overflow: 'hidden',
+                          width: 'auto',
+                          minWidth: '300px',
+                          maxWidth: '450px',
+                        },
+                        '& .MuiAutocomplete-listbox': {
+                          padding: '4px',
+                          maxHeight: '200px !important',
+                          width: '100%',
+                          overflowY: 'auto',
+                          '& li': {
+                            padding: '8px 12px',
+                            minHeight: 'auto',
+                            '&:not(:last-child)': {
+                              borderBottom: '1px solid #f3f4f6',
+                              marginBottom: '2px',
+                              paddingBottom: '8px',
+                            },
+                          },
+                        },
+                      }}
+                      slotProps={{
+                        popper: {
+                          placement: 'bottom-start',
+                          modifiers: [
+                            {
+                              name: 'offset',
+                              options: {
+                                offset: [0, 6],
+                              },
+                            },
+                            {
+                              name: 'preventOverflow',
+                              enabled: true,
+                              options: {
+                                padding: 8,
+                              },
+                            },
+                            {
+                              name: 'flip',
+                              enabled: false,
+                            },
+                          ],
+                        },
+                        paper: {
+                          sx: {
+                            width: 'auto',
+                            minWidth: '300px',
+                            maxWidth: '450px',
+                          },
+                        },
+                        listbox: {
+                          sx: {
+                            maxHeight: '200px',
+                            padding: '4px',
+                            '& li': {
+                              padding: '8px 12px',
+                              minHeight: 'auto',
+                              '&:not(:last-child)': {
+                                borderBottom: '1px solid #f3f4f6',
+                                marginBottom: '2px',
+                                paddingBottom: '8px',
+                              },
+                            },
+                          },
+                        },
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Select or enter item description"
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              height: '32px',
+                              fontSize: '14px',
+                              backgroundColor: isFieldChanged(row.id, "itemDescription", row.itemDescription) ? '#fef3c7' : 'transparent',
+                              padding: '0 !important',
+                              '& fieldset': {
+                                border: 'none',
+                              },
+                              '&:hover fieldset': {
+                                border: 'none',
+                              },
+                              '&.Mui-focused fieldset': {
+                                border: 'none',
+                                boxShadow: 'none',
+                              },
+                            },
+                            '& .MuiInputBase-input': {
+                              padding: '4px 0px !important',
+                            },
+                          }}
+                        />
+                      )}
+                      renderOption={(props, option) => (
+                        <li 
+                          {...props} 
+                          key={option.id}
+                          className="px-3 py-2 cursor-pointer transition-all duration-200 hover:bg-gray-50 active:bg-gray-100 rounded-md"
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-[13px] text-gray-900">
+                              {option.description}
+                            </span>
+                            {option.item_code && (
+                              <span className="text-xs text-gray-600">
+                                Code: {option.item_code}
+                              </span>
+                            )}
+                          </div>
+                        </li>
+                      )}
+                      noOptionsText={
+                        <div className="px-4 py-6 text-center">
+                          <span className="text-sm text-gray-500">
+                            {itemsLoading ? "Loading items..." : "No items found"}
+                          </span>
+                        </div>
+                      }
                     />
                   </TableCell>
                   <TableCell className="px-4 py-1 w-[80px] max-w-[80px]">
@@ -484,18 +686,49 @@ export function LineItemsTable({
                           zIndex: 1300,
                         },
                         '& .MuiPaper-root': {
-                          borderRadius: '12px',
+                          borderRadius: '6px',
                           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                           border: '1px solid #e5e7eb',
                           marginTop: '6px',
                           overflow: 'hidden',
+                          width: 'auto',
+                          minWidth: '300px',
+                          maxWidth: '450px',
                         },
                         '& .MuiAutocomplete-listbox': {
-                          padding: '6px',
+                          padding: '4px',
                           maxHeight: '300px',
-                          '& li:not(:last-child) span': {
-                            borderBottom: '1px solid #e5e7eb',
-                            paddingBottom: '8px',
+                          width: '100%',
+                          '& li:not(:last-child)': {
+                            borderBottom: '1px solid #f3f4f6',
+                            marginBottom: '2px',
+                            paddingBottom: '4px',
+                          },
+                        },
+                      }}
+                      slotProps={{
+                        popper: {
+                          modifiers: [
+                            {
+                              name: 'offset',
+                              options: {
+                                offset: [0, 6],
+                              },
+                            },
+                            {
+                              name: 'preventOverflow',
+                              enabled: true,
+                              options: {
+                                padding: 8,
+                              },
+                            },
+                          ],
+                        },
+                        paper: {
+                          sx: {
+                            width: 'auto',
+                            minWidth: '300px',
+                            maxWidth: '450px',
                           },
                         },
                       }}
@@ -530,11 +763,18 @@ export function LineItemsTable({
                         <li 
                           {...props} 
                           key={option.id}
-                          className="px-4 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 active:bg-gray-100"
+                          className="px-3 py-2 cursor-pointer transition-all duration-200 hover:bg-gray-50 active:bg-gray-100 rounded-md"
                         >
-                          <span className="font-semibold text-[15px] text-gray-900 tracking-wide">
-                            {option.tds_code}
-                          </span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-[13px] text-gray-900">
+                              {option.tds_code}
+                            </span>
+                            {option.description && (
+                              <span className="text-xs text-gray-600 leading-tight">
+                                {option.description}
+                              </span>
+                            )}
+                          </div>
                         </li>
                       )}
                       noOptionsText={
@@ -584,18 +824,49 @@ export function LineItemsTable({
                           zIndex: 1300,
                         },
                         '& .MuiPaper-root': {
-                          borderRadius: '12px',
+                          borderRadius: '6px',
                           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                           border: '1px solid #e5e7eb',
                           marginTop: '6px',
                           overflow: 'hidden',
+                          width: 'auto',
+                          minWidth: '300px',
+                          maxWidth: '450px',
                         },
                         '& .MuiAutocomplete-listbox': {
-                          padding: '6px',
+                          padding: '4px',
                           maxHeight: '300px',
-                          '& li:not(:last-child) span': {
-                            borderBottom: '1px solid #e5e7eb',
-                            paddingBottom: '8px',
+                          width: '100%',
+                          '& li:not(:last-child)': {
+                            borderBottom: '1px solid #f3f4f6',
+                            marginBottom: '2px',
+                            paddingBottom: '4px',
+                          },
+                        },
+                      }}
+                      slotProps={{
+                        popper: {
+                          modifiers: [
+                            {
+                              name: 'offset',
+                              options: {
+                                offset: [0, 6],
+                              },
+                            },
+                            {
+                              name: 'preventOverflow',
+                              enabled: true,
+                              options: {
+                                padding: 8,
+                              },
+                            },
+                          ],
+                        },
+                        paper: {
+                          sx: {
+                            width: 'auto',
+                            minWidth: '300px',
+                            maxWidth: '450px',
                           },
                         },
                       }}
@@ -630,11 +901,18 @@ export function LineItemsTable({
                         <li 
                           {...props} 
                           key={option.id}
-                          className="px-4 py-3 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 active:bg-gray-100"
+                          className="px-3 py-2 cursor-pointer transition-all duration-200 hover:bg-gray-50 active:bg-gray-100 rounded-md"
                         >
-                          <span className="font-semibold text-[15px] text-gray-900 tracking-wide">
-                            {option.tax_code}
-                          </span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-[13px] text-gray-900">
+                              {option.tax_code}
+                            </span>
+                            {option.description && (
+                              <span className="text-xs text-gray-600 leading-tight">
+                                {option.description}
+                              </span>
+                            )}
+                          </div>
                         </li>
                       )}
                       noOptionsText={

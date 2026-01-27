@@ -7,10 +7,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import CustomInvoiceToolbar from "@/components/invoice/CustomInvoiceToolbar";
-import { itemsCodeService, TaxCodeData } from "@/services/items/itemsCodeService";
+import { itemsCodeService, ItemData } from "@/services/items/itemsCodeService";
 import { toast } from "sonner";
 import ExpensesSkeletonOverlay from "@/components/expenses/ExpenseSkeletonOverlay";
-import { TaxCodeDialog } from "@/components/items/TaxCodeDialog";
+import { ItemDialog } from "@/components/items/ItemDialog";
 import { GridRowParams } from "@mui/x-data-grid";
 import { useLayoutStore } from "@/store/layoutStore";
 import { DataTable } from "@/components/shared/DataTable";
@@ -20,9 +20,9 @@ function CustomNoRows() {
     <GridOverlay>
       <div className="w-full">
         <div className="text-center">
-          <h3 className="text-lg font-semibold mb-2">No Tax codes found</h3>
+          <h3 className="text-lg font-semibold mb-2">No items found</h3>
           <p className="text-muted-foreground">
-            There are currently no Tax codes.
+            There are currently no items.
           </p>
         </div>
       </div>
@@ -30,10 +30,10 @@ function CustomNoRows() {
   );
 }
 
-const columns: GridColDef<TaxCodeData>[] = [
+const columns: GridColDef<ItemData>[] = [
   {
-    field: "tax_code",
-    headerName: "TAX CODE",
+    field: "item_code",
+    headerName: "ITEM CODE",
     flex: 1,
     minWidth: 150,
     renderCell: (params) => (
@@ -59,98 +59,91 @@ const columns: GridColDef<TaxCodeData>[] = [
     ),
   },
   {
-    field: "tax_percentage",
-    headerName: "TAX PERCENTAGE",
-    flex: 1,
-    minWidth: 150,
-    renderCell: (params) => (
-      <div className="flex items-center h-full">
-        <span 
-          style={{
-            fontFamily: "Inter",
-            fontWeight: 500,
-            fontSize: "14px",
-            lineHeight: "100%",
-            letterSpacing: "0%",
-            color: "#1A1A1A",
-          }}
-        >
-          {params.value ? `${params.value}%` : "-"}
-        </span>
-      </div>
-    ),
-  },
-  {
-    field: "cgst_percentage",
-    headerName: "CGST %",
-    flex: 1,
-    minWidth: 100,
-    renderCell: (params) => (
-      <div className="flex items-center h-full">
-        <span 
-          style={{
-            fontFamily: "Inter",
-            fontWeight: 500,
-            fontSize: "14px",
-            lineHeight: "100%",
-            letterSpacing: "0%",
-            color: "#1A1A1A",
-          }}
-        >
-          {params.value ? `${params.value}%` : "-"}
-        </span>
-      </div>
-    ),
-  },
-  {
-    field: "sgst_percentage",
-    headerName: "SGST %",
-    flex: 1,
-    minWidth: 100,
-    renderCell: (params) => (
-      <div className="flex items-center h-full">
-        <span 
-          style={{
-            fontFamily: "Inter",
-            fontWeight: 500,
-            fontSize: "14px",
-            lineHeight: "100%",
-            letterSpacing: "0%",
-            color: "#1A1A1A",
-          }}
-        >
-          {params.value ? `${params.value}%` : "-"}
-        </span>
-      </div>
-    ),
-  },
-  {
-    field: "igst_percentage",
-    headerName: "IGST %",
-    flex: 1,
-    minWidth: 100,
-    renderCell: (params) => (
-      <div className="flex items-center h-full">
-        <span 
-          style={{
-            fontFamily: "Inter",
-            fontWeight: 500,
-            fontSize: "14px",
-            lineHeight: "100%",
-            letterSpacing: "0%",
-            color: "#1A1A1A",
-          }}
-        >
-          {params.value ? `${params.value}%` : "-"}
-        </span>
-      </div>
-    ),
-  },
-  {
     field: "description",
     headerName: "DESCRIPTION",
     flex: 1,
-    minWidth: 300,
+    minWidth: 200,
+    renderCell: (params) => (
+      <div className="flex items-center h-full w-full overflow-hidden">
+        <span 
+          style={{
+            fontFamily: "Inter",
+            fontWeight: 500,
+            fontSize: "14px",
+            lineHeight: "100%",
+            letterSpacing: "0%",
+            color: "#1A1A1A",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            maxWidth: "100%",
+          }}
+          title={params.value}
+        >
+          {params.value || "-"}
+        </span>
+      </div>
+    ),
+  },
+  {
+    field: "tax_code",
+    headerName: "TAX CODE",
+    flex: 1,
+    minWidth: 120,
+    renderCell: (params) => (
+      <div className="flex items-center h-full w-full overflow-hidden">
+        <span 
+          style={{
+            fontFamily: "Inter",
+            fontWeight: 500,
+            fontSize: "14px",
+            lineHeight: "100%",
+            letterSpacing: "0%",
+            color: "#1A1A1A",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            maxWidth: "100%",
+          }}
+          title={params.value}
+        >
+          {params.value || "-"}
+        </span>
+      </div>
+    ),
+  },
+  {
+    field: "tds_code",
+    headerName: "TDS CODE",
+    flex: 1,
+    minWidth: 120,
+    renderCell: (params) => (
+      <div className="flex items-center h-full w-full overflow-hidden">
+        <span 
+          style={{
+            fontFamily: "Inter",
+            fontWeight: 500,
+            fontSize: "14px",
+            lineHeight: "100%",
+            letterSpacing: "0%",
+            color: "#1A1A1A",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            maxWidth: "100%",
+          }}
+          title={params.value}
+        >
+          {params.value || "-"}
+        </span>
+      </div>
+    ),
+  },
+  {
+    field: "hsn_sac_code",
+    headerName: "HSN/SAC CODE",
+    flex: 1,
+    minWidth: 150,
     renderCell: (params) => (
       <div className="flex items-center h-full w-full overflow-hidden">
         <span 
@@ -195,17 +188,58 @@ const columns: GridColDef<TaxCodeData>[] = [
       );
     },
   },
+  {
+    field: "created_at",
+    headerName: "CREATED AT",
+    flex: 1,
+    minWidth: 160,
+    renderCell: (params) => {
+      if (!params.value) return (
+        <div className="flex items-center h-full">
+          <span 
+            style={{
+              fontFamily: "Inter",
+              fontWeight: 500,
+              fontSize: "14px",
+              lineHeight: "100%",
+              letterSpacing: "0%",
+              color: "#1A1A1A",
+            }}
+          >
+            -
+          </span>
+        </div>
+      );
+      const date = new Date(params.value);
+      return (
+        <div className="flex items-center h-full">
+          <span 
+            style={{
+              fontFamily: "Inter",
+              fontWeight: 500,
+              fontSize: "14px",
+              lineHeight: "100%",
+              letterSpacing: "0%",
+              color: "#1A1A1A",
+            }}
+          >
+            {date.toLocaleDateString()} {date.toLocaleTimeString()}
+          </span>
+        </div>
+      );
+    },
+  },
 ];
 
-export const TaxCodePage = () => {
+export const ItemsPage = () => {
   const setNoPadding = useLayoutStore((s) => s.setNoPadding);
-  const [rows, setRows] = useState<TaxCodeData[]>([]);
+  const [rows, setRows] = useState<ItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
-  const [selectedTaxCode, setSelectedTaxCode] = useState<TaxCodeData | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ItemData | null>(null);
   const [rowsCalculated, setRowsCalculated] = useState(false);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
@@ -222,15 +256,16 @@ export const TaxCodePage = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const response = await itemsCodeService.getTaxCodes();
+      const response = await itemsCodeService.getItems();
       const mappedRows = response.data.map((item) => ({
         ...item,
         id: item.id,
+        is_active: item.is_active ?? false,
       }));
       setRows(mappedRows);
     } catch (error: any) {
-      console.error("Error loading Tax codes:", error);
-      toast.error(error?.response?.data?.message || "Failed to load Tax codes");
+      console.error("Error loading items:", error);
+      toast.error(error?.response?.data?.message || "Failed to load items");
       setRows([]);
     } finally {
       setLoading(false);
@@ -268,23 +303,26 @@ export const TaxCodePage = () => {
     const searchLower = searchTerm.toLowerCase();
     return rows.filter(
       (row) =>
+        row.item_code?.toLowerCase().includes(searchLower) ||
+        row.description?.toLowerCase().includes(searchLower) ||
         row.tax_code?.toLowerCase().includes(searchLower) ||
-        row.description?.toLowerCase().includes(searchLower)
+        row.tds_code?.toLowerCase().includes(searchLower) ||
+        row.hsn_sac_code?.toLowerCase().includes(searchLower)
     );
   }, [rows, searchTerm]);
 
-  const handleRowClick = (params: GridRowParams<TaxCodeData>) => {
-    setSelectedTaxCode(params.row);
+  const handleRowClick = (params: GridRowParams<ItemData>) => {
+    setSelectedItem(params.row);
     setUpdateDialogOpen(true);
   };
 
   return (
     <InvoicePageWrapper
-      title="Tax Code"
+      title="Items"
       showCreateButton={false}
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
-      searchPlaceholder="Search by tax code or description..."
+      searchPlaceholder="Search by item code, description, tax code, TDS code, or HSN/SAC code..."
       showFilters={false}
       showDateFilter={false}
       marginBottom="mb-0"
@@ -296,7 +334,7 @@ export const TaxCodePage = () => {
         paginationModel={paginationModel}
         onPaginationModelChange={setPaginationModel}
         onRowClick={handleRowClick}
-        firstColumnField="tax_code"
+        firstColumnField="item_code"
         emptyStateComponent={<CustomNoRows />}
         slots={{
           toolbar: CustomInvoiceToolbar,
@@ -316,34 +354,28 @@ export const TaxCodePage = () => {
             onFilterClick: () => {
               // Handle filter click
             },
-            onShareClick: () => {
-              // Handle share click
-            },
-            onDownloadClick: () => {
-              // Handle download click
-            },
             onCreateClick: () => {
               setCreateDialogOpen(true);
             },
-            createButtonText: "Create Tax Code",
+            createButtonText: "Create Item",
           } as any,
         }}
         showToolbar
       />
-      <TaxCodeDialog
+      <ItemDialog
         open={createDialogOpen || updateDialogOpen}
         onOpenChange={(open) => {
           if (!open) {
             setCreateDialogOpen(false);
             setUpdateDialogOpen(false);
-            setSelectedTaxCode(null);
+            setSelectedItem(null);
           }
         }}
         onSuccess={() => {
           loadData();
-          setSelectedTaxCode(null);
+          setSelectedItem(null);
         }}
-        taxCode={updateDialogOpen ? selectedTaxCode : null}
+        item={updateDialogOpen ? selectedItem : null}
       />
     </InvoicePageWrapper>
   );

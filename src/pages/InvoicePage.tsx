@@ -688,9 +688,8 @@ export function InvoicePage() {
             igst_amount: row.igst || null,
             utgst_amount: row.utgst || null,
             discount: "0.0000",
-            gst_code: null,
-            hsn_sac: null,
-            tax_code: null,
+            gst_code: row.gstCode || null,
+            tax_code: row.gstCode || null,
             tds_amount: row.tdsAmount || null,
           };
 

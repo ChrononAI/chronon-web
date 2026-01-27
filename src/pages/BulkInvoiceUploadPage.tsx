@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Loader2, AlertTriangle } from "lucide-react";
+import { Upload, FileText, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { DataTable } from "@/components/shared/DataTable";
@@ -52,7 +52,7 @@ export function BulkInvoiceUploadPage() {
   const [showQueueTable, setShowQueueTable] = useState(false);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 10,
+    pageSize: 7,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -171,17 +171,6 @@ export function BulkInvoiceUploadPage() {
   };
 
 
-  const getFileIcon = (fileName: string, ocrStatus?: string) => {
-    if (ocrStatus === "OCR_FAILED" || ocrStatus === "FAILED") {
-      return <AlertTriangle className="h-5 w-5 text-red-600" />;
-    }
-    const extension = fileName.split(".").pop()?.toLowerCase();
-    if (extension === "pdf") {
-      return <FileText className="h-5 w-5 text-red-600" />;
-    }
-    return <FileText className="h-5 w-5 text-blue-600" />;
-  };
-
   const stats = {
     total: fileQueue.length,
     done: fileQueue.filter((f) => f.ocrStatus === "OCR_PROCESSED").length,
@@ -199,26 +188,23 @@ export function BulkInvoiceUploadPage() {
         renderCell: (params) => {
           const queueItem = params.row as FileQueueItem;
           return (
-            <div className="flex items-center gap-2 h-full">
-              {getFileIcon(queueItem.fileName, queueItem.ocrStatus)}
-              <span
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: 500,
-                  fontSize: "14px",
-                  lineHeight: "100%",
-                  letterSpacing: "0%",
-                  color: "#1A1A1A",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  maxWidth: "100%",
-                }}
-                title={queueItem.fileName}
-              >
-                {queueItem.fileName}
-              </span>
-            </div>
+            <span
+              style={{
+                fontFamily: "Inter",
+                fontWeight: 500,
+                fontSize: "14px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                color: "#1A1A1A",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                maxWidth: "100%",
+              }}
+              title={queueItem.fileName}
+            >
+              {queueItem.fileName}
+            </span>
           );
         },
       },
@@ -424,7 +410,7 @@ export function BulkInvoiceUploadPage() {
 
 
   return (
-    <div className="w-full pb-20">
+    <div className="w-full">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">Bulk Receipt Upload</h1>
@@ -433,7 +419,7 @@ export function BulkInvoiceUploadPage() {
 
       <div
         className={cn(
-          "border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors",
+          "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
           "border-muted-foreground/25 hover:border-[#0D9C99]/50"
         )}
         onDrop={handleDrop}
@@ -448,13 +434,13 @@ export function BulkInvoiceUploadPage() {
           onChange={handleFileSelect}
           className="hidden"
         />
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-20 h-20 bg-[#0D9C99]/10 rounded-full flex items-center justify-center">
-            <Upload className="h-10 w-10 text-[#0D9C99]" />
+        <div className="flex flex-col items-center space-y-3">
+          <div className="w-16 h-16 bg-[#0D9C99]/10 rounded-full flex items-center justify-center">
+            <Upload className="h-8 w-8 text-[#0D9C99]" />
           </div>
           <div>
-            <p className="text-lg font-semibold mb-2">Drag and drop receipts here</p>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-lg font-semibold mb-1">Drag and drop receipts here</p>
+            <p className="text-sm text-muted-foreground mb-3">
               AI-powered processing for JPG, PNG, and PDF up to 20MB each.
             </p>
             <Button
@@ -473,11 +459,27 @@ export function BulkInvoiceUploadPage() {
 
 
       {showQueueTable && fileQueue.length > 0 && (
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">
-              PROCESSING QUEUE ({fileQueue.length} FILE{fileQueue.length !== 1 ? "S" : ""})
-            </h2>
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-3">
+            {/* Statistics */}
+            <div className="flex items-center gap-6 text-sm">
+              <div>
+                <span className="text-muted-foreground">Total: </span>
+                <span className="font-medium">{stats.total}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Done: </span>
+                <span className="font-medium text-[#0D9C99]">{stats.done}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Processing: </span>
+                <span className="font-medium text-orange-600">{stats.processing}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Failed: </span>
+                <span className="font-medium text-red-600">{stats.failed}</span>
+              </div>
+            </div>
             <Button
               type="button"
               variant="outline"
@@ -496,26 +498,6 @@ export function BulkInvoiceUploadPage() {
             </Button>
           </div>
 
-          {/* Statistics */}
-          <div className="flex items-center gap-6 mb-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Total: </span>
-              <span className="font-medium">{stats.total}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Done: </span>
-              <span className="font-medium text-[#0D9C99]">{stats.done}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Processing: </span>
-              <span className="font-medium text-orange-600">{stats.processing}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Failed: </span>
-              <span className="font-medium text-red-600">{stats.failed}</span>
-            </div>
-          </div>
-
           {/* Table */}
           <DataTable
             rows={fileQueue}
@@ -523,10 +505,11 @@ export function BulkInvoiceUploadPage() {
             loading={isRefreshing}
             paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
-            height="calc(100vh - 400px)"
+            height="400px"
             firstColumnField="fileName"
             emptyStateComponent={<CustomNoRows />}
             hoverCursor="default"
+            pageSizeOptions={[7]}
           />
         </div>
       )}

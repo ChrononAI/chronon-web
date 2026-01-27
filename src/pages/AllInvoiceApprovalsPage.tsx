@@ -44,7 +44,7 @@ interface ApprovalRow {
   totalAmount: string;
 }
 
-export function AllApprovalsPage() {
+export function AllInvoiceApprovalsPage() {
   const navigate = useNavigate();
   const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const [searchTerm, setSearchTerm] = useState("");
@@ -359,3 +359,4 @@ export function AllApprovalsPage() {
     </InvoicePageWrapper>
   );
 }
+
