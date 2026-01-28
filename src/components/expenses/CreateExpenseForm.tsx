@@ -26,7 +26,7 @@ type ExpenseFormValues = {
   invoice_number: string;
   vendor: string;
   amount: string;
-  expense_date: Date;
+  expense_date: string;
   descriotion?: string;
   city?: string;
   source?: string;
@@ -192,10 +192,7 @@ export function CreateExpenseForm() {
           expense_policy_id: formData.expense_policy_id,
           category_id: formData.category_id,
           amount: parseFloat(formData.amount),
-          expense_date:
-            formData.expense_date instanceof Date
-              ? format(formData.expense_date, "yyyy-MM-dd")
-              : formData.expense_date,
+          expense_date: formData.expense_date,
           vendor: formData.vendor,
           invoice_number: formData.invoice_number,
           description: formData.description,
@@ -237,10 +234,7 @@ export function CreateExpenseForm() {
           expense_policy_id: formData.expense_policy_id || formData.policyId,
           category_id: formData.category_id || formData.categoryId,
           amount: parseFloat(formData.amount),
-          expense_date:
-            formData.expense_date instanceof Date
-              ? format(formData.expenseDate, "yyyy-MM-dd")
-              : formData.expense_date,
+          expense_date: formData.expense_date,
           description: formData.description,
           vendor: formData.vendor || formData.merchant,
           receipt_id: formData.receipt_id,
