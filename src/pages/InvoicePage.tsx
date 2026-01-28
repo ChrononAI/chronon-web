@@ -277,9 +277,9 @@ export function InvoicePage() {
               itemDescription: item.description || "",
               quantity: item.quantity ? parseFloat(item.quantity).toString() : "",
               rate: item.rate || item.unit_price || "",
-              tdsCode: "",
-              tdsAmount: "",
-              gstCode: "",
+              tdsCode: item.tds_code || "",
+              tdsAmount: item.tds_amount || "",
+              gstCode: item.tax_code || "",
               igst: item.igst_amount || "",
               cgst: item.cgst_amount || "",
               sgst: item.sgst_amount || "",
@@ -690,6 +690,7 @@ export function InvoicePage() {
             discount: "0.0000",
             
             tax_code: row.gstCode || null,
+            tds_code: row.tdsCode || null,
             tds_amount: row.tdsAmount || null,
           };
 

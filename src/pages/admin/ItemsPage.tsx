@@ -4,7 +4,6 @@ import {
   GridPaginationModel,
   GridOverlay,
 } from "@mui/x-data-grid";
-import { Badge } from "@/components/ui/badge";
 import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import CustomInvoiceToolbar from "@/components/invoice/CustomInvoiceToolbar";
 import { itemsCodeService, ItemData } from "@/services/items/itemsCodeService";
@@ -165,69 +164,6 @@ const columns: GridColDef<ItemData>[] = [
         </span>
       </div>
     ),
-  },
-  {
-    field: "is_active",
-    headerName: "STATUS",
-    flex: 1,
-    minWidth: 120,
-    renderCell: (params) => {
-      const isActive = params.row.is_active ?? false;
-      return (
-        <div className="flex items-center h-full">
-          <Badge
-            className={
-              isActive
-                ? "bg-green-100 text-green-800 hover:bg-green-100"
-                : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-            }
-          >
-            {isActive ? "Active" : "Inactive"}
-          </Badge>
-        </div>
-      );
-    },
-  },
-  {
-    field: "created_at",
-    headerName: "CREATED AT",
-    flex: 1,
-    minWidth: 160,
-    renderCell: (params) => {
-      if (!params.value) return (
-        <div className="flex items-center h-full">
-          <span 
-            style={{
-              fontFamily: "Inter",
-              fontWeight: 500,
-              fontSize: "14px",
-              lineHeight: "100%",
-              letterSpacing: "0%",
-              color: "#1A1A1A",
-            }}
-          >
-            -
-          </span>
-        </div>
-      );
-      const date = new Date(params.value);
-      return (
-        <div className="flex items-center h-full">
-          <span 
-            style={{
-              fontFamily: "Inter",
-              fontWeight: 500,
-              fontSize: "14px",
-              lineHeight: "100%",
-              letterSpacing: "0%",
-              color: "#1A1A1A",
-            }}
-          >
-            {date.toLocaleDateString()} {date.toLocaleTimeString()}
-          </span>
-        </div>
-      );
-    },
   },
 ];
 

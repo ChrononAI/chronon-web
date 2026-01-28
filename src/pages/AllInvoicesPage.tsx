@@ -17,6 +17,7 @@ import {
   type InvoiceResponse,
 } from "@/services/invoice/invoice";
 import { useLayoutStore } from "@/store/layoutStore";
+import { useAuthStore } from "@/store/authStore";
 
 function CustomNoRows() {
   return (
@@ -38,6 +39,7 @@ export function AllInvoicesPage() {
   const navigate = useNavigate();
   const { invoices } = useInvoiceFlowStore();
   const setNoPadding = useLayoutStore((s) => s.setNoPadding);
+  const { setSidebarCollapsed } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "processed">("all");
   const [rowsCalculated, setRowsCalculated] = useState(false);
@@ -47,6 +49,11 @@ export function AllInvoicesPage() {
   });
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [loadingInvoices, setLoadingInvoices] = useState(true);
+
+  // Open sidebar when on AllInvoicesPage
+  useEffect(() => {
+    setSidebarCollapsed(false);
+  }, [setSidebarCollapsed]);
 
   useEffect(() => {
     setNoPadding(true);
@@ -120,7 +127,7 @@ export function AllInvoicesPage() {
     return {
       id: invoice.id,
       invoiceId: invoice.id,
-      vendorName: invoice.vendor_id || "—", 
+      vendorName: invoice.gst_number || "—", 
       invoiceNumber: invoice.invoice_number || "",
       invoiceDate: formatDate(invoice.invoice_date),
       currency: invoice.currency || "INR",
@@ -268,7 +275,7 @@ export function AllInvoicesPage() {
     return [
       {
         field: "vendorName",
-        headerName: "VENDOR NAME",
+        headerName: "GST NUMBER",
         flex: 1,
         minWidth: 200,
         renderCell: (params) => {
@@ -285,7 +292,6 @@ export function AllInvoicesPage() {
                     fontSize: "14px",
                     lineHeight: "100%",
                     letterSpacing: "0%",
-                    textTransform: "capitalize",
                     color: "#1A1A1A",
                     overflow: "hidden",
                     textOverflow: "ellipsis",

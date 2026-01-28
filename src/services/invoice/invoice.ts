@@ -42,6 +42,9 @@ export interface InvoiceLineItem {
   rate?: string | null;
   sgst_amount: string | null;
   subtotal: string | null;
+  tax_code?: string | null;
+  tds_amount?: string | null;
+  tds_code?: string | null;
   total: string | null;
   unit_price: string | null;
   utgst_amount: string | null;
@@ -236,6 +239,7 @@ export interface UpdateInvoiceLineItem {
   subtotal?: string | null;
   tax_code?: string | null;
   tds_amount?: string | null;
+  tds_code?: string | null;
   total?: string | null;
   utgst_amount?: string | null;
 }

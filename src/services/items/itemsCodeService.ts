@@ -164,7 +164,7 @@ export const itemsCodeService = {
   // Item APIs
   async getItems(): Promise<ItemResponse> {
     try {
-      const response = await api.get("/api/v1/tax/items");
+      const response = await api.get("/api/v1/items");
       return response.data;
     } catch (error) {
       throw error;
@@ -174,7 +174,7 @@ export const itemsCodeService = {
   async searchItems(searchTerm: string): Promise<ItemResponse> {
     try {
       const response = await api.get(
-        `/api/v1/tax/items?item_code=ilike.%25${encodeURIComponent(searchTerm)}%25`
+        `/api/v1/items?item_code=ilike.%25${encodeURIComponent(searchTerm)}%25`
       );
       return response.data;
     } catch (error) {
@@ -190,7 +190,7 @@ export const itemsCodeService = {
     hsn_sac_code: string;
   }): Promise<any> {
     try {
-      const response = await api.post("/api/v1/tax/items", data);
+      const response = await api.post("/api/v1/items", data);
       return response.data;
     } catch (error) {
       throw error;
@@ -205,7 +205,7 @@ export const itemsCodeService = {
     hsn_sac_code?: string;
   }): Promise<any> {
     try {
-      const response = await api.put(`/api/v1/tax/items/${id}`, data);
+      const response = await api.put(`/api/v1/items/${id}`, data);
       return response.data;
     } catch (error) {
       throw error;
