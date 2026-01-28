@@ -133,7 +133,7 @@ const columns: GridColDef[] = [
     headerName: "DATE",
     minWidth: 120,
     flex: 1,
-    valueFormatter: (params: any) => formatDate(params),
+    renderCell: (params: any) => formatDate(params.row.expense_date),
   },
   {
     field: "amount",

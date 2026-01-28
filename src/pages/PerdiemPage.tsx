@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { expenseService } from "@/services/expenseService";
 import { ExpenseComments } from "@/components/expenses/ExpenseComments";
-import { cn } from "@/lib/utils";
+import { cn, parseLocalDate } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -220,7 +220,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     if (expenseData) {
       const formatDate = (dateString: string) => {
         try {
-          return format(new Date(dateString), "yyyy-MM-dd");
+          return format(parseLocalDate(dateString), "yyyy-MM-dd");
         } catch {
           return format(new Date(), "yyyy-MM-dd");
         }

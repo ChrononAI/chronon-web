@@ -39,7 +39,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, parseLocalDate } from '@/lib/utils';
 
 interface Payment {
   id: string;
@@ -343,7 +343,7 @@ export function PaymentPage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {new Date(payment.date).toLocaleDateString()}
+                            {parseLocalDate(payment.date).toLocaleDateString()}
                           </div>
                         </TableCell>
                         <TableCell className="font-mono text-sm">
