@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { UploadReceiptStep } from "./UploadReceiptStep";
 import { useExpenseStore } from "@/store/expenseStore";
-import { formatCurrency, getOrgCurrency } from "@/lib/utils";
+import { formatCurrency, getOrgCurrency, parseLocalDate } from "@/lib/utils";
 import { ExpenseDetailsStep2 } from "./ExpenseDetailsStep2";
 import { getTemplates, type Template } from "@/services/admin/templates";
 import { trackEvent } from "@/mixpanel";
@@ -360,9 +360,7 @@ export function CreateExpenseForm() {
                     </div>
                     <div className="text-sm text-gray-600">
                       {parsedData?.extracted_date
-                        ? new Date(
-                            parsedData.extracted_date
-                          ).toLocaleDateString("en-GB", {
+                        ? parseLocalDate(parsedData.extracted_date).toLocaleDateString("en-GB", {
                             weekday: "short",
                             day: "2-digit",
                             month: "short",

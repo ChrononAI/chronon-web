@@ -47,6 +47,7 @@ import {
   formatDistance,
   getDistanceUnit,
   usesMetricSystem,
+  parseLocalDate,
 } from "@/lib/utils";
 import {
   Form,
@@ -794,7 +795,9 @@ const MileagePage = ({
         description: expenseData.description || "",
         vehiclesType: expenseData.mileage_rate_id,
         expenseDate:
-          format(new Date(expenseData.expense_date), "yyyy-MM-dd") || "",
+          expenseData.expense_date
+            ? format(parseLocalDate(expenseData.expense_date), "yyyy-MM-dd")
+            : "",
         isRoundTrip: expenseData.is_round_trip,
         policyId: expenseData.expense_policy_id || "",
         categoryId: expenseData.category_id || "",
