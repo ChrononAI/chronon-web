@@ -100,10 +100,7 @@ export function TDSCodeDialog({
         await itemsCodeService.updateTDSCode(tdsCode!.id, payload);
         toast.success("TDS code updated successfully!");
       } else {
-        await itemsCodeService.createTDSCode({
-          ...payload,
-          is_active: true,
-        });
+        await itemsCodeService.createTDSCode(payload);
         toast.success("TDS code created successfully!");
       }
 
@@ -187,34 +184,40 @@ export function TDSCodeDialog({
                           form.formState.errors.tds_percentage && "border-red-500 focus:border-red-500 focus:ring-red-500"
                         )}
                         disabled={loading}
-                        value={field.value === 0 || field.value === undefined || field.value === null ? "" : String(field.value)}
+                        value={
+                          field.value === 0 ||
+                          field.value === undefined ||
+                          field.value === null
+                            ? ""
+                            : String(field.value)
+                        }
                         onChange={(e) => {
                           const value = e.target.value;
-                          
+
                           // Allow empty value
                           if (value === "" || value === null || value === undefined) {
                             field.onChange(undefined);
                             return;
                           }
-                          
-                          // Only allow numbers and decimal point
+
+                          // Only allow numbers and a single decimal point
                           if (/^\d*\.?\d*$/.test(value)) {
                             // Remove leading zeros except for "0." pattern
                             let cleanedValue = value;
-                            if (cleanedValue.length > 1 && cleanedValue[0] === '0' && cleanedValue[1] !== '.') {
-                              cleanedValue = cleanedValue.replace(/^0+/, '');
+                            if (
+                              cleanedValue.length > 1 &&
+                              cleanedValue[0] === "0" &&
+                              cleanedValue[1] !== "."
+                            ) {
+                              cleanedValue = cleanedValue.replace(/^0+/, "");
                               if (cleanedValue === "") {
                                 field.onChange(undefined);
                                 return;
                               }
                             }
-                            
-                            const numValue = parseFloat(cleanedValue);
-                            if (!isNaN(numValue)) {
-                              field.onChange(numValue);
-                            } else {
-                              field.onChange(undefined);
-                            }
+
+                            // Keep the cleaned string in the field so user can type "10." etc.
+                            field.onChange(cleanedValue);
                           }
                         }}
                       />

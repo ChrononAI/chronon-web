@@ -7,7 +7,7 @@ interface InvoiceValidationProps {
 }
 
 export function InvoiceValidation({
-  invoiceId,
+  invoiceId: _invoiceId,
   className,
 }: InvoiceValidationProps) {
   // TODO: Implement validation API integration

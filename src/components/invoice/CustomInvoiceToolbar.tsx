@@ -30,10 +30,10 @@ function CustomInvoiceToolbar({
   searchTerm = "",
   onSearchChange,
   onFilterClick,
-  onShareClick,
-  onDownloadClick,
   onCreateClick,
   createButtonText = "Upload Invoice",
+  onShareClick: _onShareClick,
+  onDownloadClick: _onDownloadClick,
 }: Props) {
   const handleClearSearch = () => {
     onSearchChange?.("");

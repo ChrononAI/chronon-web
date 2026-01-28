@@ -50,7 +50,7 @@ const getActivityIcon = (type: string) => {
 };
 
 export function InvoiceActivity({
-  invoiceId,
+  invoiceId: _invoiceId,
   className,
 }: InvoiceActivityProps) {
   // TODO: Implement activity API integration

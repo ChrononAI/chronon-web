@@ -28,7 +28,19 @@ import { cn } from "@/lib/utils";
 
 const taxCodeSchema = z.object({
   tax_code: z.string().min(1, "Tax code is required"),
-  tax_percentage: z.coerce.number().min(0, "Tax percentage is required"),
+  tax_percentage: z.preprocess(
+    (val) => {
+      if (val === "" || val === null || val === undefined) return undefined;
+      const num = Number(val);
+      return isNaN(num) ? undefined : num;
+    },
+    z.union([z.number().min(0, "Tax percentage is required"), z.undefined()]).refine(
+      (val) => val !== undefined,
+      {
+        message: "Tax percentage is required",
+      }
+    )
+  ),
   cgst_percentage: z.preprocess(
     (val) => {
       if (val === "" || val === null || val === undefined) return undefined;
@@ -94,7 +106,7 @@ export function TaxCodeDialog({
     resolver: zodResolver(taxCodeSchema),
     defaultValues: {
       tax_code: "",
-      tax_percentage: 0,
+      tax_percentage: undefined,
       cgst_percentage: 0,
       sgst_percentage: 0,
       igst_percentage: 0,
@@ -107,7 +119,7 @@ export function TaxCodeDialog({
     if (taxCode && open && isEditMode) {
       form.reset({
         tax_code: taxCode.tax_code || "",
-        tax_percentage: parseFloat(taxCode.tax_percentage) || 0,
+        tax_percentage: parseFloat(taxCode.tax_percentage) || undefined,
         cgst_percentage: parseFloat(taxCode.cgst_percentage) || 0,
         sgst_percentage: parseFloat(taxCode.sgst_percentage) || 0,
         igst_percentage: parseFloat(taxCode.igst_percentage) || 0,
@@ -118,7 +130,7 @@ export function TaxCodeDialog({
       // Reset to defaults for create mode
       form.reset({
         tax_code: "",
-        tax_percentage: 0,
+        tax_percentage: undefined,
         cgst_percentage: 0,
         sgst_percentage: 0,
         igst_percentage: 0,
@@ -225,8 +237,8 @@ export function TaxCodeDialog({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        {...field}
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         step="0.01"
                         placeholder="e.g., 11.00"
                         className={cn(
@@ -234,6 +246,38 @@ export function TaxCodeDialog({
                           form.formState.errors.tax_percentage && "border-red-500 focus:border-red-500 focus:ring-red-500"
                         )}
                         disabled={loading}
+                        value={
+                          field.value === 0 ||
+                          field.value === undefined ||
+                          field.value === null
+                            ? ""
+                            : String(field.value)
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value;
+
+                          if (value === "" || value === null || value === undefined) {
+                            field.onChange(undefined);
+                            return;
+                          }
+
+                          if (/^\d*\.?\d*$/.test(value)) {
+                            let cleanedValue = value;
+                            if (
+                              cleanedValue.length > 1 &&
+                              cleanedValue[0] === "0" &&
+                              cleanedValue[1] !== "."
+                            ) {
+                              cleanedValue = cleanedValue.replace(/^0+/, "");
+                              if (cleanedValue === "") {
+                                field.onChange(undefined);
+                                return;
+                              }
+                            }
+
+                            field.onChange(cleanedValue);
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -253,7 +297,8 @@ export function TaxCodeDialog({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         step="0.01"
                         placeholder="e.g., 13.0"
                         className={cn(
@@ -261,18 +306,33 @@ export function TaxCodeDialog({
                           form.formState.errors.cgst_percentage && "border-red-500 focus:border-red-500 focus:ring-red-500"
                         )}
                         disabled={loading}
-                        value={field.value === 0 || field.value === undefined || field.value === null ? "" : String(field.value)}
+                        value={
+                          field.value === 0 ||
+                          field.value === undefined ||
+                          field.value === null
+                            ? ""
+                            : String(field.value)
+                        }
                         onChange={(e) => {
                           const value = e.target.value;
                           if (value === "" || value === null || value === undefined) {
                             field.onChange(undefined);
-                          } else {
-                            const numValue = parseFloat(value);
-                            if (!isNaN(numValue)) {
-                              field.onChange(numValue);
-                            } else {
-                              field.onChange(undefined);
+                            return;
+                          }
+                          if (/^\d*\.?\d*$/.test(value)) {
+                            let cleanedValue = value;
+                            if (
+                              cleanedValue.length > 1 &&
+                              cleanedValue[0] === "0" &&
+                              cleanedValue[1] !== "."
+                            ) {
+                              cleanedValue = cleanedValue.replace(/^0+/, "");
+                              if (cleanedValue === "") {
+                                field.onChange(undefined);
+                                return;
+                              }
                             }
+                            field.onChange(cleanedValue);
                           }
                         }}
                       />
@@ -292,7 +352,8 @@ export function TaxCodeDialog({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         step="0.01"
                         placeholder="e.g., 30.0"
                         className={cn(
@@ -300,18 +361,33 @@ export function TaxCodeDialog({
                           form.formState.errors.sgst_percentage && "border-red-500 focus:border-red-500 focus:ring-red-500"
                         )}
                         disabled={loading}
-                        value={field.value === 0 || field.value === undefined || field.value === null ? "" : String(field.value)}
+                        value={
+                          field.value === 0 ||
+                          field.value === undefined ||
+                          field.value === null
+                            ? ""
+                            : String(field.value)
+                        }
                         onChange={(e) => {
                           const value = e.target.value;
                           if (value === "" || value === null || value === undefined) {
                             field.onChange(undefined);
-                          } else {
-                            const numValue = parseFloat(value);
-                            if (!isNaN(numValue)) {
-                              field.onChange(numValue);
-                            } else {
-                              field.onChange(undefined);
+                            return;
+                          }
+                          if (/^\d*\.?\d*$/.test(value)) {
+                            let cleanedValue = value;
+                            if (
+                              cleanedValue.length > 1 &&
+                              cleanedValue[0] === "0" &&
+                              cleanedValue[1] !== "."
+                            ) {
+                              cleanedValue = cleanedValue.replace(/^0+/, "");
+                              if (cleanedValue === "") {
+                                field.onChange(undefined);
+                                return;
+                              }
                             }
+                            field.onChange(cleanedValue);
                           }
                         }}
                       />
@@ -333,7 +409,8 @@ export function TaxCodeDialog({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         step="0.01"
                         placeholder="e.g., 23.3"
                         className={cn(
@@ -341,18 +418,33 @@ export function TaxCodeDialog({
                           form.formState.errors.igst_percentage && "border-red-500 focus:border-red-500 focus:ring-red-500"
                         )}
                         disabled={loading}
-                        value={field.value === 0 || field.value === undefined || field.value === null ? "" : String(field.value)}
+                        value={
+                          field.value === 0 ||
+                          field.value === undefined ||
+                          field.value === null
+                            ? ""
+                            : String(field.value)
+                        }
                         onChange={(e) => {
                           const value = e.target.value;
                           if (value === "" || value === null || value === undefined) {
                             field.onChange(undefined);
-                          } else {
-                            const numValue = parseFloat(value);
-                            if (!isNaN(numValue)) {
-                              field.onChange(numValue);
-                            } else {
-                              field.onChange(undefined);
+                            return;
+                          }
+                          if (/^\d*\.?\d*$/.test(value)) {
+                            let cleanedValue = value;
+                            if (
+                              cleanedValue.length > 1 &&
+                              cleanedValue[0] === "0" &&
+                              cleanedValue[1] !== "."
+                            ) {
+                              cleanedValue = cleanedValue.replace(/^0+/, "");
+                              if (cleanedValue === "") {
+                                field.onChange(undefined);
+                                return;
+                              }
                             }
+                            field.onChange(cleanedValue);
                           }
                         }}
                       />
@@ -372,7 +464,8 @@ export function TaxCodeDialog({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         step="0.01"
                         placeholder="e.g., 46.0"
                         className={cn(
@@ -380,18 +473,33 @@ export function TaxCodeDialog({
                           form.formState.errors.utgst_percentage && "border-red-500 focus:border-red-500 focus:ring-red-500"
                         )}
                         disabled={loading}
-                        value={field.value === 0 || field.value === undefined || field.value === null ? "" : String(field.value)}
+                        value={
+                          field.value === 0 ||
+                          field.value === undefined ||
+                          field.value === null
+                            ? ""
+                            : String(field.value)
+                        }
                         onChange={(e) => {
                           const value = e.target.value;
                           if (value === "" || value === null || value === undefined) {
                             field.onChange(undefined);
-                          } else {
-                            const numValue = parseFloat(value);
-                            if (!isNaN(numValue)) {
-                              field.onChange(numValue);
-                            } else {
-                              field.onChange(undefined);
+                            return;
+                          }
+                          if (/^\d*\.?\d*$/.test(value)) {
+                            let cleanedValue = value;
+                            if (
+                              cleanedValue.length > 1 &&
+                              cleanedValue[0] === "0" &&
+                              cleanedValue[1] !== "."
+                            ) {
+                              cleanedValue = cleanedValue.replace(/^0+/, "");
+                              if (cleanedValue === "") {
+                                field.onChange(undefined);
+                                return;
+                              }
                             }
+                            field.onChange(cleanedValue);
                           }
                         }}
                       />

@@ -64,8 +64,8 @@ export function InvoicePage() {
   const [vendorPan, setVendorPan] = useState("");
   const [billingAddress, setBillingAddress] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
-  const [currency, setCurrency] = useState("INR");
-  const [invoiceType, setInvoiceType] = useState("PO");
+  const [currency, _setCurrency] = useState("INR");
+  const [invoiceType, _setInvoiceType] = useState("PO");
   const [submitting, setSubmitting] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [vendorSearchResults, setVendorSearchResults] = useState<VendorData[]>([]);
@@ -624,14 +624,6 @@ export function InvoicePage() {
     []
   );
 
-  const removeUploadedFile = () => {
-    if (previewUrlRef.current) {
-      URL.revokeObjectURL(previewUrlRef.current);
-      previewUrlRef.current = null;
-    }
-    setPreviewUrl(null);
-    setUploadedFile(null);
-  };
 
   const executeAction = async () => {
     if (!id || !actionType) return;
