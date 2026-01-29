@@ -4,12 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import api from "@/lib/api";
-import {
-  Calendar,
-  Loader2,
-  X,
-  ChevronDown,
-} from "lucide-react";
+import { Calendar, Loader2, X, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +38,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { cn, getOrgCurrency } from "@/lib/utils";
+import { cn, filterExpensePolicies, getOrgCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
@@ -70,12 +65,12 @@ import { getEntities, type Entity } from "@/services/admin/entities";
 import { FormFooter } from "../layout/FormFooter";
 import ReceiptViewer from "./ReceiptViewer";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
+import { policyService } from "@/services/admin/policyService";
 
 export type Attachment = {
   fileId: string;
   url: string;
 };
-
 
 // Form schema
 const expenseSchema = z.object({
@@ -168,6 +163,8 @@ export function ExpenseDetailsStep2({
   const [entityDropdownOpen, setEntityDropdownOpen] = useState<
     Record<string, boolean>
   >({});
+  const [policySearchTerm, setPolicySearchTerm] = useState("");
+  const [policyDropdownOpen, setPolicyDropdownOpen] = useState(false);
   const [replaceRecLoading, setReplaceRecLoading] = useState(false);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [advanceAccounts, setAdvanceAccounts] = useState([]);
@@ -189,6 +186,9 @@ export function ExpenseDetailsStep2({
   const [fileIds, setFileIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
 
+  const debounceRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
   const dupeCheckAcrossOrg =
     orgSettings?.org_level_duplicate_check_settings?.enabled || true;
 
@@ -197,21 +197,21 @@ export function ExpenseDetailsStep2({
     defaultValues: expense
       ? expense
       : {
-        expense_policy_id: "",
-        category_id: "",
-        invoiceNumber: "",
-        merchant: "",
-        amount: "",
-        expense_date: undefined,
-        comments: "",
-        city: "",
-        source: "",
-        destination: "",
-        pre_approval_id: "",
-        advance_id: "",
-        foreign_currency: getOrgCurrency(),
-        currency: getOrgCurrency(),
-      },
+          expense_policy_id: "",
+          category_id: "",
+          invoiceNumber: "",
+          merchant: "",
+          amount: "",
+          expense_date: undefined,
+          comments: "",
+          city: "",
+          source: "",
+          destination: "",
+          pre_approval_id: "",
+          advance_id: "",
+          foreign_currency: getOrgCurrency(),
+          currency: getOrgCurrency(),
+        },
   });
 
   const userRate = form.watch("user_conversion_rate");
@@ -308,14 +308,23 @@ export function ExpenseDetailsStep2({
     }
   };
 
-  const generateUploadUrl = async (file: File): Promise<{
+  const generateUploadUrl = async (
+    file: File
+  ): Promise<{
     downloadUrl: string;
     uploadUrl: string;
     fileId: string;
   }> => {
     try {
-      const res = await expenseService.getUploadUrl({ type: "RECEIPT", name: file.name });
-      return { uploadUrl: res.data.data.upload_url, downloadUrl: res.data.data.download_url, fileId: res.data.data.id };
+      const res = await expenseService.getUploadUrl({
+        type: "RECEIPT",
+        name: file.name,
+      });
+      return {
+        uploadUrl: res.data.data.upload_url,
+        downloadUrl: res.data.data.download_url,
+        fileId: res.data.data.id,
+      };
     } catch (error) {
       console.log(error);
       throw error;
@@ -370,8 +379,14 @@ export function ExpenseDetailsStep2({
         "amount",
         `${(+conversion * +form.getValues("amount")).toFixed(3)}`
       );
-      form.setValue("user_conversion_rate", Number(conversion).toFixed(4).toString());
-      form.setValue("api_conversion_rate", Number(conversion).toFixed(4).toString());
+      form.setValue(
+        "user_conversion_rate",
+        Number(conversion).toFixed(4).toString()
+      );
+      form.setValue(
+        "api_conversion_rate",
+        Number(conversion).toFixed(4).toString()
+      );
       setShowConversion(true);
     } catch (error: any) {
       console.log(error);
@@ -457,7 +472,6 @@ export function ExpenseDetailsStep2({
   }, [expense, advanceAccounts]);
 
   useEffect(() => {
-    loadPoliciesWithCategories();
     getAccounts();
   }, []);
 
@@ -538,7 +552,7 @@ export function ExpenseDetailsStep2({
           form.setValue("expense_policy_id", expense.expense_policy_id);
 
           if (expense.category_id) {
-            const category = policy.categories.find(
+            const category = policy?.categories?.find(
               (c) => c.id === expense.category_id
             );
             if (category) {
@@ -631,15 +645,6 @@ export function ExpenseDetailsStep2({
       }
     }
   }, [parsedData, form]);
-
-  const loadPoliciesWithCategories = async () => {
-    try {
-      const policiesData = await expenseService.getPoliciesWithCategories();
-      setPolicies(policiesData);
-    } catch (error) {
-      console.error("Error loading policies:", error);
-    }
-  };
 
   // Receipt viewer functions
   const handleReceiptZoomIn = () => {
@@ -740,60 +745,103 @@ export function ExpenseDetailsStep2({
     }
   }, [parsedData, policies]);
 
-type Attachment = {
-  fileId: string;
-  url: string;
-};
+  type Attachment = {
+    fileId: string;
+    url: string;
+  };
 
-useEffect(() => {
-  if (!fileIds.length) return;
+  useEffect(() => {
+    if (!fileIds.length) return;
 
-  const existingMap = new Map(
-    attachments.map((a) => [a.fileId, a.url])
-  );
+    const existingMap = new Map(attachments.map((a) => [a.fileId, a.url]));
 
-  const fileIdsToFetch = fileIds.filter(
-    (id) => !existingMap.has(id) || !existingMap.get(id)
-  );
+    const fileIdsToFetch = fileIds.filter(
+      (id) => !existingMap.has(id) || !existingMap.get(id)
+    );
 
-  if (!fileIdsToFetch.length) return;
+    if (!fileIdsToFetch.length) return;
 
-  let cancelled = false;
+    let cancelled = false;
 
-  const fetchUrls = async () => {
-    try {
-      const fetched = await Promise.all(
-        fileIdsToFetch.map(async (fileId) => {
-          const res = await expenseService.generatePreviewUrl(fileId);
-          console.log(res);
-          return { fileId, url: res.data.data.download_url };
-        })
-      );
+    const fetchUrls = async () => {
+      try {
+        const fetched = await Promise.all(
+          fileIdsToFetch.map(async (fileId) => {
+            const res = await expenseService.generatePreviewUrl(fileId);
+            console.log(res);
+            return { fileId, url: res.data.data.download_url };
+          })
+        );
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      setAttachments((prev) => {
-        const map = new Map(prev.map((a) => [a.fileId, a]));
+        setAttachments((prev) => {
+          const map = new Map(prev.map((a) => [a.fileId, a]));
 
-        fetched.forEach((a) => {
-          map.set(a.fileId, a);
+          fetched.forEach((a) => {
+            map.set(a.fileId, a);
+          });
+
+          return Array.from(map.values());
         });
+      } catch (err) {
+        console.error("Failed to fetch attachment URLs", err);
+      }
+    };
 
-        return Array.from(map.values());
-      });
-    } catch (err) {
-      console.error("Failed to fetch attachment URLs", err);
-    }
-  };
+    fetchUrls();
 
-  fetchUrls();
+    return () => {
+      cancelled = true;
+    };
+  }, [fileIds]);
 
-  return () => {
-    cancelled = true;
-  };
-}, [fileIds]);
+   useEffect(() => {
+   if (debounceRef.current) {
+     clearTimeout(debounceRef.current);
+   }
 
+   debounceRef.current = window.setTimeout(async () => {
+     if (abortRef.current) {
+       abortRef.current.abort();
+     }
 
+     const controller = new AbortController();
+     abortRef.current = controller;
+
+     try {
+       let res;
+
+       if (policySearchTerm.trim()) {
+         const term = encodeURIComponent(policySearchTerm.trim());
+
+         res = await policyService.getFilteredPolicies({
+           query: `or=(name.ilike.%${term}%,description.ilike.%${term}%)`,
+           signal: controller.signal,
+         });
+       } else {
+         res = await policyService.getFilteredPolicies({
+           query: "",
+           limit: 20,
+           offset: 0,
+           signal: controller.signal,
+         });
+       }
+       const expPolicies = filterExpensePolicies(res.data.data);
+       setPolicies(expPolicies);
+     } catch (err: any) {
+       if (err.name !== "AbortError" && err.name !== "CanceledError") {
+         console.error(err);
+       }
+     }
+   }, 400);
+
+   return () => {
+     if (debounceRef.current) {
+       clearTimeout(debounceRef.current);
+     }
+   };
+ }, [policySearchTerm]);
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -816,8 +864,8 @@ useEffect(() => {
     (readOnly && receiptSignedUrl.length > 0
       ? `Receipt ${receiptSignedUrl && receiptSignedUrl.length > 1 ? "1" : ""}`
       : activeReceiptUrl
-        ? "Receipt preview"
-        : "No receipt uploaded");
+      ? "Receipt preview"
+      : "No receipt uploaded");
 
   const hasReceipt = Boolean(activeReceiptUrl);
   const isLoadingReceipt =
@@ -858,10 +906,11 @@ useEffect(() => {
 
         <div className="grid gap-6 md:grid-cols-2">
           <div
-            className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${expense?.original_expense_id
-              ? "md:h-[calc(100vh-18rem)]"
-              : "md:h-[calc(100vh-13rem)]"
-              } md:overflow-y-auto`}
+            className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
+              expense?.original_expense_id
+                ? "md:h-[calc(100vh-18rem)]"
+                : "md:h-[calc(100vh-13rem)]"
+            } md:overflow-y-auto`}
           >
             <ReceiptViewer
               activeReceiptTab={activeReceiptTab}
@@ -895,13 +944,18 @@ useEffect(() => {
             <form
               onSubmit={form.handleSubmit((data) => {
                 const allFormValues = form.getValues();
-                const mergedData = { ...allFormValues, ...data, file_ids: fileIds };
+                const mergedData = {
+                  ...allFormValues,
+                  ...data,
+                  file_ids: fileIds,
+                };
                 onSubmit(mergedData);
               })}
-              className={`rounded-2xl border border-gray-200 bg-white shadow-sm p-2 ${expense?.original_expense_id
-                ? "md:h-[calc(100vh-18rem)]"
-                : "md:h-[calc(100vh-13rem)]"
-                } md:overflow-y-auto`}
+              className={`rounded-2xl border border-gray-200 bg-white shadow-sm p-2 ${
+                expense?.original_expense_id
+                  ? "md:h-[calc(100vh-18rem)]"
+                  : "md:h-[calc(100vh-13rem)]"
+              } md:overflow-y-auto`}
             >
               <div className="md:min-h-full">
                 <div className="divide-y divide-gray-100">
@@ -919,45 +973,72 @@ useEffect(() => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Policy *</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={(value) => {
-                                field.onChange(value);
-                                const policy = policies.find(
-                                  (p) => p.id === value
-                                );
-                                setSelectedPolicy(policy || null);
-                                setSelectedCategory(null);
-                                form.setValue("category_id", "");
-                              }}
-                              disabled={readOnly || expense?.transaction_id}
+                            <Popover
+                              open={policyDropdownOpen}
+                              onOpenChange={setPolicyDropdownOpen}
                             >
-                              <FormControl>
-                                <SelectTrigger className={selectTriggerClass}>
-                                  <SelectValue placeholder="Select a policy">
-                                    {field.value && selectedPolicy
-                                      ? selectedPolicy.name
-                                      : "Select a policy"}
-                                  </SelectValue>
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {policies.map((policy) => (
-                                  <SelectItem key={policy.id} value={policy.id}>
-                                    <div>
-                                      <div className="font-medium">
-                                        {policy.name}
-                                      </div>
-                                      {policy.description && (
-                                        <div className="text-sm text-muted-foreground">
-                                          {policy.description}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={policyDropdownOpen}
+                                    className="h-11 w-full justify-between"
+                                    disabled={
+                                      readOnly || expense?.transaction_id
+                                    }
+                                  >
+                                    <>
+                                      <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
+                                        {selectedPolicy
+                                          ? selectedPolicy.name
+                                          : "Select a policy"}
+                                      </span>
+                                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </>
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                  <Input
+                                    value={policySearchTerm}
+                                    className="border-0 block outline-none ring-0 focus:border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 shadow-none"
+                                    onChange={e => setPolicySearchTerm(e.target.value)}
+                                    placeholder="Search categories..."
+                                  />
+                                  <CommandList>
+                                    <CommandEmpty>
+                                      No policy found.
+                                    </CommandEmpty>
+                                    <CommandGroup>
+                                      {policies.map((policy) => (
+                                        <CommandItem
+                                          key={policy.id}
+                                          value={policy.name}
+                                          onSelect={() => {
+                                            field.onChange(policy.id);
+                                            setSelectedPolicy(policy);
+                                            setPolicyDropdownOpen(false);
+                                          }}
+                                        >
+                                          <div>
+                                            <div className="font-medium">
+                                              {policy.name}
+                                            </div>
+                                            {policy.description && (
+                                              <div className="text-sm text-muted-foreground">
+                                                {policy.description}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -991,8 +1072,8 @@ useEffect(() => {
                                         {selectedCategory
                                           ? selectedCategory.name
                                           : !selectedPolicy
-                                            ? "Select policy first"
-                                            : "Select a category"}
+                                          ? "Select policy first"
+                                          : "Select a category"}
                                       </span>
                                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </>
@@ -1102,8 +1183,8 @@ useEffect(() => {
                                     expense?.forerign_currency
                                       ? expense?.foreign_currency
                                       : field.value
-                                        ? field.value
-                                        : "INR"
+                                      ? field.value
+                                      : "INR"
                                   }
                                   onValueChange={(value) => {
                                     field.onChange(value);
@@ -1208,11 +1289,11 @@ useEffect(() => {
                                           ""
                                         )?.toString() !== ""
                                           ? Number(
-                                            userRate ??
-                                            expense?.user_conversion_rate ??
-                                            apiRate ??
-                                            0
-                                          )
+                                              userRate ??
+                                                expense?.user_conversion_rate ??
+                                                apiRate ??
+                                                0
+                                            )
                                           : ""
                                       }
                                       onChange={(e) => {
@@ -1439,10 +1520,10 @@ useEffect(() => {
                                           <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
                                             {field.value
                                               ? entityOptions[entityId]?.find(
-                                                (opt) =>
-                                                  opt.id === field.value
-                                              )?.label ||
-                                              `Select ${fieldName}`
+                                                  (opt) =>
+                                                    opt.id === field.value
+                                                )?.label ||
+                                                `Select ${fieldName}`
                                               : `Select ${fieldName}`}
                                           </span>
                                           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -1598,13 +1679,13 @@ useEffect(() => {
                     <div className="text-sm text-gray-600">
                       {semiParsedData?.extracted_date
                         ? new Date(
-                          semiParsedData.extracted_date
-                        ).toLocaleDateString("en-GB", {
-                          weekday: "short",
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
+                            semiParsedData.extracted_date
+                          ).toLocaleDateString("en-GB", {
+                            weekday: "short",
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
                         : semiParsedData?.ocr_result?.date}
                     </div>
                   </div>

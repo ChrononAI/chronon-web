@@ -79,7 +79,7 @@ function CreateExpensePolicyPage() {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return categories;
 
-    return categories.filter((c) => c.name.toLowerCase().includes(q));
+    return categories ? categories.filter((c) => c.name.toLowerCase().includes(q)) : [];
   }, [categories, searchTerm]);
 
   const handleChange = (field: string, value: string | boolean) => {
@@ -114,8 +114,7 @@ function CreateExpensePolicyPage() {
     getAllCategories();
 
     if (row) {
-      console.log(row);
-      setSelectedCategories(row.categories.map((cat: PolicyCategory) => cat.id));
+      setSelectedCategories(row?.categories?.map((cat: PolicyCategory) => cat.id));
       setFormData({
         name: row.name,
         description: row.description,

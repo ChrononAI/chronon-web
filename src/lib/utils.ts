@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format } from "date-fns";
 import { useAuthStore } from "@/store/authStore";
+import { Policy } from "@/types/expense";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -150,3 +151,7 @@ export const generateIdWithPrefix = (prefix: string, length = 10): string => {
 
   return `${prefix}${id}`;
 };
+
+export const filterExpensePolicies = (arr: Policy[]) => {
+  return arr.filter(pol => pol.name !== "Mileage" && pol.name !== "Per Diem");
+}

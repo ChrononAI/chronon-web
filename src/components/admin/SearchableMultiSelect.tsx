@@ -34,7 +34,7 @@ function SearchableMultiSelect({
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" className="w-full h-11 justify-between">
-          {selectedCategories.length > 0
+          {selectedCategories?.length > 0
             ? `${selectedCategories.length} selected`
             : "Select categories"}
           <ChevronsUpDown className="h-4 w-4 opacity-50" />
@@ -78,7 +78,7 @@ function SearchableMultiSelect({
                 onSelect={() => toggleCategory(cat.id)}
                 className="flex items-center gap-2"
               >
-                <Checkbox checked={selectedCategories.includes(cat.id)} />
+                <Checkbox checked={selectedCategories?.includes(cat.id)} />
                 <span className="text-sm">{cat.name}</span>
               </CommandItem>
             ))}

@@ -13,7 +13,7 @@ import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
 import { Button } from "../ui/button";
 import { DateField } from "../ui/date-field";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Select,
@@ -22,9 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Policy } from "@/types/expense";
-import { expenseService } from "@/services/expenseService";
 import {
   preApprovalService,
   PreApprovalType,
@@ -34,6 +33,16 @@ import { Currency } from "../advances/CreateAdvanceForm";
 import { trackEvent } from "@/mixpanel";
 import { FormFooter } from "../layout/FormFooter";
 import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "../ui/command";
+import { policyService } from "@/services/admin/policyService";
+import { filterExpensePolicies } from "@/lib/utils";
 
 // Form schema
 const preApprovalSchema = z.object({
@@ -78,22 +87,13 @@ function CreatePreApprovalForm({
   const [loading, setLoading] = useState(false);
   const [selectedPreApproval, setSelectedPreApproval] =
     useState<PreApprovalType | null>(null);
+  const [policySearchTerm, setPolicySearchTerm] = useState("");
+  const [policyDropdownOpen, setPolicyDropdownOpen] = useState(false);
+
+  const debounceRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const today = format(new Date(), "yyyy-MM-dd");
-
-  const loadPoliciesWithCategories = async () => {
-    try {
-      const policiesData = await expenseService.getAllPoliciesWithCategories();
-      const expensePolicies = policiesData.filter((pol) => {
-        if (pol.name !== "Mileage" && pol.name !== "Per Diem") {
-          return pol;
-        }
-      });
-      setPolicies(expensePolicies);
-    } catch (error) {
-      console.error("Error loading policies:", error);
-    }
-  };
 
   const form = useForm<PreApprovalFormValues>({
     resolver: zodResolver(preApprovalSchema),
@@ -132,8 +132,8 @@ function CreatePreApprovalForm({
       }
     } else {
       const newFd = JSON.parse(JSON.stringify(formData));
-        delete newFd.amount;
-        delete newFd.currency;
+      delete newFd.amount;
+      delete newFd.currency;
       if (!newFd.policy_id) {
         newFd.policy_id = null;
       }
@@ -168,9 +168,7 @@ function CreatePreApprovalForm({
       };
       form.reset(data);
       setSelectedPreApproval(data);
-      const selectedPol = policies.find(
-        (pol) => pol.id === data.policy_id
-      );
+      const selectedPol = policies.find((pol) => pol.id === data.policy_id);
       if (selectedPol) setSelectedPolicy(selectedPol);
     } catch (error) {
       console.log(error);
@@ -178,14 +176,58 @@ function CreatePreApprovalForm({
   };
 
   useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = window.setTimeout(async () => {
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      try {
+        let res;
+
+        if (policySearchTerm.trim()) {
+          const term = encodeURIComponent(policySearchTerm.trim());
+
+          res = await policyService.getFilteredPolicies({
+            query: `or=(name.ilike.%${term}%,description.ilike.%${term}%)`,
+            signal: controller.signal,
+          });
+        } else {
+          res = await policyService.getFilteredPolicies({
+            query: "",
+            limit: 20,
+            offset: 0,
+            signal: controller.signal,
+          });
+        }
+        const expPolicies = filterExpensePolicies(res.data.data);
+        setPolicies(expPolicies);
+      } catch (err: any) {
+        if (err.name !== "AbortError" && err.name !== "CanceledError") {
+          console.error(err);
+        }
+      }
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [policySearchTerm]);
+
+  useEffect(() => {
     if (id && policies.length > 0) {
       getPreApprovalById(id);
     }
   }, [id, policies]);
 
-  useEffect(() => {
-    loadPoliciesWithCategories();
-  }, []);
   return (
     <div className={maxWidth ? `space-y-6 ${maxWidth}` : "space-y-6 max-w-4xl"}>
       {showHeader && (
@@ -311,6 +353,76 @@ function CreatePreApprovalForm({
               )}
             />
           </div>
+          <FormField
+            control={form.control}
+            name="policy_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Policy</FormLabel>
+                <Popover
+                  open={policyDropdownOpen}
+                  onOpenChange={setPolicyDropdownOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={policyDropdownOpen}
+                        className="h-11 w-full justify-between"
+                        disabled={mode !== "create"}
+                      >
+                        <>
+                          <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
+                            {selectedPolicy
+                              ? selectedPolicy.name
+                              : "Select a policy"}
+                          </span>
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </>
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <Input
+                        value={policySearchTerm}
+                        className="border-0 block outline-none ring-0 focus:border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 shadow-none"
+                        onChange={(e) => setPolicySearchTerm(e.target.value)}
+                        placeholder="Search categories..."
+                      />
+                      <CommandList>
+                        <CommandEmpty>No policy found.</CommandEmpty>
+                        <CommandGroup>
+                          {policies.map((policy) => (
+                            <CommandItem
+                              key={policy.id}
+                              value={policy.name}
+                              onSelect={() => {
+                                field.onChange(policy.id);
+                                setSelectedPolicy(policy);
+                                setPolicyDropdownOpen(false);
+                              }}
+                            >
+                              <div>
+                                <div className="font-medium">{policy.name}</div>
+                                {policy.description && (
+                                  <div className="text-sm text-muted-foreground">
+                                    {policy.description}
+                                  </div>
+                                )}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Currency Field */}
             <FormField

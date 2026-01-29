@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,7 +37,6 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { toast } from "sonner";
-import { expenseService } from "@/services/expenseService";
 import { Policy } from "@/types/expense";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
 import { getTemplates, type Template } from "@/services/admin/templates";
@@ -45,7 +44,8 @@ import { getEntities, type Entity } from "@/services/admin/entities";
 import { trackEvent } from "@/mixpanel";
 import { FormFooter } from "../layout/FormFooter";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, filterExpensePolicies } from "@/lib/utils";
+import { policyService } from "@/services/admin/policyService";
 export interface Currency {
   code: string;
   name: string;
@@ -133,19 +133,58 @@ export function CreateAdvanceForm({
     Record<string, boolean>
   >({});
 
-  const loadPoliciesWithCategories = async () => {
-    try {
-      const policiesData = await expenseService.getAllPoliciesWithCategories();
-      const expensePolicies = policiesData.filter((pol) => {
-        if (pol.name !== "Mileage" && pol.name !== "Per Diem") {
-          return pol;
+  const [policySearchTerm, setPolicySearchTerm] = useState("");
+  const [policyDropdownOpen, setPolicyDropdownOpen] = useState(false);
+
+  const debounceRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+    useEffect(() => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+  
+      debounceRef.current = window.setTimeout(async () => {
+        if (abortRef.current) {
+          abortRef.current.abort();
         }
-      });
-      setPolicies(expensePolicies);
-    } catch (error) {
-      toast.error("Failed to fetch policies");
-    }
-  };
+  
+        const controller = new AbortController();
+        abortRef.current = controller;
+  
+        try {
+          let res;
+  
+          if (policySearchTerm.trim()) {
+            const term = encodeURIComponent(policySearchTerm.trim());
+  
+            res = await policyService.getFilteredPolicies({
+              query: `or=(name.ilike.%${term}%,description.ilike.%${term}%)`,
+              signal: controller.signal,
+            });
+          } else {
+            res = await policyService.getFilteredPolicies({
+              query: "",
+              limit: 20,
+              offset: 0,
+              signal: controller.signal,
+            });
+          }
+          const expPolicies: Policy[] = filterExpensePolicies(res.data.data);
+          setPolicies(expPolicies);
+        } catch (err: any) {
+          if (err.name !== "AbortError" && err.name !== "CanceledError") {
+            console.error(err);
+          }
+        }
+      }, 400);
+  
+      return () => {
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+      };
+    }, [policySearchTerm]);
 
   const selectedCurrency =
     currencies.find((currency) => currency.code === form.watch("currency")) ||
@@ -257,24 +296,16 @@ export function CreateAdvanceForm({
 
   useEffect(() => {
     if (selectedAdvance?.custom_attributes && templateEntities.length > 0) {
-      // const newTempEntities: any[] = [];
       Object.entries(selectedAdvance.custom_attributes).forEach(
         ([entityId, attributeId]) => {
           form.setValue(entityId as any, String(attributeId));
-          // const ent = templateEntities.find(temp => {
-          //   return temp.entity_id === entityId
-          // })
-          // if (ent) {
-          //   newTempEntities.push(ent);
-          // }
         }
       );
-      // setTemplateEntities(newTempEntities)
     }
   }, [selectedAdvance, templateEntities]);
 
   useEffect(() => {
-    loadPoliciesWithCategories();
+    // loadPoliciesWithCategories();
   }, []);
 
   useEffect(() => {
@@ -546,58 +577,134 @@ export function CreateAdvanceForm({
 
           <div>
             {!(mode === "view" && !form.getValues("policy_id")) && (
-            <FormField
-              control={form.control}
-              name="policy_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Policy</FormLabel>
-                  <FormControl>
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        const policy = policies.find((p) => p.id === value);
-                        setSelectedPolicy(policy || null);
-                      }}
-                      disabled={mode === "view"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a policy">
-                            {field.value && selectedPolicy
-                              ? selectedPolicy.name
-                              : "Select a policy"}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {policies.map((policy) => (
-                          <SelectItem key={policy.id} value={policy.id}>
-                            <div>
-                              <div className="font-medium">{policy.name}</div>
-                              {policy.description && (
-                                <div className="text-sm text-muted-foreground">
-                                  {policy.description}
-                                </div>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="policy_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Policy</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          const policy = policies.find((p) => p.id === value);
+                          setSelectedPolicy(policy || null);
+                        }}
+                        disabled={mode === "view"}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a policy">
+                              {field.value && selectedPolicy
+                                ? selectedPolicy.name
+                                : "Select a policy"}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {policies.map((policy) => (
+                            <SelectItem key={policy.id} value={policy.id}>
+                              <div>
+                                <div className="font-medium">{policy.name}</div>
+                                {policy.description && (
+                                  <div className="text-sm text-muted-foreground">
+                                    {policy.description}
+                                  </div>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
           </div>
+
+          <FormField
+            control={form.control}
+            name="policy_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Policy</FormLabel>
+                <Popover
+                  open={policyDropdownOpen}
+                  onOpenChange={setPolicyDropdownOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={policyDropdownOpen}
+                        className="h-11 w-full justify-between"
+                        disabled={mode !== "create"}
+                      >
+                        <>
+                          <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
+                            {selectedPolicy
+                              ? selectedPolicy.name
+                              : "Select a policy"}
+                          </span>
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </>
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <Input
+                        value={policySearchTerm}
+                        className="border-0 block outline-none ring-0 focus:border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 shadow-none"
+                        onChange={(e) => setPolicySearchTerm(e.target.value)}
+                        placeholder="Search categories..."
+                      />
+                      <CommandList>
+                        <CommandEmpty>No policy found.</CommandEmpty>
+                        <CommandGroup>
+                          {policies.map((policy) => (
+                            <CommandItem
+                              key={policy.id}
+                              value={policy.name}
+                              onSelect={() => {
+                                field.onChange(policy.id);
+                                setSelectedPolicy(policy);
+                                setPolicyDropdownOpen(false);
+                              }}
+                            >
+                              <div>
+                                <div className="font-medium">{policy.name}</div>
+                                {policy.description && (
+                                  <div className="text-sm text-muted-foreground">
+                                    {policy.description}
+                                  </div>
+                                )}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           {templateEntities?.map((entity) => {
             const entityId = getEntityId(entity);
             const fieldName = getFieldName(entity);
-            if (!entityId || (mode === "view" && !selectedAdvance?.custom_attributes?.[entityId])) return null;
+            if (
+              !entityId ||
+              (mode === "view" &&
+                !selectedAdvance?.custom_attributes?.[entityId])
+            )
+              return null;
 
             return (
               <FormField

@@ -1,21 +1,30 @@
+import CustomPolicyToolbar from "@/components/admin/CustomPolicyToolbar";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { Button } from "@/components/ui/button";
 import { policyService } from "@/services/admin/policyService";
+import { usePolicyStore } from "@/store/admin/policyStore";
 import { PaginationInfo } from "@/store/expenseStore";
 import { PolicyCategory } from "@/types/expense";
 import { Box } from "@mui/material";
 import { GridRowSelectionModel } from "@mui/x-data-grid";
 import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { buildBackendQuery } from "../MyExpensesPage";
 
 const columns: GridColDef[] = [
   {
     field: "name",
     headerName: "NAME",
+    minWidth: 200,
+    flex: 1,
+  },
+  {
+    field: "description",
+    headerName: "DESCRIPTION",
     minWidth: 200,
     flex: 1,
   },
@@ -32,7 +41,7 @@ const columns: GridColDef[] = [
     flex: 1,
     renderCell: ({ value }) => {
       return (
-        <span>{value.map((cat: PolicyCategory) => cat.name).join(", ")}</span>
+        <span>{value ? value.map((cat: PolicyCategory) => cat.name).join(", ") : "NA"}</span>
       );
     },
   },
@@ -40,27 +49,28 @@ const columns: GridColDef[] = [
 
 function AdminExpensePolicies() {
   const navigate = useNavigate();
+  const { query } = usePolicyStore();
   const [loading, setLoading] = useState(true);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const GRID_OFFSET = 190;
+  const GRID_OFFSET = 200;
   const ROW_HEIGHT = 38;
-  const HEADER_HEIGHT = 0;
+  const HEADER_HEIGHT = 56;
 
   const calculatePageSize = () => {
-    const availableHeight =
-      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    const availableHeight = window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
     return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
   };
 
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel>({
-      page: 0,
-      pageSize: calculatePageSize(),
-    });
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: calculatePageSize(),
+  });
 
   const [paginationInfo, setPaginationInfo] = useState<PaginationInfo>();
 
@@ -73,40 +83,66 @@ function AdminExpensePolicies() {
     );
   };
 
-  const getPolicies = async ({
-    page,
-    perPage,
-  }: {
-    page: number;
-    perPage: number;
-  }) => {
-    try {
-      setLoading(true);
-      const res = await policyService.getPolicies({ page, perPage });
+  const fetchFilteredPolicies = useCallback(
+    async ({ signal }: { signal: AbortSignal }) => {
+      const limit = paginationModel?.pageSize ?? 10;
+      const offset = (paginationModel?.page ?? 0) * limit;
+
+      const res = await policyService.getFilteredPolicies({
+        query: buildBackendQuery(query),
+        limit,
+        offset,
+        signal,
+      });
       setRows(res.data.data);
-      setPaginationInfo(res.data.pagination);
-    } catch (error: any) {
-      console.log(error);
-      toast.error(
-        error?.response?.data?.message ||
-        error.message ||
-        "Failed to get policies"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+      setPaginationInfo({total: res.data.count});
+    },
+    [query, paginationModel?.page, paginationModel?.pageSize]
+  );
 
   useEffect(() => {
-    getPolicies({
-      page: (paginationModel?.page || 0) + 1,
-      perPage: paginationModel?.pageSize || 0,
-    });
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      setLoading(true);
+
+      fetchFilteredPolicies({ signal: controller.signal })
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            console.error(err);
+            toast.error(err?.response?.data?.message || err?.message);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setLoading(false);
+            setRowSelection({ type: "include", ids: new Set() });
+          }
+        });
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [fetchFilteredPolicies]);
+
+  useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
+
   return (
     <div>
-      {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Policies</h1>
         <Button
@@ -125,8 +161,16 @@ function AdminExpensePolicies() {
           rows={loading ? [] : rows}
           loading={loading}
           slots={{
-            noRowsOverlay: () => <CustomNoRows title="No policies found" description="There are currently no policies" />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+            toolbar: CustomPolicyToolbar,
+            noRowsOverlay: () => (
+              <CustomNoRows
+                title="No policies found"
+                description="There are currently no policies"
+              />
+            ),
+            loadingOverlay: () => (
+              <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+            ),
           }}
           sx={{
             border: 0,
@@ -172,6 +216,7 @@ function AdminExpensePolicies() {
             },
           }}
           density="compact"
+          showToolbar
           checkboxSelection
           disableRowSelectionOnClick
           showCellVerticalBorder
