@@ -170,7 +170,7 @@ const FilterModal: React.FC<FilterDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl h-[80vh] max-h-[80vh] overflow-auto w-full [&>button[aria-label='Close']]:hidden">
+      <DialogContent className="sm:max-w-4xl h-[50vh] overflow-auto w-full [&>button[aria-label='Close']]:hidden">
         <DialogTitle className="hidden" />
         <div className="space-y-4 flex flex-col h-full">
           <div className="text-xl font-semibold">Apply Filters</div>

@@ -1,8 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { approvalService } from "@/services/approvalService";
-import { NewPaginationMeta, Report } from "@/types/expense";
-import { formatDate, formatCurrency, getStatusColor } from "@/lib/utils";
+import { Report } from "@/types/expense";
+import {
+  formatDate,
+  formatCurrency,
+  getStatusColor,
+  buildApprovalBackendQuery,
+} from "@/lib/utils";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import { Badge } from "@/components/ui/badge";
 import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
@@ -11,6 +16,21 @@ import { GridPaginationModel } from "@mui/x-data-grid";
 import { useAuthStore } from "@/store/authStore";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import CustomReportsApprovalToolbar from "@/components/reports/CustomReportsApprovalToolbar";
+import { useReportsStore } from "@/store/reportsStore";
+import {
+  FieldFilter,
+  FilterMap,
+  FilterValue,
+  Operator,
+} from "./MyExpensesPage";
+import { PaginationInfo } from "@/store/expenseStore";
+
+const REPORT_STATUSES = ["PENDING_APPROVAL", "APPROVED", "REJECTED"];
+
+const PENDING_REPORT_STATUSES = ["PENDING_APPROVAL"];
+
+const PROCESSED_REPORT_STATUSES = ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { ExportDialog } from "@/components/reports/ExportDialog";
@@ -77,66 +97,115 @@ const columns: GridColDef[] = [
 export function ApprovalsReportsPage() {
   const navigate = useNavigate();
   const { orgSettings, user } = useAuthStore();
-  const customIdEnabled = orgSettings?.custom_report_id_settings?.enabled ?? false;
+  const { approvalQuery, setApprovalQuery } = useReportsStore();
+  const customIdEnabled =
+    orgSettings?.custom_report_id_settings?.enabled ?? false;
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<
-    "unsubmitted" | "submitted" | "all"
-  >("all");
+  const [activeTab, setActiveTab] = useState<"processed" | "pending" | "all">(
+    "all"
+  );
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [allReportsPagination, setAllReportsPagination] =
-    useState<NewPaginationMeta>();
+    useState<PaginationInfo>();
   const [pendingReports, setPendingReports] = useState<Report[]>([]);
   const [pendingReportsPagination, setPendingReportsPagination] =
-    useState<NewPaginationMeta>();
+    useState<PaginationInfo>();
   const [processedReports, setProcessedReports] = useState<Report[]>([]);
   const [processedReportsPagination, setProcessedReportsPagination] =
-    useState<NewPaginationMeta>();
+    useState<PaginationInfo>();
   const rows =
     activeTab === "all"
       ? allReports
-      : activeTab === "unsubmitted"
-        ? pendingReports
-        : processedReports;
+      : activeTab === "pending"
+      ? pendingReports
+      : processedReports;
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const GRID_OFFSET = 240;
   const ROW_HEIGHT = 38;
-  const HEADER_HEIGHT = 0;
+  const HEADER_HEIGHT = 56;
+
+  const allowedStatus =
+    activeTab === "all"
+      ? REPORT_STATUSES
+      : activeTab === "pending"
+      ? PENDING_REPORT_STATUSES
+      : PROCESSED_REPORT_STATUSES;
 
   const calculatePageSize = () => {
-    const availableHeight =
-      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    const availableHeight = window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
     return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
   };
 
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel>({
-      page: 0,
-      pageSize: calculatePageSize(),
-    });
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: calculatePageSize(),
+  });
 
   const newCols = useMemo<GridColDef[]>(() => {
     return [
       ...columns,
       ...(customIdEnabled
         ? [
-          {
-            field: "custom_report_id",
-            headerName: "CUSTOM REPORT ID",
-            minWidth: 140,
-            flex: 1,
-          } as GridColDef,
-        ]
+            {
+              field: "custom_report_id",
+              headerName: "CUSTOM REPORT ID",
+              minWidth: 140,
+              flex: 1,
+            } as GridColDef,
+          ]
         : []),
     ];
   }, [columns, customIdEnabled]);
+
+  function updateQuery(key: string, operator: Operator, value: FilterValue) {
+    setApprovalQuery((prev) => {
+      const prevFilters: FieldFilter[] = prev[key] ?? [];
+
+      if (
+        !value ||
+        (typeof value === "string" && value.trim() === "") ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        const nextFilters = prevFilters.filter((f) => f.operator !== operator);
+
+        if (nextFilters.length === 0) {
+          const { [key]: _, ...rest } = prev;
+          return rest;
+        }
+
+        return {
+          ...prev,
+          [key]: nextFilters,
+        };
+      }
+
+      const existingIndex = prevFilters.findIndex(
+        (f) => f.operator === operator
+      );
+
+      const nextFilters =
+        existingIndex >= 0
+          ? prevFilters.map((f, i) =>
+              i === existingIndex ? { operator, value } : f
+            )
+          : [...prevFilters, { operator, value }];
+
+      return {
+        ...prev,
+        [key]: nextFilters,
+      };
+    });
+  }
 
   useEffect(() => {
     setRowSelection({
@@ -145,82 +214,7 @@ export function ApprovalsReportsPage() {
     });
   }, [activeTab]);
 
-  const fetchAllReports = async () => {
-    try {
-      const limit = paginationModel?.pageSize || 10;
-      const offset = (paginationModel?.page || 0) * limit;
-      const response = await approvalService.getReportsByStatus(
-        limit,
-        offset,
-        "IN_PROGRESS,APPROVED,REJECTED"
-      );
-      setAllReports(response?.data.data);
-      setAllReportsPagination({
-        count: response?.data.count,
-        offset: response?.data.offset,
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const fetchUnsubmittedReports = async () => {
-    try {
-      const limit = paginationModel?.pageSize || 10;
-      const offset = (paginationModel?.page || 0) * limit;
-      const response = await approvalService.getReportsByStatus(
-        limit,
-        offset,
-        "IN_PROGRESS"
-      );
-      setPendingReports(response.data.data);
-      setPendingReportsPagination({
-        count: response?.data.count,
-        offset: response?.data.offset,
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const fetchSubmittedReports = async () => {
-    try {
-      const limit = paginationModel?.pageSize || 10;
-      const offset = (paginationModel?.page || 0) * limit;
-      const response = await approvalService.getReportsByStatus(
-        limit,
-        offset,
-        "APPROVED,REJECTED"
-      );
-      setProcessedReports(response.data.data);
-      setProcessedReportsPagination({
-        count: response?.data.count,
-        offset: response?.data.offset,
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      await Promise.all([
-        fetchAllReports(),
-        fetchSubmittedReports(),
-        fetchUnsubmittedReports(),
-      ]);
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (paginationModel) {
-      fetchData();
-    }
     setRowSelection({
       type: "include",
       ids: new Set(),
@@ -232,16 +226,16 @@ export function ApprovalsReportsPage() {
   };
 
   const tabs = [
-    { key: "all", label: "All", count: allReportsPagination?.count || 0 },
+    { key: "all", label: "All", count: allReportsPagination?.total || 0 },
     {
-      key: "unsubmitted",
+      key: "pending",
       label: "Pending",
-      count: pendingReportsPagination?.count || 0,
+      count: pendingReportsPagination?.total || 0,
     },
     {
-      key: "submitted",
+      key: "processed",
       label: "Processed",
-      count: processedReportsPagination?.count || 0,
+      count: processedReportsPagination?.total || 0,
     },
   ];
 
@@ -252,7 +246,109 @@ export function ApprovalsReportsPage() {
     { value: "rejected", label: "Rejected" },
   ];
 
-  const selectedCount = rowSelection.ids instanceof Set ? rowSelection.ids.size : 0;
+  const fetchFilteredReports = useCallback(
+    async ({ signal }: { signal: AbortSignal }) => {
+      const limit = paginationModel?.pageSize ?? 10;
+      const offset = (paginationModel?.page ?? 0) * limit;
+
+      let newQuery: FilterMap = approvalQuery;
+
+      if (!approvalQuery?.status) {
+        if (activeTab === "pending") {
+          newQuery = {
+            ...approvalQuery,
+            status: [{ operator: "in", value: ["PENDING_APPROVAL"] }],
+          };
+        } else if (activeTab === "processed") {
+          newQuery = {
+            ...approvalQuery,
+            status: [{ operator: "in", value: ["APPROVED", "REJECTED"] }],
+          };
+        } else if (activeTab === "all") {
+          newQuery = {
+            ...approvalQuery,
+            status: [
+              {
+                operator: "in",
+                value: ["APPROVED", "REJECTED", "PENDING_APPROVAL"],
+              },
+            ],
+          };
+        } else newQuery = approvalQuery;
+      }
+
+      const response = await approvalService.getFilteredReportsToApprove({
+        query: buildApprovalBackendQuery(newQuery),
+        limit,
+        offset,
+        signal,
+      });
+
+      switch (activeTab) {
+        case "pending":
+          setPendingReports(response.data.data);
+          setPendingReportsPagination({ total: response.data.count });
+          break;
+
+        case "processed":
+          setProcessedReports(response.data.data);
+          setProcessedReportsPagination({ total: response.data.count });
+          break;
+
+        case "all":
+        default:
+          setAllReports(response.data.data);
+          setAllReportsPagination({ total: response.data.count });
+      }
+    },
+    [approvalQuery, activeTab, paginationModel?.page, paginationModel?.pageSize]
+  );
+
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      setLoading(true);
+
+      fetchFilteredReports({ signal: controller.signal })
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            console.error(err);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setLoading(false);
+            setRowSelection({ type: "include", ids: new Set() });
+          }
+        });
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [fetchFilteredReports]);
+
+  useEffect(() => {
+    setApprovalQuery((prev) => {
+      const { status, ...rest } = prev;
+      return { ...rest };
+    });
+  }, []);
+
+  const selectedCount =
+    rowSelection.ids instanceof Set ? rowSelection.ids.size : 0;
   const hasSelection = selectedCount > 0;
 
   const getSelectedReportIds = (): string[] => {
@@ -271,7 +367,10 @@ export function ApprovalsReportsPage() {
     }
 
     try {
-      const response = await approvalService.exportReports(selectedIds, includeReceipts);
+      const response = await approvalService.exportReports(
+        selectedIds,
+        includeReceipts
+      );
       if (response.success) {
         setShowSuccessDialog(true);
         // Clear selection after successful export
@@ -283,7 +382,8 @@ export function ApprovalsReportsPage() {
     } catch (error: any) {
       console.error("Export failed:", error);
       toast.error(
-        error?.response?.data?.message || "Failed to export reports. Please try again."
+        error?.response?.data?.message ||
+          "Failed to export reports. Please try again."
       );
     }
   };
@@ -294,9 +394,22 @@ export function ApprovalsReportsPage() {
         title="Approver Dashboard"
         tabs={tabs}
         activeTab={activeTab}
-        onTabChange={(tabId) =>
-          setActiveTab(tabId as "unsubmitted" | "submitted")
-        }
+        onTabChange={(tabId) => {
+          setLoading(true);
+          setActiveTab(tabId as "all" | "pending" | "processed");
+          const filter =
+            tabId === "all"
+              ? []
+              : tabId === "pending"
+              ? ["PENDING_APPROVAL"]
+              : ["APPROVED", "REJECTED"];
+
+          updateQuery("status", "in", filter);
+          setPaginationModel((prev) => ({
+            ...prev,
+            page: 0,
+          }));
+        }}
         tabsRightContent={
           hasSelection ? (
             <Button
@@ -324,73 +437,87 @@ export function ApprovalsReportsPage() {
             marginTop: "-30px",
           }}
         >
-        <DataGrid
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          rows={loading ? [] : rows}
-          columns={newCols}
-          loading={loading}
-          slots={{
-            noRowsOverlay: () => <CustomNoRows title="No reports found" description="There are currently no reports." />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
-          }}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          density="compact"
-          checkboxSelection
-          disableRowSelectionOnClick
-          showCellVerticalBorder
-          onRowClick={(params) => handleViewDetails(params.row.id)}
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
-          pagination
-          paginationMode="server"
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          rowCount={
-            (activeTab === "all"
-              ? allReportsPagination?.count
-              : activeTab === "unsubmitted"
-                ? pendingReportsPagination?.count
-                : processedReportsPagination?.count) || 0
-          }
-        />
-      </Box>
+          <DataGrid
+            className="rounded border-[0.2px] border-[#f3f4f6] h-full"
+            rows={loading ? [] : rows}
+            columns={newCols}
+            loading={loading}
+            slots={{
+              toolbar: CustomReportsApprovalToolbar,
+              noRowsOverlay: () => (
+                <CustomNoRows
+                  title="No reports found"
+                  description="There are currently no reports."
+                />
+              ),
+              loadingOverlay: () => (
+                <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+              ),
+            }}
+            slotProps={{
+              toolbar: {
+                allStatuses: allowedStatus,
+              } as any,
+            }}
+            sx={{
+              border: 0,
+              "& .MuiDataGrid-columnHeaderTitle": {
+                color: "#9AA0A6",
+                fontWeight: "bold",
+                fontSize: "12px",
+              },
+              "& .MuiDataGrid-main": {
+                border: "0.2px solid #f3f4f6",
+              },
+              "& .MuiDataGrid-virtualScroller": {
+                overflow: loading ? "hidden" : "auto",
+              },
+              "& .MuiDataGrid-columnHeader": {
+                backgroundColor: "#f3f4f6",
+                border: "none",
+              },
+              "& .MuiDataGrid-columnHeaders": {
+                border: "none",
+              },
+              "& .MuiDataGrid-row:hover": {
+                cursor: "pointer",
+                backgroundColor: "#f5f5f5",
+              },
+              "& .MuiDataGrid-cell": {
+                color: "#2E2E2E",
+                border: "0.2px solid #f3f4f6",
+              },
+              "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
+                outline: "none",
+              },
+              "& .MuiDataGrid-cell:focus-within": {
+                outline: "none",
+              },
+              "& .MuiDataGrid-columnSeparator": {
+                color: "#f3f4f6",
+              },
+            }}
+            density="compact"
+            showToolbar
+            checkboxSelection
+            disableRowSelectionOnClick
+            showCellVerticalBorder
+            onRowClick={(params) => handleViewDetails(params.row.id)}
+            rowSelectionModel={rowSelection}
+            onRowSelectionModelChange={setRowSelection}
+            pagination
+            paginationMode="server"
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            rowCount={
+              (activeTab === "all"
+                ? allReportsPagination?.total
+                : activeTab === "pending"
+                ? pendingReportsPagination?.total
+                : processedReportsPagination?.total) || 0
+            }
+          />
+        </Box>
       </ReportsPageWrapper>
 
       <ExportDialog
