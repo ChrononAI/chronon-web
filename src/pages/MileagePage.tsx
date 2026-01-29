@@ -47,6 +47,7 @@ import {
   formatDistance,
   getDistanceUnit,
   usesMetricSystem,
+  parseLocalDate,
 } from "@/lib/utils";
 import {
   Form,
@@ -59,7 +60,6 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { trackEvent } from "@/mixpanel";
 import ExpenseLogs from "@/components/expenses/ExpenseLogs";
-import { AttachmentUploader } from "@/components/expenses/AttachmentUploader";
 import { Attachment } from "@/components/expenses/ExpenseDetailsStep2";
 import AttachmentViewer from "@/components/expenses/AttachmentViewer";
 
@@ -185,7 +185,6 @@ const MileagePage = ({
   const [fileIds, setFileIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachmentLoading, setAttachmentLoading] = useState(true);
-  console.log(fileIds);
   
   const generateUploadUrl = async (file: File): Promise<{
     downloadUrl: string;
@@ -796,7 +795,9 @@ const MileagePage = ({
         description: expenseData.description || "",
         vehiclesType: expenseData.mileage_rate_id,
         expenseDate:
-          format(new Date(expenseData.expense_date), "yyyy-MM-dd") || "",
+          expenseData.expense_date
+            ? format(parseLocalDate(expenseData.expense_date), "yyyy-MM-dd")
+            : "",
         isRoundTrip: expenseData.is_round_trip,
         policyId: expenseData.expense_policy_id || "",
         categoryId: expenseData.category_id || "",
@@ -1003,7 +1004,6 @@ const MileagePage = ({
           const fetched = await Promise.all(
             fileIdsToFetch.map(async (fileId) => {
               const res = await expenseService.generatePreviewUrl(fileId);
-              console.log(res);
               return { fileId, url: res.data.data.download_url };
             })
           );
@@ -1162,7 +1162,15 @@ const MileagePage = ({
                   )}
                 </div>
               ) : activeMapTab === "attachment" ?
-                <AttachmentViewer activeTab={activeMapTab} attachments={attachments} isLoadingReceipt={attachmentLoading} />
+                <AttachmentViewer
+                  activeTab={activeMapTab}
+                  attachments={attachments}
+                  isLoadingReceipt={attachmentLoading}
+                  setAttachments={setAttachments}
+                  fileIds={fileIds}
+                  setFileIds={setFileIds}
+                  generateUploadUrl={generateUploadUrl}
+                />
               : activeMapTab === "comments" ? (
                 <ExpenseComments
                   expenseId={expenseData?.id}
@@ -1544,12 +1552,6 @@ const MileagePage = ({
                     </FormItem>
                   )}
                 />
-
-                <AttachmentUploader
-                    onChange={setAttachments}
-                    setFileIds={setFileIds}
-                    generateUploadUrl={generateUploadUrl}
-                  />
               </div>
             </div>
 

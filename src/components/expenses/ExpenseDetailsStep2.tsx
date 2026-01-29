@@ -43,7 +43,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { cn, getOrgCurrency } from "@/lib/utils";
+import { cn, getOrgCurrency, parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
@@ -70,7 +70,6 @@ import { getEntities, type Entity } from "@/services/admin/entities";
 import { FormFooter } from "../layout/FormFooter";
 import ReceiptViewer from "./ReceiptViewer";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
-import { AttachmentUploader } from "./AttachmentUploader";
 
 export type Attachment = {
   fileId: string;
@@ -86,23 +85,19 @@ const expenseSchema = z.object({
   vendor: z.string().min(1, "Vendor is required"),
   amount: z.string().min(1, "Amount is required"),
   receipt_id: z.string().optional(),
-  expense_date: z.preprocess(
-    (v) => (v ? new Date(v as string) : v),
-    z.date({ required_error: "Date is required" }).refine(
-      (date) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const selectedDate = new Date(date);
-        selectedDate.setHours(0, 0, 0, 0);
-
-        return selectedDate <= today;
-      },
-      {
-        message: "Date cannot exceed today's date",
-      }
-    )
-  ),
+  expense_date: z
+    .string()
+    .min(1, "Date is required")
+    .refine((v) => !isNaN(parseLocalDate(v).getTime()), {
+      message: "Invalid date",
+    })
+    .refine((v) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = parseLocalDate(v);
+      selected.setHours(0, 0, 0, 0);
+      return selected <= today;
+    }, { message: "Date cannot exceed today's date" }),
   advance_account_id: z.string().optional().nullable(),
   description: z.string().min(1, "Description is required"),
   foreign_currency: z.string().optional().nullable(),
@@ -196,7 +191,16 @@ export function ExpenseDetailsStep2({
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: expense
-      ? expense
+      ? {
+          ...expense,
+          expense_date: expense.expense_date
+            ? typeof expense.expense_date === "string"
+              ? format(parseLocalDate(expense.expense_date), "yyyy-MM-dd")
+              : expense.expense_date instanceof Date
+                ? format(expense.expense_date, "yyyy-MM-dd")
+                : format(parseLocalDate(String(expense.expense_date)), "yyyy-MM-dd")
+            : undefined,
+        }
       : {
         expense_policy_id: "",
         category_id: "",
@@ -523,7 +527,18 @@ export function ExpenseDetailsStep2({
 
   useEffect(() => {
     if (expense && !isReceiptReplaced) {
-      form.reset(expense);
+      const normalizedDate = expense.expense_date
+        ? typeof expense.expense_date === "string"
+          ? format(parseLocalDate(expense.expense_date), "yyyy-MM-dd")
+          : expense.expense_date instanceof Date
+            ? format(expense.expense_date, "yyyy-MM-dd")
+            : format(parseLocalDate(String(expense.expense_date)), "yyyy-MM-dd")
+        : undefined;
+      
+      form.reset({
+        ...expense,
+        expense_date: normalizedDate,
+      });
       // Set selected policy and category based on form data
       if (expense.foreign_amount && expense.foreign_currency) {
         setShowConversion(true);
@@ -620,13 +635,13 @@ export function ExpenseDetailsStep2({
       }
 
       if (ocrData.date) {
-        const parsedDate = new Date(parsedData.extracted_date ?? "");
+        const parsedDate = parseLocalDate(parsedData.extracted_date ?? "");
         if (!isNaN(parsedDate.getTime())) {
           const today = new Date();
           parsedDate.setHours(0, 0, 0, 0);
           today.setHours(0, 0, 0, 0);
           if (parsedDate <= today) {
-            form.setValue("expense_date", parsedDate);
+            form.setValue("expense_date", format(parsedDate, "yyyy-MM-dd"));
           }
         }
       }
@@ -885,6 +900,10 @@ useEffect(() => {
               handleReceiptRotate={handleReceiptRotate}
               handleReceiptZoomIn={handleReceiptZoomIn}
               handleReceiptZoomOut={handleReceiptZoomOut}
+              setAttachments={setAttachments}
+              fileIds={fileIds}
+              setFileIds={setFileIds}
+              generateUploadUrl={generateUploadUrl}
             />
           </div>
 
@@ -1057,7 +1076,10 @@ useEffect(() => {
                                     }
                                   >
                                     {field.value ? (
-                                      format(new Date(field.value), "PPP")
+                                      format(
+                                        parseLocalDate(String(field.value)),
+                                        "PPP"
+                                      )
                                     ) : (
                                       <span>Pick a date</span>
                                     )}
@@ -1071,8 +1093,15 @@ useEffect(() => {
                               >
                                 <CalendarComponent
                                   mode="single"
-                                  selected={new Date(field.value)}
-                                  onSelect={(date) => field.onChange(date)}
+                                  selected={
+                                    field.value
+                                      ? parseLocalDate(String(field.value))
+                                      : undefined
+                                  }
+                                  onSelect={(date) => {
+                                    if (!date) return;
+                                    field.onChange(format(date, "yyyy-MM-dd"));
+                                  }}
                                   disabled={(date) =>
                                     date > new Date() ||
                                     date < new Date("1900-01-01")
@@ -1496,11 +1525,6 @@ useEffect(() => {
                           />
                         );
                       })}
-                      <AttachmentUploader
-                        onChange={setAttachments}
-                        setFileIds={setFileIds}
-                        generateUploadUrl={generateUploadUrl}
-                      />
                     </div>
                   </section>
                 </div>
@@ -1599,9 +1623,7 @@ useEffect(() => {
                     </div>
                     <div className="text-sm text-gray-600">
                       {semiParsedData?.extracted_date
-                        ? new Date(
-                          semiParsedData.extracted_date
-                        ).toLocaleDateString("en-GB", {
+                        ? parseLocalDate(semiParsedData.extracted_date).toLocaleDateString("en-GB", {
                           weekday: "short",
                           day: "2-digit",
                           month: "short",

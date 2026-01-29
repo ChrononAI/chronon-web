@@ -6,7 +6,7 @@ import PerdiemPage from "@/pages/PerdiemPage";
 import { AlertCircle, Trash2, Loader2 } from "lucide-react";
 import { expenseService, UpdateExpenseData } from "@/services/expenseService";
 import { Expense } from "@/types/expense";
-import { getOrgCurrency, getStatusColor } from "@/lib/utils";
+import { getOrgCurrency, getStatusColor, parseLocalDate } from "@/lib/utils";
 import { useExpenseStore } from "@/store/expenseStore";
 import {
   AlertDialog,
@@ -110,7 +110,7 @@ export function ExpenseDetailPage() {
 
   const isAdminUpdatingExpense =
     isAdmin &&
-    location.pathname.includes("/approvals") &&
+    (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
     expense?.status !== "APPROVED" &&
     expense?.status !== "REJECTED";
 
@@ -221,7 +221,7 @@ export function ExpenseDetailPage() {
     try {
       if (filteredData.invoice_number) {
         filteredData.expense_date = format(
-          new Date(filteredData.expense_date),
+          parseLocalDate(filteredData.expense_date),
           "yyyy-MM-dd"
         );
         filteredData.currency = baseCurrency;
@@ -428,7 +428,7 @@ export function ExpenseDetailPage() {
               expense.status === "INCOMPLETE" ||
               expense.status === "SENT_BACK" ||
               (isAdmin &&
-                location.pathname.includes("/approvals") &&
+                (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
                 expense.status !== "APPROVED" &&
                 expense.status !== "REJECTED")
                 ? "edit"
@@ -452,7 +452,7 @@ export function ExpenseDetailPage() {
               expense.status === "INCOMPLETE" ||
               expense.status === "SENT_BACK" ||
               (isAdmin &&
-                location.pathname.includes("/approvals") &&
+                (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
                 expense.status !== "APPROVED" &&
                 expense.status !== "REJECTED")
                 ? "edit"
@@ -472,7 +472,7 @@ export function ExpenseDetailPage() {
               expense.status === "INCOMPLETE" ||
               expense.status === "SENT_BACK" ||
               (isAdmin &&
-                location.pathname.includes("/approvals") &&
+                (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
                 expense.status !== "APPROVED" &&
                 expense.status !== "REJECTED")
                 ? "edit"
@@ -505,6 +505,7 @@ export function ExpenseDetailPage() {
             <Textarea
               placeholder="Enter reason for editing this expense"
               value={adminEditReason}
+              className="resize-none"
               onChange={(e) => setAdminEditReason(e.target.value)}
               rows={3}
             />
