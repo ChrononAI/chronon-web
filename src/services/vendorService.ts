@@ -79,29 +79,44 @@ export interface CreateVendorResponse {
 }
 
 export const vendorService = {
-  async getVendors(): Promise<VendorResponse> {
+  async getVendors(limit?: number, offset?: number): Promise<VendorResponse> {
     try {
-      const response = await api.get("/api/v1/vendors");
+      const response = await api.get("/api/v1/vendors", {
+        params: {
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  async searchVendorsByGst(gstNumber: string): Promise<VendorResponse> {
+  async searchVendorsByGst(gstNumber: string, limit?: number, offset?: number): Promise<VendorResponse> {
     try {
-      const response = await api.get(
-        `/api/v1/vendors?gstin=ilike.%25${encodeURIComponent(gstNumber)}%25`
-      );
+      const response = await api.get("/api/v1/vendors", {
+        params: {
+          gstin: `ilike.%${gstNumber}%`,
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  async getVendorById(id: string | number): Promise<VendorResponse> {
+  async getVendorById(id: string | number, limit?: number, offset?: number): Promise<VendorResponse> {
     try {
-      const response = await api.get(`/api/v1/vendors?id=eq.${id}`);
+      const response = await api.get("/api/v1/vendors", {
+        params: {
+          id: `eq.${id}`,
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;

@@ -32,6 +32,7 @@ import { InvoiceComment } from "@/components/invoice/InvoiceComment";
 import { InvoiceValidation } from "@/components/invoice/InvoiceValidation";
 import { InvoiceActivity } from "@/components/invoice/InvoiceActivity";
 import { getInvoiceById, getApprovalInvoiceById, getFileDownloadUrl, approveOrRejectInvoice, submitInvoice, updateInvoice, type UpdateInvoiceData } from "@/services/invoice/invoice";
+import { invoiceActivityService } from "@/services/invoice/invoiceActivityService";
 import { DateField } from "@/components/ui/date-field";
 import { formatCurrency } from "@/lib/utils";
 import { Autocomplete, TextField } from "@mui/material";
@@ -92,12 +93,19 @@ export function InvoicePage() {
   const previewUrlRef = useRef<string | null>(null);
   const lastLoadedRef = useRef<{ id?: string; fileKey?: string; routeKey?: string }>({});
   const [rawOcrPayload, setRawOcrPayload] = useState<any>(null);
+  const [pageActivities, setPageActivities] = useState<any[]>([]);
+  const [pageActivityLoading, setPageActivityLoading] = useState(false);
+  const [pageActivityError, setPageActivityError] = useState<string | null>(null);
   
   // Approval dialog state
   const [showActionDialog, setShowActionDialog] = useState(false);
   const [actionType, setActionType] = useState<"approve" | "reject" | null>(null);
   const [comments, setComments] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
+  const [lineItemValidationErrors, setLineItemValidationErrors] = useState<Record<number, Record<string, boolean>>>({});
 
   useEffect(() => {
     if (previewUrlRef.current) {
@@ -298,6 +306,23 @@ export function InvoicePage() {
           
           lastLoadedRef.current = { id: currentId, fileKey, routeKey };
           setTableLoading(false);
+
+          // Fetch activity/workflow data for this invoice so Activity tab is ready
+          (async () => {
+            try {
+              setPageActivityLoading(true);
+              setPageActivityError(null);
+              const actRes = await invoiceActivityService.getApprovers(currentId || "");
+              // map workflows to same structure InvoiceActivity expects (it can accept raw mapped array too)
+              // Keep raw workflows so the UI can reuse the report's WorkflowTimeline
+              setPageActivities(actRes.data || []);
+            } catch (e) {
+              console.error("Error loading page activity:", e);
+              setPageActivityError("Failed to load activity");
+            } finally {
+              setPageActivityLoading(false);
+            }
+          })();
           
         } else if (shouldLoadFromUpload && incomingFile) {
           if (isActive) {
@@ -358,6 +383,12 @@ export function InvoicePage() {
         setVendorEmail(matchedVendor.email || "");
         setVendorPan(matchedVendor.pan || "");
         setVendorId(matchedVendor.vendor_code || "");
+        
+        // Clear validation errors for vendor fields when auto-filled
+        if (matchedVendor.vendor_name) setValidationErrors(prev => ({ ...prev, vendorName: false }));
+        if (matchedVendor.email) setValidationErrors(prev => ({ ...prev, vendorEmail: false }));
+        if (matchedVendor.pan) setValidationErrors(prev => ({ ...prev, vendorPan: false }));
+        if (matchedVendor.vendor_code) setValidationErrors(prev => ({ ...prev, vendorId: false }));
       }
     } else if (gstNumber.length > 0 && gstNumber.length !== 15) {
       // Clear vendor details if GST number is not exactly 15 characters
@@ -425,6 +456,13 @@ export function InvoicePage() {
         setVendorEmail(vendor.email || "");
         setVendorPan(vendor.pan || "");
         setVendorId(vendor.vendor_code || "");
+        
+        // Clear validation errors for vendor fields when auto-filled
+        if (vendor.vendor_name) setValidationErrors(prev => ({ ...prev, vendorName: false }));
+        if (vendor.email) setValidationErrors(prev => ({ ...prev, vendorEmail: false }));
+        if (vendor.pan) setValidationErrors(prev => ({ ...prev, vendorPan: false }));
+        if (vendor.vendor_code) setValidationErrors(prev => ({ ...prev, vendorId: false }));
+        setValidationErrors(prev => ({ ...prev, gstNumber: false }));
       } else {
         // Clear vendor details if GST is not 15 characters
         setVendorName("");
@@ -445,6 +483,13 @@ export function InvoicePage() {
           setVendorEmail(cachedVendor.email || "");
           setVendorPan(cachedVendor.pan || "");
           setVendorId(cachedVendor.vendor_code || "");
+          
+          // Clear validation errors for vendor fields when auto-filled
+          if (cachedVendor.vendor_name) setValidationErrors(prev => ({ ...prev, vendorName: false }));
+          if (cachedVendor.email) setValidationErrors(prev => ({ ...prev, vendorEmail: false }));
+          if (cachedVendor.pan) setValidationErrors(prev => ({ ...prev, vendorPan: false }));
+          if (cachedVendor.vendor_code) setValidationErrors(prev => ({ ...prev, vendorId: false }));
+          setValidationErrors(prev => ({ ...prev, gstNumber: false }));
         } else {
           setVendorName("");
           setVendorId("");
@@ -654,9 +699,65 @@ export function InvoicePage() {
     }
   };
 
+  // Validation function
+  const validateFields = (): boolean => {
+    const errors: Record<string, boolean> = {};
+    const lineItemErrors: Record<number, Record<string, boolean>> = {};
+    
+    // Validate main form fields
+    if (!invoiceNumber.trim()) errors.invoiceNumber = true;
+    if (!invoiceDate.trim()) errors.invoiceDate = true;
+    if (!gstNumber.trim() || gstNumber.length !== 15) errors.gstNumber = true;
+    if (!vendorId.trim()) errors.vendorId = true;
+    if (!vendorName.trim()) errors.vendorName = true;
+    if (!vendorPan.trim()) errors.vendorPan = true;
+    if (!vendorEmail.trim()) errors.vendorEmail = true;
+    if (!billingAddress.trim()) errors.billingAddress = true;
+    if (!shippingAddress.trim()) errors.shippingAddress = true;
+    
+    // Validate line items
+    if (tableRows.length === 0) {
+      toast.error("Please add at least one line item");
+      return false;
+    }
+    
+    tableRows.forEach((row) => {
+      const rowErrors: Record<string, boolean> = {};
+      if (!row.itemDescription.trim()) rowErrors.itemDescription = true;
+      if (!row.quantity.trim() || parseFloat(row.quantity) <= 0) rowErrors.quantity = true;
+      if (!row.rate.trim() || parseFloat(row.rate) <= 0) rowErrors.rate = true;
+      if (!row.tdsCode.trim()) rowErrors.tdsCode = true;
+      if (!row.tdsAmount.trim() || parseFloat(row.tdsAmount) < 0) rowErrors.tdsAmount = true;
+      if (!row.gstCode.trim()) rowErrors.gstCode = true;
+      if (!row.igst.trim() || parseFloat(row.igst) < 0) rowErrors.igst = true;
+      if (!row.cgst.trim() || parseFloat(row.cgst) < 0) rowErrors.cgst = true;
+      if (!row.sgst.trim() || parseFloat(row.sgst) < 0) rowErrors.sgst = true;
+      if (!row.utgst.trim() || parseFloat(row.utgst) < 0) rowErrors.utgst = true;
+      if (!row.netAmount.trim() || parseFloat(row.netAmount) <= 0) rowErrors.netAmount = true;
+      
+      if (Object.keys(rowErrors).length > 0) {
+        lineItemErrors[row.id] = rowErrors;
+      }
+    });
+    
+    setValidationErrors(errors);
+    setLineItemValidationErrors(lineItemErrors);
+    
+    if (Object.keys(errors).length > 0 || Object.keys(lineItemErrors).length > 0) {
+      toast.error("Please fill all required fields");
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleUpdateInvoice = async () => {
     if (!id) {
       toast.error("Invoice ID is missing");
+      return;
+    }
+
+    if (!validateFields()) {
       return;
     }
 
@@ -724,6 +825,10 @@ export function InvoicePage() {
   const handleSubmitInvoice = async () => {
     if (!id) {
       toast.error("Invoice ID is missing");
+      return;
+    }
+
+    if (!validateFields()) {
       return;
     }
 
@@ -942,12 +1047,20 @@ export function InvoicePage() {
                       <Input
                         id="invoice-number"
                         value={invoiceNumber}
-                        onChange={(e) => setInvoiceNumber(e.target.value)}
-                        className={`mt-0.5 h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 text-sm font-normal ${getFieldHighlightClass("invoice_number", invoiceNumber)}`}
+                        onChange={(e) => {
+                          setInvoiceNumber(e.target.value);
+                          if (validationErrors.invoiceNumber && e.target.value.trim()) {
+                            setValidationErrors(prev => ({ ...prev, invoiceNumber: false }));
+                          }
+                        }}
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal ${getFieldHighlightClass("invoice_number", invoiceNumber)} ${validationErrors.invoiceNumber ? 'border-red-500' : 'border-[#E9EAEE]'}`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder="Enter invoice number"
                         disabled={isFieldDisabled}
                       />
+                      {validationErrors.invoiceNumber && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="invoice-date" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
@@ -956,10 +1069,18 @@ export function InvoicePage() {
                       <DateField
                         id="invoice-date"
                         value={invoiceDate}
-                        onChange={(value) => setInvoiceDate(value || "")}
+                        onChange={(value) => {
+                          setInvoiceDate(value || "");
+                          if (validationErrors.invoiceDate && value?.trim()) {
+                            setValidationErrors(prev => ({ ...prev, invoiceDate: false }));
+                          }
+                        }}
                         disabled={isFieldDisabled}
-                        className={`mt-0.5 h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] ${getFieldHighlightClass("invoice_date", invoiceDate)}`}
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] ${getFieldHighlightClass("invoice_date", invoiceDate)} ${validationErrors.invoiceDate ? '!border-red-500' : 'border-[#E9EAEE]'}`}
                       />
+                      {validationErrors.invoiceDate && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="gst-number" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
@@ -973,9 +1094,15 @@ export function InvoicePage() {
                         inputValue={gstNumber}
                         onInputChange={(_event, newInputValue) => {
                           handleGstNumberChange(newInputValue);
+                          if (validationErrors.gstNumber && newInputValue.trim() && newInputValue.length === 15) {
+                            setValidationErrors(prev => ({ ...prev, gstNumber: false }));
+                          }
                         }}
                         onChange={(_event, newValue) => {
                           handleVendorSelect(newValue);
+                          if (validationErrors.gstNumber && newValue && typeof newValue === 'object' && newValue.gstin && newValue.gstin.length === 15) {
+                            setValidationErrors(prev => ({ ...prev, gstNumber: false }));
+                          }
                         }}
                         loading={vendorSearchLoading}
                         disabled={isFieldDisabled}
@@ -1003,14 +1130,14 @@ export function InvoicePage() {
                                   return 'white';
                                 })(),
                                 '& fieldset': {
-                                  borderColor: '#E9EAEE',
+                                  borderColor: validationErrors.gstNumber ? '#EF4444' : '#E9EAEE',
                                   borderWidth: '0.7px',
                                 },
                                 '&:hover fieldset': {
-                                  borderColor: '#E9EAEE',
+                                  borderColor: validationErrors.gstNumber ? '#EF4444' : '#E9EAEE',
                                 },
                                 '&.Mui-focused fieldset': {
-                                  borderColor: '#0D9C99',
+                                  borderColor: validationErrors.gstNumber ? '#EF4444' : '#0D9C99',
                                   borderWidth: '0.7px',
                                 },
                               },
@@ -1029,6 +1156,9 @@ export function InvoicePage() {
                         )}
                         noOptionsText={gstNumber ? "No vendors found" : "Start typing to search..."}
                       />
+                      {validationErrors.gstNumber && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-id" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
@@ -1038,11 +1168,14 @@ export function InvoicePage() {
                         id="vendor-id"
                         value={vendorId}
                         readOnly
-                        className={`mt-0.5 h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${getFieldHighlightClass("vendor_id", vendorId)}`}
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${getFieldHighlightClass("vendor_id", vendorId)} ${validationErrors.vendorId ? 'border-red-500' : 'border-[#E9EAEE]'}`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor ID" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
+                      {validationErrors.vendorId && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-name" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
@@ -1052,11 +1185,14 @@ export function InvoicePage() {
                         id="vendor-name"
                         value={vendorName}
                         readOnly
-                        className="mt-0.5 h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50"
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${validationErrors.vendorName ? 'border-red-500' : 'border-[#E9EAEE]'}`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor name" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
+                      {validationErrors.vendorName && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-pan" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>PAN</Label>
@@ -1064,11 +1200,14 @@ export function InvoicePage() {
                         id="vendor-pan"
                         value={vendorPan}
                         readOnly
-                        className="mt-0.5 h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50"
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${validationErrors.vendorPan ? 'border-red-500' : 'border-[#E9EAEE]'}`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "PAN number" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
+                      {validationErrors.vendorPan && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-email" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Vendor Email</Label>
@@ -1077,11 +1216,14 @@ export function InvoicePage() {
                         type="email"
                         value={vendorEmail}
                         readOnly
-                        className="mt-0.5 h-[33px] border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50"
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${validationErrors.vendorEmail ? 'border-red-500' : 'border-[#E9EAEE]'}`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor email" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
+                      {validationErrors.vendorEmail && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
               </div>
             </div>
@@ -1095,24 +1237,40 @@ export function InvoicePage() {
                       <Textarea
                         id="billing-address"
                         value={billingAddress}
-                        onChange={(e) => setBillingAddress(e.target.value)}
-                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("billing_address", billingAddress)}`}
+                        onChange={(e) => {
+                          setBillingAddress(e.target.value);
+                          if (validationErrors.billingAddress && e.target.value.trim()) {
+                            setValidationErrors(prev => ({ ...prev, billingAddress: false }));
+                          }
+                        }}
+                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("billing_address", billingAddress)} ${validationErrors.billingAddress ? 'border-red-500' : 'border-[#E9EAEE]'}`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder="Enter billing address..."
                         disabled={isFieldDisabled}
                       />
+                      {validationErrors.billingAddress && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="shipping-address" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Shipping Address</Label>
                       <Textarea
                         id="shipping-address"
                         value={shippingAddress}
-                        onChange={(e) => setShippingAddress(e.target.value)}
-                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] border-[#E9EAEE] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("shipping_address", shippingAddress)}`}
+                        onChange={(e) => {
+                          setShippingAddress(e.target.value);
+                          if (validationErrors.shippingAddress && e.target.value.trim()) {
+                            setValidationErrors(prev => ({ ...prev, shippingAddress: false }));
+                          }
+                        }}
+                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("shipping_address", shippingAddress)} ${validationErrors.shippingAddress ? 'border-red-500' : 'border-[#E9EAEE]'}`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder="Enter shipping address..."
                         disabled={isFieldDisabled}
                       />
+                      {validationErrors.shippingAddress && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
               </div>
             </div>
@@ -1152,7 +1310,7 @@ export function InvoicePage() {
                 <InvoiceComment invoiceId={id} readOnly={isFieldDisabled} />
               </TabsContent>
               <TabsContent value="activity" className="h-full mt-0">
-                <InvoiceActivity invoiceId={id} />
+                <InvoiceActivity invoiceId={id} activities={pageActivities} />
               </TabsContent>
             </div>
           </Tabs>
@@ -1167,6 +1325,24 @@ export function InvoicePage() {
           onRowUpdate={updateTableRow}
           onAddRow={addTableRow}
           isFieldChanged={isFieldChanged}
+          validationErrors={lineItemValidationErrors}
+          onValidationErrorChange={(rowId, field, hasError) => {
+            setLineItemValidationErrors(prev => {
+              const newErrors = { ...prev };
+              if (!newErrors[rowId]) {
+                newErrors[rowId] = {};
+              }
+              if (hasError) {
+                newErrors[rowId][field] = true;
+              } else {
+                delete newErrors[rowId][field];
+                if (Object.keys(newErrors[rowId]).length === 0) {
+                  delete newErrors[rowId];
+                }
+              }
+              return newErrors;
+            });
+          }}
         />
 
         {/* Summary Section */}

@@ -41,7 +41,7 @@ export function AllInvoicesPage() {
   const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const { setSidebarCollapsed } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "processed">("all");
+  const [activeTab, setActiveTab] = useState<"osc_processed" | "osc_pending" | "booked">("osc_processed");
   const [rowsCalculated, setRowsCalculated] = useState(false);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
@@ -49,6 +49,11 @@ export function AllInvoicesPage() {
   });
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [loadingInvoices, setLoadingInvoices] = useState(true);
+  const [tabCounts, setTabCounts] = useState({
+    osc_processed: 0,
+    osc_pending: 0,
+    booked: 0,
+  });
 
   // Open sidebar when on AllInvoicesPage
   useEffect(() => {
@@ -99,27 +104,12 @@ export function AllInvoicesPage() {
 
 
   const convertInvoiceToRow = (invoice: InvoiceResponse): InvoiceListRow => {
-    // Check ocr_status first, then normalize status
-    let normalizedStatus = invoice.status;
+    let displayStatus = invoice.status || "";
     
-    // If ocr_status exists, use it to determine processing state
     if (invoice.ocr_status === "OCR_PROCESSING" || invoice.ocr_status === "OCR_PENDING") {
-      normalizedStatus = "Processing";
-    } else if (invoice.ocr_status === "OCR_PROCESSED") {
-      normalizedStatus = "Processed";
-    } else if (invoice.status === "OCR_PENDING") {
-      normalizedStatus = "Pending";
-    } else if (invoice.status === "OCR_PROCESSED") {
-      normalizedStatus = "Processed";
-    } else if (invoice.status === "Open") {
-      normalizedStatus = "Open";
-    } else if (invoice.status === "Approved") {
-      normalizedStatus = "Approved";
-    } else if (invoice.status === "Rejected") {
-      normalizedStatus = "Rejected";
+      displayStatus = "OCR_PROCESSING";
     }
     
-    // Parse total_amount from API (can be string or null)
     const totalAmount = invoice.total_amount 
       ? parseFloat(invoice.total_amount) 
       : 0;
@@ -131,15 +121,44 @@ export function AllInvoicesPage() {
       invoiceNumber: invoice.invoice_number || "",
       invoiceDate: formatDate(invoice.invoice_date),
       currency: invoice.currency || "INR",
-      status: normalizedStatus,
+      status: displayStatus,
+      ocrStatus: invoice.ocr_status,
       totalAmount: formatCurrency(invoice.currency, totalAmount),
     };
   };
 
-  const fetchInvoices = useCallback(async () => {
+  const fetchAllTabCounts = useCallback(async () => {
+    try {
+      const [processedResponse, pendingResponse, bookedResponse] = await Promise.all([
+        getAllInvoices("ocr_status=in.[OCR_PROCESSED]"),
+        getAllInvoices("ocr_status=in.[OCR_PROCESSING]"),
+        getAllInvoices("status=in.[REJECTED,APPROVED,PENDING_APPROVAL]"),
+      ]);
+
+      setTabCounts({
+        osc_processed: processedResponse.count || 0,
+        osc_pending: pendingResponse.count || 0,
+        booked: bookedResponse.count || 0,
+      });
+    } catch (error) {
+      // Error handled silently
+    }
+  }, []);
+
+  const fetchInvoices = useCallback(async (tab: "osc_processed" | "osc_pending" | "booked") => {
     try {
       setLoadingInvoices(true);
-      const response = await getAllInvoices();
+      let queryParams = "";
+      
+      if (tab === "booked") {
+        queryParams = "status=in.[REJECTED,APPROVED,PENDING_APPROVAL]";
+      } else if (tab === "osc_pending") {
+        queryParams = "ocr_status=in.[OCR_PROCESSING]";
+      } else if (tab === "osc_processed") {
+        queryParams = "ocr_status=in.[OCR_PROCESSED]";
+      }
+      
+      const response = await getAllInvoices(queryParams);
       const invoiceRows: InvoiceListRow[] = response.data.map(convertInvoiceToRow);
       useInvoiceFlowStore.setState({ invoices: invoiceRows });
     } catch (error) {
@@ -150,8 +169,12 @@ export function AllInvoicesPage() {
   }, []);
 
   useEffect(() => {
-    fetchInvoices();
-  }, [fetchInvoices]);
+    fetchAllTabCounts();
+  }, [fetchAllTabCounts]);
+
+  useEffect(() => {
+    fetchInvoices(activeTab);
+  }, [activeTab, fetchInvoices]);
 
 
   useEffect(() => {
@@ -178,34 +201,17 @@ export function AllInvoicesPage() {
 
   const handleRowClick = (params: any) => {
     if (params?.row?.uploadState === "uploading") return;
-    const status = params?.row?.status;
-    if (status === "Pending" || status === "OCR_PENDING" || status === "OCR_PROCESSING") return;
+    const status = params?.row?.status?.toUpperCase() || "";
+    if (status === "PENDING" || status === "OCR_PENDING" || status === "OCR_PROCESSING") return;
     const invoiceId = params.row.invoiceId || params.id;
     navigate(`/flow/invoice/${invoiceId}`, { state: { listRow: params.row } });
   };
 
   const filteredInvoices = useMemo(() => {
-    // First, filter out processing invoices
     let filtered = invoices.filter(
-      (invoice) => 
-        invoice.status !== "Pending" && 
-        invoice.status !== "Processing" &&
-        invoice.status !== "OCR_PENDING" && 
-        invoice.status !== "OCR_PROCESSING" &&
-        invoice.uploadState !== "uploading"
+      (invoice) => invoice.uploadState !== "uploading"
     );
 
-    // Filter by tab
-    if (activeTab === "processed") {
-      filtered = filtered.filter(
-        (invoice) =>
-          invoice.status === "Processed" ||
-          invoice.status === "OCR_PROCESSED" ||
-          invoice.status === "Approved"
-      );
-    }
-
-    // Filter by search term
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -217,25 +223,18 @@ export function AllInvoicesPage() {
     }
 
     return filtered;
-  }, [invoices, activeTab, searchTerm]);
+  }, [invoices, searchTerm]);
 
   const tabs = useMemo(() => {
-    const allCount = invoices.length;
-    const processedCount = invoices.filter(
-      (invoice) =>
-        invoice.status === "Processed" ||
-        invoice.status === "OCR_PROCESSED" ||
-        invoice.status === "Approved"
-    ).length;
-
     return [
-      { key: "all", label: "All", count: allCount },
-      { key: "processed", label: "Processed", count: processedCount },
+      { key: "osc_processed", label: "OCR Processed", count: tabCounts.osc_processed },
+      { key: "osc_pending", label: "OCR Pending", count: tabCounts.osc_pending },
+      { key: "booked", label: "Booked", count: tabCounts.booked },
     ];
-  }, [invoices]);
+  }, [tabCounts]);
 
   const handleTabChange = (tab: string) => {
-    setActiveTab(tab as "all" | "processed");
+    setActiveTab(tab as "osc_processed" | "osc_pending" | "booked");
   };
 
   const hasUploading = invoices.some((inv) => inv.uploadState === "uploading");
@@ -263,10 +262,10 @@ export function AllInvoicesPage() {
 
     const isProcessing = (row: any): boolean => {
       const uploadState = row?.uploadState;
-      const status = String(row?.status ?? "");
+      const status = String(row?.status ?? "").toUpperCase();
       return (
         uploadState === "uploading" ||
-        status === "Pending" ||
+        status === "PENDING" ||
         status === "OCR_PENDING" ||
         status === "OCR_PROCESSING"
       );
@@ -383,16 +382,7 @@ export function AllInvoicesPage() {
 
           const value = String(params.value ?? "");
           
-          let normalizedStatus = value;
-          if (value === "OCR_PENDING") {
-            normalizedStatus = "Pending";
-          } else if (value === "OCR_PROCESSED") {
-            normalizedStatus = "Processed";
-          } else if (value === "OCR_PROCESSING") {
-            normalizedStatus = "Processing";
-          }
-
-          if (normalizedStatus === "Pending" || normalizedStatus === "Processing" || value === "OCR_PROCESSING") {
+          if (value === "OCR_PROCESSING" || value === "OCR_PENDING") {
             return (
               <div className="flex items-center gap-2 h-full">
                 <Loader2 className="h-4 w-4 animate-spin text-[#0D9C99]" />
@@ -405,7 +395,7 @@ export function AllInvoicesPage() {
 
           return (
             <div className="flex items-center h-full">
-              <StatusPill status={normalizedStatus} />
+              <StatusPill status={value} />
             </div>
           );
         },
@@ -470,8 +460,8 @@ export function AllInvoicesPage() {
             if (row?.uploadState === "uploading") {
               return "invoice-uploading-row";
             }
-            const status = row?.status;
-            if (status === "Pending" || status === "OCR_PENDING" || status === "OCR_PROCESSING") {
+            const status = String(row?.status ?? "").toUpperCase();
+            if (status === "PENDING" || status === "OCR_PENDING" || status === "OCR_PROCESSING") {
               return "invoice-processing-row";
             }
             return "";

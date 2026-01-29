@@ -48,7 +48,7 @@ export function AllInvoiceApprovalsPage() {
   const navigate = useNavigate();
   const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "processed">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "pending">("all");
   const [rowsCalculated, setRowsCalculated] = useState(false);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
@@ -95,7 +95,15 @@ export function AllInvoiceApprovalsPage() {
   const fetchApprovals = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await getApprovalInvoices();
+      let status: string | undefined;
+      
+      if (activeTab === "all") {
+        status = "IN_PROGRESS,APPROVED,REJECTED";
+      } else if (activeTab === "pending") {
+        status = "IN_PROGRESS";
+      }
+      
+      const response = await getApprovalInvoices(status);
       const approvalRows: ApprovalRow[] = response.data.map(convertInvoiceToRow);
       setApprovals(approvalRows);
     } catch (error) {
@@ -103,7 +111,7 @@ export function AllInvoiceApprovalsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
     fetchApprovals();
@@ -140,10 +148,6 @@ export function AllInvoiceApprovalsPage() {
 
     if (activeTab === "pending") {
       filtered = filtered.filter((approval) => approval.status === "Pending");
-    } else if (activeTab === "processed") {
-      filtered = filtered.filter(
-        (approval) => approval.status === "Approved" || approval.status === "Rejected"
-      );
     }
 
     if (searchTerm) {
@@ -162,19 +166,15 @@ export function AllInvoiceApprovalsPage() {
   const tabs = useMemo(() => {
     const allCount = approvals.length;
     const pendingCount = approvals.filter((a) => a.status === "Pending").length;
-    const processedCount = approvals.filter(
-      (a) => a.status === "Approved" || a.status === "Rejected"
-    ).length;
 
     return [
       { key: "all", label: "All", count: allCount },
       { key: "pending", label: "Pending", count: pendingCount },
-      { key: "processed", label: "Processed", count: processedCount },
     ];
   }, [approvals]);
 
   const handleTabChange = (tab: string) => {
-    setActiveTab(tab as "all" | "pending" | "processed");
+    setActiveTab(tab as "all" | "pending");
   };
 
   const columns: GridColDef[] = useMemo(() => {

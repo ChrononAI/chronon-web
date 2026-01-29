@@ -57,20 +57,29 @@ export interface ItemResponse {
 
 export const itemsCodeService = {
   // TDS Code APIs
-  async getTDSCodes(): Promise<TDSCodeResponse> {
+  async getTDSCodes(limit?: number, offset?: number): Promise<TDSCodeResponse> {
     try {
-      const response = await api.get("/api/v1/tds");
+      const response = await api.get("/api/v1/tds", {
+        params: {
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  async searchTDSCodes(searchTerm: string): Promise<TDSCodeResponse> {
+  async searchTDSCodes(searchTerm: string, limit?: number, offset?: number): Promise<TDSCodeResponse> {
     try {
-      const response = await api.get(
-        `/api/v1/tds?tds_code=ilike.%25${encodeURIComponent(searchTerm)}%25`
-      );
+      const response = await api.get("/api/v1/tds", {
+        params: {
+          tds_code: `ilike.%${searchTerm}%`,
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
@@ -81,6 +90,7 @@ export const itemsCodeService = {
     tds_code: string;
     tds_percentage: number;
     description?: string;
+    is_active?: boolean;
   }): Promise<any> {
     try {
       const response = await api.post("/api/v1/tds", data);
@@ -105,20 +115,29 @@ export const itemsCodeService = {
   },
 
   // Tax Code APIs
-  async getTaxCodes(): Promise<TaxCodeResponse> {
+  async getTaxCodes(limit?: number, offset?: number): Promise<TaxCodeResponse> {
     try {
-      const response = await api.get("/api/v1/tax");
+      const response = await api.get("/api/v1/tax", {
+        params: {
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  async searchTaxCodes(searchTerm: string): Promise<TaxCodeResponse> {
+  async searchTaxCodes(searchTerm: string, limit?: number, offset?: number): Promise<TaxCodeResponse> {
     try {
-      const response = await api.get(
-        `/api/v1/tax?tax_code=ilike.%25${encodeURIComponent(searchTerm)}%25`
-      );
+      const response = await api.get("/api/v1/tax", {
+        params: {
+          tax_code: `ilike.%25${encodeURIComponent(searchTerm)}%25`,
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
@@ -162,20 +181,29 @@ export const itemsCodeService = {
   },
 
   // Item APIs
-  async getItems(): Promise<ItemResponse> {
+  async getItems(limit?: number, offset?: number): Promise<ItemResponse> {
     try {
-      const response = await api.get("/api/v1/items");
+      const response = await api.get("/api/v1/items", {
+        params: {
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  async searchItems(searchTerm: string): Promise<ItemResponse> {
+  async searchItems(searchTerm: string, limit?: number, offset?: number): Promise<ItemResponse> {
     try {
-      const response = await api.get(
-        `/api/v1/items?item_code=ilike.%25${encodeURIComponent(searchTerm)}%25`
-      );
+      const response = await api.get("/api/v1/items", {
+        params: {
+          description: `ilike.%${searchTerm}%`,
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;

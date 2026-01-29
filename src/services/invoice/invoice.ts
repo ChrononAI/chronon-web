@@ -138,8 +138,9 @@ export const createInvoiceFromFile = async (
   return response.data;
 };
 
-export const getAllInvoices = async (): Promise<GetAllInvoicesResponse> => {
-  const response = await baseAPI.get("/v1/invoices");
+export const getAllInvoices = async (queryParams?: string): Promise<GetAllInvoicesResponse> => {
+  const url = queryParams ? `/v1/invoices?${queryParams}` : "/v1/invoices";
+  const response = await baseAPI.get(url);
   return response.data;
 };
 
@@ -181,8 +182,11 @@ export const getInvoiceFiles = async (offset: number = 0, limit: number = 100): 
   return response.data;
 };
 
-export const getApprovalInvoices = async (): Promise<GetAllInvoicesResponse> => {
-  const response = await baseAPI.get("/v1/invoices/approvals");
+export const getApprovalInvoices = async (status?: string): Promise<GetAllInvoicesResponse> => {
+  const url = status 
+    ? `/v1/invoices/approvals?status=${status}`
+    : "/v1/invoices/approvals";
+  const response = await baseAPI.get(url);
   return response.data;
 };
 
@@ -265,6 +269,6 @@ export const updateInvoice = async (
   invoiceId: string,
   data: UpdateInvoiceData
 ): Promise<UpdateInvoiceResponse> => {
-  const response = await baseAPI.put(`/v1/invoice/${invoiceId}`, data);
+  const response = await baseAPI.put(`/v1/invoices/${invoiceId}`, data);
   return response.data;
 };

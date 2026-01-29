@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   GridColDef,
   GridPaginationModel,
@@ -207,6 +207,8 @@ export const TaxCodePage = () => {
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [selectedTaxCode, setSelectedTaxCode] = useState<TaxCodeData | null>(null);
   const [rowsCalculated, setRowsCalculated] = useState(false);
+  const [rowCount, setRowCount] = useState(0);
+  const [tableHeight, setTableHeight] = useState<string>("calc(100vh - 160px)");
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 10,
@@ -219,19 +221,27 @@ export const TaxCodePage = () => {
     };
   }, [setNoPadding]);
 
-  const loadData = async () => {
+  const loadData = async (paginationModel: GridPaginationModel) => {
     try {
       setLoading(true);
-      const response = await itemsCodeService.getTaxCodes();
+      const limit = paginationModel.pageSize;
+      const offset = paginationModel.page * limit;
+      
+      const response = searchTerm.trim()
+        ? await itemsCodeService.searchTaxCodes(searchTerm, limit, offset)
+        : await itemsCodeService.getTaxCodes(limit, offset);
+      
       const mappedRows = response.data.map((item) => ({
         ...item,
         id: item.id,
       }));
       setRows(mappedRows);
+      setRowCount(response.count);
     } catch (error: any) {
       console.error("Error loading Tax codes:", error);
       toast.error(error?.response?.data?.message || "Failed to load Tax codes");
       setRows([]);
+      setRowCount(0);
     } finally {
       setLoading(false);
       setIsInitialLoad(false);
@@ -239,39 +249,39 @@ export const TaxCodePage = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (rowsCalculated) {
+      loadData(paginationModel);
+    }
+  }, [paginationModel, searchTerm, rowsCalculated]);
 
   useEffect(() => {
-    const calculatePageSize = () => {
-      const headerHeight = 80;
+    const calculateDimensions = () => {
+      const pageHeaderHeight = 56;
+      const toolbarHeight = 60;
       const paginationHeight = 52;
-      const padding = 48;
-      const gridHeight = window.innerHeight - headerHeight - paginationHeight - padding;
       const rowHeight = 41;
-      const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-      const pageSize = Math.max(calculatedPageSize, 10);
+      const headerRowHeight = 39;
+      const extraPadding = 20;
+      
+      const availableHeight = window.innerHeight - pageHeaderHeight - toolbarHeight - extraPadding;
+      const contentHeight = availableHeight - headerRowHeight - paginationHeight;
+      const calculatedPageSize = Math.floor(contentHeight / rowHeight);
+      const pageSize = Math.max(calculatedPageSize, 15);
+      
+      const totalTableHeight = headerRowHeight + (pageSize * rowHeight) + paginationHeight;
+      setTableHeight(`${totalTableHeight}px`);
       setPaginationModel((prev) => ({ ...prev, pageSize }));
     };
 
     if (!rowsCalculated) {
-      calculatePageSize();
+      calculateDimensions();
       setRowsCalculated(true);
     }
 
-    window.addEventListener("resize", calculatePageSize);
-    return () => window.removeEventListener("resize", calculatePageSize);
+    window.addEventListener("resize", calculateDimensions);
+    return () => window.removeEventListener("resize", calculateDimensions);
   }, [rowsCalculated]);
 
-  const filteredRows = useMemo(() => {
-    if (!searchTerm.trim()) return rows;
-    const searchLower = searchTerm.toLowerCase();
-    return rows.filter(
-      (row) =>
-        row.tax_code?.toLowerCase().includes(searchLower) ||
-        row.description?.toLowerCase().includes(searchLower)
-    );
-  }, [rows, searchTerm]);
 
   const handleRowClick = (params: GridRowParams<TaxCodeData>) => {
     setSelectedTaxCode(params.row);
@@ -290,7 +300,7 @@ export const TaxCodePage = () => {
       marginBottom="mb-0"
     >
       <DataTable
-        rows={loading && isInitialLoad ? [] : filteredRows}
+        rows={loading && isInitialLoad ? [] : rows}
         columns={columns}
         loading={loading}
         paginationModel={paginationModel}
@@ -298,6 +308,9 @@ export const TaxCodePage = () => {
         onRowClick={handleRowClick}
         firstColumnField="tax_code"
         emptyStateComponent={<CustomNoRows />}
+        rowCount={rowCount}
+        paginationMode="server"
+        height={tableHeight}
         slots={{
           toolbar: CustomInvoiceToolbar,
           loadingOverlay:
@@ -340,7 +353,7 @@ export const TaxCodePage = () => {
           }
         }}
         onSuccess={() => {
-          loadData();
+          loadData(paginationModel);
           setSelectedTaxCode(null);
         }}
         taxCode={updateDialogOpen ? selectedTaxCode : null}

@@ -100,7 +100,10 @@ export function TDSCodeDialog({
         await itemsCodeService.updateTDSCode(tdsCode!.id, payload);
         toast.success("TDS code updated successfully!");
       } else {
-        await itemsCodeService.createTDSCode(payload);
+        await itemsCodeService.createTDSCode({
+          ...payload,
+          is_active: true,
+        });
         toast.success("TDS code created successfully!");
       }
 

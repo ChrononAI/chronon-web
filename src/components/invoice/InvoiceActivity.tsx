@@ -1,168 +1,236 @@
-import { Loader2, Activity, Clock, User, FileText, CheckCircle, XCircle, Send, Edit } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2, Activity, FileText, CheckCircle, XCircle, Send, Edit, FilePlus, FileClock, ScanEye, FileOutput, FileX } from "lucide-react";
+import { cn, formatDate } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { StatusPill } from "@/components/shared/StatusPill";
+import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
 
 interface InvoiceActivityProps {
   invoiceId: string | undefined;
   className?: string;
+  activities?: any[];
 }
 
-const formatActivityTime = (dateString: string | undefined | null): string => {
-  if (!dateString) return "";
-  try {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-    }).format(date);
-  } catch {
-    return "";
+const getActivityIcon = (type: string, status?: string) => {
+  const statusUpper = (status || type || "").toUpperCase();
+  
+  switch (statusUpper) {
+    case "CREATED":
+      return <FilePlus className="h-5 w-5 text-green-600" />;
+    case "APPROVED":
+      return <CheckCircle className="h-5 w-5 text-green-600" />;
+    case "PENDING":
+      return <FileClock className="h-5 w-5 text-gray-600" />;
+    case "IN_PROGRESS":
+      return <ScanEye className="h-5 w-5 text-purple-600" />;
+    case "SENT_BACK":
+      return <FileOutput className="h-5 w-5 text-orange-600" />;
+    case "REJECTED":
+      return <FileX className="h-5 w-5 text-red-600" />;
+    case "UPDATED":
+    case "EDITED":
+      return <Edit className="h-5 w-5 text-amber-600" />;
+    case "SUBMITTED":
+      return <Send className="h-5 w-5 text-indigo-600" />;
+    default:
+      return <Activity className="h-5 w-5 text-gray-400" />;
   }
 };
 
-const getActivityIcon = (type: string) => {
-  switch (type?.toUpperCase()) {
+const getActivityText = (activity: any) => {
+  const status = (activity.status || activity.type || "").toUpperCase();
+  const userName = activity.user?.name || activity.title || "Unknown";
+  
+  switch (status) {
     case "CREATED":
-      return { icon: FileText, color: "text-blue-500", bg: "bg-blue-100" };
-    case "UPDATED":
-    case "EDITED":
-      return { icon: Edit, color: "text-purple-500", bg: "bg-purple-100" };
+      return `Created by ${userName}`;
+    case "PENDING":
+      return `To be reviewed by ${userName}`;
+    case "IN_PROGRESS":
+      return `Under review by ${userName}`;
     case "APPROVED":
-      return { icon: CheckCircle, color: "text-green-500", bg: "bg-green-100" };
+      return `Approved by ${userName}`;
     case "REJECTED":
-      return { icon: XCircle, color: "text-red-500", bg: "bg-red-100" };
-    case "SUBMITTED":
-      return { icon: Send, color: "text-orange-500", bg: "bg-orange-100" };
+      return `Rejected by ${userName}`;
+    case "SENT_BACK":
+      return `Sent back by ${userName}`;
     default:
-      return { icon: Activity, color: "text-gray-500", bg: "bg-gray-100" };
+      return activity.title || `Activity by ${userName}`;
   }
 };
 
 export function InvoiceActivity({
   invoiceId: _invoiceId,
   className,
+  activities: initialActivities,
 }: InvoiceActivityProps) {
-  // TODO: Implement activity API integration
-  const loading = false;
-  const activities: any[] = [];
-  const error = null;
+  const [loading, setLoading] = useState(false);
+  const [activities, setActivities] = useState<any[]>(initialActivities || []);
+  const [error, setError] = useState<string | null>(null);
+
+  // If activities contain approval workflow objects (from API), prepare a combined workflow
+  const isWorkflowData = activities && activities.length > 0 && !!activities[0].approval_steps;
+  const combinedApprovalWorkflow = isWorkflowData
+    ? ({ approval_steps: (activities as any[]).slice().reverse().flatMap((item: any) => item.approval_steps || []) } as any)
+    : null;
+
+  useEffect(() => {
+    // If parent provided activities (even an empty array), use them and skip fetching
+    if (initialActivities !== undefined) {
+      setActivities(initialActivities || []);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    if (!_invoiceId) {
+      setActivities([]);
+      setError(null);
+      return;
+    }
+
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    import("@/services/invoice/invoiceActivityService").then(({ invoiceActivityService }) => {
+      invoiceActivityService
+        .getApprovers(_invoiceId)
+        .then((res) => {
+          if (!active) return;
+          const workflows = res?.data || [];
+          const mapped: any[] = [];
+
+          workflows.forEach((wf) => {
+            const wfCreated = wf.created_at || null;
+            (wf.approval_steps || []).forEach((step: any) => {
+              mapped.push({
+                type: "STEP",
+                title: step.step_name,
+                status: step.status,
+                created_at: wfCreated,
+                message: `Step ${step.step_order}`,
+              });
+
+              (step.approvers || []).forEach((app: any) => {
+                mapped.push({
+                  type: "APPROVER",
+                  title: `${app.first_name || ""} ${app.last_name || ""}`.trim(),
+                  status: app.approved_at ? "APPROVED" : null,
+                  created_at: app.approved_at || wfCreated,
+                  user: { name: `${app.first_name || ""} ${app.last_name || ""}`.trim(), email: app.email },
+                });
+              });
+            });
+          });
+
+          setActivities(mapped);
+        })
+        .catch((e) => {
+          if (!active) return;
+          console.error("Error loading invoice activity:", e);
+          setError("Failed to load activity");
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [_invoiceId, initialActivities]);
 
   return (
-    <div className={cn("flex flex-col h-full bg-gradient-to-b from-purple-50/30 to-white", className)}>
+    <div className={cn("flex flex-col h-full", className)}>
       <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-            <p className="text-sm text-gray-500">Loading activity...</p>
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
         ) : error ? (
           <div className="flex items-center justify-center h-full">
-            <div className="text-center p-4 bg-red-50 rounded-xl border-2 border-red-200 max-w-sm">
-              <XCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-              <p className="text-sm text-red-600 font-medium">{error}</p>
-            </div>
+            <p className="text-sm">{error}</p>
           </div>
         ) : activities.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-4">
-            <div className="p-6 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 shadow-lg">
-              <Activity className="h-12 w-12 text-purple-500" />
-            </div>
-            <div className="text-center max-w-xs">
-              <p className="text-base font-semibold text-gray-800 mb-1">
-                No Activity
-              </p>
-              <p className="text-sm text-gray-500">
-                Activity timeline will appear here as actions are taken on this invoice.
-              </p>
-            </div>
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm text-gray-500">No activity found</p>
           </div>
         ) : (
-          <div className="relative">
-            {/* Timeline line */}
-            <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-purple-200 via-purple-300 to-transparent" />
-            
-            <div className="space-y-4">
-              {activities.map((activity, index) => {
-                const iconConfig = getActivityIcon(activity.type || activity.action);
-                const Icon = iconConfig.icon;
-                const isLast = index === activities.length - 1;
+          <div className="space-y-4">
+            {/* If activities are approval workflow objects, render WorkflowTimeline */}
+            {combinedApprovalWorkflow ? (
+              <WorkflowTimeline approvalWorkflow={combinedApprovalWorkflow} />
+            ) : (
+              activities.map((activity, index) => {
+                const userName = activity.user?.name || activity.title || "Unknown";
+                const userEmail = activity.user?.email || activity.email || "";
+                const note = activity.comment || activity.note || activity.message || "";
 
                 return (
-                  <div
-                    key={index}
-                    className="relative flex gap-4 animate-in fade-in slide-in-from-left-2"
-                  >
-                    {/* Timeline dot */}
-                    <div className="relative flex-shrink-0">
-                      <div className={cn(
-                        "w-12 h-12 rounded-full flex items-center justify-center shadow-sm border-2 border-white",
-                        iconConfig.bg
-                      )}>
-                        <Icon className={cn("h-5 w-5", iconConfig.color)} />
+                  <div key={index} className="flex items-start space-x-4">
+                    {/* Status Icon + Connector */}
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center h-5">
+                        {getActivityIcon(activity.type, activity.status)}
                       </div>
-                      {!isLast && (
-                        <div className="absolute left-1/2 top-12 w-0.5 h-4 bg-purple-200 transform -translate-x-1/2" />
+                      {index < activities.length - 1 && (
+                        <div className="w-px h-8 bg-gray-300 mt-2" />
                       )}
                     </div>
 
-                    {/* Activity content */}
-                    <div className="flex-1 pb-4">
-                      <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-semibold text-gray-800">
-                              {activity.title || activity.type || "Activity"}
-                            </h4>
-                            {activity.status && (
-                              <span className={cn(
-                                "px-2 py-0.5 rounded-full text-xs font-medium",
-                                activity.status === "APPROVED" 
-                                  ? "bg-green-100 text-green-700"
-                                  : activity.status === "REJECTED"
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-gray-100 text-gray-700"
-                              )}>
-                                {activity.status}
+                    {/* Activity Content */}
+                    <div className="flex-1">
+                      {activity.type === "STEP" ? (
+                        <>
+                          <div className="flex items-center gap-2 justify-between">
+                            <div className="text-sm flex items-center h-5">
+                              {activity.title}
+                            </div>
+                            {activity.created_at && (
+                              <span className="text-[12px] text-gray-500 flex items-center h-5">
+                                {formatDate(activity.created_at)}
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-1 text-xs text-gray-400">
-                            <Clock className="h-3 w-3" />
-                            <span>{formatActivityTime(activity.created_at || activity.timestamp)}</span>
+                          {activity.status && (
+                            <div className="mt-1">
+                              <StatusPill status={activity.status || "IN_PROGRESS"} className="px-2 py-0.5 text-xs" />
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 justify-between">
+                            <div className="text-sm flex items-center h-5">
+                              {getActivityText(activity)}
+                            </div>
+                            {activity.created_at && (
+                              <span className="text-[12px] text-gray-500 flex items-center h-5">
+                                {formatDate(activity.created_at)}
+                              </span>
+                            )}
                           </div>
-                        </div>
-                        
-                        {activity.message && (
-                          <p className="text-sm text-gray-600 leading-relaxed mb-2">
-                            {activity.message}
-                          </p>
-                        )}
 
-                        {activity.user && (
-                          <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                            <User className="h-3.5 w-3.5 text-gray-400" />
-                            <span className="text-xs text-gray-500">
-                              {activity.user.name || activity.user.email || "Unknown user"}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                          {userEmail && (
+                            <div className="text-[12px] text-muted-foreground mt-1">
+                              {userEmail}
+                            </div>
+                          )}
+
+                          {note && (
+                            <div className="mt-1">
+                              <span className="text-gray-600 italic text-[12px]">
+                                "{note.trim()}"
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 );
-              })}
-            </div>
+              })
+            )}
           </div>
         )}
       </div>

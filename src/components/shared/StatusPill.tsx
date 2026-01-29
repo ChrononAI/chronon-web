@@ -28,7 +28,9 @@ export function StatusPill({ status, className }: StatusPillProps) {
       normalizedStatus === "PROCESSING" ||
       normalizedStatus === "OCR_PROCESSING" ||
       normalizedStatus === "UPLOADING" ||
-      normalizedStatus === "EXTRACTING_DATA"
+      normalizedStatus === "EXTRACTING_DATA" ||
+      normalizedStatus === "PENDING_APPROVAL" ||
+      normalizedStatus === "DRAFT"
     ) {
       return "bg-[#FFF7D6]";
     }
@@ -55,7 +57,9 @@ export function StatusPill({ status, className }: StatusPillProps) {
       normalizedStatus === "PROCESSING" ||
       normalizedStatus === "OCR_PROCESSING" ||
       normalizedStatus === "UPLOADING" ||
-      normalizedStatus === "EXTRACTING_DATA"
+      normalizedStatus === "EXTRACTING_DATA" ||
+      normalizedStatus === "PENDING_APPROVAL" ||
+      normalizedStatus === "DRAFT"
     ) {
       return "text-[#F59E0B]";
     }
@@ -72,14 +76,24 @@ export function StatusPill({ status, className }: StatusPillProps) {
     if (normalizedStatus === "EXTRACTING_DATA") {
       return "Extracting Data";
     }
+    if (normalizedStatus === "PENDING_APPROVAL") {
+      return "Pending Approval";
+    }
     
     // Remove OCR_ prefix if present
     let formattedStatus = status.startsWith("OCR_")
       ? status.replace("OCR_", "")
       : status;
     
+    // Replace underscores with spaces
+    formattedStatus = formattedStatus.replace(/_/g, " ");
+    
     // Convert to proper case (first letter uppercase, rest lowercase)
-    return formattedStatus.charAt(0).toUpperCase() + formattedStatus.slice(1).toLowerCase();
+    // Handle multiple words (e.g., "Pending Approval")
+    return formattedStatus
+      .split(" ")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
   };
 
   return (

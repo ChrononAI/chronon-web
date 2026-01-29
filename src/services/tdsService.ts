@@ -17,20 +17,29 @@ export interface TDSResponse {
 }
 
 export const tdsService = {
-  async getTDS(): Promise<TDSResponse> {
+  async getTDS(limit?: number, offset?: number): Promise<TDSResponse> {
     try {
-      const response = await api.get("/api/v1/tds");
+      const response = await api.get("/api/v1/tds", {
+        params: {
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  async searchTDSCodes(searchTerm: string): Promise<TDSResponse> {
+  async searchTDSCodes(searchTerm: string, limit?: number, offset?: number): Promise<TDSResponse> {
     try {
-      const response = await api.get(
-        `/api/v1/tds?tds_code=ilike.%25${encodeURIComponent(searchTerm)}%25`
-      );
+      const response = await api.get("/api/v1/tds", {
+        params: {
+          tds_code: `ilike.%${searchTerm}%`,
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;

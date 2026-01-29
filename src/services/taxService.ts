@@ -21,20 +21,29 @@ export interface TaxResponse {
 }
 
 export const taxService = {
-  async getTaxes(): Promise<TaxResponse> {
+  async getTaxes(limit?: number, offset?: number): Promise<TaxResponse> {
     try {
-      const response = await api.get("/api/v1/tax");
+      const response = await api.get("/api/v1/tax", {
+        params: {
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  async searchTaxCodes(searchTerm: string): Promise<TaxResponse> {
+  async searchTaxCodes(searchTerm: string, limit?: number, offset?: number): Promise<TaxResponse> {
     try {
-      const response = await api.get(
-        `/api/v1/tax?tax_code=ilike.%25${encodeURIComponent(searchTerm)}%25`
-      );
+      const response = await api.get("/api/v1/tax", {
+        params: {
+          tax_code: `ilike.%${searchTerm}%`,
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
