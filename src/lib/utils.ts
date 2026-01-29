@@ -8,13 +8,77 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+function parseLocalDate(dateString: string): Date {
+  const rfc1123 = dateString.match(/^\w{3},\s+(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\b/);
+  if (rfc1123) {
+    const [, day, mon, year] = rfc1123;
+    const months: Record<string, number> = {
+      Jan: 0,
+      Feb: 1,
+      Mar: 2,
+      Apr: 3,
+      May: 4,
+      Jun: 5,
+      Jul: 6,
+      Aug: 7,
+      Sep: 8,
+      Oct: 9,
+      Nov: 10,
+      Dec: 11,
+    };
+    const m = months[mon];
+    if (m !== undefined) {
+      return new Date(parseInt(year), m, parseInt(day));
+    }
+  }
+
+  const iso = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const [, year, month, day] = iso;
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  }
+
+  const dmy = dateString.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (dmy) {
+    const [, day, month, year] = dmy;
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  }
+
+  const dmy2 = dateString.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+  if (dmy2) {
+    const [, day, month, yy] = dmy2;
+    const y = parseInt(yy);
+    const year = y >= 70 ? 1900 + y : 2000 + y;
+    return new Date(year, parseInt(month) - 1, parseInt(day));
+  }
+
+  const ymdSlash = dateString.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (ymdSlash) {
+    const [, year, month, day] = ymdSlash;
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  }
+
+  return new Date(dateString);
+}
+
 export function formatDate(date: number[] | string): string {
+  if (date == null) return "";
+
   if (Array.isArray(date)) {
     const [year, month, day] = date;
     return format(new Date(year, month - 1, day), "MMM dd, yyyy");
   }
-  return format(new Date(date), "MMM dd, yyyy");
+
+  const str = String(date).trim();
+  if (!str) return "";
+
+  const d = parseLocalDate(str);
+  if (isNaN(d.getTime())) return str;
+
+  return format(d, "MMM dd, yyyy");
 }
+
+export { parseLocalDate };
 
 export function formatFileSize(bytes: number) {
   if (bytes === 0) return "0 B";

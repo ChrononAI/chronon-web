@@ -6,7 +6,7 @@ import PerdiemPage from "@/pages/PerdiemPage";
 import { AlertCircle, Trash2, Loader2 } from "lucide-react";
 import { expenseService, UpdateExpenseData } from "@/services/expenseService";
 import { Expense } from "@/types/expense";
-import { getOrgCurrency, getStatusColor } from "@/lib/utils";
+import { getOrgCurrency, getStatusColor, parseLocalDate } from "@/lib/utils";
 import { useExpenseStore } from "@/store/expenseStore";
 import {
   AlertDialog,
@@ -221,7 +221,7 @@ export function ExpenseDetailPage() {
     try {
       if (filteredData.invoice_number) {
         filteredData.expense_date = format(
-          new Date(filteredData.expense_date),
+          parseLocalDate(filteredData.expense_date),
           "yyyy-MM-dd"
         );
         filteredData.currency = baseCurrency;
