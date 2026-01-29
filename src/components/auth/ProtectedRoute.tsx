@@ -39,7 +39,7 @@ export function ProtectedRoute() {
         authService.getOrgSetting().catch(() => null),
       ]).then(([orgDataResponse, orgSettingsResponse]) => {
         const currentSettings = useAuthStore.getState().orgSettings;
-        const orgSettings = { ...orgSettingsResponse?.data?.data }
+        const orgSettings = { ...orgSettingsResponse?.data?.data, store_settings: { allowed: true, enabled: true } };
         // Merge settings, prioritizing currency from orgData (which has the currency field)
         const mergedSettings = {
           ...currentSettings,

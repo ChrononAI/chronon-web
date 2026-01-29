@@ -5,6 +5,7 @@ import {
     FileText,
     Loader2,
     RotateCw,
+    Trash2,
     X,
     ZoomIn,
     ZoomOut,
@@ -33,7 +34,7 @@ function AttachmentViewer({
     setAttachments,
     fileIds,
     setFileIds,
-    generateUploadUrl
+    generateUploadUrl,
 }: any) {
     const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
     const [activeReceiptIndex, setReceiptIndex] = useState(0);
@@ -53,6 +54,18 @@ function AttachmentViewer({
 
     const goNext = () => {
         setReceiptIndex((i) => (i === attachmentArr.length - 1 ? 0 : i + 1));
+    };
+
+    const handleDeleteAttachment = () => {
+        setFileIds((prev: any) => [
+            ...prev.slice(0, activeReceiptIndex),
+            ...prev.slice(activeReceiptIndex + 1),
+        ]);
+        setAttachments((prev: any) => [
+            ...prev.slice(0, activeReceiptIndex),
+            ...prev.slice(activeReceiptIndex + 1),
+        ]);
+        if (activeReceiptIndex !== 0) goPrev();
     };
 
     const handleReceiptFullscreen = () => {
@@ -213,6 +226,22 @@ function AttachmentViewer({
                                     setFileIds={setFileIds}
                                     generateUploadUrl={generateUploadUrl}
                                 />
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-9 w-9 p-0"
+                                            onClick={handleDeleteAttachment}
+                                            disabled={!hasAttachment}
+                                        >
+                                            <Trash2 className="h-4 w-4 p-0" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-white text-black border border-[0.5]">
+                                        <p>Delete Attachment</p>
+                                    </TooltipContent>
+                                </Tooltip>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button

@@ -34,6 +34,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Entity, getEntities } from "@/services/admin/entities";
 import { getTemplates, Template } from "@/services/admin/templates";
+import { useAuthStore } from "@/store/authStore";
 
 export interface Currency {
   code: string;
@@ -89,7 +90,9 @@ export function CreateStoreForm({
 }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { user } = useAuthStore();
   const { id } = useParams<{ id: string }>();
+  console.log(user);
 
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
@@ -436,6 +439,14 @@ export function CreateStoreForm({
     getAllUsers();
   }, []);
 
+  useEffect(() => {
+    if (user && mode === "create") {
+      console.log(user);
+      setSelectedUser(user);
+      form.setValue("area_manager_id", user.id.toString());
+    }
+  }, []);
+
   return (
     <div className={maxWidth ? `space-y-6 ${maxWidth}` : "space-y-6 max-w-4xl"}>
       {/* Header */}
@@ -670,7 +681,7 @@ export function CreateStoreForm({
                 <Input
                   value={selectedStoreManager ? `${selectedStoreManager?.first_name} ${selectedStoreManager?.last_name}` : ""}
                   placeholder={selectedStoreManager ? "Store Manager EMP Name" : "Select Store Manager"}
-                  disabled={mode === "view" || !selectedStoreManager}
+                  disabled
                 />
               </FormControl>
               <FormMessage />
@@ -683,7 +694,7 @@ export function CreateStoreForm({
                 <Input
                   value={selectedStoreManager ? `${selectedStoreManager?.phone_number}` : ""}
                   placeholder={selectedStoreManager ? "Store Manager Mobile No" : "Select Store Manager"}
-                  disabled={mode === "view" || !selectedStoreManager}
+                  disabled
                 />
               </FormControl>
               <FormMessage />
@@ -694,7 +705,7 @@ export function CreateStoreForm({
                 <Input
                   value={selectedStoreManager ? `${selectedStoreManager?.email}` : ""}
                   placeholder={selectedStoreManager ? "Store Manager Mail ID" : "Select Store Manager"}
-                  disabled={mode === "view" || !selectedStoreManager}
+                  disabled
                 />
               </FormControl>
               <FormMessage />
@@ -719,7 +730,7 @@ export function CreateStoreForm({
                             role="combobox"
                             aria-expanded={areaManagerDropdown}
                             className="h-11 w-full justify-between"
-                            disabled={mode === "view"}
+                            disabled
                           >
                             <>
                               <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
@@ -765,12 +776,12 @@ export function CreateStoreForm({
               />
             )}
              <FormItem>
-              <FormLabel>Store Manager EMP Name</FormLabel>
+              <FormLabel>Area Manager EMP Name</FormLabel>
               <FormControl>
                 <Input
-                  value={selectedUser ? `${selectedUser?.first_name} ${selectedUser?.last_name}` : ""}
-                  placeholder={selectedStoreManager ? "Store Manager EMP Name" : "Select Store Manager"}
-                  disabled={mode === "view" || !selectedStoreManager}
+                  value={(selectedUser) ? `${selectedUser?.firstName || ""} ${selectedUser?.lastName || ""}` : ""}
+                  placeholder={selectedStoreManager ? "Area Manager EMP Name" : "Select Area Manager"}
+                  disabled
                 />
               </FormControl>
               <FormMessage />
