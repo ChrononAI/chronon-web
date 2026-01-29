@@ -331,8 +331,8 @@ export function CreateReportForm2({
   const [activeTab, setActiveTab] = useState<
     "expenses" | "history" | "comments" | "logs"
   >("expenses");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string | Date>("");
+  const [dateTo, setDateTo] = useState<string | Date>("");
 
   const [loadingReportComments, setLoadingReportComments] = useState(false);
   const [commentError, setCommentError] = useState<string | null>();

@@ -8,7 +8,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-function parseLocalDate(dateString: string): Date {
+function parseLocalDate(dateString: string | Date): Date {
+  if (dateString instanceof Date) {
+    return dateString;
+  }
+  if (!dateString || typeof dateString !== 'string') {
+    return new Date();
+  }
+
   const rfc1123 = dateString.match(/^\w{3},\s+(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\b/);
   if (rfc1123) {
     const [, day, mon, year] = rfc1123;
