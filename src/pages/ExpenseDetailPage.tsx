@@ -6,8 +6,7 @@ import PerdiemPage from "@/pages/PerdiemPage";
 import { AlertCircle, Trash2, Loader2 } from "lucide-react";
 import { expenseService, UpdateExpenseData } from "@/services/expenseService";
 import { Expense } from "@/types/expense";
-import { getOrgCurrency, getStatusColor } from "@/lib/utils";
-import { toast } from "sonner";
+import { getOrgCurrency, getStatusColor, parseLocalDate } from "@/lib/utils";
 import { useExpenseStore } from "@/store/expenseStore";
 import {
   AlertDialog,
@@ -27,6 +26,7 @@ import { useAuthStore } from "@/store/authStore";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 const EDITABLE_STATUSES = ["DRAFT", "INCOMPLETE", "COMPLETE", "SENT_BACK"];
 
@@ -37,6 +37,7 @@ const filterFormData = (data: Record<string, any>): UpdateExpenseData => {
     "description",
     "expense_date",
     "expense_policy_id",
+    "file_ids",
     "vendor",
     "receipt_id",
     "invoice_number",
@@ -109,7 +110,7 @@ export function ExpenseDetailPage() {
 
   const isAdminUpdatingExpense =
     isAdmin &&
-    location.pathname.includes("/approvals") &&
+    (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
     expense?.status !== "APPROVED" &&
     expense?.status !== "REJECTED";
 
@@ -220,7 +221,7 @@ export function ExpenseDetailPage() {
     try {
       if (filteredData.invoice_number) {
         filteredData.expense_date = format(
-          new Date(filteredData.expense_date),
+          parseLocalDate(filteredData.expense_date),
           "yyyy-MM-dd"
         );
         filteredData.currency = baseCurrency;
@@ -228,6 +229,7 @@ export function ExpenseDetailPage() {
           filteredData.foreign_currency = null;
         }
         filteredData.advance_account_id = formData.advance_account_id?.length > 0 ? formData.advance_account_id : null;
+        console.log(filteredData);
 
         if (isAdminUpdatingExpense) {
           setShowAdminEditConfirm(true);
@@ -244,6 +246,7 @@ export function ExpenseDetailPage() {
           description: formData.description,
           expense_date: formData.expense_date,
           expense_policy_id: formData.expense_policy_id,
+          file_ids: formData.file_ids,
           vendor: formData.merchant,
           receipt_id: isReceiptReplaced
             ? parsedData?.id ?? null
@@ -425,7 +428,7 @@ export function ExpenseDetailPage() {
               expense.status === "INCOMPLETE" ||
               expense.status === "SENT_BACK" ||
               (isAdmin &&
-                location.pathname.includes("/approvals") &&
+                (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
                 expense.status !== "APPROVED" &&
                 expense.status !== "REJECTED")
                 ? "edit"
@@ -449,7 +452,7 @@ export function ExpenseDetailPage() {
               expense.status === "INCOMPLETE" ||
               expense.status === "SENT_BACK" ||
               (isAdmin &&
-                location.pathname.includes("/approvals") &&
+                (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
                 expense.status !== "APPROVED" &&
                 expense.status !== "REJECTED")
                 ? "edit"
@@ -469,7 +472,7 @@ export function ExpenseDetailPage() {
               expense.status === "INCOMPLETE" ||
               expense.status === "SENT_BACK" ||
               (isAdmin &&
-                location.pathname.includes("/approvals") &&
+                (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
                 expense.status !== "APPROVED" &&
                 expense.status !== "REJECTED")
                 ? "edit"
@@ -502,6 +505,7 @@ export function ExpenseDetailPage() {
             <Textarea
               placeholder="Enter reason for editing this expense"
               value={adminEditReason}
+              className="resize-none"
               onChange={(e) => setAdminEditReason(e.target.value)}
               rows={3}
             />

@@ -34,6 +34,7 @@ export interface UpdateExpenseData {
   amount?: string | number;
   category_id: string;
   description: string;
+  file_ids?: string[];
   expense_date: string;
   expense_policy_id: string;
   vendor?: string;
@@ -491,6 +492,22 @@ export const expenseService = {
       );
     } catch (error: any) {
       console.error("Error posting expense comment:", error);
+      throw error;
+    }
+  },
+
+  async getUploadUrl (payload: { type: "INVOICES" | "RECEIPT"; name: string }) {
+    try {
+      return await api.post('/api/v1/files/create', payload)
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async generatePreviewUrl(fileid: string) {
+    try {
+      return await api.post(`/api/v1/files/generate_upload_url?id=${fileid}`)
+    } catch (error) {
       throw error;
     }
   },

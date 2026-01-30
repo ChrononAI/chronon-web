@@ -4,6 +4,7 @@ export interface Expense {
   category: string;
   category_id: string;
   expense_policy_id: string;
+  file_ids?: string[];
   created_at: string;
   currency: string;
   org_id: string;

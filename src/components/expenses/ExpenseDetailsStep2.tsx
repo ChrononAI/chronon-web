@@ -7,11 +7,6 @@ import api from "@/lib/api";
 import {
   Calendar,
   Loader2,
-  ZoomIn,
-  ZoomOut,
-  RotateCw,
-  RefreshCw,
-  Download,
   X,
   ChevronDown,
 } from "lucide-react";
@@ -48,7 +43,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { cn, getOrgCurrency } from "@/lib/utils";
+import { cn, getOrgCurrency, parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
@@ -76,6 +71,12 @@ import { FormFooter } from "../layout/FormFooter";
 import ReceiptViewer from "./ReceiptViewer";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
 
+export type Attachment = {
+  fileId: string;
+  url: string;
+};
+
+
 // Form schema
 const expenseSchema = z.object({
   expense_policy_id: z.string().min(1, "Please select a policy"),
@@ -84,23 +85,19 @@ const expenseSchema = z.object({
   vendor: z.string().min(1, "Vendor is required"),
   amount: z.string().min(1, "Amount is required"),
   receipt_id: z.string().optional(),
-  expense_date: z.preprocess(
-    (v) => (v ? new Date(v as string) : v),
-    z.date({ required_error: "Date is required" }).refine(
-      (date) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const selectedDate = new Date(date);
-        selectedDate.setHours(0, 0, 0, 0);
-
-        return selectedDate <= today;
-      },
-      {
-        message: "Date cannot exceed today's date",
-      }
-    )
-  ),
+  expense_date: z
+    .string()
+    .min(1, "Date is required")
+    .refine((v) => !isNaN(parseLocalDate(v).getTime()), {
+      message: "Invalid date",
+    })
+    .refine((v) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = parseLocalDate(v);
+      selected.setHours(0, 0, 0, 0);
+      return selected <= today;
+    }, { message: "Date cannot exceed today's date" }),
   advance_account_id: z.string().optional().nullable(),
   description: z.string().min(1, "Description is required"),
   foreign_currency: z.string().optional().nullable(),
@@ -184,29 +181,42 @@ export function ExpenseDetailsStep2({
   const [isConversionRateReadOnly, setIsConversionRateReadOnly] =
     useState(false);
   const [fetchingConversion, setFetchingConversion] = useState(false);
+
+  const [fileIds, setFileIds] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
   const dupeCheckAcrossOrg =
     orgSettings?.org_level_duplicate_check_settings?.enabled || true;
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: expense
-      ? expense
+      ? {
+          ...expense,
+          expense_date: expense.expense_date
+            ? typeof expense.expense_date === "string"
+              ? format(parseLocalDate(expense.expense_date), "yyyy-MM-dd")
+              : expense.expense_date instanceof Date
+                ? format(expense.expense_date, "yyyy-MM-dd")
+                : format(parseLocalDate(String(expense.expense_date)), "yyyy-MM-dd")
+            : undefined,
+        }
       : {
-          expense_policy_id: "",
-          category_id: "",
-          invoiceNumber: "",
-          merchant: "",
-          amount: "",
-          expense_date: undefined,
-          comments: "",
-          city: "",
-          source: "",
-          destination: "",
-          pre_approval_id: "",
-          advance_id: "",
-          foreign_currency: getOrgCurrency(),
-          currency: getOrgCurrency(),
-        },
+        expense_policy_id: "",
+        category_id: "",
+        invoiceNumber: "",
+        merchant: "",
+        amount: "",
+        expense_date: undefined,
+        comments: "",
+        city: "",
+        source: "",
+        destination: "",
+        pre_approval_id: "",
+        advance_id: "",
+        foreign_currency: getOrgCurrency(),
+        currency: getOrgCurrency(),
+      },
   });
 
   const userRate = form.watch("user_conversion_rate");
@@ -303,7 +313,20 @@ export function ExpenseDetailsStep2({
     }
   };
 
-  const [isReceiptFullscreen, setIsReceiptFullscreen] = useState(false);
+  const generateUploadUrl = async (file: File): Promise<{
+    downloadUrl: string;
+    uploadUrl: string;
+    fileId: string;
+  }> => {
+    try {
+      const res = await expenseService.getUploadUrl({ type: "RECEIPT", name: file.name });
+      return { uploadUrl: res.data.data.upload_url, downloadUrl: res.data.data.download_url, fileId: res.data.data.id };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  };
+
   const [activeReceiptTab, setActiveReceiptTab] = useState<
     "receipt" | "comments"
   >("receipt");
@@ -504,7 +527,18 @@ export function ExpenseDetailsStep2({
 
   useEffect(() => {
     if (expense && !isReceiptReplaced) {
-      form.reset(expense);
+      const normalizedDate = expense.expense_date
+        ? typeof expense.expense_date === "string"
+          ? format(parseLocalDate(expense.expense_date), "yyyy-MM-dd")
+          : expense.expense_date instanceof Date
+            ? format(expense.expense_date, "yyyy-MM-dd")
+            : format(parseLocalDate(String(expense.expense_date)), "yyyy-MM-dd")
+        : undefined;
+      
+      form.reset({
+        ...expense,
+        expense_date: normalizedDate,
+      });
       // Set selected policy and category based on form data
       if (expense.foreign_amount && expense.foreign_currency) {
         setShowConversion(true);
@@ -529,6 +563,10 @@ export function ExpenseDetailsStep2({
             }
           }
         }
+      }
+
+      if (expense.file_ids && expense.file_ids.length > 0) {
+        setFileIds(expense.file_ids);
       }
 
       if (
@@ -597,13 +635,13 @@ export function ExpenseDetailsStep2({
       }
 
       if (ocrData.date) {
-        const parsedDate = new Date(parsedData.extracted_date ?? "");
+        const parsedDate = parseLocalDate(parsedData.extracted_date ?? "");
         if (!isNaN(parsedDate.getTime())) {
           const today = new Date();
           parsedDate.setHours(0, 0, 0, 0);
           today.setHours(0, 0, 0, 0);
           if (parsedDate <= today) {
-            form.setValue("expense_date", parsedDate);
+            form.setValue("expense_date", format(parsedDate, "yyyy-MM-dd"));
           }
         }
       }
@@ -630,15 +668,6 @@ export function ExpenseDetailsStep2({
 
   const handleReceiptRotate = () => {
     setReceiptRotation((prev) => (prev + 90) % 360);
-  };
-
-  const handleReceiptReset = () => {
-    setReceiptZoom(1);
-    setReceiptRotation(0);
-  };
-
-  const handleReceiptFullscreen = () => {
-    setIsReceiptFullscreen(true);
   };
 
   const handleReceiptDownload = () => {
@@ -727,6 +756,61 @@ export function ExpenseDetailsStep2({
     }
   }, [parsedData, policies]);
 
+type Attachment = {
+  fileId: string;
+  url: string;
+};
+
+useEffect(() => {
+  if (!fileIds.length) return;
+
+  const existingMap = new Map(
+    attachments.map((a) => [a.fileId, a.url])
+  );
+
+  const fileIdsToFetch = fileIds.filter(
+    (id) => !existingMap.has(id) || !existingMap.get(id)
+  );
+
+  if (!fileIdsToFetch.length) return;
+
+  let cancelled = false;
+
+  const fetchUrls = async () => {
+    try {
+      const fetched = await Promise.all(
+        fileIdsToFetch.map(async (fileId) => {
+          const res = await expenseService.generatePreviewUrl(fileId);
+          console.log(res);
+          return { fileId, url: res.data.data.download_url };
+        })
+      );
+
+      if (cancelled) return;
+
+      setAttachments((prev) => {
+        const map = new Map(prev.map((a) => [a.fileId, a]));
+
+        fetched.forEach((a) => {
+          map.set(a.fileId, a);
+        });
+
+        return Array.from(map.values());
+      });
+    } catch (err) {
+      console.error("Failed to fetch attachment URLs", err);
+    }
+  };
+
+  fetchUrls();
+
+  return () => {
+    cancelled = true;
+  };
+}, [fileIds]);
+
+
+
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -734,16 +818,6 @@ export function ExpenseDetailsStep2({
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = (error) => reject(error);
     });
-  };
-
-  const isPdfUrl = (url: string | null | undefined) => {
-    if (!url) return false;
-    const lowerUrl = url.toLowerCase();
-    return (
-      lowerUrl.includes(".pdf") ||
-      lowerUrl.startsWith("data:application/pdf") ||
-      lowerUrl.includes("application%2Fpdf")
-    );
   };
 
   const activeReceiptUrl =
@@ -758,21 +832,8 @@ export function ExpenseDetailsStep2({
     (readOnly && receiptSignedUrl.length > 0
       ? `Receipt ${receiptSignedUrl && receiptSignedUrl.length > 1 ? "1" : ""}`
       : activeReceiptUrl
-      ? "Receipt preview"
-      : "No receipt uploaded");
-
-  const receiptDisplayType = uploadedFile
-    ? uploadedFile.type.toLowerCase().includes("pdf")
-      ? "PDF"
-      : "Image"
-    : activeReceiptUrl
-    ? isPdfUrl(activeReceiptUrl)
-      ? "PDF"
-      : "Image"
-    : null;
-  const isPdfReceipt =
-    (uploadedFile && uploadedFile.type.toLowerCase().includes("pdf")) ||
-    isPdfUrl(activeReceiptUrl);
+        ? "Receipt preview"
+        : "No receipt uploaded");
 
   const hasReceipt = Boolean(activeReceiptUrl);
   const isLoadingReceipt =
@@ -813,11 +874,10 @@ export function ExpenseDetailsStep2({
 
         <div className="grid gap-6 md:grid-cols-2">
           <div
-            className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
-              expense?.original_expense_id
-                ? "md:h-[calc(100vh-18rem)]"
-                : "md:h-[calc(100vh-13rem)]"
-            } md:overflow-y-auto`}
+            className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${expense?.original_expense_id
+              ? "md:h-[calc(100vh-18rem)]"
+              : "md:h-[calc(100vh-13rem)]"
+              } md:overflow-y-auto`}
           >
             <ReceiptViewer
               activeReceiptTab={activeReceiptTab}
@@ -828,21 +888,22 @@ export function ExpenseDetailsStep2({
               replaceRecLoading={replaceRecLoading}
               loading={loading}
               isLoadingReceipt={isLoadingReceipt}
-              isPdfReceipt={isPdfReceipt}
               activeReceiptUrl={activeReceiptUrl}
+              attachments={attachments}
               receiptZoom={receiptZoom}
               receiptRotation={receiptRotation}
-              handleReceiptFullscreen={handleReceiptFullscreen}
               handleReceiptDownload={handleReceiptDownload}
               uploadReceipt={uploadReceipt}
               receiptDisplayName={receiptDisplayName}
-              receiptDisplayType={receiptDisplayType}
               expense={expense}
               uploadedFile={uploadedFile}
               handleReceiptRotate={handleReceiptRotate}
               handleReceiptZoomIn={handleReceiptZoomIn}
               handleReceiptZoomOut={handleReceiptZoomOut}
-              handleReceiptReset={handleReceiptReset}
+              setAttachments={setAttachments}
+              fileIds={fileIds}
+              setFileIds={setFileIds}
+              generateUploadUrl={generateUploadUrl}
             />
           </div>
 
@@ -850,14 +911,13 @@ export function ExpenseDetailsStep2({
             <form
               onSubmit={form.handleSubmit((data) => {
                 const allFormValues = form.getValues();
-                const mergedData = { ...allFormValues, ...data };
+                const mergedData = { ...allFormValues, ...data, file_ids: fileIds };
                 onSubmit(mergedData);
               })}
-              className={`rounded-2xl border border-gray-200 bg-white shadow-sm p-2 ${
-                expense?.original_expense_id
-                  ? "md:h-[calc(100vh-18rem)]"
-                  : "md:h-[calc(100vh-13rem)]"
-              } md:overflow-y-auto`}
+              className={`rounded-2xl border border-gray-200 bg-white shadow-sm p-2 ${expense?.original_expense_id
+                ? "md:h-[calc(100vh-18rem)]"
+                : "md:h-[calc(100vh-13rem)]"
+                } md:overflow-y-auto`}
             >
               <div className="md:min-h-full">
                 <div className="divide-y divide-gray-100">
@@ -947,8 +1007,8 @@ export function ExpenseDetailsStep2({
                                         {selectedCategory
                                           ? selectedCategory.name
                                           : !selectedPolicy
-                                          ? "Select policy first"
-                                          : "Select a category"}
+                                            ? "Select policy first"
+                                            : "Select a category"}
                                       </span>
                                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </>
@@ -1016,7 +1076,10 @@ export function ExpenseDetailsStep2({
                                     }
                                   >
                                     {field.value ? (
-                                      format(new Date(field.value), "PPP")
+                                      format(
+                                        parseLocalDate(String(field.value)),
+                                        "PPP"
+                                      )
                                     ) : (
                                       <span>Pick a date</span>
                                     )}
@@ -1030,8 +1093,15 @@ export function ExpenseDetailsStep2({
                               >
                                 <CalendarComponent
                                   mode="single"
-                                  selected={new Date(field.value)}
-                                  onSelect={(date) => field.onChange(date)}
+                                  selected={
+                                    field.value
+                                      ? parseLocalDate(String(field.value))
+                                      : undefined
+                                  }
+                                  onSelect={(date) => {
+                                    if (!date) return;
+                                    field.onChange(format(date, "yyyy-MM-dd"));
+                                  }}
                                   disabled={(date) =>
                                     date > new Date() ||
                                     date < new Date("1900-01-01")
@@ -1058,8 +1128,8 @@ export function ExpenseDetailsStep2({
                                     expense?.forerign_currency
                                       ? expense?.foreign_currency
                                       : field.value
-                                      ? field.value
-                                      : "INR"
+                                        ? field.value
+                                        : "INR"
                                   }
                                   onValueChange={(value) => {
                                     field.onChange(value);
@@ -1164,11 +1234,11 @@ export function ExpenseDetailsStep2({
                                           ""
                                         )?.toString() !== ""
                                           ? Number(
-                                              userRate ??
-                                                expense?.user_conversion_rate ??
-                                                apiRate ??
-                                                0
-                                            )
+                                            userRate ??
+                                            expense?.user_conversion_rate ??
+                                            apiRate ??
+                                            0
+                                          )
                                           : ""
                                       }
                                       onChange={(e) => {
@@ -1395,10 +1465,10 @@ export function ExpenseDetailsStep2({
                                           <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
                                             {field.value
                                               ? entityOptions[entityId]?.find(
-                                                  (opt) =>
-                                                    opt.id === field.value
-                                                )?.label ||
-                                                `Select ${fieldName}`
+                                                (opt) =>
+                                                  opt.id === field.value
+                                              )?.label ||
+                                              `Select ${fieldName}`
                                               : `Select ${fieldName}`}
                                           </span>
                                           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -1511,113 +1581,6 @@ export function ExpenseDetailsStep2({
             </form>
           </Form>
         </div>
-
-        {/* Fullscreen Receipt Modal */}
-        {isReceiptFullscreen && hasReceipt && (
-          <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
-            <div className="relative w-full h-full flex flex-col">
-              {/* Fullscreen Header */}
-              <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-                <div className="flex items-center gap-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Receipt Viewer
-                  </h3>
-                  <span className="text-sm text-gray-500">
-                    {receiptDisplayName}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReceiptZoomOut}
-                    disabled={receiptZoom <= 0.5}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ZoomOut className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm text-gray-600 min-w-[3rem] text-center">
-                    {Math.round(receiptZoom * 100)}%
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReceiptZoomIn}
-                    disabled={receiptZoom >= 3}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ZoomIn className="h-4 w-4" />
-                  </Button>
-                  <div className="w-px h-6 bg-gray-300 mx-2" />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReceiptRotate}
-                    className="h-8 w-8 p-0"
-                  >
-                    <RotateCw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReceiptReset}
-                    className="h-8 w-8 p-0"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                  <div className="w-px h-6 bg-gray-300 mx-2" />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReceiptDownload}
-                    className="h-8 px-3 text-xs"
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsReceiptFullscreen(false)}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Fullscreen Content */}
-              <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center p-4">
-                {(() => {
-                  const fullscreenSourceUrl = activeReceiptUrl;
-                  return fullscreenSourceUrl?.toLowerCase().includes(".pdf") ? (
-                    <div className="w-full h-full bg-white rounded">
-                      <embed
-                        src={`${fullscreenSourceUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&scrollbar=0`}
-                        type="application/pdf"
-                        className="w-full h-full border-0 rounded"
-                        style={{
-                          transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
-                          transformOrigin: "center",
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <img
-                      src={fullscreenSourceUrl || ""}
-                      alt="Receipt fullscreen"
-                      className="max-w-full max-h-full object-contain"
-                      style={{
-                        transform: `scale(${receiptZoom}) rotate(${receiptRotation}deg)`,
-                        transformOrigin: "center",
-                      }}
-                    />
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
       <AlertDialog
         open={showDuplicateDialog}
@@ -1660,14 +1623,12 @@ export function ExpenseDetailsStep2({
                     </div>
                     <div className="text-sm text-gray-600">
                       {semiParsedData?.extracted_date
-                        ? new Date(
-                            semiParsedData.extracted_date
-                          ).toLocaleDateString("en-GB", {
-                            weekday: "short",
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
+                        ? parseLocalDate(semiParsedData.extracted_date).toLocaleDateString("en-GB", {
+                          weekday: "short",
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
                         : semiParsedData?.ocr_result?.date}
                     </div>
                   </div>
