@@ -402,7 +402,7 @@ export function ReportDetailPage2() {
   const executeAction = async () => {
     if (!report || !actionType) return;
 
-    if (!comments.trim()) {
+    if (actionType !== "approve" && !comments.trim()) {
       toast.error("Comments are required");
       return;
     }
@@ -761,7 +761,7 @@ export function ReportDetailPage2() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="comments">
-                      Comments <span className="text-red-500">*</span>
+                      Comments {actionType !== "approve" && <span className="text-red-500">*</span>}
                     </Label>
                     <span className="text-xs text-muted-foreground">
                       {comments.length}/500 characters
@@ -796,7 +796,7 @@ export function ReportDetailPage2() {
                   </Button>
                   <Button
                     onClick={adminApprover ? executeAdminAction : executeAction}
-                    disabled={actionLoading || !comments.trim()}
+                    disabled={actionLoading || (actionType !== "approve" && !comments.trim())}
                     className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-200 ${actionType === "approve"
                       ? "bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md"
                       : actionType === "reject"
