@@ -345,9 +345,9 @@ export function MyExpensesPage() {
 
       if (!query?.status) {
         if (activeTab === "draft") {
-          newQuery = { ...query, status: [{operator: "in", value: ["COMPLETE","INCOMPLETE","SENT_BACK"]}] }
+          newQuery = { ...query, status: [{ operator: "in", value: ["COMPLETE", "INCOMPLETE", "SENT_BACK"] }] }
         } else if (activeTab === "reported") {
-          newQuery = { ...query, status: [{ operator: "in", value: ["APPROVED","REJECTED","PENDING_APPROVAL"] }] }
+          newQuery = { ...query, status: [{ operator: "in", value: ["APPROVED", "REJECTED", "PENDING_APPROVAL"] }] }
         } else newQuery = query;
       }
 
@@ -438,7 +438,7 @@ export function MyExpensesPage() {
 
   const handleTabChange = (tab: any) => {
     setActiveTab(tab);
-    setLoading(true);    setPaginationModel((prev) => ({
+    setLoading(true); setPaginationModel((prev) => ({
       ...prev,
       page: 0,
     }));

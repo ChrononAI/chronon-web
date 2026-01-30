@@ -206,7 +206,14 @@ function App() {
         </Routes>
       </Router>
 
-      <Toaster />
+      <Toaster
+        toastOptions={{
+          classNames: {
+            actionButton: "bg-white cursor-pointer",
+            toast: "bg-white text-black"
+          }
+        }}
+      />
     </>
   );
 }
