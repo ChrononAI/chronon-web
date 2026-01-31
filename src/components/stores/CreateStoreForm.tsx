@@ -444,11 +444,8 @@ export function CreateStoreForm({
       setSelectedUser(user);
       form.setValue("area_manager_id", user.id.toString());
     } else if (mode !== "create" && selectedStore?.area_manager_id && users) {
-      console.log("inside else if", users)
       const user: any = users.find((user: any) => user.id.toString() === selectedStore.area_manager_id);
-      console.log(user);
       if (user) {
-        console.log(user);
         setSelectedUser(user);
         form.setValue("area_manager_id", user.id.toString());
       }
