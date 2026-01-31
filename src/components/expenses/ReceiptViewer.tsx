@@ -5,6 +5,7 @@ import {
   FileText,
   Loader2,
   RotateCw,
+  Trash2,
   X,
   ZoomIn,
   ZoomOut,
@@ -56,7 +57,7 @@ function ReceiptViewer({
   setAttachments,
   fileIds,
   setFileIds,
-  generateUploadUrl
+  generateUploadUrl,
 }: any) {
   const [validations, setValidations] = useState<ValidationItem[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -96,14 +97,26 @@ function ReceiptViewer({
       ? "PDF"
       : "Image"
     : activeReceiptUrl
-      ? isPdfUrl(activeReceiptUrl)
-        ? "PDF"
-        : "Image"
-      : null;
+    ? isPdfUrl(activeReceiptUrl)
+      ? "PDF"
+      : "Image"
+    : null;
 
   const isPdfReceipt =
     (uploadedFile && uploadedFile.type.toLowerCase().includes("pdf")) ||
     isPdfUrl(currentReceiptUrl);
+
+    const handleDeleteAttachment = () => {
+    setFileIds((prev: any) => [
+      ...prev.slice(0, activeReceiptIndex - 1),
+      ...prev.slice(activeReceiptIndex + 1),
+    ]);
+    setAttachments((prev: any) => [
+      ...prev.slice(0, activeReceiptIndex - 1),
+      ...prev.slice(activeReceiptIndex + 1),
+    ]);
+    goPrev();
+  };
 
   const handlePostComment = async () => {
     if (!expense?.id || !newComment?.trim() || postingComment) return;
@@ -260,8 +273,9 @@ function ReceiptViewer({
           )}
         </div>
         <div
-          className={`h-full flex-1 overflow-hidden ${activeReceiptTab !== "receipt" && "overflow-hidden"
-            }`}
+          className={`h-full flex-1 overflow-hidden ${
+            activeReceiptTab !== "receipt" && "overflow-hidden"
+          }`}
         >
           {activeReceiptTab === "receipt" ? (
             <div className="flex flex-col h-full">
@@ -387,6 +401,24 @@ function ReceiptViewer({
                     generateUploadUrl={generateUploadUrl}
                     disabled={!hasReceipt}
                   />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 w-9 p-0"
+                        onClick={handleDeleteAttachment}
+                        disabled={
+                          !hasMultipleReceipts || !Boolean(activeReceiptIndex)
+                        }
+                      >
+                        <Trash2 className="h-4 w-4 p-0" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-white text-black border border-[0.5]">
+                      <p>Delete Attachment</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
