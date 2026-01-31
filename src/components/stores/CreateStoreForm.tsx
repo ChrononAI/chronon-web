@@ -92,7 +92,6 @@ export function CreateStoreForm({
   const { pathname } = useLocation();
   const { user } = useAuthStore();
   const { id } = useParams<{ id: string }>();
-  console.log(user);
 
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
@@ -439,13 +438,22 @@ export function CreateStoreForm({
     getAllUsers();
   }, []);
 
+
   useEffect(() => {
     if (user && mode === "create") {
-      console.log(user);
       setSelectedUser(user);
       form.setValue("area_manager_id", user.id.toString());
+    } else if (mode !== "create" && selectedStore?.area_manager_id && users) {
+      console.log("inside else if", users)
+      const user: any = users.find((user: any) => user.id.toString() === selectedStore.area_manager_id);
+      console.log(user);
+      if (user) {
+        console.log(user);
+        setSelectedUser(user);
+        form.setValue("area_manager_id", user.id.toString());
+      }
     }
-  }, []);
+  }, [users]);
 
   return (
     <div className={maxWidth ? `space-y-6 ${maxWidth}` : "space-y-6 max-w-4xl"}>
@@ -779,7 +787,7 @@ export function CreateStoreForm({
               <FormLabel>Area Manager EMP Name</FormLabel>
               <FormControl>
                 <Input
-                  value={(selectedUser) ? `${selectedUser?.firstName || ""} ${selectedUser?.lastName || ""}` : ""}
+                  value={(selectedUser) ? `${selectedUser?.firstName || selectedUser?.first_name || ""} ${selectedUser?.lastName || selectedUser?.last_name || ""}` : ""}
                   placeholder={selectedStoreManager ? "Area Manager EMP Name" : "Select Area Manager"}
                   disabled
                 />
