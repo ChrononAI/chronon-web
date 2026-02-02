@@ -54,6 +54,17 @@ export function AllInvoicesPage() {
     osc_pending: 0,
     booked: 0,
   });
+  // Cache invoices data for each tab
+  const [cachedInvoices, setCachedInvoices] = useState<{
+    osc_processed: InvoiceListRow[];
+    osc_pending: InvoiceListRow[];
+    booked: InvoiceListRow[];
+  }>({
+    osc_processed: [],
+    osc_pending: [],
+    booked: [],
+  });
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Open sidebar when on AllInvoicesPage
   useEffect(() => {
@@ -127,40 +138,39 @@ export function AllInvoicesPage() {
     };
   };
 
-  const fetchAllTabCounts = useCallback(async () => {
+  const fetchAllTabData = useCallback(async () => {
     try {
+      setLoadingInvoices(true);
+      // Fetch all three tabs' data in parallel
       const [processedResponse, pendingResponse, bookedResponse] = await Promise.all([
-        getAllInvoices("ocr_status=in.[OCR_PROCESSED]"),
-        getAllInvoices("ocr_status=in.[OCR_PROCESSING]"),
-        getAllInvoices("status=in.[REJECTED,APPROVED,PENDING_APPROVAL]"),
+        getAllInvoices("ocr_status=in.(OCR_PROCESSED)"),
+        getAllInvoices("ocr_status=in.(OCR_PROCESSING,OCR_PENDING)"),
+        getAllInvoices("status=in.(REJECTED,APPROVED,PENDING_APPROVAL)"),
       ]);
 
+      // Convert all responses to rows
+      const processedRows: InvoiceListRow[] = processedResponse.data.map(convertInvoiceToRow);
+      const pendingRows: InvoiceListRow[] = pendingResponse.data.map(convertInvoiceToRow);
+      const bookedRows: InvoiceListRow[] = bookedResponse.data.map(convertInvoiceToRow);
+
+      // Cache all data
+      setCachedInvoices({
+        osc_processed: processedRows,
+        osc_pending: pendingRows,
+        booked: bookedRows,
+      });
+
+      // Set counts
       setTabCounts({
         osc_processed: processedResponse.count || 0,
         osc_pending: pendingResponse.count || 0,
         booked: bookedResponse.count || 0,
       });
-    } catch (error) {
-      // Error handled silently
-    }
-  }, []);
 
-  const fetchInvoices = useCallback(async (tab: "osc_processed" | "osc_pending" | "booked") => {
-    try {
-      setLoadingInvoices(true);
-      let queryParams = "";
+      // Set the active tab's data to the store
+      useInvoiceFlowStore.setState({ invoices: processedRows });
       
-      if (tab === "booked") {
-        queryParams = "status=in.[REJECTED,APPROVED,PENDING_APPROVAL]";
-      } else if (tab === "osc_pending") {
-        queryParams = "ocr_status=in.[OCR_PROCESSING]";
-      } else if (tab === "osc_processed") {
-        queryParams = "ocr_status=in.[OCR_PROCESSED]";
-      }
-      
-      const response = await getAllInvoices(queryParams);
-      const invoiceRows: InvoiceListRow[] = response.data.map(convertInvoiceToRow);
-      useInvoiceFlowStore.setState({ invoices: invoiceRows });
+      setInitialLoadComplete(true);
     } catch (error) {
       // Error handled silently
     } finally {
@@ -168,22 +178,63 @@ export function AllInvoicesPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchAllTabCounts();
-  }, [fetchAllTabCounts]);
+  const fetchInvoices = useCallback(async (tab: "osc_processed" | "osc_pending" | "booked", forceRefresh: boolean = false) => {
+    // If we have cached data and not forcing refresh, use cached data
+    if (!forceRefresh && initialLoadComplete) {
+      useInvoiceFlowStore.setState({ invoices: cachedInvoices[tab] });
+      return;
+    }
+    try {
+      setLoadingInvoices(true);
+      let queryParams = "";
+      
+      if (tab === "booked") {
+        queryParams = "status=in.(REJECTED,APPROVED,PENDING_APPROVAL)";
+      } else if (tab === "osc_pending") {
+        queryParams = "ocr_status=in.(OCR_PROCESSING,OCR_PENDING)";
+      } else if (tab === "osc_processed") {
+        queryParams = "ocr_status=in.(OCR_PROCESSED)";
+      }
+      
+      const response = await getAllInvoices(queryParams);
+      const invoiceRows: InvoiceListRow[] = response.data.map(convertInvoiceToRow);
+      
+      // Update cache
+      setCachedInvoices(prev => ({
+        ...prev,
+        [tab]: invoiceRows,
+      }));
+      
+      useInvoiceFlowStore.setState({ invoices: invoiceRows });
+    } catch (error) {
+      // Error handled silently
+    } finally {
+      setLoadingInvoices(false);
+    }
+  }, [initialLoadComplete, cachedInvoices]);
 
+  // Fetch all tab data on initial load
   useEffect(() => {
-    fetchInvoices(activeTab);
-  }, [activeTab, fetchInvoices]);
+    if (!initialLoadComplete) {
+      fetchAllTabData();
+    }
+  }, [fetchAllTabData, initialLoadComplete]);
+
+  // When tab changes, use cached data (no API call)
+  useEffect(() => {
+    if (initialLoadComplete) {
+      fetchInvoices(activeTab, false);
+    }
+  }, [activeTab, fetchInvoices, initialLoadComplete]);
 
 
   useEffect(() => {
     const calculatePageSize = () => {
-      const headerHeight = 80; // Header height
-      const paginationHeight = 52; // Pagination bar height
-      const padding = 48; // Top and bottom padding
+      const headerHeight = 80;
+      const paginationHeight = 52; 
+      const padding = 48; 
       const gridHeight = window.innerHeight - headerHeight - paginationHeight - padding;
-      const rowHeight = 41; // Row height from Figma specs
+      const rowHeight = 41; 
       const calculatedPageSize = Math.floor(gridHeight / rowHeight);
       const pageSize = Math.max(calculatedPageSize, 10);
       setPaginationModel((prev) => ({ ...prev, pageSize }));

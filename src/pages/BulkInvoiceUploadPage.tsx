@@ -60,21 +60,23 @@ export function BulkInvoiceUploadPage() {
     const uploadedOn = new Date();
     const queueItemId = `file-${Date.now()}-${Math.random()}`;
     
-    // Add file to queue immediately
-    const newQueueItem: FileQueueItem = {
-      id: queueItemId,
-      file,
-      fileName: file.name,
-      fileId: null,
-      invoiceId: null,
-      status: "UPLOADING" as const,
-      ocrStatus: undefined,
-      uploadedOn,
-      addedToTable: false,
-    };
+      // Add file to queue immediately
+      const newQueueItem: FileQueueItem = {
+        id: queueItemId,
+        file,
+        fileName: file.name,
+        fileId: null,
+        invoiceId: null,
+        status: "UPLOADING" as const,
+        ocrStatus: undefined,
+        uploadedOn,
+        addedToTable: false,
+      };
 
-    setFileQueue((prev) => [...prev, newQueueItem]);
-    setShowQueueTable(true);
+      setFileQueue((prev) => [...prev, newQueueItem]);
+      setShowQueueTable(true);
+      // Reset to first page to show the new processing file
+      setPaginationModel({ page: 0, pageSize: paginationModel.pageSize });
 
     try {
       // Create file metadata
@@ -177,6 +179,45 @@ export function BulkInvoiceUploadPage() {
     failed: fileQueue.filter((f) => f.ocrStatus === "OCR_FAILED" || f.ocrStatus === "FAILED").length,
     processing: fileQueue.filter((f) => f.ocrStatus === "OCR_PROCESSING" || f.ocrStatus === "OCR_PENDING" || f.status === "UPLOADING" || f.status === "EXTRACTING_DATA").length,
   };
+
+  // Sort fileQueue to show processing/pending files first
+  const sortedFileQueue = useMemo(() => {
+    const isProcessing = (item: FileQueueItem): boolean => {
+      return (
+        item.status === "UPLOADING" ||
+        item.status === "EXTRACTING_DATA" ||
+        item.ocrStatus === "OCR_PROCESSING" ||
+        item.ocrStatus === "OCR_PENDING"
+      );
+    };
+
+    const isFailed = (item: FileQueueItem): boolean => {
+      return (
+        item.status === "FAILED" ||
+        item.ocrStatus === "OCR_FAILED" ||
+        item.ocrStatus === "FAILED"
+      );
+    };
+
+    return [...fileQueue].sort((a, b) => {
+      // Priority 1: Processing/Pending files first
+      const aProcessing = isProcessing(a);
+      const bProcessing = isProcessing(b);
+      if (aProcessing && !bProcessing) return -1;
+      if (!aProcessing && bProcessing) return 1;
+
+      // Priority 2: Failed files second
+      const aFailed = isFailed(a);
+      const bFailed = isFailed(b);
+      if (!aProcessing && !bProcessing) {
+        if (aFailed && !bFailed) return -1;
+        if (!aFailed && bFailed) return 1;
+      }
+
+      // Priority 3: Within same category, sort by most recent first
+      return b.uploadedOn.getTime() - a.uploadedOn.getTime();
+    });
+  }, [fileQueue]);
 
   const columns: GridColDef[] = useMemo(() => {
     return [
@@ -411,10 +452,33 @@ export function BulkInvoiceUploadPage() {
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Bulk Receipt Upload</h1>
-        </div>
+      {/* Header Container */}
+      <div
+        style={{
+          width: "100%",
+          height: "56px",
+          backgroundColor: "#FFFFFF",
+          borderBottom: "1px solid #EBEBEB",
+          display: "flex",
+          alignItems: "flex-start",
+          paddingLeft: "20px",
+          paddingTop: "15px",
+          boxSizing: "border-box",
+        }}
+      >
+        <h1
+          style={{
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: "20px",
+            lineHeight: "100%",
+            letterSpacing: "0%",
+            color: "#1A1A1A",
+            margin: 0,
+          }}
+        >
+          Bulk Receipt Upload
+        </h1>
       </div>
 
       <div
@@ -500,7 +564,7 @@ export function BulkInvoiceUploadPage() {
 
           {/* Table */}
           <DataTable
-            rows={fileQueue}
+            rows={sortedFileQueue}
             columns={columns}
             loading={isRefreshing}
             paginationModel={paginationModel}

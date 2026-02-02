@@ -8,6 +8,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { LoginPage } from "@/pages/auth/LoginPage";
+import { ProductSelectionPage } from "@/pages/auth/ProductSelectionPage";
 import { ExpenseDetailPage } from "@/pages/ExpenseDetailPage";
 import { MyReportsPage } from "@/pages/MyReportsPage";
 import { MyAdvancesPage } from "@/pages/MyAdvancesPage";
@@ -99,6 +100,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/select-product" element={<ProductSelectionPage />} />
           <Route path="/accounts/forgot_password" element={<ForgotPasswordPage />} />
           <Route path="/accounts/reset_password" element={<ResetPassword />} />
           <Route path="/accounts/create_password" element={<CreatePassword />} />

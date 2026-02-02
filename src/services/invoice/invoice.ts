@@ -35,6 +35,7 @@ export interface InvoiceLineItem {
   description: string | null;
   discount: string | null;
   gl_code: string | null;
+  hsn_sac?: string | null;
   igst_amount: string | null;
   line_num: number;
   project_id: string | null;

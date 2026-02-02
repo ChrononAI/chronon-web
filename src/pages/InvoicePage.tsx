@@ -279,21 +279,27 @@ export function InvoicePage() {
           }
           
           if (invoice.invoice_lineitems && Array.isArray(invoice.invoice_lineitems) && invoice.invoice_lineitems.length > 0) {
-            const rowsWithIds: InvoiceLineRow[] = invoice.invoice_lineitems.map((item, idx) => ({
-              id: idx + 1,
-              invoiceLineItemId: item.id || undefined,
-              itemDescription: item.description || "",
-              quantity: item.quantity ? parseFloat(item.quantity).toString() : "",
-              rate: item.rate || item.unit_price || "",
-              tdsCode: item.tds_code || "",
-              tdsAmount: item.tds_amount || "",
-              gstCode: item.tax_code || "",
-              igst: item.igst_amount || "",
-              cgst: item.cgst_amount || "",
-              sgst: item.sgst_amount || "",
-              utgst: item.utgst_amount || "",
-              netAmount: item.total || "",
-            }));
+            const rowsWithIds: InvoiceLineRow[] = invoice.invoice_lineitems.map((item, idx) => {
+              const quantity = item.quantity ? parseFloat(item.quantity) : 0;
+              const rate = item.rate || item.unit_price ? parseFloat(item.rate || item.unit_price || "0") : 0;
+              
+              return {
+                id: idx + 1,
+                invoiceLineItemId: item.id || undefined,
+                itemDescription: item.description || "",
+                quantity: quantity > 0 ? quantity.toString() : "",
+                rate: rate > 0 ? rate.toString() : "",
+                hsnCode: item.hsn_sac || "", // Populate from API response
+                tdsCode: item.tds_code || "",
+                tdsAmount: item.tds_amount || "",
+                gstCode: item.tax_code || "",
+                igst: item.igst_amount || "",
+                cgst: item.cgst_amount || "",
+                sgst: item.sgst_amount || "",
+                utgst: item.utgst_amount || "",
+                netAmount: item.total || "",
+              };
+            });
             
             setTableRows(rowsWithIds);
             setOriginalOcrValues(Object.fromEntries(rowsWithIds.map((row) => [row.id, { ...row }])));
@@ -520,6 +526,7 @@ export function InvoicePage() {
       itemDescription: "",
       quantity: "",
       rate: "",
+      hsnCode: "",
       tdsCode: "",
       tdsAmount: "",
       gstCode: "",
@@ -776,6 +783,8 @@ export function InvoicePage() {
             line_num: index + 1,
             description: row.itemDescription || null,
             quantity: row.quantity ? parseFloat(row.quantity).toFixed(4) : null,
+            rate: row.rate ? parseFloat(row.rate).toFixed(4) : null,
+            hsn_sac: row.hsnCode || null,
             cgst_amount: row.cgst || null,
             sgst_amount: row.sgst || null,
             igst_amount: row.igst || null,

@@ -20,6 +20,7 @@ export type InvoiceLineRow = {
   itemDescription: string;
   quantity: string;
   rate: string;
+  hsnCode: string;
   tdsCode: string;
   tdsAmount: string;
   gstCode: string;
@@ -494,7 +495,7 @@ export function LineItemsTable({
                 ITEM DESCRIPTION
               </TableHead>
               <TableHead 
-                className="px-4 w-[80px] max-w-[80px] py-2"
+                className="px-4 min-w-[150px] py-2"
                 style={tableHeaderStyle}
               >
                 QTY
@@ -504,6 +505,12 @@ export function LineItemsTable({
                 style={tableHeaderStyle}
               >
                 RATE
+              </TableHead>
+              <TableHead 
+                className="px-4 min-w-[150px] py-2"
+                style={tableHeaderStyle}
+              >
+                HSN CODE
               </TableHead>
               <TableHead 
                 className="px-4 min-w-[160px] py-2"
@@ -558,7 +565,7 @@ export function LineItemsTable({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={11} className="px-4 py-10">
+                <TableCell colSpan={12} className="px-4 py-10">
                   <div className="flex items-center justify-center gap-2 text-gray-500">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="text-sm">Processing invoice…</span>
@@ -567,7 +574,7 @@ export function LineItemsTable({
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="px-4 py-10">
+                <TableCell colSpan={12} className="px-4 py-10">
                   <div className="text-center text-sm text-gray-500">
                     No line items yet. Upload an invoice or click "Add Row".
                   </div>
@@ -595,6 +602,10 @@ export function LineItemsTable({
                           onRowUpdate(row.id, "itemDescription", newValue.description);
                           if (onValidationErrorChange && newValue.description.trim()) {
                             onValidationErrorChange(row.id, "itemDescription", false);
+                          }
+                          // Auto-populate HSN code when item is selected
+                          if (newValue.hsn_sac_code) {
+                            onRowUpdate(row.id, "hsnCode", newValue.hsn_sac_code);
                           }
                           // Optionally auto-populate tax_code and tds_code if they're empty
                           if (!row.gstCode && newValue.tax_code) {
@@ -788,7 +799,7 @@ export function LineItemsTable({
                     )}
                     </div>
                   </TableCell>
-                  <TableCell className="px-4 py-1 w-[80px] max-w-[80px]">
+                  <TableCell className="px-4 py-1 min-w-[150px]">
                     <div>
                       <Input
                         value={row.quantity ? parseFloat(row.quantity).toString() : ""}
@@ -801,7 +812,7 @@ export function LineItemsTable({
                             }
                           }
                         }}
-                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-0 ${
+                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                           isFieldChanged(row.id, "quantity", row.quantity) ? "bg-yellow-100" : ""
                         } ${validationErrors[row.id]?.quantity ? '!border-red-500 border' : ''}`}
                         placeholder="Qty"
@@ -831,6 +842,21 @@ export function LineItemsTable({
                       {validationErrors[row.id]?.rate && (
                         <p className="text-red-500 text-xs mt-0.5">Required field</p>
                       )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-4 py-1 min-w-[150px]">
+                    <div>
+                      <Input
+                        value={row.hsnCode}
+                        onChange={(e) => {
+                          onRowUpdate(row.id, "hsnCode", e.target.value);
+                        }}
+                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
+                          isFieldChanged(row.id, "hsnCode", row.hsnCode) ? "bg-yellow-100" : ""
+                        }`}
+                        placeholder="HSN Code"
+                        disabled={isApprovalMode}
+                      />
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-1 min-w-[160px]">
@@ -975,21 +1001,13 @@ export function LineItemsTable({
                     <div>
                       <Input
                         value={row.tdsAmount}
-                        onChange={(e) => {
-                          onRowUpdate(row.id, "tdsAmount", e.target.value);
-                          if (onValidationErrorChange && e.target.value.trim() && parseFloat(e.target.value) >= 0) {
-                            onValidationErrorChange(row.id, "tdsAmount", false);
-                          }
-                        }}
-                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
+                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 bg-gray-50 ${
                           isFieldChanged(row.id, "tdsAmount", row.tdsAmount) ? "bg-yellow-100" : ""
-                        } ${validationErrors[row.id]?.tdsAmount ? '!border-red-500 border' : ''}`}
+                        }`}
                         placeholder="₹ 0.00"
-                        disabled={isApprovalMode}
+                        disabled={true}
+                        readOnly
                       />
-                      {validationErrors[row.id]?.tdsAmount && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-1 min-w-[160px]">
@@ -1134,84 +1152,52 @@ export function LineItemsTable({
                     <div>
                       <Input
                         value={row.igst}
-                        onChange={(e) => {
-                          onRowUpdate(row.id, "igst", e.target.value);
-                          if (onValidationErrorChange && e.target.value.trim() && parseFloat(e.target.value) >= 0) {
-                            onValidationErrorChange(row.id, "igst", false);
-                          }
-                        }}
-                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
+                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 bg-gray-50 ${
                           isFieldChanged(row.id, "igst", row.igst) ? "bg-yellow-100" : ""
-                        } ${validationErrors[row.id]?.igst ? '!border-red-500 border' : ''}`}
+                        }`}
                         placeholder="₹ 0.00"
-                        disabled={isApprovalMode}
+                        disabled={true}
+                        readOnly
                       />
-                      {validationErrors[row.id]?.igst && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-1 min-w-[130px]">
                     <div>
                       <Input
                         value={row.cgst}
-                        onChange={(e) => {
-                          onRowUpdate(row.id, "cgst", e.target.value);
-                          if (onValidationErrorChange && e.target.value.trim() && parseFloat(e.target.value) >= 0) {
-                            onValidationErrorChange(row.id, "cgst", false);
-                          }
-                        }}
-                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
+                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 bg-gray-50 ${
                           isFieldChanged(row.id, "cgst", row.cgst) ? "bg-yellow-100" : ""
-                        } ${validationErrors[row.id]?.cgst ? '!border-red-500 border' : ''}`}
+                        }`}
                         placeholder="₹ 0.00"
-                        disabled={isApprovalMode}
+                        disabled={true}
+                        readOnly
                       />
-                      {validationErrors[row.id]?.cgst && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-1 min-w-[130px]">
                     <div>
                       <Input
                         value={row.sgst}
-                        onChange={(e) => {
-                          onRowUpdate(row.id, "sgst", e.target.value);
-                          if (onValidationErrorChange && e.target.value.trim() && parseFloat(e.target.value) >= 0) {
-                            onValidationErrorChange(row.id, "sgst", false);
-                          }
-                        }}
-                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
+                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 bg-gray-50 ${
                           isFieldChanged(row.id, "sgst", row.sgst) ? "bg-yellow-100" : ""
-                        } ${validationErrors[row.id]?.sgst ? '!border-red-500 border' : ''}`}
+                        }`}
                         placeholder="₹ 0.00"
-                        disabled={isApprovalMode}
+                        disabled={true}
+                        readOnly
                       />
-                      {validationErrors[row.id]?.sgst && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-1 min-w-[130px]">
                     <div>
                       <Input
                         value={row.utgst}
-                        onChange={(e) => {
-                          onRowUpdate(row.id, "utgst", e.target.value);
-                          if (onValidationErrorChange && e.target.value.trim() && parseFloat(e.target.value) >= 0) {
-                            onValidationErrorChange(row.id, "utgst", false);
-                          }
-                        }}
-                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
+                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 bg-gray-50 ${
                           isFieldChanged(row.id, "utgst", row.utgst) ? "bg-yellow-100" : ""
-                        } ${validationErrors[row.id]?.utgst ? '!border-red-500 border' : ''}`}
+                        }`}
                         placeholder="₹ 0.00"
-                        disabled={isApprovalMode}
+                        disabled={true}
+                        readOnly
                       />
-                      {validationErrors[row.id]?.utgst && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                   </TableCell>
                   <TableCell className="pl-4 pr-6 py-1">
