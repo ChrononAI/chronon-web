@@ -367,7 +367,6 @@ function buildCustomAttributesFromFilters(
   return result;
 }
 
-
 export function CreateReportForm2({
   editMode = false,
   reportData,
@@ -387,7 +386,7 @@ export function CreateReportForm2({
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>(
     []
   );
-  const [expAttributes, setExpAttributes] = useState<any[]>([]);
+  const [expAttributes, setExpAttributes] = useState<any[]>();
   const [formSchema, setFormSchema] = useState(createReportSchema([]));
   const [markedExpenses, setMarkedExpenses] = useState<Expense[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -409,6 +408,7 @@ export function CreateReportForm2({
   >("expenses");
   const [dateFrom, setDateFrom] = useState<string | Date>("");
   const [dateTo, setDateTo] = useState<string | Date>("");
+  const [mappedOptions, setMappedOptions] = useState<Record<any, any>>({});
 
   const [loadingReportComments, setLoadingReportComments] = useState(false);
   const [commentError, setCommentError] = useState<string | null>();
@@ -420,54 +420,73 @@ export function CreateReportForm2({
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-function buildBackendQuery(filters: FilterMap): string {
-  const params: string[] = [];
+  function buildBackendQuery(filters: FilterMap): string {
+    const params: string[] = [];
 
-  Object.entries(filters).forEach(([key, fieldFilters]) => {
-    if (key === "q") {
-      const value = fieldFilters?.[0]?.value;
+    Object.entries(filters).forEach(([key, fieldFilters]) => {
+      if (key === "q") {
+        const value = fieldFilters?.[0]?.value;
 
-      if (typeof value !== "string" || value.trim() === "") return;
+        if (typeof value !== "string" || value.trim() === "") return;
 
-      const finalValue = value.endsWith(":*") ? value : `${value}:*`;
-      params.push(`q=${finalValue}`);
-      return;
-    }
-
-    const isCustomAttribute = expAttributes.some(item => item.field_name === key);
-
-    fieldFilters?.forEach(({ operator, value }) => {
-      if (
-        value === undefined ||
-        value === null ||
-        (typeof value === "string" && value.trim() === "") ||
-        (Array.isArray(value) && value.length === 0)
-      ) {
+        const finalValue = value.endsWith(":*") ? value : `${value}:*`;
+        params.push(`q=${finalValue}`);
         return;
       }
-      const backendKey = isCustomAttribute
-        ? `custom_attributes->${key}`
-        : key;
 
-      switch (operator) {
-        case "in":
-          params.push(
-            `${backendKey}=in.(${(value as (string | number)[]).join(",")})`
-          );
-          break;
+      const entity = expAttributes?.find((ent) => ent.field_name === key);
+      const isCustomAttribute = Boolean(entity);
 
-        case "ilike":
-          params.push(`${backendKey}=ilike.%${value}%`);
-          break;
+      const options =
+        entity && mappedOptions?.[entity.entity_id]
+          ? mappedOptions[entity.entity_id]
+          : [];
 
-        default:
-          params.push(`${backendKey}=${operator}.${value}`);
-      }
+      fieldFilters?.forEach(({ operator, value }) => {
+        if (
+          value === undefined ||
+          value === null ||
+          (typeof value === "string" && value.trim() === "") ||
+          (Array.isArray(value) && value.length === 0)
+        ) {
+          return;
+        }
+
+        const resolveValue = (val: any) => {
+          const opt = options.find((o: any) => o.label === val);
+          return opt?.id ?? val;
+        };
+
+        const resolvedValue = Array.isArray(value)
+          ? value.map(resolveValue)
+          : resolveValue(value);
+
+        const backendKey =
+          isCustomAttribute && entity
+            ? `custom_attributes->${entity.entity_id}`
+            : key;
+
+        switch (operator) {
+          case "in":
+            params.push(
+              `${backendKey}=in.(${(resolvedValue as (string | number)[]).join(
+                ","
+              )})`
+            );
+            break;
+
+          case "ilike":
+            params.push(`${backendKey}=ilike.%${resolvedValue}%`);
+            break;
+
+          default:
+            params.push(`${backendKey}=${operator}.${resolvedValue}`);
+        }
+      });
     });
-  });
 
-  return params.join("&");
-}
+    return params.join("&");
+  }
 
   useEffect(() => {
     const loadTemplates = async () => {
@@ -481,7 +500,9 @@ function buildBackendQuery(filters: FilterMap): string {
           ? templatesRes.find((t) => t.module_type === "expense")
           : null;
 
-        const selectEntity = expenseTemplate?.entities?.filter((ent) => ent.field_type === "SELECT");
+        const selectEntity = expenseTemplate?.entities?.filter(
+          (ent) => ent.field_type === "SELECT"
+        );
 
         if (selectEntity) setExpAttributes(selectEntity);
 
@@ -508,6 +529,7 @@ function buildBackendQuery(filters: FilterMap): string {
             mappedOptions[entityId] = entityMap[entityId] || [];
           }
         });
+        setMappedOptions(mappedOptions);
       } catch (error) {
         console.error("Failed to load templates:", error);
       }
@@ -525,17 +547,16 @@ function buildBackendQuery(filters: FilterMap): string {
             value: ["COMPLETE"],
           },
         ],
-        report_id: [
-          {
-            operator: "eq",
-            value: ["null"],
-          },
-        ],
       };
       let newQuery: FilterMap = { ...expenseQuery, ...statusQuery };
+      const query = reportData
+        ? `${buildBackendQuery(newQuery)}&or=(report_id.eq.null,report_id.eq.${
+            reportData?.id
+          })`
+        : `${buildBackendQuery(newQuery)}&or=(report_id.eq.null)`;
 
       const response = await expenseService.getFilteredExpenses({
-        query: buildBackendQuery(newQuery),
+        query: query,
         limit: 200,
         offset: 0,
         signal,
@@ -547,6 +568,7 @@ function buildBackendQuery(filters: FilterMap): string {
   );
 
   useEffect(() => {
+    if (!expAttributes) return;
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
@@ -570,7 +592,6 @@ function buildBackendQuery(filters: FilterMap): string {
         .finally(() => {
           if (!controller.signal.aborted) {
             setLoading(false);
-            setRowSelection({ type: "include", ids: new Set() });
           }
         });
     }, 400);
@@ -580,7 +601,7 @@ function buildBackendQuery(filters: FilterMap): string {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [fetchFilteredExpenses]);
+  }, [fetchFilteredExpenses, expAttributes]);
 
   const filteredExpenses = allExpenses
     .filter((exp) =>
@@ -628,10 +649,11 @@ function buildBackendQuery(filters: FilterMap): string {
   });
 
   useEffect(() => {
-    setRowSelection({
-      type: "include",
-      ids: new Set(markedExpenses.map((exp) => exp.id)),
-    });
+
+      setRowSelection({
+        type: "include",
+        ids: new Set(markedExpenses.map((exp) => exp.id)),
+      });
   }, [markedExpenses]);
 
   useEffect(() => {
@@ -943,7 +965,10 @@ function buildBackendQuery(filters: FilterMap): string {
         const updateData = {
           title: formData.reportName,
           description: formData.description,
-          custom_attributes: {...customAttributesData, ...buildCustomAttributesFromFilters(expenseQuery)},
+          custom_attributes: {
+            ...customAttributesData,
+            ...buildCustomAttributesFromFilters(expenseQuery),
+          },
           expense_ids: selectedIds,
         };
         const updateResponse = await reportService.updateReport(
@@ -964,7 +989,10 @@ function buildBackendQuery(filters: FilterMap): string {
           description: formData.description,
           expenseIds: selectedIds,
           additionalFields: additionalFieldsData,
-          customAttributes: {...customAttributesData, ...buildCustomAttributesFromFilters(expenseQuery)},
+          customAttributes: {
+            ...customAttributesData,
+            ...buildCustomAttributesFromFilters(expenseQuery),
+          },
         };
 
         const createResponse = await reportService.createReport(newReportData);
@@ -1058,7 +1086,10 @@ function buildBackendQuery(filters: FilterMap): string {
         description: data.description,
         expenseIds: selectedIds,
         additionalFields: additionalFieldsData,
-        customAttributes: {...customAttributesData, ...buildCustomAttributesFromFilters(expenseQuery)},
+        customAttributes: {
+          ...customAttributesData,
+          ...buildCustomAttributesFromFilters(expenseQuery),
+        },
       };
 
       // 1. Create report
@@ -1069,10 +1100,12 @@ function buildBackendQuery(filters: FilterMap): string {
         await reportService.updateReport(reportData.id, {
           title: data.reportName,
           description: data.description,
-          custom_attributes: {...customAttributesData, ...buildCustomAttributesFromFilters(expenseQuery)},
+          custom_attributes: {
+            ...customAttributesData,
+            ...buildCustomAttributesFromFilters(expenseQuery),
+          },
           expense_ids: selectedIds,
         });
-        // await reportService.addExpensesToReport(reportData.id, markedExpenses.map(expense => expense.id))
         const submitReport = await reportService.submitReport(reportData.id);
         if (submitReport.success) {
           toast.success("Report submitted successfully");
@@ -1407,6 +1440,7 @@ function buildBackendQuery(filters: FilterMap): string {
                   return;
                 setRowSelection(newSelection);
               }}
+              keepNonExistentRowsSelected
               disableRowSelectionOnClick
               showCellVerticalBorder
               pagination
