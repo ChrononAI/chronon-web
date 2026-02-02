@@ -96,7 +96,7 @@ const navigation: NavigationItem[] = [
     icon: SlidersHorizontal,
     children: [
       {
-        name: "Expenses",
+        name: "Expense Reports",
         href: "/approvals/reports",
         icon: CheckSquare,
       },
@@ -138,6 +138,11 @@ const navigation: NavigationItem[] = [
         name: "Settlements",
         href: "/admin/settlements",
         icon: TicketCheck,
+      },
+      {
+        name: "Expense Reports",
+        href: "/admin/admin-reports",
+        icon: CheckSquare,
       },
     ],
   },
@@ -196,6 +201,19 @@ export function Sidebar() {
         const permission = {
           enabled: user?.role === "ADMIN" || user?.role === "SUPER_ADMIN",
           allowed: user?.role === "ADMIN" || user?.role === "SUPER_ADMIN",
+        };
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
+      } else if (item?.href === "/admin/admin-reports") {
+        const permission = {
+          enabled: orgSettings?.admin_approval_settings?.enabled && user?.role === "SUPER_ADMIN",
+          allowed: orgSettings?.admin_approval_settings?.enabled && user?.role === "SUPER_ADMIN"
         };
         const children = item.children
           ? mergePermissions(item.children, permissions)
@@ -442,7 +460,7 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        "bg-card border-r h-full overflow-y-auto flex flex-col transition-all duration-300 ease-in-out",
+        "bg-card border-r h-screen overflow-y-auto flex flex-col transition-all duration-300 ease-in-out",
         sidebarCollapsed ? "w-12" : "w-64"
       )}
     >
@@ -472,7 +490,7 @@ export function Sidebar() {
       {/* Navigation */}
       <nav
         className={cn(
-          "px-2 space-y-2 flex-1 transition-all duration-300",
+          "px-2 space-y-2 flex-1 overflow-auto transition-all duration-300",
           sidebarCollapsed && "px-1"
         )}
       >

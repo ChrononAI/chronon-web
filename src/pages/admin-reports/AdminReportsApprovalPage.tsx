@@ -3,28 +3,41 @@ import { Link, useNavigate } from "react-router-dom";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useReportsStore } from "@/store/reportsStore";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
-import { Report } from "@/types/expense";
 import { GridPaginationModel } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
 import { useAuthStore } from "@/store/authStore";
-import CustomReportsToolbar from "@/components/reports/CustomReportsToolbar";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import { toast } from "sonner";
-import {
-  buildBackendQuery,
-  FieldFilter,
-  FilterMap,
-  FilterValue,
-  Operator,
-} from "./MyExpensesPage";
 import { settlementsService } from "@/services/settlementsService";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import { buildBackendQuery, FieldFilter, FilterMap, FilterValue, Operator } from "../MyExpensesPage";
+import { useAdminReportsStore } from "@/store/adminReportsStore";
+import CustomAdminReportsToolbar from "@/components/admin-reports/CustomAdminReportsToolbar";
 
 const columns: GridColDef[] = [
+  {
+    field: "title",
+    headerName: "TITLE",
+    minWidth: 200,
+    flex: 1,
+    renderCell: (params) => (
+      <span className="font-medium hover:underline whitespace-nowrap">
+        {params.value}
+      </span>
+    ),
+  },
+  {
+    field: "description",
+    headerName: "DESCRIPTION",
+    minWidth: 180,
+    flex: 1,
+    renderCell: (params) => (
+      <span className="whitespace-nowrap">{params.value}</span>
+    ),
+  },
   {
     field: "status",
     headerName: "STATUS",
@@ -44,6 +57,15 @@ const columns: GridColDef[] = [
     valueFormatter: (params) => formatCurrency(params),
   },
   {
+    field: "created_by",
+    headerName: "CREATED BY",
+    minWidth: 140,
+    flex: 1,
+    renderCell: (params) => (
+      <span className="whitespace-nowrap">{params.row.user_info?.email}</span>
+    ),
+  },
+  {
     field: "created_at",
     headerName: "CREATED DATE",
     minWidth: 120,
@@ -52,42 +74,29 @@ const columns: GridColDef[] = [
   },
 ];
 
-const REPORT_STATUSES = [
-  "DRAFT",
-  "UNDER_REVIEW",
-  "APPROVED",
-  "REJECTED",
-  "SENT_BACK",
-];
+const PENDING_REPORT_STATUSES = ["UNDER_REVIEW"];
 
-const UNSUBMITTED_REPORT_STATUSES = ["DRAFT"];
+const PROCESSED_REPORT_STATUSES = ["APPROVED", "REJECTED"];
 
-const SUBMITTED_REPORT_STATUSES = ["APPROVED", "REJECTED", "UNDER_REVIEW"];
-
-export function MyReportsPage() {
+export function AdminReportsApprovalPage() {
   const {
-    allReports,
-    unsubmittedReports,
-    submittedReports,
-    setAllReports,
-    setUnsubmittedReports,
-    setSubmittedReports,
-    setAllReportsPagination,
-    setUnsubmittedReportsPagination,
-    setSubmittedReportsPagination,
-    allReportsPagination,
-    unsubmittedReportsPagination,
-    submittedReportsPagination,
+    pendingReports,
+    processedReports,
+    setPendingReports,
+    setProcessedReports,
+    pendingReportsPagination,
+    processedReportsPagination,
+    setPendingReportsPagination,
+    setProcessedReportsPagination,
     query,
     setQuery,
-  } = useReportsStore();
+  } = useAdminReportsStore();
   const navigate = useNavigate();
   const { orgSettings } = useAuthStore();
-  const customIdEnabled = orgSettings?.custom_report_id_settings?.enabled ?? false;
-  const showDescription = orgSettings?.report_description_settings?.enabled ?? true;
-
+  const customIdEnabled =
+    orgSettings?.custom_report_id_settings?.enabled ?? false;
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("pending");
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
@@ -113,14 +122,13 @@ export function MyReportsPage() {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const allowedStatus =
-    activeTab === "all"
-      ? REPORT_STATUSES
-      : activeTab === "unsubmitted"
-        ? UNSUBMITTED_REPORT_STATUSES
-        : SUBMITTED_REPORT_STATUSES;
+    activeTab === "pending"
+      ? PENDING_REPORT_STATUSES
+        : PROCESSED_REPORT_STATUSES;
 
   const newCols = useMemo<GridColDef[]>(() => {
     return [
+      ...columns,
       ...(customIdEnabled
         ? [
           {
@@ -131,36 +139,15 @@ export function MyReportsPage() {
           } as GridColDef,
         ]
         : []),
-      ...[{
-        field: "title",
-        headerName: "TITLE",
-        minWidth: 200,
-        flex: 1,
-        renderCell: (params: any) => (
-          <span className="font-medium hover:underline whitespace-nowrap">
-            {params.value}
-          </span>
-        ),
-      }],
-      ...(showDescription ? [{
-        field: "description",
-        headerName: "DESCRIPTION",
-        minWidth: 180,
-        flex: 1,
-        renderCell: (params: any) => (
-          <span className="whitespace-nowrap">{params.value}</span>
-        ),
-      },] : []),
-      ...columns,
     ];
-  }, [columns, customIdEnabled, showDescription]);
+  }, [columns, customIdEnabled]);
 
   function updateQuery(key: string, operator: Operator, value: FilterValue) {
     setQuery((prev) => {
       const prevFilters: FieldFilter[] = prev[key] ?? [];
 
       if (
-        value == null ||
+        value === undefined ||
         (typeof value === "string" && value.trim() === "") ||
         (Array.isArray(value) && value.length === 0)
       ) {
@@ -203,12 +190,9 @@ export function MyReportsPage() {
       ...prev,
       page: 0,
     }));
-    const filter =
-      tab === "all"
-        ? []
-        : tab === "unsubmitted"
-          ? ["DRAFT"]
-          : ["APPROVED", "REJECTED", "UNDER_REVIEW"];
+    const filter = tab === "pending"
+          ? ["UNDER_REVIEW"]
+          : ["APPROVED", "REJECTED"];
 
     updateQuery("status", "in", filter);
   };
@@ -222,11 +206,11 @@ export function MyReportsPage() {
         let newQuery: FilterMap = query;
 
         if (!query?.status) {
-          if (activeTab === "unsubmitted") {
-            newQuery = { ...query, status: [{ operator: "in", value: UNSUBMITTED_REPORT_STATUSES }] }
-          } else if (activeTab === "submitted") {
-            newQuery = { ...query, status: [{ operator: "in", value: SUBMITTED_REPORT_STATUSES }] }
-          } else newQuery = query;
+          if (activeTab === "pending") {
+            newQuery = { ...query, status: [{ operator: "in", value: PENDING_REPORT_STATUSES }] }
+          } else if (activeTab === "processed") {
+            newQuery = { ...query, status: [{ operator: "in", value: PROCESSED_REPORT_STATUSES }] }
+          }
         }
 
         const res = await settlementsService.getFilteredReports({
@@ -234,24 +218,18 @@ export function MyReportsPage() {
           offset,
           query: buildBackendQuery(newQuery),
           signal,
-          role: "spender",
+          role: "admin",
         });
 
-        if (activeTab === "all") {
-          setAllReports(res.data.data);
-          setAllReportsPagination({
-            count: res.data.count,
-            offset: res.data.offset,
-          });
-        } else if (activeTab === "unsubmitted") {
-          setUnsubmittedReports(res.data.data);
-          setUnsubmittedReportsPagination({
+        if (activeTab === "pending") {
+          setPendingReports(res.data.data);
+          setPendingReportsPagination({
             count: res.data.count,
             offset: res.data.offset,
           });
         } else {
-          setSubmittedReports(res.data.data);
-          setSubmittedReportsPagination({
+          setProcessedReports(res.data.data);
+          setProcessedReportsPagination({
             count: res.data.count,
             offset: res.data.offset,
           });
@@ -302,12 +280,7 @@ export function MyReportsPage() {
     };
   }, [fetchFilteredReports]);
 
-  const reportsArr =
-    activeTab === "all"
-      ? allReports
-      : activeTab === "unsubmitted"
-        ? unsubmittedReports
-        : submittedReports;
+  const reportsArr = activeTab === "pending" ? pendingReports : processedReports;
 
   useEffect(() => {
     setRowSelection({
@@ -323,29 +296,18 @@ export function MyReportsPage() {
     });
   }, [activeTab]);
 
-  const handleReportClick = (report: Report) => {
-    if (report.status === "DRAFT" || report.status === "SENT_BACK") {
-      navigate("/reports/create", {
-        state: {
-          editMode: true,
-          reportData: {
-            id: report.id,
-            title: report.title,
-            description: report.description,
-            custom_attributes: report.custom_attributes,
-            expenses: report.expenses || [],
-          },
-        },
-      });
-    } else {
-      navigate(`/reports/${report.id}`);
-    }
-  };
-
   useEffect(() => {
+    const filter: FieldFilter[] = [
+      {
+        operator: "in",
+        value: [
+          "UNDER_REVIEW"
+        ]
+      }
+    ]
     setQuery((prev) => {
       const { status, ...rest } = prev;
-      return { ...rest };
+      return { status: filter, ...rest };
     });
   }, []);
 
@@ -367,16 +329,11 @@ export function MyReportsPage() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         tabs={[
-          { key: "all", label: "All", count: allReportsPagination.count },
+          { key: "pending", label: "Pending", count: pendingReportsPagination.count },
           {
-            key: "unsubmitted",
-            label: "Unsubmitted",
-            count: unsubmittedReportsPagination.count,
-          },
-          {
-            key: "submitted",
-            label: "Submitted",
-            count: submittedReportsPagination.count,
+            key: "processed",
+            label: "Processed",
+            count: processedReportsPagination.count,
           },
         ]}
         className="mb-8"
@@ -395,14 +352,10 @@ export function MyReportsPage() {
           onRowClick={(params, event) => {
             event.stopPropagation();
             const report = params.row;
-            if (report.status === "DRAFT" || report.status === "SENT_BACK") {
-              handleReportClick(report);
-            } else {
-              navigate(`/reports/${report.id}`);
-            }
+            navigate(`/admin/admin-reports/${report.id}`);
           }}
           slots={{
-            toolbar: CustomReportsToolbar,
+            toolbar: CustomAdminReportsToolbar,
             noRowsOverlay: () => (
               <CustomNoRows
                 title="No reports found"
@@ -458,11 +411,9 @@ export function MyReportsPage() {
           showToolbar
           checkboxSelection
           rowCount={
-            activeTab === "all"
-              ? allReportsPagination.count
-              : activeTab === "unsubmitted"
-                ? unsubmittedReportsPagination.count
-                : submittedReportsPagination.count
+            activeTab === "pending"
+              ? pendingReportsPagination.count
+                : processedReportsPagination.count
           }
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={setRowSelection}

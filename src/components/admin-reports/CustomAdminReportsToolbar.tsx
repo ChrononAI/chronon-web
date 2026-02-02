@@ -5,6 +5,7 @@ import MultiSelectDropdown from "../shared/MultiSelectDropdown";
 import { Input } from "../ui/input";
 import { useState } from "react";
 import {
+  GridRowSelectionModel,
   GridToolbarProps,
   Toolbar,
   ToolbarPropsOverrides,
@@ -12,36 +13,43 @@ import {
 import { FilterMap, getFilterValue } from "@/pages/MyExpensesPage";
 import DateRangePicker from "../shared/DateRangePicker";
 import FilterModal, { AllowedFilter } from "../expenses/FilterModal";
-import { useReportsStore } from "@/store/reportsStore";
+import { useAdminReportsStore } from "@/store/adminReportsStore";
 
 export interface CustomExpenseToolbarProps {
-  allCategories: string[];
+  allStatuses: string[];
+  marking: boolean;
+  onCustomClick: () => void;
+  rowSelection: GridRowSelectionModel;
+  rowCount: number;
+  activeTab: string;
 }
 
 type Props = GridToolbarProps &
   ToolbarPropsOverrides &
   Partial<CustomExpenseToolbarProps>;
 
-function CustomReportExpenseToolbar({ allCategories }: Props) {
-  const { expenseQuery, setExpenseQuery } = useReportsStore();
+function CustomAdminReportsToolbar({
+  allStatuses
+}: Props) {
+  const { query, setQuery } = useAdminReportsStore();
 
-  const hasFilters = Object.keys(expenseQuery).length > 0;
+  const hasFilters = Object.keys(query).length > 0;
 
   const [filterModalOpen, setFilterModalOpen] = useState(false);
-  const searchValue = (getFilterValue(expenseQuery, "q", "eq") as string) ?? "";
-  const selectedCategories =
-    (getFilterValue(expenseQuery, "category", "in") as string[]) ?? [];
+  const searchValue = (getFilterValue(query, "q", "eq") as string) ?? "";
+  const selectedStatuses =
+    (getFilterValue(query, "status", "in") as string[]) ?? [];
 
   const dateFrom =
-    (getFilterValue(expenseQuery, "expense_date", "gte") as string) ?? undefined;
+    (getFilterValue(query, "created_at", "gte") as string) ?? undefined;
 
   const dateTo =
-    (getFilterValue(expenseQuery, "expense_date", "lte") as string) ?? undefined;
+    (getFilterValue(query, "created_at", "lte") as string) ?? undefined;
 
   const setDate = (operator: "gte" | "lte", value?: string) => {
-    setExpenseQuery((prev) => {
+    setQuery((prev) => {
       const next = { ...prev };
-      const existing = next.expense_date ?? [];
+      const existing = next.created_at ?? [];
 
       const filtered = existing.filter((f) => f.operator !== operator);
 
@@ -50,9 +58,9 @@ function CustomReportExpenseToolbar({ allCategories }: Props) {
       }
 
       if (filtered.length) {
-        next.expense_date = filtered;
+        next.created_at = filtered;
       } else {
-        delete next.expense_date;
+        delete next.created_at;
       }
 
       return next;
@@ -61,41 +69,33 @@ function CustomReportExpenseToolbar({ allCategories }: Props) {
 
   const filters: AllowedFilter[] = [
     {
-      key: "category",
+      key: "status",
       operators: ["in"],
       type: "multi-select",
-      label: "Category",
-      options: allCategories,
+      label: "Status",
+      options: allStatuses,
     },
     {
-      key: "amount",
+      key: "total_amount",
       label: "Amount",
       operators: ["eq", "lte", "gte"],
       type: "number",
     },
     {
-      key: "expense_date",
-      label: "Expense Date",
+      key: "created_at",
+      label: "Created At",
       operators: ["eq", "lte", "gte"],
       type: "date",
       setDate: setDate,
     },
-    {
-      key: "vendor",
-      label: "Vendor",
-      type: "text",
-      operators: ["ilike"],
-    },
   ];
 
-  /* -------------------- HANDLERS -------------------- */
-
   const updateSearch = (value: string) => {
-    setExpenseQuery((prev: FilterMap) => {
+    setQuery((prev: FilterMap) => {
       const next: FilterMap = { ...prev };
 
       if (!value) {
-        delete next.q; // ✅ correct
+        delete next.q;
       } else {
         next.q = [{ operator: "eq", value }];
       }
@@ -104,25 +104,25 @@ function CustomReportExpenseToolbar({ allCategories }: Props) {
     });
   };
 
-  const toggleCategory = (category: string) => {
-    const next = selectedCategories.includes(category)
-      ? selectedCategories.filter((s) => s !== category)
-      : [...selectedCategories, category];
+  const toggleStatus = (status: string) => {
+    const next = selectedStatuses.includes(status)
+      ? selectedStatuses.filter((s) => s !== status)
+      : [...selectedStatuses, status];
 
-    setExpenseQuery((prev) => {
+    setQuery((prev) => {
       const nextQuery = { ...prev };
       if (!next.length) {
-        delete nextQuery.category;
+        delete nextQuery.status;
       } else {
-        nextQuery.category = [{ operator: "in", value: next }];
+        nextQuery.status = [{ operator: "in", value: next }];
       }
       return nextQuery;
     });
   };
 
-  const deselectAllCategories = () => {
-    setExpenseQuery((prev) => {
-      const { category, ...rest } = prev;
+  const deselectAllStatus = () => {
+    setQuery((prev) => {
+      const { status, ...rest } = prev;
       return rest;
     });
   };
@@ -130,24 +130,22 @@ function CustomReportExpenseToolbar({ allCategories }: Props) {
   return (
     <>
       <Toolbar className="flex items-center !justify-start !px-[1px] !gap-2 !my-3 !border-0 bg-white">
-        {/* 🔍 SEARCH */}
         <Box sx={{ position: "relative", width: "20%", flexShrink: 0 }}>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search"
-            className="pl-9 bg-white w-full"
+            className="pl-9 bg-white h-10 w-full"
             value={searchValue}
             onChange={(e) => updateSearch(e.target.value)}
           />
         </Box>
 
-        {/* ✅ STATUS */}
         <Box sx={{ width: "28%", flexShrink: 0 }}>
           <MultiSelectDropdown
-            allItems={allCategories || []}
-            selectedItems={selectedCategories}
-            toggleItem={toggleCategory}
-            deselectAll={deselectAllCategories}
+            allItems={allStatuses || []}
+            selectedItems={selectedStatuses}
+            toggleItem={toggleStatus}
+            deselectAll={deselectAllStatus}
           />
         </Box>
 
@@ -160,32 +158,32 @@ function CustomReportExpenseToolbar({ allCategories }: Props) {
           }}
         />
 
-        {/* 🔧 ADVANCED FILTER */}
         <Button
           variant="outline"
           onClick={() => setFilterModalOpen(true)}
           className="text-muted-foreground h-11 w-[10%] max-w-[48px] p-3"
         >
-          {hasFilters && <Badge
-            color="error"
-            variant="dot"
-            className="relative -top-4 -right-7"
-            overlap="circular"
-          ></Badge>}
+          {hasFilters && (
+            <Badge
+              color="error"
+              variant="dot"
+              className="relative -top-4 -right-7"
+              overlap="circular"
+            ></Badge>
+          )}
           <Filter className="h-8 w-8" />
         </Button>
       </Toolbar>
 
-      {/* 🧠 FILTER MODAL */}
       <FilterModal
         open={filterModalOpen}
         onOpenChange={setFilterModalOpen}
-        query={expenseQuery || {}}
-        setQuery={setExpenseQuery}
+        query={query || {}}
+        setQuery={setQuery}
         allowedFilters={filters}
       />
     </>
   );
 }
 
-export default CustomReportExpenseToolbar;
+export default CustomAdminReportsToolbar;

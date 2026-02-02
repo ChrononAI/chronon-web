@@ -47,6 +47,7 @@ import {
   formatDistance,
   getDistanceUnit,
   usesMetricSystem,
+  parseLocalDate,
 } from "@/lib/utils";
 import {
   Form,
@@ -59,6 +60,8 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { trackEvent } from "@/mixpanel";
 import ExpenseLogs from "@/components/expenses/ExpenseLogs";
+import { Attachment } from "@/components/expenses/ExpenseDetailsStep2";
+import AttachmentViewer from "@/components/expenses/AttachmentViewer";
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -161,7 +164,7 @@ const MileagePage = ({
   const [mapZoom, setMapZoom] = useState(1);
   const [mapRotation, setMapRotation] = useState(0);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
-  const [activeMapTab, setActiveMapTab] = useState<"map" | "comments">("map");
+  const [activeMapTab, setActiveMapTab] = useState<"map" | "comments" | "logs" | "attachment">("map");
   const [lastAddedStopId, setLastAddedStopId] = useState<string | null>(null);
   const today = format(new Date(), "yyyy-MM-dd");
   const stopRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -178,6 +181,24 @@ const MileagePage = ({
 
   const [newComment, setNewComment] = useState<string>();
   const [postingComment, setPostingComment] = useState(false);
+
+  const [fileIds, setFileIds] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachmentLoading, setAttachmentLoading] = useState(true);
+  
+  const generateUploadUrl = async (file: File): Promise<{
+    downloadUrl: string;
+    uploadUrl: string;
+    fileId: string;
+  }> => {
+    try {
+      const res = await expenseService.getUploadUrl({ type: "RECEIPT", name: file.name });
+      return { uploadUrl: res.data.data.upload_url, downloadUrl: res.data.data.download_url, fileId: res.data.data.id };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  };
 
   const handlePostComment = async () => {
     if (!expenseData?.id || !newComment?.trim() || postingComment) return;
@@ -582,6 +603,7 @@ const MileagePage = ({
       is_round_trip: values.isRoundTrip.toString(),
       mileage_meta: mileage_meta,
       vendor: expenseData?.vendor || "Mileage Reimbursement",
+      ...(fileIds && { file_ids: fileIds })
     };
 
     try {
@@ -749,6 +771,10 @@ const MileagePage = ({
           locationId: stop.locationId || "",
         })) || [];
 
+      if (expenseData.file_ids) {
+        setFileIds(expenseData.file_ids);
+      }
+
       const data = {
         startLocation: expenseData.start_location || "",
         startLocationId: "",
@@ -769,7 +795,9 @@ const MileagePage = ({
         description: expenseData.description || "",
         vehiclesType: expenseData.mileage_rate_id,
         expenseDate:
-          format(new Date(expenseData.expense_date), "yyyy-MM-dd") || "",
+          expenseData.expense_date
+            ? format(parseLocalDate(expenseData.expense_date), "yyyy-MM-dd")
+            : "",
         isRoundTrip: expenseData.is_round_trip,
         policyId: expenseData.expense_policy_id || "",
         categoryId: expenseData.category_id || "",
@@ -953,6 +981,58 @@ const MileagePage = ({
     }
   }, [formData.stops, lastAddedStopId]);
 
+    useEffect(() => {
+      if (!fileIds.length) {
+        setAttachmentLoading(false);
+        return;
+      }
+    
+      const existingMap = new Map(
+        attachments.map((a) => [a.fileId, a.url])
+      );
+    
+      const fileIdsToFetch = fileIds.filter(
+        (id) => !existingMap.has(id) || !existingMap.get(id)
+      );
+    
+      if (!fileIdsToFetch.length) return;
+    
+      let cancelled = false;
+    
+      const fetchUrls = async () => {
+        try {
+          const fetched = await Promise.all(
+            fileIdsToFetch.map(async (fileId) => {
+              const res = await expenseService.generatePreviewUrl(fileId);
+              return { fileId, url: res.data.data.download_url };
+            })
+          );
+    
+          if (cancelled) return;
+    
+          setAttachments((prev) => {
+            const map = new Map(prev.map((a) => [a.fileId, a]));
+    
+            fetched.forEach((a) => {
+              map.set(a.fileId, a);
+            });
+    
+            return Array.from(map.values());
+          });
+        } catch (err) {
+          console.error("Failed to fetch attachment URLs", err);
+        } finally {
+          setAttachmentLoading(false);
+        }
+      };
+    
+      fetchUrls();
+    
+      return () => {
+        cancelled = true;
+      };
+    }, [fileIds]);
+
   useEffect(() => {
     loadMileagePolicies();
     getMileageRates();
@@ -994,6 +1074,7 @@ const MileagePage = ({
               <div className="flex items-center gap-3">
                 {[
                   { key: "map", label: "Map" },
+                  { key: "attachment", label: "Attachment" },
                   { key: "comments", label: "Comments" },
                   { key: "logs", label: "Logs" },
                 ].map((tab) => (
@@ -1080,7 +1161,17 @@ const MileagePage = ({
                     </div>
                   )}
                 </div>
-              ) : activeMapTab === "comments" ? (
+              ) : activeMapTab === "attachment" ?
+                <AttachmentViewer
+                  activeTab={activeMapTab}
+                  attachments={attachments}
+                  isLoadingReceipt={attachmentLoading}
+                  setAttachments={setAttachments}
+                  fileIds={fileIds}
+                  setFileIds={setFileIds}
+                  generateUploadUrl={generateUploadUrl}
+                />
+              : activeMapTab === "comments" ? (
                 <ExpenseComments
                   expenseId={expenseData?.id}
                   readOnly={false}

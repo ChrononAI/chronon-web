@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { expenseService } from "@/services/expenseService";
 import { ExpenseComments } from "@/components/expenses/ExpenseComments";
-import { cn } from "@/lib/utils";
+import { cn, parseLocalDate } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -51,6 +51,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
+import { Attachment } from "@/components/expenses/ExpenseDetailsStep2";
+import AttachmentViewer from "@/components/expenses/AttachmentViewer";
 
 interface PerdiemPageProps {
   mode?: "create" | "view" | "edit";
@@ -128,8 +130,8 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const [categories, setCategories] = useState<PolicyCategory[]>([]);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
-  const [activePerdiemTab, setActivePerdiemTab] = useState<"info" | "comments">(
-    "info"
+  const [activePerdiemTab, setActivePerdiemTab] = useState<"attachment" | "comments" | "logs">(
+    "attachment"
   );
   const [expenseLogs, setExpenseLogs] = useState<ExpenseComment[]>([]);
   const [commentError, setCommentError] = useState<string | null>(null);
@@ -145,6 +147,24 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
   const [newComment, setNewComment] = useState<string>();
   const [postingComment, setPostingComment] = useState(false);
+
+  const [fileIds, setFileIds] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachmentLoading, setAttachmentLoading] = useState(true);
+
+  const generateUploadUrl = async (file: File): Promise<{
+    downloadUrl: string;
+    uploadUrl: string;
+    fileId: string;
+  }> => {
+    try {
+      const res = await expenseService.getUploadUrl({ type: "RECEIPT", name: file.name });
+      return { uploadUrl: res.data.data.upload_url, downloadUrl: res.data.data.download_url, fileId: res.data.data.id };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  };
 
   const handlePostComment = async () => {
     if (!expenseData?.id || !newComment?.trim() || postingComment) return;
@@ -200,22 +220,24 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     if (expenseData) {
       const formatDate = (dateString: string) => {
         try {
-          return format(new Date(dateString), "yyyy-MM-dd");
+          return format(parseLocalDate(dateString), "yyyy-MM-dd");
         } catch {
           return format(new Date(), "yyyy-MM-dd");
         }
       };
-
+      if (expenseData.file_ids) {
+        setFileIds(expenseData.file_ids);
+      }
       const data = {
         startDate: formatDate(
           expenseData.start_date ||
-            expenseData.per_diem_info?.start_date ||
-            expenseData.expense_date
+          expenseData.per_diem_info?.start_date ||
+          expenseData.expense_date
         ),
         endDate: formatDate(
           expenseData.end_date ||
-            expenseData.per_diem_info?.end_date ||
-            expenseData.expense_date
+          expenseData.per_diem_info?.end_date ||
+          expenseData.expense_date
         ),
         location:
           expenseData.location || expenseData.per_diem_info?.location || "",
@@ -314,6 +336,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
       amount: formData.totalAmount,
       expense_date: values.startDate,
       description: values.purpose,
+      file_ids: fileIds,
       per_diem_info: {
         start_date: values.startDate,
         end_date: values.endDate,
@@ -352,8 +375,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         "Failed to create per diem expense";
       toast.error(`Error: ${errorMessage}`);
       setLoading(false);
-    } finally {
-      // setLoading(false);
     }
   };
 
@@ -461,6 +482,59 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     fetchComments();
   }, [expenseData?.id]);
 
+  useEffect(() => {
+    if (!fileIds.length) {
+      setAttachmentLoading(false);
+      return;
+    }
+  
+    const existingMap = new Map(
+      attachments.map((a) => [a.fileId, a.url])
+    );
+  
+    const fileIdsToFetch = fileIds.filter(
+      (id) => !existingMap.has(id) || !existingMap.get(id)
+    );
+  
+    if (!fileIdsToFetch.length) return;
+  
+    let cancelled = false;
+  
+    const fetchUrls = async () => {
+      try {
+        const fetched = await Promise.all(
+          fileIdsToFetch.map(async (fileId) => {
+            const res = await expenseService.generatePreviewUrl(fileId);
+            console.log(res);
+            return { fileId, url: res.data.data.download_url };
+          })
+        );
+  
+        if (cancelled) return;
+  
+        setAttachments((prev) => {
+          const map = new Map(prev.map((a) => [a.fileId, a]));
+  
+          fetched.forEach((a) => {
+            map.set(a.fileId, a);
+          });
+  
+          return Array.from(map.values());
+        });
+      } catch (err) {
+        console.error("Failed to fetch attachment URLs", err);
+      } finally {
+        setAttachmentLoading(false);
+      }
+    };
+  
+    fetchUrls();
+  
+    return () => {
+      cancelled = true;
+    };
+  }, [fileIds]);
+
   return (
     <>
       {/* Duplicate Expense Indicator */}
@@ -487,17 +561,16 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
       <div className="grid gap-6 md:grid-cols-2">
         <div
-          className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
-            pathname.includes("create")
+          className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${pathname.includes("create")
               ? "md:h-[calc(100vh-16rem)]"
               : "md:h-[calc(100vh-13rem)]"
-          } md:overflow-y-auto`}
+            } md:overflow-y-auto`}
         >
           <div className="flex flex-col h-full">
             <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {[
-                  { key: "info", label: "Info" },
+                  { key: "attachment", label: "Attachment" },
                   { key: "comments", label: "Comments" },
                   { key: "logs", label: "Logs" },
                 ].map((tab) => (
@@ -505,7 +578,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                     key={tab.key}
                     type="button"
                     onClick={() =>
-                      setActivePerdiemTab(tab.key as "info" | "comments")
+                      setActivePerdiemTab(tab.key as "attachment" | "comments" | "logs")
                     }
                     className={cn(
                       "rounded-full px-4 py-2 text-sm font-medium transition-all",
@@ -521,20 +594,16 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
             </div>
 
             <div className="h-full flex-1 overflow-hidden">
-              {activePerdiemTab === "info" ? (
-                <div className="flex flex-col h-full">
-                  <div className="flex flex-col items-center justify-center gap-3 rounded-b-2xl bg-gray-50 text-center h-full w-full">
-                    <Calendar className="h-14 w-14 text-gray-300" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">
-                        Per Diem Information
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Expense details will appear here
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              {activePerdiemTab === "attachment" ? (
+                <AttachmentViewer
+                  activeTab={activePerdiemTab}
+                  attachments={attachments}
+                  isLoadingReceipt={attachmentLoading}
+                  setAttachments={setAttachments}
+                  fileIds={fileIds}
+                  setFileIds={setFileIds}
+                  generateUploadUrl={generateUploadUrl}
+                />
               ) : activePerdiemTab === "comments" ? (
                 <ExpenseComments
                   expenseId={expenseData?.id}
@@ -561,11 +630,10 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(handleSubmit)}
-              className={`rounded-2xl border border-gray-200 space-y-6 bg-white shadow-sm min-h-full ${
-                pathname.includes("create")
+              className={`rounded-2xl border border-gray-200 space-y-6 bg-white shadow-sm min-h-full ${pathname.includes("create")
                   ? "md:h-[calc(100vh-18rem)]"
                   : "md:h-[calc(100vh-13rem)]"
-              } md:overflow-y-auto`}
+                } md:overflow-y-auto`}
             >
               <div className="overflow-y-auto pr-1 md:pr-2">
                 <div className="px-6 py-6 space-y-6 pb-40 md:pb-48">
@@ -575,9 +643,8 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                       name="startDate"
                       render={({ field }) => (
                         <FormItem
-                          className={`${
-                            singleDate?.enabled ? "col-span-2" : "col-span-1"
-                          }`}
+                          className={`${singleDate?.enabled ? "col-span-2" : "col-span-1"
+                            }`}
                         >
                           <FormLabel>
                             {singleDate?.enabled ? "Date *" : "Start Date *"}
@@ -601,26 +668,6 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         </FormItem>
                       )}
                     />
-
-                    {/* <div className="space-y-2">
-                      <Label
-                        htmlFor="days"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Number of Days
-                      </Label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-                        <Input
-                          id="days"
-                          type="text"
-                          value={days}
-                          readOnly
-                          className="bg-gray-50 pl-10"
-                          disabled={mode === "view"}
-                        />
-                      </div>
-                    </div> */}
 
                     {!singleDate?.enabled && (
                       <FormField

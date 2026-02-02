@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { UploadReceiptStep } from "./UploadReceiptStep";
 import { useExpenseStore } from "@/store/expenseStore";
-import { formatCurrency, getOrgCurrency } from "@/lib/utils";
+import { formatCurrency, getOrgCurrency, parseLocalDate } from "@/lib/utils";
 import { ExpenseDetailsStep2 } from "./ExpenseDetailsStep2";
 import { getTemplates, type Template } from "@/services/admin/templates";
 import { trackEvent } from "@/mixpanel";
@@ -26,7 +26,7 @@ type ExpenseFormValues = {
   invoice_number: string;
   vendor: string;
   amount: string;
-  expense_date: Date;
+  expense_date: string;
   descriotion?: string;
   city?: string;
   source?: string;
@@ -184,10 +184,6 @@ export function CreateExpenseForm() {
         });
       }
 
-      // if (formData.advance_account_id) {
-      //   customAttributes["advance_account_id"] = formData.advance_account_id;
-      // }
-
       let result;
       if (formData.invoice_number) {
 
@@ -196,10 +192,7 @@ export function CreateExpenseForm() {
           expense_policy_id: formData.expense_policy_id,
           category_id: formData.category_id,
           amount: parseFloat(formData.amount),
-          expense_date:
-            formData.expense_date instanceof Date
-              ? format(formData.expense_date, "yyyy-MM-dd")
-              : formData.expense_date,
+          expense_date: formData.expense_date,
           vendor: formData.vendor,
           invoice_number: formData.invoice_number,
           description: formData.description,
@@ -207,7 +200,9 @@ export function CreateExpenseForm() {
           currency: formData.currency || baseCurrency || "INR",
           advance_account_id: formData.advance_account_id
         };
-
+        if (formData.file_ids) {
+          expensePayload.file_ids = formData.file_ids;
+        }
         if (formData.advance_id)
           expensePayload.advance_id = formData.advance_id;
         if (formData.pre_approval_id)
@@ -239,10 +234,7 @@ export function CreateExpenseForm() {
           expense_policy_id: formData.expense_policy_id || formData.policyId,
           category_id: formData.category_id || formData.categoryId,
           amount: parseFloat(formData.amount),
-          expense_date:
-            formData.expense_date instanceof Date
-              ? format(formData.expenseDate, "yyyy-MM-dd")
-              : formData.expense_date,
+          expense_date: formData.expense_date,
           description: formData.description,
           vendor: formData.vendor || formData.merchant,
           receipt_id: formData.receipt_id,
@@ -362,9 +354,7 @@ export function CreateExpenseForm() {
                     </div>
                     <div className="text-sm text-gray-600">
                       {parsedData?.extracted_date
-                        ? new Date(
-                            parsedData.extracted_date
-                          ).toLocaleDateString("en-GB", {
+                        ? parseLocalDate(parsedData.extracted_date).toLocaleDateString("en-GB", {
                             weekday: "short",
                             day: "2-digit",
                             month: "short",

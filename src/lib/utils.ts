@@ -2,18 +2,90 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format } from "date-fns";
 import { useAuthStore } from "@/store/authStore";
+import { FilterMap } from "@/pages/MyExpensesPage";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+function parseLocalDate(dateString: string | Date): Date {
+  if (dateString instanceof Date) {
+    return dateString;
+  }
+  if (!dateString || typeof dateString !== 'string') {
+    return new Date();
+  }
+
+  const rfc1123 = dateString.match(/^\w{3},\s+(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\b/);
+  if (rfc1123) {
+    const [, day, mon, year] = rfc1123;
+    const months: Record<string, number> = {
+      Jan: 0,
+      Feb: 1,
+      Mar: 2,
+      Apr: 3,
+      May: 4,
+      Jun: 5,
+      Jul: 6,
+      Aug: 7,
+      Sep: 8,
+      Oct: 9,
+      Nov: 10,
+      Dec: 11,
+    };
+    const m = months[mon];
+    if (m !== undefined) {
+      return new Date(parseInt(year), m, parseInt(day));
+    }
+  }
+
+  const iso = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const [, year, month, day] = iso;
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  }
+
+  const dmy = dateString.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (dmy) {
+    const [, day, month, year] = dmy;
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  }
+
+  const dmy2 = dateString.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+  if (dmy2) {
+    const [, day, month, yy] = dmy2;
+    const y = parseInt(yy);
+    const year = y >= 70 ? 1900 + y : 2000 + y;
+    return new Date(year, parseInt(month) - 1, parseInt(day));
+  }
+
+  const ymdSlash = dateString.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (ymdSlash) {
+    const [, year, month, day] = ymdSlash;
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  }
+
+  return new Date(dateString);
+}
+
 export function formatDate(date: number[] | string): string {
+  if (date == null) return "";
+
   if (Array.isArray(date)) {
     const [year, month, day] = date;
     return format(new Date(year, month - 1, day), "MMM dd, yyyy");
   }
-  return format(new Date(date), "MMM dd, yyyy");
+
+  const str = String(date).trim();
+  if (!str) return "";
+
+  const d = parseLocalDate(str);
+  if (isNaN(d.getTime())) return str;
+
+  return format(d, "MMM dd, yyyy");
 }
+
+export { parseLocalDate };
 
 export function formatFileSize(bytes: number) {
   if (bytes === 0) return "0 B";
@@ -110,7 +182,7 @@ export const getStatusColor = (status: string): string => {
 
 export const getBulkUploadStatusColor = (status: string): string => {
   switch (status.toUpperCase()) {
-      case "NEED_FIXES":
+    case "NEED_FIXES":
       return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
     case "FINALIZED":
       return "bg-green-100 text-green-800 hover:bg-green-100";
@@ -150,3 +222,56 @@ export const generateIdWithPrefix = (prefix: string, length = 10): string => {
 
   return `${prefix}${id}`;
 };
+
+export function buildApprovalBackendQuery(filters: FilterMap): string {
+  const params: string[] = [];
+
+  Object.entries(filters).forEach(([key, fieldFilters]) => {
+    if (key === "q") {
+      const value = fieldFilters?.[0]?.value;
+
+      if (typeof value !== "string" || value.trim() === "") {
+        return;
+      }
+
+      const finalValue = value.endsWith(":*") ? value : `${value}:*`;
+
+      params.push(`q=${finalValue}`);
+      return;
+    }
+
+    fieldFilters?.forEach(({ operator, value }) => {
+      if (
+        !value ||
+        (typeof value === "string" && value.trim() === "") ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        return;
+      }
+
+      switch (operator) {
+        case "in":
+          let values = value as string[];
+          if (key === "status" && values.includes("PENDING_APPROVAL")) {
+            values = values.map((v) =>
+              v === "PENDING_APPROVAL" ? "IN_PROGRESS" : v
+            );
+          }
+          const joined = values.join(",");
+          params.push(
+            key === "status" ? `${key}=${joined}` : `${key}=in.(${joined})`
+          );
+          break;
+
+        case "ilike":
+          params.push(`${key}=ilike.%${value}%`);
+          break;
+
+        default:
+          params.push(`${key}=${operator}.${value}`);
+      }
+    });
+  });
+
+  return params.join("&");
+}

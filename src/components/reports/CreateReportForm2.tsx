@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,7 +30,12 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 import { reportService } from "@/services/reportService";
-import { Expense, ApprovalWorkflow, ExpenseComment, PolicyCategory } from "@/types/expense";
+import {
+  Expense,
+  ApprovalWorkflow,
+  ExpenseComment,
+  PolicyCategory,
+} from "@/types/expense";
 import { AdditionalFieldMeta, CustomAttribute } from "@/types/report";
 import { useAuthStore } from "@/store/authStore";
 import {
@@ -39,6 +44,7 @@ import {
   getStatusColor,
   cn,
   getOrgCurrency,
+  parseLocalDate,
 } from "@/lib/utils";
 import { DynamicCustomField } from "./DynamicCustomField";
 import { ReportTabs } from "./ReportTabs";
@@ -61,8 +67,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
-import { getExpenseType } from "@/pages/MyExpensesPage";
+import {
+  buildBackendQuery,
+  FilterMap,
+  getExpenseType,
+} from "@/pages/MyExpensesPage";
 import CustomReportExpenseToolbar from "./CustomReportExpenseToolbar";
+import { useReportsStore } from "@/store/reportsStore";
+import { expenseService } from "@/services/expenseService";
 
 // Dynamic form schema creation function
 const createReportSchema = (customAttributes: CustomAttribute[]) => {
@@ -147,11 +159,11 @@ const columns: GridColDef[] = [
     renderCell: (params) => getExpenseType(params.row.expense_type),
   },
   {
-    field: "policy",
+    field: "policy_name",
     headerName: "POLICY",
     minWidth: 140,
     flex: 1,
-    valueGetter: (params: any) => params?.name || "No Policy",
+    valueGetter: (params: any) => params || "No Policy",
   },
   {
     field: "category",
@@ -246,7 +258,11 @@ function CustomToolbar({
                 !dateFrom && "text-muted-foreground"
               )}
             >
-              {dateFrom ? format(new Date(dateFrom), "PPP") : <span>From</span>}
+              {dateFrom ? (
+                format(parseLocalDate(dateFrom), "PPP")
+              ) : (
+                <span>From</span>
+              )}
               <span className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 opacity-50" />
                 <X
@@ -259,7 +275,7 @@ function CustomToolbar({
           <PopoverContent className="w-auto p-0" align="start">
             <CalendarComponent
               mode="single"
-              selected={new Date(dateFrom)}
+              selected={dateFrom ? parseLocalDate(dateFrom) : undefined}
               onSelect={(date: any) => setDateFrom(date)}
             />
           </PopoverContent>
@@ -273,7 +289,7 @@ function CustomToolbar({
                 !dateTo && "text-muted-foreground"
               )}
             >
-              {dateTo ? format(new Date(dateTo), "PPP") : <span>To</span>}
+              {dateTo ? format(parseLocalDate(dateTo), "PPP") : <span>To</span>}
               <span className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 opacity-50" />
                 <X
@@ -286,7 +302,7 @@ function CustomToolbar({
           <PopoverContent className="w-auto p-0" align="start">
             <CalendarComponent
               mode="single"
-              selected={new Date(dateTo)}
+              selected={dateTo ? parseLocalDate(dateTo) : undefined}
               onSelect={(date: any) => setDateTo(date)}
             />
           </PopoverContent>
@@ -302,8 +318,10 @@ export function CreateReportForm2({
 }: CreateReportFormProps) {
   const navigate = useNavigate();
   const { user, orgSettings } = useAuthStore();
+  const { expenseQuery } = useReportsStore();
 
-  const showDescription = orgSettings?.report_description_settings?.enabled ?? true;
+  const showDescription =
+    orgSettings?.report_description_settings?.enabled ?? true;
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -319,10 +337,12 @@ export function CreateReportForm2({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 10,
+    pageSize: 2,
   });
+  const [rowCount, setRowCount] = useState<number>(0);
   const [selectedIds, setSelectedIds] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<any>();
   const [reportStatus, setReportStatus] = useState<string | null>(null);
@@ -331,8 +351,8 @@ export function CreateReportForm2({
   const [activeTab, setActiveTab] = useState<
     "expenses" | "history" | "comments" | "logs"
   >("expenses");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string | Date>("");
+  const [dateTo, setDateTo] = useState<string | Date>("");
 
   const [loadingReportComments, setLoadingReportComments] = useState(false);
   const [commentError, setCommentError] = useState<string | null>();
@@ -341,16 +361,85 @@ export function CreateReportForm2({
   const [postingComment, setPostingComment] = useState(false);
   const [newComment, setNewComment] = useState<string>();
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchFilteredExpenses = useCallback(
+    async ({ signal }: { signal: AbortSignal }) => {
+      const limit = paginationModel?.pageSize ?? 10;
+      const offset = (paginationModel?.page ?? 0) * limit;
+
+      const statusQuery: FilterMap = {
+        status: [
+          {
+            operator: "in",
+            value: ["COMPLETE"],
+          },
+        ],
+      };
+      let newQuery: FilterMap = {...expenseQuery, ...statusQuery};
+
+      const response = await expenseService.getFilteredExpenses({
+        query: buildBackendQuery(newQuery),
+        limit,
+        offset,
+        signal,
+      });
+
+      setExpenses(response?.data?.data);
+      setRowCount(response?.data?.count);
+    },
+    [expenseQuery, paginationModel?.page, paginationModel?.pageSize]
+  );
+
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      setLoading(true);
+
+      fetchFilteredExpenses({ signal: controller.signal })
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            console.error(err);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setLoading(false);
+            setRowSelection({ type: "include", ids: new Set() });
+          }
+        });
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [fetchFilteredExpenses]);
+
   const filteredExpenses = allExpenses
     .filter((exp) =>
       selectedCategory ? exp.category_id === selectedCategory.id : true
     )
     .filter((exp) => {
       if (!dateFrom && !dateTo) return true;
-      const expDate = exp.expense_date ? new Date(exp.expense_date) : null;
+      const expDate = exp.expense_date
+        ? parseLocalDate(exp.expense_date)
+        : null;
       if (!expDate || isNaN(expDate.getTime())) return false;
-      const fromOk = dateFrom ? expDate >= new Date(dateFrom) : true;
-      const toOk = dateTo ? expDate <= new Date(dateTo) : true;
+      const fromOk = dateFrom ? expDate >= parseLocalDate(dateFrom) : true;
+      const toOk = dateTo ? expDate <= parseLocalDate(dateTo) : true;
       return fromOk && toOk;
     });
 
@@ -366,7 +455,9 @@ export function CreateReportForm2({
   const getAllCategories = async () => {
     try {
       const res = await categoryService.getAllCategories();
-      const newCategories = res.data.data.map((cat: PolicyCategory) => cat.name)
+      const newCategories = res.data.data.map(
+        (cat: PolicyCategory) => cat.name
+      );
       setCategories(newCategories);
     } catch (error) {
       console.log(error);
@@ -402,7 +493,7 @@ export function CreateReportForm2({
       setSelectedIds(idArr);
     }
   }, [rowSelection]);
-
+console.log(rowSelection);
   useEffect(() => {
     if (selectedCategory) {
       setSelectedIds([]);
@@ -604,11 +695,9 @@ export function CreateReportForm2({
       );
       setCustomAttributes(customAttrs);
 
-      // Update form schema with custom attributes
       const newSchema = createReportSchema(customAttrs);
       setFormSchema(newSchema);
 
-      // Reset form with new default values if in edit mode
       if (editMode && reportData) {
         const newDefaultValues = createDefaultValues(customAttrs);
         form.reset(newDefaultValues);
@@ -898,19 +987,24 @@ export function CreateReportForm2({
               />
             </div>
 
-            {showDescription && <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Enter report description" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />}
+            {showDescription && (
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Enter report description"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {loadingMeta && (
               <div className="flex items-center py-8 col-span-2">
@@ -1013,9 +1107,9 @@ export function CreateReportForm2({
                       border: "0.2px solid #f3f4f6",
                     },
                     "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                    {
-                      outline: "none",
-                    },
+                      {
+                        outline: "none",
+                      },
                     "& .MuiDataGrid-cell:focus-within": {
                       outline: "none",
                     },
@@ -1089,7 +1183,7 @@ export function CreateReportForm2({
           <div className="flex-1 h-full">
             <DataGrid
               className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-              rows={loadingExpenses ? [] : filteredExpenses}
+              rows={loadingExpenses ? [] : expenses}
               columns={columns}
               loading={loadingExpenses}
               slots={{
@@ -1134,9 +1228,9 @@ export function CreateReportForm2({
                   border: "0.2px solid #f3f4f6",
                 },
                 "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                {
-                  outline: "none",
-                },
+                  {
+                    outline: "none",
+                  },
                 "& .MuiDataGrid-cell:focus-within": {
                   outline: "none",
                 },
@@ -1162,6 +1256,8 @@ export function CreateReportForm2({
               }}
               disableRowSelectionOnClick
               showCellVerticalBorder
+              paginationMode="server"
+              rowCount={rowCount}
               pagination
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
