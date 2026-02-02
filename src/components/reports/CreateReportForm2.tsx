@@ -435,7 +435,6 @@ function buildBackendQuery(filters: FilterMap): string {
     }
 
     const isCustomAttribute = expAttributes.some(item => item.field_name === key);
-    const entity = expAttributes.find(ent => ent.field_name === key);
 
     fieldFilters?.forEach(({ operator, value }) => {
       if (
@@ -447,7 +446,7 @@ function buildBackendQuery(filters: FilterMap): string {
         return;
       }
       const backendKey = isCustomAttribute
-        ? `custom_attributes->${entity.entity_id}`
+        ? `custom_attributes->${key}`
         : key;
 
       switch (operator) {

@@ -259,7 +259,7 @@ const FilterModal: React.FC<FilterDialogProps> = ({
                           </SelectTrigger>
                           <SelectContent>
                             {filter.options?.map((opt) => (
-                              <SelectItem key={opt.label} value={opt.id}>
+                              <SelectItem key={opt.label} value={opt.label}>
                                 {opt.label}
                               </SelectItem>
                             ))}
