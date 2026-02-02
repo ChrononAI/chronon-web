@@ -32,10 +32,14 @@ const PENDING_REPORT_STATUSES = ["PENDING_APPROVAL"];
 
 const PROCESSED_REPORT_STATUSES = ["APPROVED", "REJECTED", "PENDING_APPROVAL"];
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
-import { ExportDialog } from "@/components/reports/ExportDialog";
-import { ExportSuccessDialog } from "@/components/reports/ExportSuccessDialog";
+import { Download, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const columns: GridColDef[] = [
   {
@@ -76,7 +80,7 @@ const columns: GridColDef[] = [
 
 export function ApprovalsReportsPage() {
   const navigate = useNavigate();
-  const { orgSettings, user } = useAuthStore();
+  const { orgSettings } = useAuthStore();
   const { approvalQuery, setApprovalQuery } = useReportsStore();
   const customIdEnabled =
     orgSettings?.custom_report_id_settings?.enabled ?? false;
@@ -108,8 +112,6 @@ export function ApprovalsReportsPage() {
   });
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  const [showExportDialog, setShowExportDialog] = useState(false);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const GRID_OFFSET = 240;
   const ROW_HEIGHT = 38;
@@ -131,6 +133,24 @@ export function ApprovalsReportsPage() {
     page: 0,
     pageSize: calculatePageSize(),
   });
+
+  // Handle export for a single report
+  const handleExport = useCallback(async (reportId: string, type: 'pdf' | 'xlsx') => {
+    try {
+      const response = await approvalService.exportReports([reportId], type);
+      if (response.success) {
+        toast.success(
+          `Report export initiated successfully. You will receive an email when the ${type.toUpperCase()} file is ready.`
+        );
+      }
+    } catch (error: any) {
+      console.error("Export failed:", error);
+      toast.error(
+        error?.response?.data?.message ||
+          "Failed to export report. Please try again."
+      );
+    }
+  }, []);
 
   const newCols = useMemo<GridColDef[]>(() => {
     return [
@@ -165,8 +185,55 @@ export function ApprovalsReportsPage() {
         ),
       },] : []),
       ...columns,
+      {
+        field: "actions",
+        headerName: "ACTIONS",
+        minWidth: 120,
+        flex: 0.8,
+        sortable: false,
+        renderCell: (params: any) => {
+          const reportId = params.row.id;
+          return (
+            <div onClick={(e) => e.stopPropagation()}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Download className="h-4 w-4" />
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleExport(reportId, 'pdf');
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleExport(reportId, 'xlsx');
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
+      },
     ];
-  }, [columns, customIdEnabled, showDescription]);
+  }, [columns, customIdEnabled, showDescription, handleExport]);
 
   function updateQuery(key: string, operator: Operator, value: FilterValue) {
     setApprovalQuery((prev) => {
@@ -348,47 +415,6 @@ export function ApprovalsReportsPage() {
     });
   }, []);
 
-  const selectedCount =
-    rowSelection.ids instanceof Set ? rowSelection.ids.size : 0;
-  const hasSelection = selectedCount > 0;
-
-  const getSelectedReportIds = (): string[] => {
-    if (rowSelection.ids instanceof Set) {
-      return Array.from(rowSelection.ids) as string[];
-    }
-    return [];
-  };
-
-  // Handle export
-  const handleExport = async (includeReceipts: boolean) => {
-    const selectedIds = getSelectedReportIds();
-    if (selectedIds.length === 0) {
-      toast.error("Please select at least one report to export");
-      return;
-    }
-
-    try {
-      const response = await approvalService.exportReports(
-        selectedIds,
-        includeReceipts
-      );
-      if (response.success) {
-        setShowSuccessDialog(true);
-        // Clear selection after successful export
-        setRowSelection({
-          type: "include",
-          ids: new Set(),
-        });
-      }
-    } catch (error: any) {
-      console.error("Export failed:", error);
-      toast.error(
-        error?.response?.data?.message ||
-          "Failed to export reports. Please try again."
-      );
-    }
-  };
-
   return (
     <>
       <ReportsPageWrapper
@@ -411,17 +437,6 @@ export function ApprovalsReportsPage() {
             page: 0,
           }));
         }}
-        tabsRightContent={
-          hasSelection ? (
-            <Button
-              onClick={() => setShowExportDialog(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Download ({selectedCount})
-            </Button>
-          ) : undefined
-        }
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Search reports..."
@@ -520,19 +535,6 @@ export function ApprovalsReportsPage() {
           />
         </Box>
       </ReportsPageWrapper>
-
-      <ExportDialog
-        open={showExportDialog}
-        onOpenChange={setShowExportDialog}
-        onExport={handleExport}
-        selectedCount={selectedCount}
-      />
-
-      <ExportSuccessDialog
-        open={showSuccessDialog}
-        onOpenChange={setShowSuccessDialog}
-        email={user?.email || ""}
-      />
     </>
   );
 }
