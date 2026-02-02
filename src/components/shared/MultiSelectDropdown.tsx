@@ -35,11 +35,13 @@ function MultiSelectDropdown({
   allItems,
   toggleItem,
   deselectAll,
+  placeholder =  "Select status"
 }: {
   selectedItems: string[];
   allItems: any[];
   toggleItem: (id: string) => void;
   deselectAll: () => void;
+  placeholder?: string;
 }) {
   return (
     <Popover>
@@ -52,7 +54,7 @@ function MultiSelectDropdown({
             {selectedItems?.length > 0 ? (
               <SelectedItemBadge selectedItems={selectedItems} />
             ) : (
-              "Select status"
+              placeholder
             )}
           </span>
           <span className="flex items-center gap-2">

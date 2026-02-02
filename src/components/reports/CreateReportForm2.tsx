@@ -67,14 +67,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
-import {
-  buildBackendQuery,
-  FilterMap,
-  getExpenseType,
-} from "@/pages/MyExpensesPage";
+import { FilterMap, getExpenseType } from "@/pages/MyExpensesPage";
 import CustomReportExpenseToolbar from "./CustomReportExpenseToolbar";
 import { useReportsStore } from "@/store/reportsStore";
 import { expenseService } from "@/services/expenseService";
+import { Entity, getEntities } from "@/services/admin/entities";
+import { getTemplates, Template } from "@/services/admin/templates";
 
 // Dynamic form schema creation function
 const createReportSchema = (customAttributes: CustomAttribute[]) => {
@@ -92,6 +90,12 @@ const createReportSchema = (customAttributes: CustomAttribute[]) => {
       .min(1, `${attr.display_name} is required`);
   });
   return z.object({ ...baseSchema, ...dynamicFields });
+};
+
+type TemplateEntity = NonNullable<Template["entities"]>[0];
+
+const getEntityId = (entity: TemplateEntity): string => {
+  return entity?.entity_id || entity?.id || "";
 };
 
 type ReportFormValues = {
@@ -312,6 +316,58 @@ function CustomToolbar({
   );
 }
 
+type FilterOperator = "gte" | "lte" | "in" | string;
+
+type QueryFilters = Record<
+  string,
+  Array<{ operator: FilterOperator; value: any }>
+>;
+
+function buildCustomAttributesFromFilters(
+  filters: QueryFilters
+): Record<string, any> {
+  const result: Record<string, any> = {};
+
+  Object.entries(filters).forEach(([key, conditions]) => {
+    if (key === "vendor" || key === "amount") return;
+
+    if (key === "expense_date") {
+      conditions.forEach(({ operator, value }) => {
+        if (!value) return;
+
+        if (operator === "gte") {
+          result.from = value;
+        }
+
+        if (operator === "lte") {
+          result.to = value;
+        }
+      });
+      return;
+    }
+
+    if (key === "category") {
+      const inFilter = conditions.find(
+        (c) => c.operator === "in" && Array.isArray(c.value)
+      );
+
+      if (inFilter) {
+        result.category = inFilter.value;
+      }
+      return;
+    }
+
+    conditions.forEach(({ value }) => {
+      if (value !== undefined && value !== null) {
+        result[key] = value;
+      }
+    });
+  });
+
+  return result;
+}
+
+
 export function CreateReportForm2({
   editMode = false,
   reportData,
@@ -331,6 +387,7 @@ export function CreateReportForm2({
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>(
     []
   );
+  const [expAttributes, setExpAttributes] = useState<any[]>([]);
   const [formSchema, setFormSchema] = useState(createReportSchema([]));
   const [markedExpenses, setMarkedExpenses] = useState<Expense[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -340,10 +397,9 @@ export function CreateReportForm2({
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 2,
+    pageSize: 10,
   });
-  const [rowCount, setRowCount] = useState<number>(0);
-  const [selectedIds, setSelectedIds] = useState<any[]>([]);
+  const [selectedIds, setSelectedIds] = useState<any>([]);
   const [selectedCategory, setSelectedCategory] = useState<any>();
   const [reportStatus, setReportStatus] = useState<string | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
@@ -364,11 +420,105 @@ export function CreateReportForm2({
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
+function buildBackendQuery(filters: FilterMap): string {
+  const params: string[] = [];
+
+  Object.entries(filters).forEach(([key, fieldFilters]) => {
+    if (key === "q") {
+      const value = fieldFilters?.[0]?.value;
+
+      if (typeof value !== "string" || value.trim() === "") return;
+
+      const finalValue = value.endsWith(":*") ? value : `${value}:*`;
+      params.push(`q=${finalValue}`);
+      return;
+    }
+
+    const isCustomAttribute = expAttributes.some(item => item.field_name === key);
+    const entity = expAttributes.find(ent => ent.field_name === key);
+
+    fieldFilters?.forEach(({ operator, value }) => {
+      if (
+        value === undefined ||
+        value === null ||
+        (typeof value === "string" && value.trim() === "") ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        return;
+      }
+      const backendKey = isCustomAttribute
+        ? `custom_attributes->${entity.entity_id}`
+        : key;
+
+      switch (operator) {
+        case "in":
+          params.push(
+            `${backendKey}=in.(${(value as (string | number)[]).join(",")})`
+          );
+          break;
+
+        case "ilike":
+          params.push(`${backendKey}=ilike.%${value}%`);
+          break;
+
+        default:
+          params.push(`${backendKey}=${operator}.${value}`);
+      }
+    });
+  });
+
+  return params.join("&");
+}
+
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const [templatesRes, entitiesRes] = await Promise.all([
+          getTemplates(),
+          getEntities(),
+        ]);
+
+        const expenseTemplate = Array.isArray(templatesRes)
+          ? templatesRes.find((t) => t.module_type === "expense")
+          : null;
+
+        const selectEntity = expenseTemplate?.entities?.filter((ent) => ent.field_type === "SELECT");
+
+        if (selectEntity) setExpAttributes(selectEntity);
+
+        const entityMap: Record<
+          string,
+          Array<{ id: string; label: string }>
+        > = {};
+        entitiesRes.forEach((ent: Entity) => {
+          if (ent.id && Array.isArray(ent.attributes)) {
+            entityMap[ent.id] = ent.attributes.map((attr) => ({
+              id: attr.id,
+              label: attr.display_value ?? attr.value ?? "—",
+            }));
+          }
+        });
+
+        const mappedOptions: Record<
+          string,
+          Array<{ id: string; label: string }>
+        > = {};
+        expenseTemplate?.entities?.forEach((entity) => {
+          const entityId = getEntityId(entity);
+          if (entityId) {
+            mappedOptions[entityId] = entityMap[entityId] || [];
+          }
+        });
+      } catch (error) {
+        console.error("Failed to load templates:", error);
+      }
+    };
+
+    loadTemplates();
+  }, []);
+
   const fetchFilteredExpenses = useCallback(
     async ({ signal }: { signal: AbortSignal }) => {
-      const limit = paginationModel?.pageSize ?? 10;
-      const offset = (paginationModel?.page ?? 0) * limit;
-
       const statusQuery: FilterMap = {
         status: [
           {
@@ -376,20 +526,25 @@ export function CreateReportForm2({
             value: ["COMPLETE"],
           },
         ],
+        report_id: [
+          {
+            operator: "eq",
+            value: ["null"],
+          },
+        ],
       };
-      let newQuery: FilterMap = {...expenseQuery, ...statusQuery};
+      let newQuery: FilterMap = { ...expenseQuery, ...statusQuery };
 
       const response = await expenseService.getFilteredExpenses({
         query: buildBackendQuery(newQuery),
-        limit,
-        offset,
+        limit: 200,
+        offset: 0,
         signal,
       });
 
       setExpenses(response?.data?.data);
-      setRowCount(response?.data?.count);
     },
-    [expenseQuery, paginationModel?.page, paginationModel?.pageSize]
+    [expenseQuery]
   );
 
   useEffect(() => {
@@ -493,7 +648,7 @@ export function CreateReportForm2({
       setSelectedIds(idArr);
     }
   }, [rowSelection]);
-console.log(rowSelection);
+
   useEffect(() => {
     if (selectedCategory) {
       setSelectedIds([]);
@@ -784,13 +939,12 @@ console.log(rowSelection);
           customAttributesData[attr.name] = value;
         }
       });
-
       if (editMode && reportData) {
         // Update existing report
         const updateData = {
           title: formData.reportName,
           description: formData.description,
-          custom_attributes: customAttributesData,
+          custom_attributes: {...customAttributesData, ...buildCustomAttributesFromFilters(expenseQuery)},
           expense_ids: selectedIds,
         };
         const updateResponse = await reportService.updateReport(
@@ -811,7 +965,7 @@ console.log(rowSelection);
           description: formData.description,
           expenseIds: selectedIds,
           additionalFields: additionalFieldsData,
-          customAttributes: customAttributesData,
+          customAttributes: {...customAttributesData, ...buildCustomAttributesFromFilters(expenseQuery)},
         };
 
         const createResponse = await reportService.createReport(newReportData);
@@ -905,7 +1059,7 @@ console.log(rowSelection);
         description: data.description,
         expenseIds: selectedIds,
         additionalFields: additionalFieldsData,
-        customAttributes: customAttributesData,
+        customAttributes: {...customAttributesData, ...buildCustomAttributesFromFilters(expenseQuery)},
       };
 
       // 1. Create report
@@ -916,7 +1070,7 @@ console.log(rowSelection);
         await reportService.updateReport(reportData.id, {
           title: data.reportName,
           description: data.description,
-          custom_attributes: customAttributesData,
+          custom_attributes: {...customAttributesData, ...buildCustomAttributesFromFilters(expenseQuery)},
           expense_ids: selectedIds,
         });
         // await reportService.addExpensesToReport(reportData.id, markedExpenses.map(expense => expense.id))
@@ -1256,8 +1410,6 @@ console.log(rowSelection);
               }}
               disableRowSelectionOnClick
               showCellVerticalBorder
-              paginationMode="server"
-              rowCount={rowCount}
               pagination
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}

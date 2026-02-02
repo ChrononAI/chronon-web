@@ -3,7 +3,7 @@ import { Button } from "../ui/button";
 import { Filter, Search } from "lucide-react";
 import MultiSelectDropdown from "../shared/MultiSelectDropdown";
 import { Input } from "../ui/input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   GridToolbarProps,
   Toolbar,
@@ -13,10 +13,18 @@ import { FilterMap, getFilterValue } from "@/pages/MyExpensesPage";
 import DateRangePicker from "../shared/DateRangePicker";
 import FilterModal, { AllowedFilter } from "../expenses/FilterModal";
 import { useReportsStore } from "@/store/reportsStore";
+import { getTemplates, Template } from "@/services/admin/templates";
+import { Entity, getEntities } from "@/services/admin/entities";
 
 export interface CustomExpenseToolbarProps {
   allCategories: string[];
 }
+
+type TemplateEntity = NonNullable<Template["entities"]>[0];
+
+const getEntityId = (entity: TemplateEntity): string => {
+  return entity?.entity_id || entity?.id || "";
+};
 
 type Props = GridToolbarProps &
   ToolbarPropsOverrides &
@@ -28,15 +36,20 @@ function CustomReportExpenseToolbar({ allCategories }: Props) {
   const hasFilters = Object.keys(expenseQuery).length > 0;
 
   const [filterModalOpen, setFilterModalOpen] = useState(false);
+
+  const [entityFilters, setEntityFIlters] = useState<any[]>([]);
+
   const searchValue = (getFilterValue(expenseQuery, "q", "eq") as string) ?? "";
   const selectedCategories =
     (getFilterValue(expenseQuery, "category", "in") as string[]) ?? [];
 
   const dateFrom =
-    (getFilterValue(expenseQuery, "expense_date", "gte") as string) ?? undefined;
+    (getFilterValue(expenseQuery, "expense_date", "gte") as string) ??
+    undefined;
 
   const dateTo =
-    (getFilterValue(expenseQuery, "expense_date", "lte") as string) ?? undefined;
+    (getFilterValue(expenseQuery, "expense_date", "lte") as string) ??
+    undefined;
 
   const setDate = (operator: "gte" | "lte", value?: string) => {
     setExpenseQuery((prev) => {
@@ -86,9 +99,8 @@ function CustomReportExpenseToolbar({ allCategories }: Props) {
       type: "text",
       operators: ["ilike"],
     },
+    ...entityFilters,
   ];
-
-  /* -------------------- HANDLERS -------------------- */
 
   const updateSearch = (value: string) => {
     setExpenseQuery((prev: FilterMap) => {
@@ -127,10 +139,69 @@ function CustomReportExpenseToolbar({ allCategories }: Props) {
     });
   };
 
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const [templatesRes, entitiesRes] = await Promise.all([
+          getTemplates(),
+          getEntities(),
+        ]);
+
+        const expenseTemplate = Array.isArray(templatesRes)
+          ? templatesRes.find((t) => t.module_type === "expense")
+          : null;
+
+        const selectEntity = expenseTemplate?.entities?.filter(
+          (ent) => ent.field_type === "SELECT"
+        );
+
+        const entityMap: Record<
+          string,
+          Array<{ id: string; label: string }>
+        > = {};
+        entitiesRes.forEach((ent: Entity) => {
+          if (ent.id && Array.isArray(ent.attributes)) {
+            entityMap[ent.id] = ent.attributes.map((attr) => ({
+              id: attr.id,
+              label: attr.display_value ?? attr.value ?? "—",
+            }));
+          }
+        });
+
+        const mappedOptions: Record<
+          string,
+          Array<{ id: string; label: string }>
+        > = {};
+        expenseTemplate?.entities?.forEach((entity) => {
+          const entityId = getEntityId(entity);
+          if (entityId) {
+            mappedOptions[entityId] = entityMap[entityId] || [];
+          }
+        });
+
+        const filters: any[] = [];
+        selectEntity?.forEach((ent) => {
+          const filter = {
+            key: ent.display_name,
+            operators: ["eq"],
+            type: "select",
+            label: ent.display_name,
+            options: mappedOptions[ent.entity_id || 0],
+          };
+          filters.push(filter);
+        });
+        setEntityFIlters(filters);
+      } catch (error) {
+        console.error("Failed to load templates:", error);
+      }
+    };
+
+    loadTemplates();
+  }, []);
+
   return (
     <>
       <Toolbar className="flex items-center !justify-start !px-[1px] !gap-2 !my-3 !border-0 bg-white">
-        {/* 🔍 SEARCH */}
         <Box sx={{ position: "relative", width: "20%", flexShrink: 0 }}>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -141,11 +212,11 @@ function CustomReportExpenseToolbar({ allCategories }: Props) {
           />
         </Box>
 
-        {/* ✅ STATUS */}
         <Box sx={{ width: "28%", flexShrink: 0 }}>
           <MultiSelectDropdown
             allItems={allCategories || []}
             selectedItems={selectedCategories}
+            placeholder="Select categories"
             toggleItem={toggleCategory}
             deselectAll={deselectAllCategories}
           />
@@ -160,23 +231,23 @@ function CustomReportExpenseToolbar({ allCategories }: Props) {
           }}
         />
 
-        {/* 🔧 ADVANCED FILTER */}
         <Button
           variant="outline"
           onClick={() => setFilterModalOpen(true)}
           className="text-muted-foreground h-11 w-[10%] max-w-[48px] p-3"
         >
-          {hasFilters && <Badge
-            color="error"
-            variant="dot"
-            className="relative -top-4 -right-7"
-            overlap="circular"
-          ></Badge>}
+          {hasFilters && (
+            <Badge
+              color="error"
+              variant="dot"
+              className="relative -top-4 -right-7"
+              overlap="circular"
+            ></Badge>
+          )}
           <Filter className="h-8 w-8" />
         </Button>
       </Toolbar>
 
-      {/* 🧠 FILTER MODAL */}
       <FilterModal
         open={filterModalOpen}
         onOpenChange={setFilterModalOpen}
