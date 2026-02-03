@@ -29,6 +29,12 @@ function pickUiFields<T extends Record<string, any>>(
   );
 }
 
+const extractEmailFromComment = (comment: string | null | undefined): string | null => {
+  if (!comment) return null;
+  const emailMatch = comment.match(/\(([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\)/);
+  return emailMatch ? emailMatch[1] : null;
+};
+
 const getTimelineIcon = (action?: string) => {
   switch (action) {
     case "PAID":
@@ -102,12 +108,25 @@ function ExpenseLogs({
               >
                 <div className="flex py-1 items-start gap-3">
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium capitalize text-gray-800">
-                      {`${
-                        log.action?.replaceAll("_", " ").toLowerCase() ||
-                        "Unknown"
-                      }`}
-                    </span>
+                    {log.action === "PARTIALLY_APPROVED" ? (
+                      (() => {
+                        const email = extractEmailFromComment(log.comment);
+                        return (
+                          <span className="text-sm font-medium text-gray-800">
+                            <span className="capitalize">Approved by</span>
+                            {email && <span className="normal-case"> ({email})</span>}
+                          </span>
+                        );
+                      })()
+                    ) : log.action === "APPROVED" ? (
+                      <span className="text-sm font-medium capitalize text-gray-800">
+                        Expense approved
+                      </span>
+                    ) : (
+                      <span className="text-sm font-medium capitalize text-gray-800">
+                        {log.action?.replaceAll("_", " ").toLowerCase() || "Unknown"}
+                      </span>
+                    )}
 
                     <span className="text-[12px] text-gray-500">
                       {formatDate(log.created_at)}
