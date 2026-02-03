@@ -865,6 +865,7 @@ export function CreateReportForm2({
         // In create mode, fetch unassigned expenses
         const unassignedExpenses = await reportService.getUnassignedExpenses();
         setAllExpenses(unassignedExpenses);
+        setExpenses(unassignedExpenses);
         setMarkedExpenses([]);
         setSelectedIds([]);
       }
