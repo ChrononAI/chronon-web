@@ -373,7 +373,7 @@ export function CreateReportForm2({
 }: CreateReportFormProps) {
   const navigate = useNavigate();
   const { user, orgSettings } = useAuthStore();
-  const { expenseQuery } = useReportsStore();
+  const { expenseQuery, setExpenseQuery } = useReportsStore();
 
   const showDescription =
     orgSettings?.report_description_settings?.enabled ?? true;
@@ -641,6 +641,9 @@ export function CreateReportForm2({
 
   useEffect(() => {
     getAllCategories();
+    return () => {
+      setExpenseQuery({})
+    }
   }, []);
 
   const [rowSelection, setRowSelection] = useState<any>({
