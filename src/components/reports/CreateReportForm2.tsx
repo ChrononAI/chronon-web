@@ -1147,6 +1147,12 @@ export function CreateReportForm2({
           customAttributesData[attr.name] = value;
         }
       });
+      
+      const selectedPolicy = formData.policy 
+        ? policies.find((p) => p.id === formData.policy)
+        : null;
+      const policyName = selectedPolicy?.name || null;
+      
       if (editMode && reportData) {
         // Update existing report
         const updateData = {
@@ -1156,7 +1162,7 @@ export function CreateReportForm2({
             ...customAttributesData,
             ...buildCustomAttributesFromFilters(expenseQuery),
             ...(selectedFormCategory && { category: selectedFormCategory }),
-            ...(formData.policy && { policy: formData.policy }),
+            ...(policyName && { policy: policyName }),
           },
           expense_ids: selectedIds,
         };
@@ -1182,7 +1188,7 @@ export function CreateReportForm2({
             ...customAttributesData,
             ...buildCustomAttributesFromFilters(expenseQuery),
             ...(selectedFormCategory && { category: selectedFormCategory }),
-            ...(formData.policy && { policy: formData.policy }),
+            ...(policyName && { policy: policyName }),
           },
         };
 
@@ -1272,6 +1278,11 @@ export function CreateReportForm2({
         }
       });
 
+      const selectedPolicy = data.policy 
+        ? policies.find((p) => p.id === data.policy)
+        : null;
+      const policyName = selectedPolicy?.name || null;
+
       const reportData2 = {
         reportName: data.reportName,
         description: data.description,
@@ -1281,7 +1292,7 @@ export function CreateReportForm2({
           ...customAttributesData,
           ...buildCustomAttributesFromFilters(expenseQuery),
           ...(selectedFormCategory && { category: selectedFormCategory }),
-          ...(data.policy && { policy: data.policy }),
+          ...(policyName && { policy: policyName }),
         },
       };
 
@@ -1297,7 +1308,7 @@ export function CreateReportForm2({
             ...customAttributesData,
             ...buildCustomAttributesFromFilters(expenseQuery),
             ...(selectedFormCategory && { category: selectedFormCategory }),
-            ...(data.policy && { policy: data.policy }),
+            ...(policyName && { policy: policyName }),
           },
           expense_ids: selectedIds,
         });

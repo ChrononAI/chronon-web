@@ -186,6 +186,13 @@ export function ApprovalsReportsPage() {
       },] : []),
       ...columns,
       {
+        field: "approved_at",
+        headerName: "APPROVED AT",
+        minWidth: 120,
+        flex: 1,
+        valueFormatter: (params) => formatDate(params),
+      },
+      {
         field: "actions",
         headerName: "ACTIONS",
         minWidth: 120,
