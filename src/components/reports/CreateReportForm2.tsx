@@ -462,6 +462,7 @@ export function CreateReportForm2({
   const [selectedFormCategory, setSelectedFormCategory] = useState<string | null>(null);
   const [categoryFilterDisabled, setCategoryFilterDisabled] = useState(false);
   const [selectedFormPolicy, setSelectedFormPolicy] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   const [loadingReportComments, setLoadingReportComments] = useState(false);
   const [commentError, setCommentError] = useState<string | null>();
@@ -603,9 +604,7 @@ export function CreateReportForm2({
       };
       let newQuery: FilterMap = { ...expenseQuery, ...statusQuery };
       const query = reportData
-        ? `${buildBackendQuery(newQuery)}&or=(report_id.eq.null,report_id.eq.${
-            reportData?.id
-          })`
+        ? `${buildBackendQuery(newQuery)}&or=(report_id.eq.null,report_id.eq.${reportData.id})`
         : `${buildBackendQuery(newQuery)}&or=(report_id.eq.null)`;
 
       const response = await expenseService.getFilteredExpenses({
@@ -616,14 +615,17 @@ export function CreateReportForm2({
       });
 
       setExpenses(response?.data?.data);
+      setAllExpenses(response?.data?.data);
     },
-    [expenseQuery]
+    [expenseQuery, reportData]
   );
 
   const fetchExpensesByCategory = useCallback(
     async (categoryName: string, { signal }: { signal: AbortSignal }) => {
       try {
-        const query = `category=in.(${categoryName})&status=in.(COMPLETE)&or=(report_id.eq.null)`;
+        const query = reportData
+          ? `category=in.(${categoryName})&status=in.(COMPLETE)&or=(report_id.eq.null,report_id.eq.${reportData.id})`
+          : `category=in.(${categoryName})&status=in.(COMPLETE)&or=(report_id.eq.null)`;
         const response = await expenseService.getFilteredExpenses({
           query: query,
           limit: 200,
@@ -638,13 +640,15 @@ export function CreateReportForm2({
         toast.error("Failed to fetch expenses");
       }
     },
-    []
+    [reportData]
   );
 
   const fetchExpensesByPolicy = useCallback(
     async (policyId: string, { signal }: { signal: AbortSignal }) => {
       try {
-        const query = `expense_policy_id=in.(${policyId})&status=in.(COMPLETE)&or=(report_id.eq.null)`;
+        const query = reportData
+          ? `expense_policy_id=in.(${policyId})&status=in.(COMPLETE)&or=(report_id.eq.null,report_id.eq.${reportData.id})`
+          : `expense_policy_id=in.(${policyId})&status=in.(COMPLETE)&or=(report_id.eq.null)`;
         const response = await expenseService.getFilteredExpenses({
           query: query,
           limit: 200,
@@ -659,11 +663,11 @@ export function CreateReportForm2({
         toast.error("Failed to fetch expenses");
       }
     },
-    []
+    [reportData]
   );
 
   useEffect(() => {
-    if (!expAttributes) return;
+    if (!expAttributes || isInitializing) return;
     
     if (selectedFormCategory) {
       if (debounceRef.current) {
@@ -765,7 +769,7 @@ export function CreateReportForm2({
         }
       };
     }
-  }, [fetchFilteredExpenses, fetchExpensesByCategory, fetchExpensesByPolicy, expAttributes, selectedFormCategory, selectedFormPolicy]);
+  }, [fetchFilteredExpenses, fetchExpensesByCategory, fetchExpensesByPolicy, expAttributes, selectedFormCategory, selectedFormPolicy, isInitializing]);
 
   const filteredExpenses = allExpenses
     .filter((exp) =>
@@ -873,7 +877,15 @@ export function CreateReportForm2({
     // Set custom attribute values if in edit mode
     if (editMode && reportData?.custom_attributes) {
       Object.entries(reportData.custom_attributes).forEach(([key, value]) => {
-        defaults[key] = value;
+        if (key === "policy" && value && policies.length > 0) {
+          const policy = policies.find((p) => p.name === value);
+          defaults[key] = policy?.id || "";
+        } else if (key === "category" && value && categories.length > 0) {
+          const category = categories.find((c) => c.name === value);
+          defaults[key] = category?.id || "";
+        } else {
+          defaults[key] = value;
+        }
       });
     }
 
@@ -906,6 +918,28 @@ export function CreateReportForm2({
       form.reset(newDefaultValues);
     }
   }, [customAttributes, form]);
+
+  useEffect(() => {
+    if (editMode && reportData && policies.length > 0 && categories.length > 0 && !isInitializing) {
+      const newDefaultValues = createDefaultValues(customAttributes);
+      form.reset(newDefaultValues);
+      
+      if (reportData.custom_attributes?.policy) {
+        const policy = policies.find((p) => p.name === reportData.custom_attributes?.policy);
+        if (policy) {
+          setSelectedFormPolicy(policy.name);
+          setCategoryFilterDisabled(true);
+        }
+      }
+      if (reportData.custom_attributes?.category) {
+        const category = categories.find((c) => c.name === reportData.custom_attributes?.category);
+        if (category) {
+          setSelectedFormCategory(category.name);
+          setCategoryFilterDisabled(true);
+        }
+      }
+    }
+  }, [policies, categories, editMode, reportData, customAttributes, form, isInitializing]);
 
   const fetchComments = async (id: string) => {
     if (id) {
@@ -1065,9 +1099,13 @@ export function CreateReportForm2({
         const newDefaultValues = createDefaultValues(customAttrs);
         form.reset(newDefaultValues);
       }
+      
+      // Mark initialization as complete after data is loaded
+      setIsInitializing(false);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Failed to fetch data");
+      setIsInitializing(false);
     } finally {
       setLoadingExpenses(false);
       setLoadingMeta(false);
@@ -1386,38 +1424,54 @@ export function CreateReportForm2({
                   name="category"
                   render={({ field }) => (
                     <FormItem className="mb-0 w-[200px]">
-                      <Select
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          const selectedCat = categories.find((cat) => cat.id === value);
-                          if (selectedCat) {
-                            setSelectedFormCategory(selectedCat.name);
-                            setCategoryFilterDisabled(true);
-                            setExpenseQuery((prev) => {
-                              const { category, ...rest } = prev;
-                              return rest;
-                            });
-                          } else {
-                            setSelectedFormCategory(null);
-                            setCategoryFilterDisabled(false);
-                          }
-                        }}
-                        value={field.value || ""}
-                        disabled={loadingCategories}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="!h-10 !text-sm !px-3 !py-1.5 !w-full">
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="relative">
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            const selectedCat = categories.find((cat) => cat.id === value);
+                            if (selectedCat) {
+                              setSelectedFormCategory(selectedCat.name);
+                              setCategoryFilterDisabled(true);
+                              setExpenseQuery((prev) => {
+                                const { category, ...rest } = prev;
+                                return rest;
+                              });
+                            } else {
+                              setSelectedFormCategory(null);
+                              setCategoryFilterDisabled(false);
+                            }
+                          }}
+                          value={field.value || ""}
+                          disabled={loadingCategories}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="!h-10 !text-sm !px-3 !py-1.5 !w-full pr-8">
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {field.value && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              field.onChange("");
+                              setSelectedFormCategory(null);
+                              setCategoryFilterDisabled(false);
+                            }}
+                            className="absolute right-8 top-1/2 -translate-y-1/2 h-4 w-4 flex items-center justify-center hover:bg-gray-200 rounded z-10"
+                          >
+                            <X className="h-3 w-3 text-gray-500" />
+                          </button>
+                        )}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1429,39 +1483,57 @@ export function CreateReportForm2({
                   name="policy"
                   render={({ field }) => (
                     <FormItem className="mb-0 w-[200px]">
-                      <Select
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          if (value) {
-                            setSelectedFormPolicy(value);
-                            setCategoryFilterDisabled(true);
-                            setExpenseQuery((prev) => {
-                              const { policy, ...rest } = prev;
-                              return rest;
-                            });
-                          } else {
-                            setSelectedFormPolicy(null);
-                            if (!selectedFormCategory) {
-                              setCategoryFilterDisabled(false);
+                      <div className="relative">
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            if (value) {
+                              setSelectedFormPolicy(value);
+                              setCategoryFilterDisabled(true);
+                              setExpenseQuery((prev) => {
+                                const { policy, ...rest } = prev;
+                                return rest;
+                              });
+                            } else {
+                              setSelectedFormPolicy(null);
+                              if (!selectedFormCategory) {
+                                setCategoryFilterDisabled(false);
+                              }
                             }
-                          }
-                        }}
-                        value={field.value || ""}
-                        disabled={loadingPolicies}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="!h-10 !text-sm !px-3 !py-1.5 !w-full">
-                            <SelectValue placeholder="Select policy" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {policies.map((policy) => (
-                            <SelectItem key={policy.id} value={policy.id}>
-                              {policy.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                          }}
+                          value={field.value || ""}
+                          disabled={loadingPolicies}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="!h-10 !text-sm !px-3 !py-1.5 !w-full pr-8">
+                              <SelectValue placeholder="Select policy" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {policies.map((policy) => (
+                              <SelectItem key={policy.id} value={policy.id}>
+                                {policy.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {field.value && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              field.onChange("");
+                              setSelectedFormPolicy(null);
+                              if (!selectedFormCategory) {
+                                setCategoryFilterDisabled(false);
+                              }
+                            }}
+                            className="absolute right-8 top-1/2 -translate-y-1/2 h-4 w-4 flex items-center justify-center hover:bg-gray-200 rounded z-10"
+                          >
+                            <X className="h-3 w-3 text-gray-500" />
+                          </button>
+                        )}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
