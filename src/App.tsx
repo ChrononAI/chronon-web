@@ -86,6 +86,12 @@ import { AllInvoiceApprovalsPage } from "./pages/AllInvoiceApprovalsPage";
 import { FlowLayout } from "./components/layout/FlowLayout";
 import { BulkInvoiceUploadPage } from "./pages/BulkInvoiceUploadPage";
 
+import { ApprovalsTravelsPage } from "./pages/ApprovalsTravelsPage";
+import { TravelListPage } from "./pages/TravelListPage";
+import { CreateTravelPage } from "./pages/CreateTravelPage";
+import { EditTravelPage } from "./pages/EditTravelPage";
+import { TravelDetailsPage } from "./pages/TravelDetailsPage";
+
 // Redirect component for vendor routes with parameters
 function VendorRedirect() {
   const { id } = useParams<{ id: string }>();
@@ -158,6 +164,13 @@ function App() {
               <Route path="/advance_accounts" element={<AdvanceAccounts />} />
 
               <Route path="/requests/users" element={<CreateUserPage />} />
+
+              {/* TRAVEL */}
+              <Route path="/requests/travels" element={<TravelListPage />} />
+              <Route path="/requests/travels/create" element={<CreateTravelPage />} />
+              <Route path="/requests/travels/:id/edit" element={<EditTravelPage />} />
+              <Route path="/requests/travels/:id" element={<TravelDetailsPage />} />
+              <Route path="/approvals/travels" element={<ApprovalsTravelsPage />} />
 
               {/* APPROVALS */}
               <Route path="/approvals/reports" element={<ApprovalsReportsPage />} />

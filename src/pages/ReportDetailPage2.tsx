@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { approvalService } from "@/services/approvalService";
 import { reportService } from "@/services/reportService";
+import { travelService } from "@/services/travelService";
 import {
   ReportWithExpenses,
   ApprovalWorkflow,
@@ -177,6 +178,7 @@ export function ReportDetailPage2() {
   const [report, setReport] = useState<ReportWithExpenses | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<ApprovalWorkflow | null>(null);
+  const [linkedTrip, setLinkedTrip] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionType, setActionType] = useState<
@@ -216,6 +218,11 @@ export function ReportDetailPage2() {
 
       if (reportResponse.success && reportResponse.data) {
         setReport(reportResponse.data);
+        if (reportResponse.data.trip_id) {
+            travelService.getTravel(reportResponse.data.trip_id)
+                .then(setLinkedTrip)
+                .catch(e => console.error("Failed to load linked trip", e));
+        }
       } else {
         console.error(
           "Failed to fetch report details:",
@@ -516,6 +523,44 @@ export function ReportDetailPage2() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Custom Report ID</label>
               <Input value={report?.custom_report_id ?? ""} disabled />
+            </div>
+          )}
+          
+          {linkedTrip && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Linked Trip</label>
+              <div className="flex items-center gap-2">
+                <div 
+                    className="flex-1 flex items-center justify-between p-2 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => navigate(`/requests/travels/${linkedTrip.id}`)}
+                >
+                    <div className="font-medium text-primary hover:underline truncate mr-2">
+                      {linkedTrip.trip_name || linkedTrip.id}
+                    </div>
+                    <Badge variant="secondary" className="scale-90">{linkedTrip.status?.replace("_", " ")}</Badge>
+                </div>
+                {(report.status === "DRAFT" || report.status === "SENT_BACK") && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={async () => {
+                      if (confirm("Are you sure you want to remove this trip from the report?")) {
+                        try {
+                          await travelService.unlinkTripFromReport(linkedTrip.id, report.id);
+                          toast.success("Trip removed from report");
+                          setLinkedTrip(null);
+                          await fetchReport();
+                        } catch (error: any) {
+                          toast.error(error.response?.data?.message || "Failed to remove trip");
+                        }
+                      }
+                    }}
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </div>

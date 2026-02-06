@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { AlertTriangle, Calendar, Loader2, Trash2, X } from "lucide-react";
+import { AlertTriangle, Calendar, Loader2, Trash2, X, Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -217,6 +217,8 @@ function CustomToolbar({
   dateTo,
   setDateFrom,
   setDateTo,
+  onImportTripExpenses,
+  showImportButton,
 }: any) {
   return (
     <Toolbar
@@ -291,6 +293,19 @@ function CustomToolbar({
           </PopoverContent>
         </Popover>
       </Box>
+      {showImportButton && (
+        <Button
+          variant="outline"
+          onClick={(e) => {
+            e.preventDefault();
+            onImportTripExpenses();
+          }}
+          className="ml-auto"
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Import Trip Expenses
+        </Button>
+      )}
     </Toolbar>
   );
 }
@@ -332,6 +347,7 @@ export function CreateReportForm2({
   >("expenses");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [tripId, setTripId] = useState<string | null>(null);
 
   const [loadingReportComments, setLoadingReportComments] = useState(false);
   const [commentError, setCommentError] = useState<string | null>();
@@ -550,6 +566,9 @@ export function CreateReportForm2({
         setSelectedIds(reportExpenses.map((exp: any) => exp.id));
 
         if (fullReportResponse.success && fullReportResponse.data) {
+          if (fullReportResponse.data.trip_id) {
+            setTripId(fullReportResponse.data.trip_id);
+          }
           const currentStatus = (
             fullReportResponse.data.status || ""
           ).toUpperCase();
@@ -759,6 +778,25 @@ export function CreateReportForm2({
       setShowDeleteDialog(false);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleImportTripExpenses = async () => {
+    if (!reportData?.id) return;
+    try {
+      setLoading(true);
+      const res = await reportService.importTripExpenses(reportData.id);
+      if (res.success) {
+        toast.success("Trip expenses imported successfully");
+        fetchData();
+      } else {
+        toast.error(res.message);
+      }
+    } catch (error) {
+      console.error("Failed to import trip expenses", error);
+      toast.error("Failed to import trip expenses");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -975,6 +1013,8 @@ export function CreateReportForm2({
                         dateTo={dateTo}
                         setDateFrom={setDateFrom}
                         setDateTo={setDateTo}
+                        onImportTripExpenses={handleImportTripExpenses}
+                        showImportButton={!!tripId}
                       />
                     ),
                   }}
@@ -1100,6 +1140,8 @@ export function CreateReportForm2({
                     dateTo={dateTo}
                     setDateFrom={setDateFrom}
                     setDateTo={setDateTo}
+                    onImportTripExpenses={handleImportTripExpenses}
+                    showImportButton={!!tripId}
                   />
                 ),
               }}

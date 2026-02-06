@@ -259,9 +259,20 @@ class ReportService {
       downloaded?: boolean;
       limit?: number;
       offset?: number;
+      trip_id?: string;
     } = {}
   ) {
     try {
+      // If trip_id is present, use the standard reports endpoint which supports filtering
+      if (params.trip_id) {
+          const response = await api.get("/reports/reports", { params });
+          return {
+              success: true,
+              jobs: response.data.data, // Map reports to jobs structure loosely or handle differently
+              total: response.data.pagination.total
+          }
+      }
+
       const response = await baseAPI.get("/reports/jobs", { params });
       return {
         success: true,
@@ -685,6 +696,29 @@ class ReportService {
       return {
         success: false,
         message: error.response?.data?.message || "Failed to delete report",
+      };
+    }
+  }
+
+  async importTripExpenses(
+    reportId: string
+  ): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const response = await api.post(
+        `/reports/reports/${reportId}/import_trip_expenses`
+      );
+      return {
+        success: true,
+        message:
+          response.data.message || "Trip expenses imported successfully",
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      console.error("Error importing trip expenses:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message || "Failed to import trip expenses",
       };
     }
   }

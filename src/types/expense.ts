@@ -157,6 +157,7 @@ export interface Report {
   notes: string | null;
   custom_attributes?: Record<string, string>; // Custom attributes from API
   expenses?: Expense[]; // Embedded expenses from new API
+  trip_id?: string | null;
 }
 
 export interface ReportWithExpenses extends Report {
