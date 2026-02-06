@@ -644,11 +644,11 @@ export function CreateReportForm2({
   );
 
   const fetchExpensesByPolicy = useCallback(
-    async (policyId: string, { signal }: { signal: AbortSignal }) => {
+    async (policyName: string, { signal }: { signal: AbortSignal }) => {
       try {
         const query = reportData
-          ? `expense_policy_id=in.(${policyId})&status=in.(COMPLETE)&or=(report_id.eq.null,report_id.eq.${reportData.id})`
-          : `expense_policy_id=in.(${policyId})&status=in.(COMPLETE)&or=(report_id.eq.null)`;
+          ? `policy_name=in.(${policyName})&status=in.(COMPLETE)&or=(report_id.eq.null,report_id.eq.${reportData.id})`
+          : `policy_name=in.(${policyName})&status=in.(COMPLETE)&or=(report_id.eq.null)`;
         const response = await expenseService.getFilteredExpenses({
           query: query,
           limit: 200,
@@ -879,7 +879,7 @@ export function CreateReportForm2({
       Object.entries(reportData.custom_attributes).forEach(([key, value]) => {
         if (key === "policy" && value && policies.length > 0) {
           const policy = policies.find((p) => p.name === value);
-          defaults[key] = policy?.id || "";
+          defaults[key] = policy?.name || "";
         } else if (key === "category" && value && categories.length > 0) {
           const category = categories.find((c) => c.name === value);
           defaults[key] = category?.id || "";
@@ -928,6 +928,7 @@ export function CreateReportForm2({
         const policy = policies.find((p) => p.name === reportData.custom_attributes?.policy);
         if (policy) {
           setSelectedFormPolicy(policy.name);
+          form.setValue("policy", policy.name);
           setCategoryFilterDisabled(true);
         }
       }
@@ -1186,10 +1187,7 @@ export function CreateReportForm2({
         }
       });
       
-      const selectedPolicy = formData.policy 
-        ? policies.find((p) => p.id === formData.policy)
-        : null;
-      const policyName = selectedPolicy?.name || null;
+      const policyName = formData.policy || null;
       
       if (editMode && reportData) {
         // Update existing report
@@ -1316,10 +1314,7 @@ export function CreateReportForm2({
         }
       });
 
-      const selectedPolicy = data.policy 
-        ? policies.find((p) => p.id === data.policy)
-        : null;
-      const policyName = selectedPolicy?.name || null;
+      const policyName = data.policy || null;
 
       const reportData2 = {
         reportName: data.reportName,
@@ -1511,7 +1506,7 @@ export function CreateReportForm2({
                           </FormControl>
                           <SelectContent>
                             {policies.map((policy) => (
-                              <SelectItem key={policy.id} value={policy.id}>
+                              <SelectItem key={policy.id} value={policy.name}>
                                 {policy.name}
                               </SelectItem>
                             ))}
