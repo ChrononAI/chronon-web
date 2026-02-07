@@ -1040,6 +1040,14 @@ export function CreateReportForm2({
     }
   };
 
+  const handleViewExpense = (expense: Expense) => {
+    if (editMode && reportData) {
+      navigate(`/reports/${reportData.id}/${expense.id}`);
+    } else {
+      navigate(`/expenses/${expense.id}`);
+    }
+  };
+
   const onSubmit = async (data: ReportFormValues) => {
     if (selectedIds.length === 0) {
       toast.error("Please add at least one expense to the report");
@@ -1331,6 +1339,7 @@ export function CreateReportForm2({
                   paginationModel={paginationModel}
                   onPaginationModelChange={setPaginationModel}
                   pageSizeOptions={[10, 15, 20]}
+                  onRowClick={(params) => handleViewExpense(params.row)}
                 />
               </div>
             )}
@@ -1453,6 +1462,7 @@ export function CreateReportForm2({
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
               pageSizeOptions={[10, 15, 20]}
+              onRowClick={(params) => handleViewExpense(params.row)}
             />
           </div>
         )}
