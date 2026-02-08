@@ -9,6 +9,7 @@ export interface InvoiceListRow {
   currency: string;
   status: string;
   ocrStatus?: string;
+  sequenceNumber?: string | null;
   totalAmount: string;
   uploadState?: "uploading" | "done";
   uploadStartedAt?: number;

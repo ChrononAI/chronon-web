@@ -489,7 +489,7 @@ export function LineItemsTable({
           <TableHeader>
             <TableRow>
               <TableHead 
-                className="px-4 min-w-[200px] py-2"
+                className="px-4 min-w-[350px] py-2"
                 style={tableHeaderStyle}
               >
                 ITEM DESCRIPTION
@@ -583,7 +583,7 @@ export function LineItemsTable({
             ) : (
               rows.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="px-4 py-1">
+                  <TableCell className="px-4 py-1 min-w-[350px]">
                     <div>
                       <Autocomplete
                         freeSolo
@@ -656,6 +656,7 @@ export function LineItemsTable({
                       disabled={isApprovalMode}
                       sx={{ 
                         width: '100%', 
+                        minWidth: '350px',
                         '& .MuiAutocomplete-root': {
                           padding: 0,
                         },
@@ -760,6 +761,7 @@ export function LineItemsTable({
                             },
                             '& .MuiInputBase-input': {
                               padding: '4px 0px !important',
+                              paddingRight: '28px !important',
                             },
                           }}
                         />

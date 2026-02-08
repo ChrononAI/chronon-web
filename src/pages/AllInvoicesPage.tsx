@@ -134,6 +134,7 @@ export function AllInvoicesPage() {
       currency: invoice.currency || "INR",
       status: displayStatus,
       ocrStatus: invoice.ocr_status,
+      sequenceNumber: invoice.sequence_number || null,
       totalAmount: formatCurrency(invoice.currency, totalAmount),
     };
   };
@@ -370,6 +371,24 @@ export function AllInvoicesPage() {
                 renderSkeleton("w-28")
               ) : (
                 <span className="text-sm">{params.value}</span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        field: "sequenceNumber",
+        headerName: "SEQUENCE NUMBER",
+        flex: 1,
+        minWidth: 150,
+        renderCell: (params) => {
+          const processing = isProcessing(params.row);
+          return (
+            <div className="flex items-center h-full">
+              {processing ? (
+                renderSkeleton("w-28")
+              ) : (
+                <span className="text-sm">{params.value || "—"}</span>
               )}
             </div>
           );

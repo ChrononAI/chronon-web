@@ -97,7 +97,7 @@ export const vendorService = {
     try {
       const response = await api.get("/api/v1/vendors", {
         params: {
-          gstin: `ilike.%${gstNumber}%`,
+          gstin: `eq.${gstNumber}`,
           ...(limit !== undefined && { limit }),
           ...(offset !== undefined && { offset }),
         },

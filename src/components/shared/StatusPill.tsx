@@ -22,6 +22,8 @@ export function StatusPill({ status, className }: StatusPillProps) {
       normalizedStatus === "OCR_FAILED"
     ) {
       return "bg-[#DC2627]/10";
+    } else if (normalizedStatus === "DRAFT") {
+      return "bg-gray-200";
     } else if (
       normalizedStatus === "PENDING" ||
       normalizedStatus === "OCR_PENDING" ||
@@ -29,8 +31,7 @@ export function StatusPill({ status, className }: StatusPillProps) {
       normalizedStatus === "OCR_PROCESSING" ||
       normalizedStatus === "UPLOADING" ||
       normalizedStatus === "EXTRACTING_DATA" ||
-      normalizedStatus === "PENDING_APPROVAL" ||
-      normalizedStatus === "DRAFT"
+      normalizedStatus === "PENDING_APPROVAL"
     ) {
       return "bg-[#FFF7D6]";
     }
@@ -51,6 +52,8 @@ export function StatusPill({ status, className }: StatusPillProps) {
       normalizedStatus === "OCR_FAILED"
     ) {
       return "text-[#DC2627]";
+    } else if (normalizedStatus === "DRAFT") {
+      return "text-gray-600";
     } else if (
       normalizedStatus === "PENDING" ||
       normalizedStatus === "OCR_PENDING" ||
@@ -58,8 +61,7 @@ export function StatusPill({ status, className }: StatusPillProps) {
       normalizedStatus === "OCR_PROCESSING" ||
       normalizedStatus === "UPLOADING" ||
       normalizedStatus === "EXTRACTING_DATA" ||
-      normalizedStatus === "PENDING_APPROVAL" ||
-      normalizedStatus === "DRAFT"
+      normalizedStatus === "PENDING_APPROVAL"
     ) {
       return "text-[#F59E0B]";
     }

@@ -100,6 +100,7 @@ export interface InvoiceResponse {
   ocr_status?: string;
   po_number: string | null;
   raw_ocr_payload?: RawOcrPayload;
+  sequence_number?: string | null;
   sgst_amount: string | null;
   shipping_address: string | null;
   source_type: string;
@@ -194,7 +195,7 @@ export const getApprovalInvoices = async (status?: string): Promise<GetAllInvoic
 export const getApprovalInvoiceById = async (
   invoiceId: string
 ): Promise<GetInvoiceByIdResponse> => {
-  const response = await baseAPI.get(`/v1/invoices/approvals?id=eq.${invoiceId}`);
+  const response = await baseAPI.get(`/v1/invoices/admin?id=eq.${invoiceId}`);
   return response.data;
 };
 

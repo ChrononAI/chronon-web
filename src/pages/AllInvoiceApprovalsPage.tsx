@@ -37,10 +37,11 @@ interface ApprovalRow {
   id: string;
   invoiceId: string;
   invoiceNumber: string;
-  vendorName: string;
+  gstNumber: string;
   invoiceDate: string;
-  poNumber: string;
+  currency: string;
   status: string;
+  sequenceNumber: string | null;
   totalAmount: string;
 }
 
@@ -84,10 +85,11 @@ export function AllInvoiceApprovalsPage() {
       id: invoice.id,
       invoiceId: invoice.id,
       invoiceNumber: invoice.invoice_number || "",
-      vendorName: invoice.vendor_id || "—",
+      gstNumber: invoice.gst_number || "—",
       invoiceDate: formatDate(invoice.invoice_date),
-      poNumber: invoice.po_number || "",
+      currency: invoice.currency || "—",
       status: invoice.status === "PENDING_APPROVAL" ? "Pending" : invoice.status,
+      sequenceNumber: invoice.sequence_number || null,
       totalAmount: formatCurrency(totalAmount, invoice.currency),
     };
   };
@@ -154,9 +156,9 @@ export function AllInvoiceApprovalsPage() {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (approval) =>
-          (approval.vendorName || "").toLowerCase().includes(searchLower) ||
+          (approval.gstNumber || "").toLowerCase().includes(searchLower) ||
           (approval.invoiceNumber || "").toLowerCase().includes(searchLower) ||
-          (approval.poNumber || "").toLowerCase().includes(searchLower)
+          (approval.currency || "").toLowerCase().includes(searchLower)
       );
     }
 
@@ -180,6 +182,31 @@ export function AllInvoiceApprovalsPage() {
   const columns: GridColDef[] = useMemo(() => {
     return [
       {
+        field: "gstNumber",
+        headerName: "GST NUMBER",
+        flex: 1,
+        minWidth: 200,
+        renderCell: (params) => (
+          <span
+            style={{
+              fontFamily: "Inter",
+              fontWeight: 500,
+              fontSize: "14px",
+              lineHeight: "100%",
+              letterSpacing: "0%",
+              color: "#1A1A1A",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxWidth: "100%",
+            }}
+            title={params.value}
+          >
+            {params.value}
+          </span>
+        ),
+      },
+      {
         field: "invoiceNumber",
         headerName: "INVOICE NUMBER",
         flex: 1,
@@ -200,10 +227,10 @@ export function AllInvoiceApprovalsPage() {
         ),
       },
       {
-        field: "vendorName",
-        headerName: "VENDOR NAME",
+        field: "sequenceNumber",
+        headerName: "SEQUENCE NUMBER",
         flex: 1,
-        minWidth: 200,
+        minWidth: 150,
         renderCell: (params) => (
           <span
             style={{
@@ -212,16 +239,10 @@ export function AllInvoiceApprovalsPage() {
               fontSize: "14px",
               lineHeight: "100%",
               letterSpacing: "0%",
-              textTransform: "capitalize",
               color: "#1A1A1A",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              maxWidth: "100%",
             }}
-            title={params.value}
           >
-            {params.value}
+            {params.value || "—"}
           </span>
         ),
       },
@@ -246,8 +267,8 @@ export function AllInvoiceApprovalsPage() {
         ),
       },
       {
-        field: "poNumber",
-        headerName: "PO NUMBER",
+        field: "currency",
+        headerName: "CURRENCY",
         flex: 1,
         minWidth: 150,
         renderCell: (params) => (
@@ -333,7 +354,7 @@ export function AllInvoiceApprovalsPage() {
         paginationModel={paginationModel}
         onPaginationModelChange={setPaginationModel}
         onRowClick={handleRowClick}
-        firstColumnField="invoiceNumber"
+        firstColumnField="gstNumber"
         emptyStateComponent={<CustomNoRows />}
         slots={{
           toolbar: CustomInvoiceToolbar,

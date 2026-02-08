@@ -886,7 +886,8 @@ export function InvoicePage() {
   const isPdfInvoice = activeInvoiceUrl?.toLowerCase().includes(".pdf") || activeInvoiceUrl?.toLowerCase().includes("pdf");
   const hasInvoice = !!activeInvoiceUrl;
   const isInvoiceFinalized = invoiceStatus === "APPROVED" || invoiceStatus === "REJECTED";
-  const isFieldDisabled = isApprovalMode || isInvoiceFinalized;
+  const isPendingApproval = invoiceStatus === "PENDING_APPROVAL";
+  const isFieldDisabled = isApprovalMode || isInvoiceFinalized || isPendingApproval;
   const shouldShowButtons = !tableLoading && (invoiceStatus !== null || !id);
 
   return (
@@ -1330,7 +1331,7 @@ export function InvoicePage() {
         <LineItemsTable
           rows={tableRows}
           isLoading={tableLoading}
-          isApprovalMode={isApprovalMode || isInvoiceFinalized}
+          isApprovalMode={isApprovalMode || isInvoiceFinalized || isPendingApproval}
           onRowUpdate={updateTableRow}
           onAddRow={addTableRow}
           isFieldChanged={isFieldChanged}
@@ -1445,7 +1446,7 @@ export function InvoicePage() {
             disabled: isInvoiceFinalized,
           }}
         />
-      ) : shouldShowButtons && !isInvoiceFinalized ? (
+      ) : shouldShowButtons && !isInvoiceFinalized && !isPendingApproval ? (
         <FormActionFooter
           secondaryButton={{
             label: "Update",
