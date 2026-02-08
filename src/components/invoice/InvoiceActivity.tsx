@@ -1,4 +1,4 @@
-import { Loader2, Activity, FileText, CheckCircle, XCircle, Send, Edit, FilePlus, FileClock, ScanEye, FileOutput, FileX } from "lucide-react";
+import { Loader2, Activity, CheckCircle, Send, Edit, FilePlus, FileClock, ScanEye, FileOutput, FileX } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { StatusPill } from "@/components/shared/StatusPill";
@@ -162,7 +162,6 @@ export function InvoiceActivity({
               <WorkflowTimeline approvalWorkflow={combinedApprovalWorkflow} />
             ) : (
               activities.map((activity, index) => {
-                const userName = activity.user?.name || activity.title || "Unknown";
                 const userEmail = activity.user?.email || activity.email || "";
                 const note = activity.comment || activity.note || activity.message || "";
 

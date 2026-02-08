@@ -94,8 +94,8 @@ export function InvoicePage() {
   const lastLoadedRef = useRef<{ id?: string; fileKey?: string; routeKey?: string }>({});
   const [rawOcrPayload, setRawOcrPayload] = useState<any>(null);
   const [pageActivities, setPageActivities] = useState<any[]>([]);
-  const [pageActivityLoading, setPageActivityLoading] = useState(false);
-  const [pageActivityError, setPageActivityError] = useState<string | null>(null);
+  const [, setPageActivityLoading] = useState(false);
+  const [, setPageActivityError] = useState<string | null>(null);
   
   // Approval dialog state
   const [showActionDialog, setShowActionDialog] = useState(false);
@@ -1317,7 +1317,7 @@ export function InvoicePage() {
                 <InvoiceValidation invoiceId={id} />
               </TabsContent>
               <TabsContent value="comment" className="h-full mt-0">
-                <InvoiceComment invoiceId={id} readOnly={isFieldDisabled} />
+                <InvoiceComment invoiceId={id} readOnly={false} />
               </TabsContent>
               <TabsContent value="activity" className="h-full mt-0">
                 <InvoiceActivity invoiceId={id} activities={pageActivities} />
