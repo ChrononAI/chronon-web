@@ -15,6 +15,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -35,6 +42,7 @@ import {
   ApprovalWorkflow,
   ExpenseComment,
   PolicyCategory,
+  Policy,
 } from "@/types/expense";
 import { AdditionalFieldMeta, CustomAttribute } from "@/types/report";
 import { useAuthStore } from "@/store/authStore";
@@ -74,14 +82,21 @@ import { expenseService } from "@/services/expenseService";
 import { Entity, getEntities } from "@/services/admin/entities";
 import { getTemplates, Template } from "@/services/admin/templates";
 
-// Dynamic form schema creation function
-const createReportSchema = (customAttributes: CustomAttribute[]) => {
+const createReportSchema = (
+  customAttributes: CustomAttribute[],
+  options?: { categoryRequired?: boolean; policyRequired?: boolean }
+) => {
   const baseSchema = {
     reportName: z.string().min(1, "Report name is required"),
     description: z.string().optional(),
+    category: options?.categoryRequired
+      ? z.string().min(1, "Category is required")
+      : z.string().optional(),
+    policy: options?.policyRequired
+      ? z.string().min(1, "Policy is required")
+      : z.string().optional(),
   };
 
-  // Add dynamic fields based on custom attributes
   const dynamicFields: Record<string, z.ZodTypeAny> = {};
   customAttributes.forEach((attr) => {
     const fieldName = attr.name;
@@ -101,6 +116,8 @@ const getEntityId = (entity: TemplateEntity): string => {
 type ReportFormValues = {
   reportName: string;
   description: string;
+  category?: string;
+  policy?: string;
   [key: string]: string | undefined;
 };
 
@@ -234,6 +251,7 @@ function CustomToolbar({
   dateTo,
   setDateFrom,
   setDateTo,
+  categoryFilterDisabled,
 }: any) {
   return (
     <Toolbar
@@ -248,11 +266,13 @@ function CustomToolbar({
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <SearchableSelect
-          categories={categories}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-        />
+        <div className={categoryFilterDisabled ? "opacity-50 pointer-events-none" : ""}>
+          <SearchableSelect
+            categories={categories}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+          />
+        </div>
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -375,6 +395,29 @@ export function CreateReportForm2({
   const { user, orgSettings } = useAuthStore();
   const { expenseQuery, setExpenseQuery } = useReportsStore();
 
+  const reportFilterSettings = orgSettings?.report_filter_settings;
+  const filterName = reportFilterSettings?.filter?.name;
+  const isFilterMandatory = reportFilterSettings?.filter?.mandatory;
+  const isFilterEnabled = reportFilterSettings?.enabled;
+
+  const hasFilterConfig = Boolean(filterName);
+
+  const showCategoryField = hasFilterConfig
+    ? Boolean(isFilterEnabled && filterName === "expense_category")
+    : true;
+
+  const showPolicyField = hasFilterConfig
+    ? Boolean(isFilterEnabled && filterName === "expense_policy")
+    : true;
+
+  const categoryRequired = Boolean(
+    showCategoryField && isFilterMandatory && filterName === "expense_category"
+  );
+
+  const policyRequired = Boolean(
+    showPolicyField && isFilterMandatory && filterName === "expense_policy"
+  );
+
   const showDescription =
     orgSettings?.report_description_settings?.enabled ?? true;
 
@@ -387,7 +430,9 @@ export function CreateReportForm2({
     []
   );
   const [expAttributes, setExpAttributes] = useState<any[]>();
-  const [formSchema, setFormSchema] = useState(createReportSchema([]));
+  const [formSchema, setFormSchema] = useState(
+    createReportSchema([], { categoryRequired, policyRequired })
+  );
   const [markedExpenses, setMarkedExpenses] = useState<Expense[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -409,6 +454,15 @@ export function CreateReportForm2({
   const [dateFrom, setDateFrom] = useState<string | Date>("");
   const [dateTo, setDateTo] = useState<string | Date>("");
   const [mappedOptions, setMappedOptions] = useState<Record<any, any>>({});
+  const [categories, setCategories] = useState<PolicyCategory[]>([]);
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingPolicies, setLoadingPolicies] = useState(false);
+  const [filterCategories, setFilterCategories] = useState([]);
+  const [selectedFormCategory, setSelectedFormCategory] = useState<string | null>(null);
+  const [categoryFilterDisabled, setCategoryFilterDisabled] = useState(false);
+  const [selectedFormPolicy, setSelectedFormPolicy] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   const [loadingReportComments, setLoadingReportComments] = useState(false);
   const [commentError, setCommentError] = useState<string | null>();
@@ -550,9 +604,7 @@ export function CreateReportForm2({
       };
       let newQuery: FilterMap = { ...expenseQuery, ...statusQuery };
       const query = reportData
-        ? `${buildBackendQuery(newQuery)}&or=(report_id.eq.null,report_id.eq.${
-            reportData?.id
-          })`
+        ? `${buildBackendQuery(newQuery)}&or=(report_id.eq.null,report_id.eq.${reportData.id})`
         : `${buildBackendQuery(newQuery)}&or=(report_id.eq.null)`;
 
       const response = await expenseService.getFilteredExpenses({
@@ -563,45 +615,161 @@ export function CreateReportForm2({
       });
 
       setExpenses(response?.data?.data);
+      setAllExpenses(response?.data?.data);
     },
-    [expenseQuery]
+    [expenseQuery, reportData]
+  );
+
+  const fetchExpensesByCategory = useCallback(
+    async (categoryName: string, { signal }: { signal: AbortSignal }) => {
+      try {
+        const query = reportData
+          ? `category=in.(${categoryName})&status=in.(COMPLETE)&or=(report_id.eq.null,report_id.eq.${reportData.id})`
+          : `category=in.(${categoryName})&status=in.(COMPLETE)&or=(report_id.eq.null)`;
+        const response = await expenseService.getFilteredExpenses({
+          query: query,
+          limit: 200,
+          offset: 0,
+          signal,
+        });
+        const expensesData = response?.data?.data || [];
+        setExpenses(expensesData);
+        setAllExpenses(expensesData);
+      } catch (error) {
+        console.error("Error fetching expenses by category:", error);
+        toast.error("Failed to fetch expenses");
+      }
+    },
+    [reportData]
+  );
+
+  const fetchExpensesByPolicy = useCallback(
+    async (policyName: string, { signal }: { signal: AbortSignal }) => {
+      try {
+        const query = reportData
+          ? `policy_name=in.(${policyName})&status=in.(COMPLETE)&or=(report_id.eq.null,report_id.eq.${reportData.id})`
+          : `policy_name=in.(${policyName})&status=in.(COMPLETE)&or=(report_id.eq.null)`;
+        const response = await expenseService.getFilteredExpenses({
+          query: query,
+          limit: 200,
+          offset: 0,
+          signal,
+        });
+        const expensesData = response?.data?.data || [];
+        setExpenses(expensesData);
+        setAllExpenses(expensesData);
+      } catch (error) {
+        console.error("Error fetching expenses by policy:", error);
+        toast.error("Failed to fetch expenses");
+      }
+    },
+    [reportData]
   );
 
   useEffect(() => {
-    if (!expAttributes) return;
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    debounceRef.current = setTimeout(() => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      setLoading(true);
-
-      fetchFilteredExpenses({ signal: controller.signal })
-        .catch((err) => {
-          if (err.name !== "AbortError") {
-            console.error(err);
-          }
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) {
-            setLoading(false);
-          }
-        });
-    }, 400);
-
-    return () => {
+    if (!expAttributes || isInitializing) return;
+    
+    if (selectedFormCategory) {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
-    };
-  }, [fetchFilteredExpenses, expAttributes]);
+
+      debounceRef.current = setTimeout(() => {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        setLoading(true);
+
+        fetchExpensesByCategory(selectedFormCategory, { signal: controller.signal })
+          .catch((err) => {
+            if (err.name !== "AbortError") {
+              console.error(err);
+            }
+          })
+          .finally(() => {
+            if (!controller.signal.aborted) {
+              setLoading(false);
+            }
+          });
+      }, 400);
+
+      return () => {
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+      };
+    } else if (selectedFormPolicy) {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+
+      debounceRef.current = setTimeout(() => {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        setLoading(true);
+
+        fetchExpensesByPolicy(selectedFormPolicy, { signal: controller.signal })
+          .catch((err) => {
+            if (err.name !== "AbortError") {
+              console.error(err);
+            }
+          })
+          .finally(() => {
+            if (!controller.signal.aborted) {
+              setLoading(false);
+            }
+          });
+      }, 400);
+
+      return () => {
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+      };
+    } else {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+
+      debounceRef.current = setTimeout(() => {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        setLoading(true);
+
+        fetchFilteredExpenses({ signal: controller.signal })
+          .catch((err) => {
+            if (err.name !== "AbortError") {
+              console.error(err);
+            }
+          })
+          .finally(() => {
+            if (!controller.signal.aborted) {
+              setLoading(false);
+            }
+          });
+      }, 400);
+
+      return () => {
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+      };
+    }
+  }, [fetchFilteredExpenses, fetchExpensesByCategory, fetchExpensesByPolicy, expAttributes, selectedFormCategory, selectedFormPolicy, isInitializing]);
 
   const filteredExpenses = allExpenses
     .filter((exp) =>
@@ -618,8 +786,6 @@ export function CreateReportForm2({
       return fromOk && toOk;
     });
 
-  const [categories, setCategories] = useState([]);
-
   const showTabs =
     editMode &&
     reportData &&
@@ -629,13 +795,27 @@ export function CreateReportForm2({
 
   const getAllCategories = async () => {
     try {
-      const res = await categoryService.getAllCategories();
-      const newCategories = res.data.data.map(
+      setLoadingCategories(true);
+      const [categoriesRes, policiesRes] = await Promise.all([
+        categoryService.getAllCategories(),
+        expenseService.getAllPoliciesWithCategories(),
+      ]);
+      
+      const newCategories = categoriesRes.data.data;
+      setCategories(newCategories);
+      
+      const categoryNames = newCategories.map(
         (cat: PolicyCategory) => cat.name
       );
-      setCategories(newCategories);
+      setFilterCategories(categoryNames);
+      
+      setPolicies(policiesRes);
     } catch (error) {
-      console.log(error);
+      console.error("Error fetching categories or policies:", error);
+      toast.error("Failed to load categories or policies");
+    } finally {
+      setLoadingCategories(false);
+      setLoadingPolicies(false);
     }
   };
 
@@ -690,12 +870,22 @@ export function CreateReportForm2({
     const defaults: ReportFormValues = {
       reportName: editMode && reportData ? reportData.title : "",
       description: editMode && reportData ? reportData.description : "",
+      category: "",
+      policy: "",
     };
 
     // Set custom attribute values if in edit mode
     if (editMode && reportData?.custom_attributes) {
       Object.entries(reportData.custom_attributes).forEach(([key, value]) => {
-        defaults[key] = value;
+        if (key === "policy" && value && policies.length > 0) {
+          const policy = policies.find((p) => p.name === value);
+          defaults[key] = policy?.name || "";
+        } else if (key === "category" && value && categories.length > 0) {
+          const category = categories.find((c) => c.name === value);
+          defaults[key] = category?.id || "";
+        } else {
+          defaults[key] = value;
+        }
       });
     }
 
@@ -707,7 +897,7 @@ export function CreateReportForm2({
     });
 
     return defaults;
-  };
+  }; 
 
   const form = useForm<ReportFormValues>({
     resolver: zodResolver(formSchema),
@@ -717,7 +907,10 @@ export function CreateReportForm2({
   // Re-initialize form when custom attributes change
   useEffect(() => {
     if (customAttributes.length > 0) {
-      const newSchema = createReportSchema(customAttributes);
+      const newSchema = createReportSchema(customAttributes, {
+        categoryRequired,
+        policyRequired,
+      });
       setFormSchema(newSchema);
 
       // Reset form with new default values
@@ -725,6 +918,29 @@ export function CreateReportForm2({
       form.reset(newDefaultValues);
     }
   }, [customAttributes, form]);
+
+  useEffect(() => {
+    if (editMode && reportData && policies.length > 0 && categories.length > 0 && !isInitializing) {
+      const newDefaultValues = createDefaultValues(customAttributes);
+      form.reset(newDefaultValues);
+      
+      if (reportData.custom_attributes?.policy) {
+        const policy = policies.find((p) => p.name === reportData.custom_attributes?.policy);
+        if (policy) {
+          setSelectedFormPolicy(policy.name);
+          form.setValue("policy", policy.name);
+          setCategoryFilterDisabled(true);
+        }
+      }
+      if (reportData.custom_attributes?.category) {
+        const category = categories.find((c) => c.name === reportData.custom_attributes?.category);
+        if (category) {
+          setSelectedFormCategory(category.name);
+          setCategoryFilterDisabled(true);
+        }
+      }
+    }
+  }, [policies, categories, editMode, reportData, customAttributes, form, isInitializing]);
 
   const fetchComments = async (id: string) => {
     if (id) {
@@ -884,9 +1100,13 @@ export function CreateReportForm2({
         const newDefaultValues = createDefaultValues(customAttrs);
         form.reset(newDefaultValues);
       }
+      
+      // Mark initialization as complete after data is loaded
+      setIsInitializing(false);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Failed to fetch data");
+      setIsInitializing(false);
     } finally {
       setLoadingExpenses(false);
       setLoadingMeta(false);
@@ -966,6 +1186,9 @@ export function CreateReportForm2({
           customAttributesData[attr.name] = value;
         }
       });
+      
+      const policyName = formData.policy || null;
+      
       if (editMode && reportData) {
         // Update existing report
         const updateData = {
@@ -974,6 +1197,8 @@ export function CreateReportForm2({
           custom_attributes: {
             ...customAttributesData,
             ...buildCustomAttributesFromFilters(expenseQuery),
+            ...(selectedFormCategory && { category: selectedFormCategory }),
+            ...(policyName && { policy: policyName }),
           },
           expense_ids: selectedIds,
         };
@@ -998,6 +1223,8 @@ export function CreateReportForm2({
           customAttributes: {
             ...customAttributesData,
             ...buildCustomAttributesFromFilters(expenseQuery),
+            ...(selectedFormCategory && { category: selectedFormCategory }),
+            ...(policyName && { policy: policyName }),
           },
         };
 
@@ -1095,6 +1322,8 @@ export function CreateReportForm2({
         }
       });
 
+      const policyName = data.policy || null;
+
       const reportData2 = {
         reportName: data.reportName,
         description: data.description,
@@ -1103,6 +1332,8 @@ export function CreateReportForm2({
         customAttributes: {
           ...customAttributesData,
           ...buildCustomAttributesFromFilters(expenseQuery),
+          ...(selectedFormCategory && { category: selectedFormCategory }),
+          ...(policyName && { policy: policyName }),
         },
       };
 
@@ -1117,6 +1348,8 @@ export function CreateReportForm2({
           custom_attributes: {
             ...customAttributesData,
             ...buildCustomAttributesFromFilters(expenseQuery),
+            ...(selectedFormCategory && { category: selectedFormCategory }),
+            ...(policyName && { policy: policyName }),
           },
           expense_ids: selectedIds,
         });
@@ -1171,7 +1404,7 @@ export function CreateReportForm2({
             onSubmit={form.handleSubmit(onSubmit)}
             className="grid grid-cols-1 lg:grid-cols-2 lg:col-span-2 gap-4"
           >
-            <div>
+            <div className="col-span-2">
               <FormField
                 control={form.control}
                 name="reportName"
@@ -1185,6 +1418,130 @@ export function CreateReportForm2({
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="flex gap-2 items-end col-span-2">
+              {showCategoryField && (
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem className="mb-0 w-[200px]">
+                      <div className="relative">
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            const selectedCat = categories.find((cat) => cat.id === value);
+                            if (selectedCat) {
+                              setSelectedFormCategory(selectedCat.name);
+                              setCategoryFilterDisabled(true);
+                              setExpenseQuery((prev) => {
+                                const { category, ...rest } = prev;
+                                return rest;
+                              });
+                            } else {
+                              setSelectedFormCategory(null);
+                              setCategoryFilterDisabled(false);
+                            }
+                          }}
+                          value={field.value || ""}
+                          disabled={loadingCategories}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="!h-10 !text-sm !px-3 !py-1.5 !w-full pr-8">
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {field.value && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              field.onChange("");
+                              setSelectedFormCategory(null);
+                              setCategoryFilterDisabled(false);
+                            }}
+                            className="absolute right-8 top-1/2 -translate-y-1/2 h-4 w-4 flex items-center justify-center hover:bg-gray-200 rounded z-10"
+                          >
+                            <X className="h-3 w-3 text-gray-500" />
+                          </button>
+                        )}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              {showPolicyField && (
+                <FormField
+                  control={form.control}
+                  name="policy"
+                  render={({ field }) => (
+                    <FormItem className="mb-0 w-[200px]">
+                      <div className="relative">
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            if (value) {
+                              setSelectedFormPolicy(value);
+                              setCategoryFilterDisabled(true);
+                              setExpenseQuery((prev) => {
+                                const { policy, ...rest } = prev;
+                                return rest;
+                              });
+                            } else {
+                              setSelectedFormPolicy(null);
+                              if (!selectedFormCategory) {
+                                setCategoryFilterDisabled(false);
+                              }
+                            }
+                          }}
+                          value={field.value || ""}
+                          disabled={loadingPolicies}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="!h-10 !text-sm !px-3 !py-1.5 !w-full pr-8">
+                              <SelectValue placeholder="Select policy" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {policies.map((policy) => (
+                              <SelectItem key={policy.id} value={policy.name}>
+                                {policy.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {field.value && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              field.onChange("");
+                              setSelectedFormPolicy(null);
+                              if (!selectedFormCategory) {
+                                setCategoryFilterDisabled(false);
+                              }
+                            }}
+                            className="absolute right-8 top-1/2 -translate-y-1/2 h-4 w-4 flex items-center justify-center hover:bg-gray-200 rounded z-10"
+                          >
+                            <X className="h-3 w-3 text-gray-500" />
+                          </button>
+                        )}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             {showDescription && (
@@ -1264,13 +1621,14 @@ export function CreateReportForm2({
                   slots={{
                     toolbar: () => (
                       <CustomToolbar
-                        categories={categories}
+                        categories={filterCategories}
                         selectedCategory={selectedCategory}
                         setSelectedCategory={setSelectedCategory}
                         dateFrom={dateFrom}
                         dateTo={dateTo}
                         setDateFrom={setDateFrom}
                         setDateTo={setDateTo}
+                        categoryFilterDisabled={categoryFilterDisabled}
                       />
                     ),
                   }}
@@ -1392,7 +1750,8 @@ export function CreateReportForm2({
               }}
               slotProps={{
                 toolbar: {
-                  allCategories: categories,
+                  allCategories: filterCategories,
+                  categoryFilterDisabled,
                 } as any,
               }}
               sx={{

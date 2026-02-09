@@ -18,6 +18,7 @@ import { Entity, getEntities } from "@/services/admin/entities";
 
 export interface CustomExpenseToolbarProps {
   allCategories: string[];
+  categoryFilterDisabled?: boolean;
 }
 
 type TemplateEntity = NonNullable<Template["entities"]>[0];
@@ -30,7 +31,7 @@ type Props = GridToolbarProps &
   ToolbarPropsOverrides &
   Partial<CustomExpenseToolbarProps>;
 
-function CustomReportExpenseToolbar({ allCategories }: Props) {
+function CustomReportExpenseToolbar({ allCategories, categoryFilterDisabled }: Props) {
   const { expenseQuery, setExpenseQuery } = useReportsStore();
 
   const hasFilters = Object.keys(expenseQuery).length > 0;
@@ -213,13 +214,15 @@ function CustomReportExpenseToolbar({ allCategories }: Props) {
         </Box>
 
         <Box sx={{ width: "28%", flexShrink: 0 }}>
-          <MultiSelectDropdown
-            allItems={allCategories || []}
-            selectedItems={selectedCategories}
-            placeholder="Select categories"
-            toggleItem={toggleCategory}
-            deselectAll={deselectAllCategories}
-          />
+          <div className={categoryFilterDisabled ? "opacity-50 pointer-events-none" : ""}>
+            <MultiSelectDropdown
+              allItems={allCategories || []}
+              selectedItems={selectedCategories}
+              placeholder="Select categories"
+              toggleItem={toggleCategory}
+              deselectAll={deselectAllCategories}
+            />
+          </div>
         </Box>
 
         <DateRangePicker
