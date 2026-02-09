@@ -386,9 +386,9 @@ export function ExpenseDetailsStep2({
     }
   };
 
-  const getAccounts = async () => {
+  const getAccounts = async (policyId?: string) => {
     try {
-      const res = await AdvanceService.getAccounts();
+      const res = await AdvanceService.getAccounts(policyId);
       setAdvanceAccounts(res.data.data);
     } catch (error) {
       console.log(error);
@@ -460,6 +460,13 @@ export function ExpenseDetailsStep2({
       setSelectedAdvanceAccount(adv);
     }
   }, [expense, advanceAccounts]);
+
+  useEffect(() => {
+    const policyId = form.getValues("expense_policy_id");
+    if (policyId) {
+      getAccounts(policyId);
+    }
+  }, [selectedPolicy?.id]);
 
   useEffect(() => {
     loadPoliciesWithCategories();
@@ -552,6 +559,7 @@ export function ExpenseDetailsStep2({
         if (policy) {
           setSelectedPolicy(policy);
           form.setValue("expense_policy_id", expense.expense_policy_id);
+          getAccounts(expense.expense_policy_id);
 
           if (expense.category_id) {
             const category = policy.categories.find(
@@ -945,6 +953,9 @@ useEffect(() => {
                                 setSelectedPolicy(policy || null);
                                 setSelectedCategory(null);
                                 form.setValue("category_id", "");
+                                getAccounts(value);
+                                setSelectedAdvanceAccount(null);
+                                form.setValue("advance_account_id", "");
                               }}
                               disabled={readOnly || expense?.transaction_id}
                             >
@@ -1114,6 +1125,68 @@ useEffect(() => {
                           </FormItem>
                         )}
                       />
+
+                      {orgSettings?.advance_settings?.enabled &&
+                        advanceAccounts.length > 0 && (
+                          <FormField
+                            control={form.control}
+                            name="advance_account_id"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Advance Account</FormLabel>
+                                <Select
+                                  value={field.value || ""}
+                                  onValueChange={(value) => {
+                                    field.onChange(value);
+                                    const acc = advanceAccounts.find(
+                                      (p: any) => p.id === value
+                                    );
+                                    setSelectedAdvanceAccount(acc || null);
+                                    hasResolvedAdvanceRef.current = true;
+                                  }}
+                                  disabled={readOnly}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger
+                                      className={`${selectTriggerClass} relative`}
+                                    >
+                                      <SelectValue placeholder="Select an advance">
+                                        {field.value && selectedAdvanceAccount
+                                          ? selectedAdvanceAccount.account_name
+                                          : "Select an advance"}
+                                      </SelectValue>
+
+                                      {field.value && !readOnly && (
+                                        <button
+                                          type="button"
+                                          onPointerDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            field.onChange("");
+                                            setSelectedAdvanceAccount(null);
+                                            hasResolvedAdvanceRef.current =
+                                              true;
+                                          }}
+                                          className="absolute right-8 top-1/2 mr-2 -translate-y-1/2 text-muted-foreground hover:text-foreground pointer-events-auto"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </button>
+                                      )}
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {advanceAccounts.map((adv: any) => (
+                                      <SelectItem key={adv.id} value={adv.id}>
+                                        <div>{adv.account_name}</div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
 
                       <div className="grid gap-3 sm:grid-cols-2">
                         <FormField
@@ -1362,68 +1435,6 @@ useEffect(() => {
                           </FormItem>
                         )}
                       />
-
-                      {orgSettings?.advance_settings?.enabled &&
-                        advanceAccounts.length > 0 && (
-                          <FormField
-                            control={form.control}
-                            name="advance_account_id"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Advance Account</FormLabel>
-                                <Select
-                                  value={field.value || ""}
-                                  onValueChange={(value) => {
-                                    field.onChange(value);
-                                    const acc = advanceAccounts.find(
-                                      (p: any) => p.id === value
-                                    );
-                                    setSelectedAdvanceAccount(acc || null);
-                                    hasResolvedAdvanceRef.current = true;
-                                  }}
-                                  disabled={readOnly}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger
-                                      className={`${selectTriggerClass} relative`}
-                                    >
-                                      <SelectValue placeholder="Select an advance">
-                                        {field.value && selectedAdvanceAccount
-                                          ? selectedAdvanceAccount.account_name
-                                          : "Select an advance"}
-                                      </SelectValue>
-
-                                      {field.value && !readOnly && (
-                                        <button
-                                          type="button"
-                                          onPointerDown={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            field.onChange("");
-                                            setSelectedAdvanceAccount(null);
-                                            hasResolvedAdvanceRef.current =
-                                              true;
-                                          }}
-                                          className="absolute right-8 top-1/2 mr-2 -translate-y-1/2 text-muted-foreground hover:text-foreground pointer-events-auto"
-                                        >
-                                          <X className="h-4 w-4" />
-                                        </button>
-                                      )}
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {advanceAccounts.map((adv: any) => (
-                                      <SelectItem key={adv.id} value={adv.id}>
-                                        <div>{adv.account_name}</div>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
 
                       {templateEntities?.map((entity) => {
                         const entityId = getEntityId(entity);
