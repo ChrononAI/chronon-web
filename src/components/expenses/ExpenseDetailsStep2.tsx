@@ -156,6 +156,7 @@ export function ExpenseDetailsStep2({
     null
   );
   const readOnly = mode === "view";
+  const isCategoryPolicyDisabled = expense?.transaction_id && expense?.transactions?.transaction_source !== "PINE";
   const [duplicateReceiptLoading, setDuplicateReceiptLoading] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [selectedCategory, setSelectedCategory] =
@@ -957,7 +958,7 @@ useEffect(() => {
                                 setSelectedAdvanceAccount(null);
                                 form.setValue("advance_account_id", "");
                               }}
-                              disabled={readOnly || expense?.transaction_id}
+                              disabled={readOnly || isCategoryPolicyDisabled}
                             >
                               <FormControl>
                                 <SelectTrigger className={selectTriggerClass}>
@@ -1010,7 +1011,7 @@ useEffect(() => {
                                     disabled={
                                       !selectedPolicy ||
                                       readOnly ||
-                                      expense?.transaction_id
+                                      isCategoryPolicyDisabled
                                     }
                                   >
                                     <>
