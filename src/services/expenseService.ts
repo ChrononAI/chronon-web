@@ -117,8 +117,8 @@ export const expenseService = {
   },
 
   async getExpenseById(id: string | number): Promise<Expense> {
-    const response = await api.get(`/expenses/${id}`);
-    return response.data.data;
+    const response = await api.get(`/api/v1/expenses/spender?id=eq.${id}`);
+    return  response.data.data?.[0];
   },
 
   async getFilteredExpenses({
