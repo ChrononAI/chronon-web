@@ -154,6 +154,15 @@ export function ApprovalsReportsPage() {
 
   const newCols = useMemo<GridColDef[]>(() => {
     return [
+      {
+        field: "sequence_number",
+        headerName: "SEQUENCE NUMBER",
+        minWidth: 160,
+        flex: 1,
+        renderCell: (params: any) => (
+          <span className="whitespace-nowrap">{params.value || "-"}</span>
+        ),
+      } as GridColDef,
       ...(customIdEnabled
         ? [
             {
