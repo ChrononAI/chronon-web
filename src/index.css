@@ -95,6 +95,20 @@
   }
 }
 
+[data-sonner-toast] [data-close-button] {
+  left: auto !important;
+  right: 12px !important;
+  top: 16px !important;
+  transform: none !important;
+  position: absolute !important;
+  background-color: white !important;
+  color: black !important;
+  height: 20px !important;
+  width: 20px !important;
+}
+
+
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 3px;

@@ -3,7 +3,6 @@ import {
   FileText,
   Loader2,
   CalendarIcon,
-  CheckCircle,
   Download,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,24 +37,9 @@ import {
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
-import { GridOverlay } from "@mui/x-data-grid";
 import { Badge } from "@/components/ui/badge";
-
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No expenses found</h3>
-          <p className="text-muted-foreground">
-            There are currently no expenses.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 const parseCriteria = (criteria: string) => {
   try {
@@ -75,89 +59,89 @@ const parseCriteria = (criteria: string) => {
 const columns = (
   handleDownloadGeneratedReport: (id: string | number) => void
 ): GridColDef[] => [
-  {
-    field: "report_name",
-    headerName: "TITLE",
-    flex: 1,
-    minWidth: 150,
-  },
-  {
-    field: "criteria",
-    headerName: "DATE RANGE",
-    flex: 1,
-    minWidth: 180,
-    renderCell: ({ value }) => {
-      const criteria = parseCriteria(value);
-      return (
-        <span>
-          {criteria.start_date} to {criteria.end_date}{" "}
-        </span>
-      );
+    {
+      field: "report_name",
+      headerName: "TITLE",
+      flex: 1,
+      minWidth: 150,
     },
-  },
-  {
-    field: "number_of_records",
-    headerName: "RECORDS",
-    flex: 1,
-    minWidth: 80,
-  },
-  {
-    field: "report_size",
-    headerName: "SIZE",
-    flex: 1,
-    minWidth: 120,
-    renderCell: ({ value }) => formatFileSize(value),
-  },
-  {
-    field: "status",
-    headerName: "STATUS",
-    flex: 1,
-    minWidth: 130,
-    renderCell: ({ value }) => {
-      return (
-        <Badge
-          className={
-            value === "GENERATED"
-              ? "bg-green-100 text-green-800 hover:bg-green-100"
-              : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-          }
-        >
-          {value}
-        </Badge>
-      );
+    {
+      field: "criteria",
+      headerName: "DATE RANGE",
+      flex: 1,
+      minWidth: 180,
+      renderCell: ({ value }) => {
+        const criteria = parseCriteria(value);
+        return (
+          <span>
+            {criteria.start_date} to {criteria.end_date}{" "}
+          </span>
+        );
+      },
     },
-  },
-  {
-    field: "created_at",
-    headerName: "CREATED ON",
-    flex: 1,
-    minWidth: 150,
-    renderCell: ({ value }) => {
-      return <span>{value ? formatDate(value) : "N/A"}</span>;
+    {
+      field: "number_of_records",
+      headerName: "RECORDS",
+      flex: 1,
+      minWidth: 80,
     },
-  },
-  {
-    field: "action",
-    headerName: "ACTION",
-    flex: 1,
-    minWidth: 120,
-    sortable: false,
-    filterable: false,
-    renderCell: (params) => {
-      const id = params.row.id;
-      return (
-        <Button
-          variant="ghost"
-          size="sm"
-          title="Download report"
-          onClick={() => handleDownloadGeneratedReport(id)}
-        >
-          <Download className="h-4 w-4" />
-        </Button>
-      );
+    {
+      field: "report_size",
+      headerName: "SIZE",
+      flex: 1,
+      minWidth: 120,
+      renderCell: ({ value }) => formatFileSize(value),
     },
-  },
-];
+    {
+      field: "status",
+      headerName: "STATUS",
+      flex: 1,
+      minWidth: 130,
+      renderCell: ({ value }) => {
+        return (
+          <Badge
+            className={
+              value === "GENERATED"
+                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+            }
+          >
+            {value}
+          </Badge>
+        );
+      },
+    },
+    {
+      field: "created_at",
+      headerName: "CREATED ON",
+      flex: 1,
+      minWidth: 150,
+      renderCell: ({ value }) => {
+        return <span>{value ? formatDate(value) : "N/A"}</span>;
+      },
+    },
+    {
+      field: "action",
+      headerName: "ACTION",
+      flex: 1,
+      minWidth: 120,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => {
+        const id = params.row.id;
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Download report"
+            onClick={() => handleDownloadGeneratedReport(id)}
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+        );
+      },
+    },
+  ];
 
 export function AllReportsPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
@@ -174,12 +158,26 @@ export function AllReportsPage() {
     []
   );
   const [generatedReportsLoading, setGeneratedReportsLoading] = useState(true);
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
+
+  const GRID_OFFSET = 340;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -286,9 +284,9 @@ export function AllReportsPage() {
       );
       const reportName = selectedTemplate
         ? `${selectedTemplate.name} - ${format(fromDate, "MMM dd")} to ${format(
-            toDate,
-            "MMM dd"
-          )}`
+          toDate,
+          "MMM dd"
+        )}`
         : "Report";
 
       const formattedFromDate = format(fromDate, "yyyy-MM-dd");
@@ -342,13 +340,6 @@ export function AllReportsPage() {
   };
 
   useEffect(() => {
-    const gridHeight = window.innerHeight - 400;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-  }, []);
-
-  useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize])
 
@@ -374,17 +365,17 @@ export function AllReportsPage() {
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col sm:flex-row gap-4 items-end">
-                <div className="min-w-[600px] w-full sm:w-auto">
+              <div
+                className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 items-end"
+              >
+                <div className="lg:col-span-4">
                   <Label className="mb-2 block">Select Report</Label>
                   <Select
                     value={selectedTemplateId?.toString() || ""}
-                    onValueChange={(value) =>
-                      setSelectedTemplateId(Number(value))
-                    }
+                    onValueChange={(value) => setSelectedTemplateId(Number(value))}
                     disabled={isGenerating}
                   >
-                    <SelectTrigger className="bg-white w-full">
+                    <SelectTrigger className="bg-white w-full h-11">
                       <SelectValue placeholder="Select report" />
                     </SelectTrigger>
                     <SelectContent>
@@ -400,111 +391,94 @@ export function AllReportsPage() {
                   </Select>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 items-end sm:ml-auto">
-                  <div className="min-w-[160px] w-full sm:w-auto">
-                    <Label className="mb-2 block">From</Label>
-                    <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-11 justify-start text-left font-normal bg-white",
-                            !fromDate && "text-muted-foreground"
-                          )}
-                          disabled={isGenerating}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {fromDate ? (
-                            format(fromDate, "MMM dd, yyyy")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={fromDate}
-                          onSelect={handleFromDateSelect}
-                          initialFocus
-                          disabled={(date) => {
-                            const today = new Date();
-                            today.setHours(23, 59, 59, 999);
-                            const isAfterToday = date > today;
-                            const isAfterToDate = toDate
-                              ? date > toDate
-                              : false;
-                            return isAfterToday || isAfterToDate;
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                <div className="lg:col-span-3">
+                  <Label className="mb-2 block">From</Label>
+                  <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full h-11 justify-start text-left font-normal bg-white",
+                          !fromDate && "text-muted-foreground"
+                        )}
+                        disabled={isGenerating}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {fromDate ? format(fromDate, "MMM dd, yyyy") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={fromDate}
+                        onSelect={handleFromDateSelect}
+                        initialFocus
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(23, 59, 59, 999);
+                          return date > today || (toDate ? date > toDate : false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-                  <div className="min-w-[160px] w-full sm:w-auto">
-                    <Label className="mb-2 block">TO</Label>
-                    <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal bg-white h-11",
-                            !toDate && "text-muted-foreground"
-                          )}
-                          disabled={isGenerating}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {toDate ? (
-                            format(toDate, "MMM dd, yyyy")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={toDate}
-                          onSelect={handleToDateSelect}
-                          initialFocus
-                          disabled={(date) => {
-                            const today = new Date();
-                            today.setHours(23, 59, 59, 999);
-                            const isAfterToday = date > today;
-                            const isBeforeFromDate = fromDate
-                              ? date < fromDate
-                              : false;
-                            return isAfterToday || isBeforeFromDate;
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                <div className="lg:col-span-3">
+                  <Label className="mb-2 block">To</Label>
+                  <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full h-11 justify-start text-left font-normal bg-white",
+                          !toDate && "text-muted-foreground"
+                        )}
+                        disabled={isGenerating}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {toDate ? format(toDate, "MMM dd, yyyy") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={toDate}
+                        onSelect={handleToDateSelect}
+                        initialFocus
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(23, 59, 59, 999);
+                          return date > today || (fromDate ? date < fromDate : false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-                  <div className="min-w-[100px] w-full sm:w-auto">
-                    <div className="mb-2 h-[20px]"></div>
-                    <Button
-                      onClick={handleGenerateReport}
-                      disabled={
-                        isGenerating ||
-                        !selectedTemplateId ||
-                        !fromDate ||
-                        !toDate
-                      }
-                      className="w-full h-11 sm:w-auto bg-white text-gray-900 border border-gray-300 hover:bg-gray-50"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        "Generate"
-                      )}
-                    </Button>
-                  </div>
+                <div className="lg:col-span-2">
+                  <div className="mb-2 h-[20px]" />
+                  <Button
+                    onClick={handleGenerateReport}
+                    disabled={
+                      isGenerating ||
+                      !selectedTemplateId ||
+                      !fromDate ||
+                      !toDate
+                    }
+                    className="w-full h-11 bg-white text-gray-900 border border-gray-300 hover:bg-gray-50"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      "Generate"
+                    )}
+                  </Button>
                 </div>
               </div>
+
             )}
           </CardContent>
         </Card>
@@ -523,7 +497,8 @@ export function AllReportsPage() {
               columns={columns(handleDownloadGeneratedReport)}
               loading={generatedReportsLoading}
               slots={{
-                noRowsOverlay: CustomNoRows,
+                noRowsOverlay: () => <CustomNoRows title="No reports found" description="There are currently no reports" />,
+                loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
               }}
               sx={{
                 border: 0,
@@ -537,6 +512,9 @@ export function AllReportsPage() {
                 },
                 "& .MuiDataGrid-main": {
                   border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-virtualScroller": {
+                  overflow: generatedReportsLoading ? "hidden" : "auto",
                 },
                 "& .MuiDataGrid-columnHeader": {
                   backgroundColor: "#f3f4f6",
@@ -554,9 +532,9 @@ export function AllReportsPage() {
                   border: "0.2px solid #f3f4f6",
                 },
                 "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                  {
-                    outline: "none",
-                  },
+                {
+                  outline: "none",
+                },
                 "& .MuiDataGrid-cell:focus-within": {
                   outline: "none",
                 },
@@ -571,7 +549,7 @@ export function AllReportsPage() {
               disableRowSelectionOnClick
               showCellVerticalBorder
               pagination
-              paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+              paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
             />
           </Box>

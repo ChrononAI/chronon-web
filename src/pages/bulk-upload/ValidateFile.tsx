@@ -3,7 +3,7 @@ import { FormFooter } from "@/components/layout/FormFooter";
 import { Button } from "@/components/ui/button";
 import { bulkImportService } from "@/services/bulkImportService";
 import { Box, Tooltip } from "@mui/material";
-import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridPaginationModel, GridRenderCellParams } from "@mui/x-data-grid";
 import { AlertTriangle, CheckCircleIcon, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -70,6 +70,22 @@ function ValidateFile() {
 
   const [showActionDialog, setShowActionDialog] = useState(false);
 
+  const GRID_OFFSET = 260;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 48;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
+
   const handleConfirm = () => {
     setShowActionDialog(false);
     navigate("/admin-settings/product-config/bulk-uploads");
@@ -103,9 +119,10 @@ function ValidateFile() {
       console.log(error);
       toast.error(
         error?.response?.data?.message ||
-          error.message ||
-          "Failed to validate file"
+        error.message ||
+        "Failed to validate file"
       );
+      throw error;
     }
   };
 
@@ -130,6 +147,7 @@ function ValidateFile() {
       setMappedRows(res.data.data);
     } catch (error) {
       console.log(error);
+      throw error;
     }
   };
 
@@ -139,6 +157,7 @@ function ValidateFile() {
       setIssueRows(res.data.data);
     } catch (error) {
       console.log(error);
+      throw error;
     }
   };
 
@@ -162,7 +181,6 @@ function ValidateFile() {
         },
       });
 
-      // 🔥 REMOVE issues for this row locally
       setIssueRows((prev: any[]) =>
         prev.filter(
           (issue) =>
@@ -198,11 +216,9 @@ function ValidateFile() {
   const loadData = async (fileid: string) => {
     try {
       setLoading(true);
-      await Promise.all([
-        validateFile(fileid),
-        getMappedRows(fileid),
-        getMappedRowIssues(fileid),
-      ]);
+      await validateFile(fileid);
+      await getMappedRows(fileid);
+      await getMappedRowIssues(fileid);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error?.message);
     } finally {
@@ -237,8 +253,10 @@ function ValidateFile() {
         >
           <DataGrid
             columns={columns}
-            rows={rows || []}
+            rows={loading ? [] : (rows || [])}
             loading={loading}
+            slots={{
+            }}
             sx={{
               border: 0,
               "& .MuiDataGrid-columnHeaderTitle": {
@@ -281,6 +299,9 @@ function ValidateFile() {
                 color: "#b71c1c",
               },
             }}
+            pagination
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
             getCellClassName={(params) => {
               const rowErrors = errorCellMap[params.id as string];
 
@@ -290,36 +311,36 @@ function ValidateFile() {
 
               return "";
             }}
-            onCellClick={(params, event) => {
-              const hasError = errorCellMap[params.id as string]?.has(
-                params.field
-              );
+            // onCellClick={(params, event) => {
+            //   const hasError = errorCellMap[params.id as string]?.has(
+            //     params.field
+            //   );
 
-              if (!hasError) {
-                event.stopPropagation();
-                event.preventDefault();
-              }
-            }}
-            onCellDoubleClick={(params, event) => {
-              const hasError = errorCellMap[params.id as string]?.has(
-                params.field
-              );
+            //   if (!hasError) {
+            //     event.stopPropagation();
+            //     event.preventDefault();
+            //   }
+            // }}
+            // onCellDoubleClick={(params, event) => {
+            //   const hasError = errorCellMap[params.id as string]?.has(
+            //     params.field
+            //   );
 
-              if (!hasError) {
-                event.stopPropagation();
-                event.preventDefault();
-              }
-            }}
-            onCellKeyDown={(params, event) => {
-              const hasError = errorCellMap[params.id as string]?.has(
-                params.field
-              );
+            //   if (!hasError) {
+            //     event.stopPropagation();
+            //     event.preventDefault();
+            //   }
+            // }}
+            // onCellKeyDown={(params, event) => {
+            //   const hasError = errorCellMap[params.id as string]?.has(
+            //     params.field
+            //   );
 
-              if (!hasError) {
-                event.stopPropagation();
-                event.preventDefault();
-              }
-            }}
+            //   if (!hasError) {
+            //     event.stopPropagation();
+            //     event.preventDefault();
+            //   }
+            // }}
             density="compact"
             disableRowSelectionOnClick
             processRowUpdate={processRowUpdate}

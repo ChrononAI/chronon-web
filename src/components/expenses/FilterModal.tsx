@@ -22,7 +22,7 @@ export interface AllowedFilter {
   label: string;
   operators: Operator[];
   type: FilterType;
-  options?: string[];
+  options?: any[];
   setDate?: (operator: "gte" | "lte", value?: string) => void;
 }
 interface FilterDialogProps {
@@ -170,7 +170,7 @@ const FilterModal: React.FC<FilterDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl h-[80vh] max-h-[80vh] overflow-auto w-full [&>button[aria-label='Close']]:hidden">
+      <DialogContent className="sm:max-w-4xl h-[50vh] overflow-auto w-full [&>button[aria-label='Close']]:hidden">
         <DialogTitle className="hidden" />
         <div className="space-y-4 flex flex-col h-full">
           <div className="text-xl font-semibold">Apply Filters</div>
@@ -259,8 +259,8 @@ const FilterModal: React.FC<FilterDialogProps> = ({
                           </SelectTrigger>
                           <SelectContent>
                             {filter.options?.map((opt) => (
-                              <SelectItem key={opt} value={opt}>
-                                {opt}
+                              <SelectItem key={opt.label} value={opt.label}>
+                                {opt.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -271,6 +271,7 @@ const FilterModal: React.FC<FilterDialogProps> = ({
                         <MultiSelectDropdown
                           selectedItems={(row?.value as string[]) || []}
                           allItems={filter?.options || []}
+                          placeholder="Select categories"
                           toggleItem={(item: any) =>
                             toggleMultiValue(row.id, item)
                           }

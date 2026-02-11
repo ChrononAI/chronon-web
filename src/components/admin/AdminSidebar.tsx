@@ -28,7 +28,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface NavigationItem {
   name: string;
@@ -303,7 +302,7 @@ export default function AdminSidebar() {
   };
 
   return (
-    <div className="w-[17rem] bg-card border-r border-border h-full flex flex-col shadow-sm">
+    <div className="w-[17rem] bg-card border-r border-border h-screen overflow-y-auto flex flex-col shadow-sm">
       {/* Header */}
       <div className="p-4 border-b border-border bg-muted/30">
         <div className="flex items-center gap-2.5">
@@ -322,11 +321,11 @@ export default function AdminSidebar() {
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-auto">
         <nav className="px-2 py-4 space-y-1">
           {navigation.map((item) => renderNavigationItem(item))}
         </nav>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

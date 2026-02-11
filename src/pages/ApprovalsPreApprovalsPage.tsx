@@ -16,24 +16,8 @@ import { useNavigate } from "react-router-dom";
 import { usePreApprovalStore } from "@/store/preApprovalStore";
 import { PaginationInfo } from "@/store/expenseStore";
 import { Box } from "@mui/material";
-import { GridOverlay } from "@mui/x-data-grid";
-import { CheckCircle } from "lucide-react";
-
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No pre approvals found</h3>
-          <p className="text-muted-foreground">
-            There are currently no pre approvals.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 const columns: GridColDef[] = [
   {
@@ -127,9 +111,6 @@ function ApprovalsPreApprovalsPage() {
   const [processedPagination, setProcessedPagination] =
     useState<PaginationInfo | null>(null);
 
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
-
   const [activeTab, setActiveTab] = useState<"pending" | "processed" | "all">(
     "all"
   );
@@ -138,11 +119,23 @@ function ApprovalsPreApprovalsPage() {
     ids: new Set(),
   });
 
+  const GRID_OFFSET = 240;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
+
   useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
     setRowSelection({ type: "include", ids: new Set() });
   }, [activeTab]);
 
@@ -150,8 +143,8 @@ function ApprovalsPreApprovalsPage() {
     activeTab === "all"
       ? allRows
       : activeTab === "pending"
-      ? pendingRows
-      : processedRows;
+        ? pendingRows
+        : processedRows;
   const tabs = [
     { key: "all", label: "All", count: allPagination?.total || 0 },
     { key: "pending", label: "Pending", count: pendingPagination?.total || 0 },
@@ -261,9 +254,13 @@ function ApprovalsPreApprovalsPage() {
       title="Approver Dashboard"
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) =>
-        setActiveTab(tabId as "all" | "pending" | "processed")
-      }
+      onTabChange={(tabId) => {
+        setActiveTab(tabId as "all" | "pending" | "processed");
+        setPaginationModel((prev) => ({
+          ...prev,
+          page: 0,
+        }));
+      }}
       showDateFilter={true}
       showFilters={false}
       searchTerm={""}
@@ -281,10 +278,11 @@ function ApprovalsPreApprovalsPage() {
         <DataGrid
           className="rounded border h-full"
           columns={columns}
-          rows={rows}
+          rows={loading ? [] : rows}
           loading={loading}
           slots={{
-            noRowsOverlay: CustomNoRows,
+            noRowsOverlay: () => <CustomNoRows title="No pre approvals found" description="There are currently no pre approvals." />,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           sx={{
             border: 0,
@@ -302,6 +300,9 @@ function ApprovalsPreApprovalsPage() {
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
               border: "none",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-columnHeaders": {
               border: "none",
@@ -332,14 +333,14 @@ function ApprovalsPreApprovalsPage() {
           onRowSelectionModelChange={setRowSelection}
           pagination
           paginationMode="server"
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "all"
               ? allPagination?.total
               : activeTab === "pending"
-              ? pendingPagination?.total
-              : processedPagination?.total) || 0
+                ? pendingPagination?.total
+                : processedPagination?.total) || 0
           }
         />
       </Box>

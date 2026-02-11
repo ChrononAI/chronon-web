@@ -9,9 +9,7 @@ import {
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { GridOverlay } from "@mui/x-data-grid";
 import { toast } from "sonner";
 import { settlementsService } from "@/services/settlementsService";
 import { ReportTabs } from "@/components/reports/ReportTabs";
@@ -25,41 +23,8 @@ import {
   Operator,
 } from "../MyExpensesPage";
 import { useSettlementStore } from "@/store/settlementsStore";
-
-const TAB_QUERY_OVERRIDES: Record<string, FilterMap> = {
-  paid: {
-    payment_state: [
-      {
-        operator: "in",
-        value: ["PAID"],
-      },
-    ],
-  },
-  unpaid: {
-    payment_state: [
-      {
-        operator: "in",
-        value: ["PAYMENT_PENDING"],
-      },
-    ],
-  },
-};
-
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No reports found</h3>
-          <p className="text-muted-foreground">
-            There are currently no reports.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 const columns: GridColDef[] = [
   {
@@ -124,7 +89,6 @@ function Settlements() {
   const navigate = useNavigate();
   const { query, setQuery } = useSettlementStore();
   const [activeTab, setActiveTab] = useState<"paid" | "unpaid">("unpaid");
-  const [rowsCalculated, setRowsCalculated] = useState(false);
   const [paidExpenseCount, setPaidExpenseCount] = useState(0);
   const [unpaidExpenseCount, setUnpaidExpenseCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -142,12 +106,27 @@ function Settlements() {
   ];
   const [paidRows, setPaidRows] = useState([]);
   const [unpaidRows, setUnpaidRows] = useState([]);
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set<GridRowId>(),
   });
+
+  const GRID_OFFSET = 240;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 56;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
+
   const rows: any = activeTab === "paid" ? paidRows : unpaidRows;
 
   const allowedStatus = activeTab === "paid" ? ["PAID"] : ["PAYMENT_PENDING"];
@@ -182,8 +161,8 @@ function Settlements() {
       const nextFilters =
         existingIndex >= 0
           ? prevFilters.map((f, i) =>
-              i === existingIndex ? { operator, value } : f
-            )
+            i === existingIndex ? { operator, value } : f
+          )
           : [...prevFilters, { operator, value }];
 
       return {
@@ -192,14 +171,6 @@ function Settlements() {
       };
     });
   }
-
-  useEffect(() => {
-    const gridHeight = window.innerHeight - 280;
-    const rowHeight = 38;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setRowsCalculated(true);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-  }, []);
 
   const handleRowClick = ({ id }: GridRowParams) => {
     navigate(`/admin/settlements/${id}`);
@@ -211,15 +182,19 @@ function Settlements() {
         const limit = paginationModel?.pageSize ?? 10;
         const offset = (paginationModel?.page ?? 0) * limit;
 
-        const effectiveQuery = {
-          ...query,
-          ...TAB_QUERY_OVERRIDES[activeTab],
-        };
+        let newQuery: FilterMap = query;
 
+        if (!query?.payment_state) {
+          if (activeTab === "paid") {
+            newQuery = { ...query, payment_state: [{ operator: "in", value: ["PAID"] }] }
+          } else {
+            newQuery = { ...query, payment_state: [{ operator: "in", value: ["PAYMENT_PENDING"] }] }
+          }
+        }
         const res = await settlementsService.getFilteredReports({
           limit,
           offset,
-          query: buildBackendQuery(effectiveQuery),
+          query: buildBackendQuery(newQuery),
           signal,
           role: "admin"
         });
@@ -288,19 +263,31 @@ function Settlements() {
     markAspaid(expense_ids as string[]);
   };
 
+  const handleTabChange = (tab: any) => {
+    setActiveTab(tab);
+    setLoading(true);
+    setRowSelection({ type: "include", ids: new Set() });
+    setPaginationModel((prev) => ({
+      ...prev,
+      page: 0,
+    }));
+
+    const filter =
+      tab === "paid" ? ["PAID"] : ["PAYMENT_PENDING"];
+
+    updateQuery("payment_state", "in", filter);
+  };
+
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
     setLoading(true);
   }, [
     paginationModel?.page,
     paginationModel?.pageSize,
-    rowsCalculated,
     activeTab,
   ]);
 
   useEffect(() => {
-    if (!rowsCalculated) return;
-
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
@@ -334,26 +321,22 @@ function Settlements() {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [fetchFilteredReports, rowsCalculated]);
+  }, [fetchFilteredReports]);
 
   useEffect(() => {
-    const tabFilter = TAB_QUERY_OVERRIDES[activeTab];
-
-    setQuery((prev) => {
-      // avoid unnecessary state update
-      if (
-        JSON.stringify(prev.payment_state) ===
-        JSON.stringify(tabFilter?.payment_state)
-      ) {
-        return prev;
+    const filter: FieldFilter[] = [
+      {
+        operator: "in",
+        value: [
+          "PAYMENT_PENDING"
+        ]
       }
-
-      return {
-        ...prev,
-        ...tabFilter,
-      };
+    ]
+    setQuery((prev) => {
+      const { payment_state, ...rest } = prev;
+      return { payment_state: filter, ...rest };
     });
-  }, [activeTab]);
+  }, []);
 
   return (
     <div>
@@ -364,9 +347,7 @@ function Settlements() {
       </div>
       <ReportTabs
         activeTab={activeTab}
-        onTabChange={(tabId) => {
-          setActiveTab(tabId as "paid" | "unpaid");
-        }}
+        onTabChange={handleTabChange}
         tabs={tabs}
         className="mb-8"
       />
@@ -383,8 +364,9 @@ function Settlements() {
           columns={columns}
           loading={loading}
           slots={{
-            noRowsOverlay: CustomNoRows,
+            noRowsOverlay: () => <CustomNoRows title="No reports Found" description="There are currently no reports." />,
             toolbar: CustomSettlementsToolbar,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           slotProps={{
             toolbar: {
@@ -411,6 +393,9 @@ function Settlements() {
             },
             "& .MuiDataGrid-panel .MuiSelect-select": {
               fontSize: "12px",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
@@ -453,101 +438,13 @@ function Settlements() {
           onRowClick={handleRowClick}
           pagination
           paginationMode="server"
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           rowCount={
             (activeTab === "paid" ? paidExpenseCount : unpaidExpenseCount) || 0
           }
         />
       </Box>
-      {/* <Dialog open={showBulkUpload} onOpenChange={handleBulkDialogChange}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Bulk Upload Settlement Expenses</DialogTitle>
-            <DialogDescription>
-              Upload an Excel file to settle expenses in bulk. Use the template
-              for the required format.
-            </DialogDescription>
-          </DialogHeader>
-          <form className="space-y-6" onSubmit={handleBulkUpload}>
-            <div className="flex flex-col gap-3">
-              <input
-                key={bulkInputKey}
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleBulkFileSelect}
-                className="hidden"
-              />
-              <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/30 p-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">
-                      Upload spreadsheet
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {bulkFile
-                        ? bulkFile.name
-                        : "Supported formats: .xlsx, .xls, .csv"}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {bulkFile ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClearFile}
-                        disabled={uploadingBulk}
-                      >
-                        Clear
-                      </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleBrowseClick}
-                      disabled={uploadingBulk}
-                    >
-                      {bulkFile ? "Change file" : "Browse"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleDownloadTemplate}
-                  className="sm:w-auto"
-                >
-                  Download Unsettled Expenses
-                </Button>
-              </div>
-            </div>
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleBulkDialogChange(false)}
-                disabled={uploadingBulk}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={!bulkFile || uploadingBulk}>
-                {uploadingBulk ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  "Upload"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog> */}
     </div>
   );
 }

@@ -141,7 +141,7 @@ export const AdvanceService = {
   }) => {
     try {
       return await api.get(
-        `/api/v1/advances/approvers?page=${page}&perPage=${perPage}`
+        `/api/v1/advances/approvers?page=${page}&per_page=${perPage}`
       );
     } catch (error) {
       throw error;
@@ -159,7 +159,7 @@ export const AdvanceService = {
   }) => {
     try {
       return await api.get(
-        `/api/v1/advances/approvers?status=${status}&page=${page}&perPage=${perPage}`
+        `/api/v1/advances/approvers?status=${status}&page=${page}&per_page=${perPage}`
       );
     } catch (error) {
       throw error;
@@ -174,9 +174,13 @@ export const AdvanceService = {
     }
   },
 
-  getAccounts: async () => {
+  getAccounts: async (policyId?: string) => {
     try {
-      return await api.get("/api/v1/advances/advance_accounts");
+      let url = "/api/v1/advances/advance_accounts";
+      if (policyId) {
+        url = `${url}?or=(policy_id.eq.${policyId},policy_id.eq.null)`;
+      }
+      return await api.get(url);
     } catch (error) {
       throw error;
     }

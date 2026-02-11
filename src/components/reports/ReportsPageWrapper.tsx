@@ -4,6 +4,7 @@ import { FilterControls } from '@/components/reports/FilterControls';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 interface TabConfig {
   key: string;
@@ -28,6 +29,7 @@ interface ReportsPageWrapperProps {
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   marginBottom?: string;
+  tabsRightContent?: ReactNode;
   
   // Filter configuration
   searchTerm?: string;
@@ -53,11 +55,12 @@ export function ReportsPageWrapper({
   tabs,
   activeTab,
   onTabChange,
+  marginBottom = "mb-8",
+  tabsRightContent,
   searchTerm,
   onSearchChange,
   searchPlaceholder = "Search reports...",
   statusFilter,
-  marginBottom = "mb-8",
   onStatusChange,
   statusOptions = [
     { value: 'all', label: 'All' },
@@ -75,7 +78,7 @@ export function ReportsPageWrapper({
   return (
     <>
       {/* Header Section */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex h-9 justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
         </div>
@@ -90,12 +93,23 @@ export function ReportsPageWrapper({
       </div>
 
       {/* Tabs Section */}
-      {tabs && activeTab && onTabChange && <ReportTabs
-        activeTab={activeTab}
-        onTabChange={onTabChange}
-        tabs={tabs}
-        className={marginBottom ? marginBottom : "mb-8"}
-      />}
+      {tabs && activeTab && onTabChange && (
+        <div className={cn("flex justify-between items-end border-b border-gray-200", marginBottom ? marginBottom : "mb-8")}>
+          <div className="flex-1">
+            <ReportTabs
+              activeTab={activeTab}
+              onTabChange={onTabChange}
+              tabs={tabs}
+              className="border-b-0"
+            />
+          </div>
+          {tabsRightContent && (
+            <div className="flex items-center ml-4 pb-2">
+              {tabsRightContent}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filter Controls Section */}
       {showFilters && onSearchChange && <FilterControls

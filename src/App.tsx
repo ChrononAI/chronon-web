@@ -92,6 +92,7 @@ function VendorRedirect() {
   const { id } = useParams<{ id: string }>();
   return <Navigate to={`/flow/master/vendors/${id}`} replace />;
 }
+import { AdminReportsApprovalPage } from "./pages/admin-reports/AdminReportsApprovalPage";
 
 function App() {
   return (
@@ -183,6 +184,11 @@ function App() {
               <Route path="/admin/settlements/:id" element={<ReportDetailPage2 />} />
               <Route path="/admin/settlements/:id/:expenseId" element={<ExpenseDetailPage />} />
 
+              {/* ADMIN REPORTS */}
+              <Route path="/admin/admin-reports" element={<AdminReportsApprovalPage />} />
+              <Route path="/admin/admin-reports/:id" element={<ReportDetailPage2 />} />
+              <Route path="/admin/admin-reports/:id/:expenseId" element={<ExpenseDetailPage />} />
+
               {/* ADMIN (No Padding Layout) */}
               <Route element={<AdminLayout />}>
                 <Route path="/admin-settings/entities" element={<EntityPage />} />
@@ -248,7 +254,14 @@ function App() {
         </Routes>
       </Router>
 
-      <Toaster />
+      <Toaster
+        toastOptions={{
+          classNames: {
+            actionButton: "bg-white cursor-pointer",
+            toast: "bg-white text-black"
+          }
+        }}
+      />
     </>
   );
 }

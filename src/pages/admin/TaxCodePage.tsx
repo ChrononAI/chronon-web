@@ -9,7 +9,7 @@ import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import CustomInvoiceToolbar from "@/components/invoice/CustomInvoiceToolbar";
 import { itemsCodeService, TaxCodeData } from "@/services/items/itemsCodeService";
 import { toast } from "sonner";
-import ExpensesSkeletonOverlay from "@/components/expenses/ExpenseSkeletonOverlay";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { TaxCodeDialog } from "@/components/items/TaxCodeDialog";
 import { GridRowParams } from "@mui/x-data-grid";
 import { useLayoutStore } from "@/store/layoutStore";
@@ -316,7 +316,7 @@ export const TaxCodePage = () => {
           loadingOverlay:
             loading && isInitialLoad
               ? () => (
-                  <ExpensesSkeletonOverlay
+                  <SkeletonLoaderOverlay
                     rowCount={paginationModel?.pageSize || 10}
                   />
                 )

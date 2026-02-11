@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import { Button } from "@/components/ui/button";
-import { CheckCircle } from "lucide-react";
 import {
   getAllWorkflows,
   type WorkflowConfig,
@@ -10,11 +9,12 @@ import {
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
-import { GridOverlay } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
 import { GridPaginationModel } from "@mui/x-data-grid";
 import { formatDate } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 type TabKey = "workflow" | "config" | "rules" | "all_workflows" | "all_rules";
 
@@ -130,22 +130,6 @@ const rulesColumns: GridColDef[] = [
   },
 ];
 
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No entries found</h3>
-          <p className="text-muted-foreground">
-            There are currently no entries.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
-
 const WorkFlowPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>("workflow");
@@ -153,10 +137,6 @@ const WorkFlowPage = () => {
   const [rules, setRules] = useState([]);
   const [workflowsLoading, setWorkflowsLoading] = useState(true);
   const isFetchingWorkflowsRef = useRef(false);
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
-  const [workflowPaginationModel, setWorkflowPaginationModel] =
-    useState<GridPaginationModel | null>(null);
   const workflowsFetchedRef = useRef(false);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
@@ -165,14 +145,37 @@ const WorkFlowPage = () => {
 
   const [rulePaginationInfo, setRulePaginationInfo] = useState<any>();
 
-  useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-    setWorkflowPaginationModel({ page: 0, pageSize: calculatedPageSize });
+  const GRID_OFFSET = 260;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
 
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
+  const [workflowPaginationModel, setWorkflowPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
+
+  useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
+    setPaginationModel((prev) => ({
+      ...prev,
+      page: 0,
+    }));
+    setWorkflowPaginationModel((prev) => ({
+      ...prev,
+      page: 0,
+    }));
   }, [activeTab]);
 
   const fetchWorkflows = useCallback(async (force = false) => {
@@ -293,12 +296,13 @@ const WorkFlowPage = () => {
             }}
           >
             <DataGrid
-              rows={workflows}
+              rows={workflowsLoading ? [] : workflows}
               columns={getWorkflowColumns()}
               disableRowSelectionOnClick
               loading={workflowsLoading}
               slots={{
-                noRowsOverlay: CustomNoRows,
+                noRowsOverlay: () => <CustomNoRows title="No entries found" description="There are currently no entries" />,
+                loadingOverlay: () => <SkeletonLoaderOverlay rowCount={workflowPaginationModel.pageSize} />
               }}
               sx={{
                 border: 0,
@@ -312,6 +316,9 @@ const WorkFlowPage = () => {
                 },
                 "& .MuiDataGrid-main": {
                   border: "0.2px solid #f3f4f6",
+                },
+                "& .MuiDataGrid-virtualScroller": {
+                  overflow: workflowsLoading ? "hidden" : "auto",
                 },
                 "& .MuiDataGrid-columnHeader": {
                   backgroundColor: "#f3f4f6",
@@ -329,9 +336,9 @@ const WorkFlowPage = () => {
                   border: "0.2px solid #f3f4f6",
                 },
                 "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                  {
-                    outline: "none",
-                  },
+                {
+                  outline: "none",
+                },
                 "& .MuiDataGrid-cell:focus-within": {
                   outline: "none",
                 },
@@ -349,9 +356,7 @@ const WorkFlowPage = () => {
               onRowClick={handleWorkflowClick}
               onRowSelectionModelChange={setRowSelection}
               pagination
-              paginationModel={
-                workflowPaginationModel || { page: 0, pageSize: 0 }
-              }
+              paginationModel={workflowPaginationModel}
               onPaginationModelChange={setWorkflowPaginationModel}
             />
           </Box>
@@ -366,12 +371,13 @@ const WorkFlowPage = () => {
             }}
           >
             <DataGrid
-              rows={rules}
+              rows={workflowsLoading ? [] : rules}
               columns={rulesColumns}
               disableRowSelectionOnClick
               loading={workflowsLoading}
               slots={{
-                noRowsOverlay: CustomNoRows,
+                noRowsOverlay: () => <CustomNoRows title="No entries found" description="There are currently no entries" />,
+                loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
               }}
               sx={{
                 border: 0,
@@ -382,6 +388,9 @@ const WorkFlowPage = () => {
                 },
                 "& .MuiDataGrid-panel .MuiSelect-select": {
                   fontSize: "12px",
+                },
+                "& .MuiDataGrid-virtualScroller": {
+                  overflow: workflowsLoading ? "hidden" : "auto",
                 },
                 "& .MuiDataGrid-main": {
                   border: "0.2px solid #f3f4f6",
@@ -402,9 +411,9 @@ const WorkFlowPage = () => {
                   border: "0.2px solid #f3f4f6",
                 },
                 "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                  {
-                    outline: "none",
-                  },
+                {
+                  outline: "none",
+                },
                 "& .MuiDataGrid-cell:focus-within": {
                   outline: "none",
                 },
@@ -424,7 +433,7 @@ const WorkFlowPage = () => {
               pagination
               paginationMode="server"
               rowCount={rulePaginationInfo?.total}
-              paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+              paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
             />
           </Box>

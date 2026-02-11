@@ -1,30 +1,16 @@
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { Button } from "@/components/ui/button";
 import { policyService } from "@/services/admin/policyService";
 import { PaginationInfo } from "@/store/expenseStore";
 import { PolicyCategory } from "@/types/expense";
 import { Box } from "@mui/material";
-import { GridOverlay, GridRowSelectionModel } from "@mui/x-data-grid";
+import { GridRowSelectionModel } from "@mui/x-data-grid";
 import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
-import { CheckCircle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No policies found</h3>
-          <p className="text-muted-foreground">
-            There are currently no policies.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
 
 const columns: GridColDef[] = [
   {
@@ -54,23 +40,27 @@ const columns: GridColDef[] = [
 
 function AdminExpensePolicies() {
   const navigate = useNavigate();
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>({
-      page: 0,
-      pageSize: 10,
-    });
   const [loading, setLoading] = useState(true);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
   });
 
-  useEffect(() => {
-    const gridHeight = window.innerHeight - 300;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-  }, []);
+  const GRID_OFFSET = 190;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
 
   const [paginationInfo, setPaginationInfo] = useState<PaginationInfo>();
 
@@ -99,8 +89,8 @@ function AdminExpensePolicies() {
       console.log(error);
       toast.error(
         error?.response?.data?.message ||
-          error.message ||
-          "Failed to get policies"
+        error.message ||
+        "Failed to get policies"
       );
     } finally {
       setLoading(false);
@@ -132,9 +122,12 @@ function AdminExpensePolicies() {
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           columns={columns}
-          rows={rows}
+          rows={loading ? [] : rows}
           loading={loading}
-          slots={{ noRowsOverlay: CustomNoRows }}
+          slots={{
+            noRowsOverlay: () => <CustomNoRows title="No policies found" description="There are currently no policies" />,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          }}
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {
@@ -148,6 +141,9 @@ function AdminExpensePolicies() {
             "& .MuiDataGrid-columnHeader": {
               backgroundColor: "#f3f4f6",
               border: "none",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-columnHeaders": {
               border: "none",
@@ -185,7 +181,7 @@ function AdminExpensePolicies() {
           pagination
           paginationMode="server"
           rowCount={paginationInfo ? paginationInfo.total : 0}
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
         />
       </Box>

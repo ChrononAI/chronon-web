@@ -16,10 +16,11 @@ export function ProtectedRoute() {
         authService.getOrgSetting().catch(() => null),
       ]).then(([orgDataResponse, orgSettingsResponse]) => {
         const currentSettings = useAuthStore.getState().orgSettings;
+        const orgSettings = { ...orgSettingsResponse?.data?.data };
         // Merge settings, prioritizing currency from orgData (which has the currency field)
         const mergedSettings = {
           ...currentSettings,
-          ...(orgSettingsResponse?.data?.data || {}),
+          ...orgSettings,
           ...(orgDataResponse?.data || {}),
         };
         setOrgSettings(mergedSettings);
@@ -66,6 +67,12 @@ export function ProtectedRoute() {
     enabled = orgSettings.mobile_payment_settings.enabled;
   } else if (location.pathname.includes("admin-settings")) {
     enabled = (orgSettings.admin_dashboard_settings?.enabled && user?.role === "SUPER_ADMIN");
+  } else if (location.pathname.includes("/admin/")) {
+    if (location.pathname.includes("admin-reports")) {
+      enabled = orgSettings?.admin_approval_settings?.enabled && (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN");
+    } else {
+      enabled = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+    }
   } else if (location.pathname.includes('all-reports')) {
     enabled = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   } else if (location.pathname.includes("stores")) {

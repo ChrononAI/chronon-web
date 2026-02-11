@@ -8,7 +8,7 @@ import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import CustomInvoiceToolbar from "@/components/invoice/CustomInvoiceToolbar";
 import { itemsCodeService, ItemData } from "@/services/items/itemsCodeService";
 import { toast } from "sonner";
-import ExpensesSkeletonOverlay from "@/components/expenses/ExpenseSkeletonOverlay";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { ItemDialog } from "@/components/items/ItemDialog";
 import { GridRowParams } from "@mui/x-data-grid";
 import { useLayoutStore } from "@/store/layoutStore";
@@ -277,7 +277,7 @@ export const ItemsPage = () => {
           loadingOverlay:
             loading && isInitialLoad
               ? () => (
-                  <ExpensesSkeletonOverlay
+                  <SkeletonLoaderOverlay
                     rowCount={paginationModel?.pageSize || 10}
                   />
                 )

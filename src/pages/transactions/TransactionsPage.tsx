@@ -1,3 +1,5 @@
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { transactionService } from "@/services/transactionService";
@@ -5,31 +7,13 @@ import { Box } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
-  GridOverlay,
   GridPaginationModel,
   GridRowParams,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
-import { CheckCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
-function CustomNoRows() {
-  return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No transactions found</h3>
-          <p className="text-muted-foreground">
-            There are currently no transactions.
-          </p>
-        </div>
-      </Box>
-    </GridOverlay>
-  );
-}
 
 const columns: GridColDef[] = [
   {
@@ -66,12 +50,6 @@ const columns: GridColDef[] = [
     ),
   },
   {
-    field: "transaction_source",
-    headerName: "SOURCE",
-    minWidth: 120,
-    flex: 1,
-  },
-  {
     field: "transaction_type",
     headerName: "TYPE",
     minWidth: 120,
@@ -97,8 +75,21 @@ function TransactionsPage() {
     ids: new Set(),
   });
 
+  const GRID_OFFSET = 200;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
   const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
 
   const getAllTransactions = async () => {
     setLoading(true);
@@ -120,7 +111,6 @@ function TransactionsPage() {
   };
 
   const handleRowClick = ({ id }: GridRowParams) => {
-    console.log(id);
     navigate(`/transactions/${id}`);
   };
 
@@ -129,13 +119,6 @@ function TransactionsPage() {
       getAllTransactions();
     }
   }, [paginationModel?.page, paginationModel?.pageSize]);
-
-  useEffect(() => {
-    const gridHeight = window.innerHeight - 200;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-  }, []);
 
   return (
     <>
@@ -151,9 +134,12 @@ function TransactionsPage() {
         <DataGrid
           className="rounded border-[0.2px] border-[#f3f4f6] h-full"
           columns={columns}
-          rows={rows}
+          rows={loading ? [] : rows}
           loading={loading}
-          slots={{ noRowsOverlay: CustomNoRows }}
+          slots={{
+            noRowsOverlay: () => <CustomNoRows title="No transactions found" description="There are currently no transactions." />,
+            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          }}
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {
@@ -166,6 +152,9 @@ function TransactionsPage() {
             },
             "& .MuiDataGrid-panel .MuiSelect-select": {
               fontSize: "12px",
+            },
+            "& .MuiDataGrid-virtualScroller": {
+              overflow: loading ? "hidden" : "auto",
             },
             "& .MuiDataGrid-main": {
               border: "0.2px solid #f3f4f6",
@@ -198,7 +187,7 @@ function TransactionsPage() {
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={setRowSelection}
           paginationMode="server"
-          paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+          paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           rowCount={rowCount}
           density="compact"

@@ -29,20 +29,7 @@ export function LoginForm() {
       const { user, token, products } = await authService.login({ email, password });
       login(user, token, products);
       identifyUser(user.id.toString());
-      setUserProfile(user);
-      
-      // Fetch organization data after login
-      try {
-        const orgResponse = await authService.getOrgData();
-        if (orgResponse?.data) {
-          const setOrgSettings = useAuthStore.getState().setOrgSettings;
-          setOrgSettings(orgResponse.data);
-        }
-      } catch (orgError) {
-        console.warn("Failed to fetch organization data:", orgError);
-        // Don't block login if org data fetch fails
-      }
-      
+      setUserProfile(user);  
       toast.success("Login successful!");
       
       if (products.length === 0) {

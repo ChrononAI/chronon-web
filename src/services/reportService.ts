@@ -416,7 +416,6 @@ class ReportService {
   async getReportComments(id: string): Promise<ExpenseComment[]> {
     try {
       const res = await api.get(`/api/v1/report_comments/${id}`);
-      console.log(res);
       return res.data.data || [];
     } catch (error) {
       throw error;

@@ -7,11 +7,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Badge, Box } from "@mui/material";
+import { Badge, Box, Skeleton } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
-  GridOverlay,
   GridPaginationModel,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
@@ -26,7 +25,8 @@ import {
   preApprovalService,
   PreApprovalType,
 } from "@/services/preApprovalService";
-import { CheckCircle } from "lucide-react";
+import CustomNoRows from "@/components/shared/CustomNoRows";
+import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 const columns: GridColDef[] = [
   {
@@ -85,19 +85,39 @@ const columns: GridColDef[] = [
   },
 ];
 
-function CustomNoRows() {
+// function CustomNoRows() {
+//   return (
+//     <GridOverlay>
+//       <Box className="w-full">
+//         <div className="text-center">
+//           <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+//           <h3 className="text-lg font-semibold mb-2">No entries found</h3>
+//           <p className="text-muted-foreground">
+//             There are currently no entries.
+//           </p>
+//         </div>
+//       </Box>
+//     </GridOverlay>
+//   );
+// }
+
+function AccountCardSkeleton() {
   return (
-    <GridOverlay>
-      <Box className="w-full">
-        <div className="text-center">
-          <CheckCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No entries found</h3>
-          <p className="text-muted-foreground">
-            There are currently no entries.
-          </p>
+    <Card className="p-4 h-[128px]">
+      <CardContent className="p-0 space-y-4">
+        {/* Header row */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <Skeleton width="60%" height={28} />
+            <Skeleton width={48} height={28} />
+          </div>
+
+          <Skeleton width="80%" height={20} className="mt-1" />
         </div>
-      </Box>
-    </GridOverlay>
+
+        <Skeleton width="40%" height={24} />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -124,7 +144,7 @@ function AccountCard({
       className={
         selectedAccount === card.id
           ? "p-4 cursor-pointer border-2 border-blue-500"
-          : "p-4 cursor-pointer"
+          : "p-4 cursor-pointer border-2 border-white"
       }
       onClick={() => setSelectedAccount(card.id)}
     >
@@ -154,11 +174,9 @@ function AccountCard({
 }
 
 function AdvanceAccounts() {
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel | null>(null);
-
   const [accounts, setAccounts] = useState<AccountType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accountsLoading, setAccountsLoading] = useState(true);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [ledger, setLedger] = useState<LedgerType[]>([]);
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -168,13 +186,32 @@ function AdvanceAccounts() {
     ids: new Set(),
   });
 
+  const GRID_OFFSET = 340;
+  const ROW_HEIGHT = 38;
+  const HEADER_HEIGHT = 0;
+
+  const calculatePageSize = () => {
+    const availableHeight =
+      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
+  };
+
+  const [paginationModel, setPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: calculatePageSize(),
+    });
+
   const getAccounts = async () => {
+    setAccountsLoading(true);
     try {
       const res = await AdvanceService.getAccounts();
       setSelectedAccount(res.data.data[0].id);
       setAccounts(res.data.data);
     } catch (error) {
       console.log(error);
+    } finally {
+      setAccountsLoading(false);
     }
   };
 
@@ -203,8 +240,6 @@ function AdvanceAccounts() {
       setPolicies(res);
     } catch (error) {
       console.log(error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -214,17 +249,8 @@ function AdvanceAccounts() {
       setPreApprovals(res.data.data);
     } catch (error) {
       console.log(error);
-    } finally {
-      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const gridHeight = window.innerHeight - 400;
-    const rowHeight = 36;
-    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
-    setPaginationModel({ page: 0, pageSize: calculatedPageSize });
-  }, []);
 
   const fetchData = async () => {
     try {
@@ -263,20 +289,32 @@ function AdvanceAccounts() {
     >
       <div>
         <div className="flex gap-6 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-          {accounts.map((card) => (
-            <div
-              key={card.id}
-              className="flex-shrink-0 w-full md:w-1/3 lg:w-1/5"
-            >
-              <AccountCard
-                card={card}
-                selectedAccount={selectedAccount}
-                setSelectedAccount={setSelectedAccount}
-                policies={policies}
-                preApprovals={preApprovals}
-              />
-            </div>
-          ))}
+          {accountsLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex-shrink-0 w-full md:w-1/3 lg:w-1/5"
+              >
+                <AccountCardSkeleton />
+              </div>
+            ))
+          )
+            : <>
+              {accounts.map((card) => (
+                <div
+                  key={card.id}
+                  className="flex-shrink-0 w-full md:w-1/3 lg:w-1/5"
+                >
+                  <AccountCard
+                    card={card}
+                    selectedAccount={selectedAccount}
+                    setSelectedAccount={setSelectedAccount}
+                    policies={policies}
+                    preApprovals={preApprovals}
+                  />
+                </div>
+              ))}
+            </>}
         </div>
         <Box
           sx={{
@@ -290,7 +328,8 @@ function AdvanceAccounts() {
             columns={columns}
             loading={loading}
             slots={{
-              noRowsOverlay: CustomNoRows,
+              noRowsOverlay: () => <CustomNoRows title="No entries found" description="There are currently no entries." />,
+              loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel?.pageSize} />
             }}
             sx={{
               border: 0,
@@ -301,6 +340,9 @@ function AdvanceAccounts() {
               },
               "& .MuiDataGrid-panel .MuiSelect-select": {
                 fontSize: "12px",
+              },
+              "& .MuiDataGrid-virtualScroller": {
+                overflow: loading ? "hidden" : "auto",
               },
               "& .MuiDataGrid-main": {
                 border: "0.2px solid #f3f4f6",
@@ -337,7 +379,7 @@ function AdvanceAccounts() {
             rowSelectionModel={rowSelection}
             onRowSelectionModelChange={setRowSelection}
             pagination
-            paginationModel={paginationModel || { page: 0, pageSize: 0 }}
+            paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
           />
         </Box>
