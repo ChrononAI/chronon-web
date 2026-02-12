@@ -86,13 +86,40 @@ import { ItemsPage } from "./pages/admin/ItemsPage";
 import { AllInvoiceApprovalsPage } from "./pages/AllInvoiceApprovalsPage";
 import { FlowLayout } from "./components/layout/FlowLayout";
 import { BulkInvoiceUploadPage } from "./pages/BulkInvoiceUploadPage";
+import { useAuthStore } from "@/store/authStore";
+import { AdminReportsApprovalPage } from "./pages/admin-reports/AdminReportsApprovalPage";
 
-// Redirect component for vendor routes with parameters
 function VendorRedirect() {
   const { id } = useParams<{ id: string }>();
   return <Navigate to={`/flow/master/vendors/${id}`} replace />;
 }
-import { AdminReportsApprovalPage } from "./pages/admin-reports/AdminReportsApprovalPage";
+
+function RootRedirect() {
+  const { selectedProduct, products } = useAuthStore();
+  
+  if (selectedProduct === "Invoice Payments") {
+    return <Navigate to="/flow/invoice" replace />;
+  }
+  
+  if (selectedProduct === "Expense Management") {
+    return <Navigate to="/expenses" replace />;
+  }
+  
+  if (products.length === 1) {
+    if (products[0] === "Invoice Payments") {
+      return <Navigate to="/flow/invoice" replace />;
+    }
+    if (products[0] === "Expense Management") {
+      return <Navigate to="/expenses" replace />;
+    }
+  }
+  
+  if (products.length > 1) {
+    return <Navigate to="/select-product" replace />;
+  }
+  
+  return <Navigate to="/expenses" replace />;
+}
 
 function App() {
   return (
@@ -130,8 +157,7 @@ function App() {
           <Route element={<Layout />}>
             <Route element={<ProtectedRoute />}>
 
-              {/* Default Redirect */}
-              <Route path="/" element={<Navigate to="/expenses" replace />} />
+              <Route path="/" element={<RootRedirect />} />
 
               {/* EXPENSES */}
               <Route path="/expenses" element={<MyExpensesPage />} />
