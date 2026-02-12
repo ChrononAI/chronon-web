@@ -156,7 +156,7 @@ export function ApprovalsReportsPage() {
     return [
       {
         field: "sequence_number",
-        headerName: "SEQUENCE NUMBER",
+        headerName: "REPORT ID",
         minWidth: 160,
         flex: 1,
         renderCell: (params: any) => (
