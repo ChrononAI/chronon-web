@@ -238,9 +238,7 @@ export function InvoicePage() {
             : await getInvoiceById(id);
           
           if (!response || !response.data) {
-            if (isActive) {
-              setTableLoading(false);
-            }
+            setTableLoading(false);
             return;
           }
           
@@ -249,16 +247,12 @@ export function InvoicePage() {
             : null;
           
           if (!invoice || !isActive) {
-            if (isActive) {
-              setTableLoading(false);
-              setInvoiceLoading(false);
-            }
+            setTableLoading(false);
+            setInvoiceLoading(false);
             return;
           }
 
-          if (isActive) {
-            setInvoiceStatus(invoice.status || null);
-          }
+          setInvoiceStatus(invoice.status || null);
 
           const formatDate = (dateString: string | null): string => {
             if (!dateString) return "";
