@@ -37,6 +37,9 @@ import { DateField } from "@/components/ui/date-field";
 import { formatCurrency } from "@/lib/utils";
 import { Autocomplete, TextField } from "@mui/material";
 import { vendorService, VendorData } from "@/services/vendorService";
+import { itemsCodeService, ItemData } from "@/services/items/itemsCodeService";
+import { taxService, TaxData } from "@/services/taxService";
+import { tdsService, TDSData } from "@/services/tdsService";
 import { toast } from "sonner";
 
 type InvoiceUploadState = {
@@ -51,7 +54,6 @@ export function InvoicePage() {
   const navigate = useNavigate();
   const isApprovalMode = location.pathname.startsWith("/flow/approvals/");
 
-  // Force sidebar to stay collapsed on invoice page - not expandable
   useEffect(() => {
     setSidebarCollapsed(true);
   }, [setSidebarCollapsed]);
@@ -97,15 +99,53 @@ export function InvoicePage() {
   const [, setPageActivityLoading] = useState(false);
   const [, setPageActivityError] = useState<string | null>(null);
   
-  // Approval dialog state
+  const [itemsData, setItemsData] = useState<ItemData[]>([]);
+  const [taxDataCache, setTaxDataCache] = useState<Record<string, TaxData>>({});
+  const [tdsDataCache, setTdsDataCache] = useState<Record<string, TDSData>>({});
+  const hsnMatchingProcessedRef = useRef(false);
+  
   const [showActionDialog, setShowActionDialog] = useState(false);
   const [actionType, setActionType] = useState<"approve" | "reject" | null>(null);
   const [comments, setComments] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Validation errors state
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
   const [lineItemValidationErrors, setLineItemValidationErrors] = useState<Record<number, Record<string, boolean>>>({});
+  
+  const [unmatchedHsnRows, setUnmatchedHsnRows] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    const fetchItemsAndCodes = async () => {
+      try {
+        const [itemsResponse, taxResponse, tdsResponse] = await Promise.all([
+          itemsCodeService.getItems(1000, 0),
+          taxService.getTaxes(1000, 0),
+          tdsService.getTDS(1000, 0),
+        ]);
+
+        const items = itemsResponse?.data || [];
+        setItemsData(items);
+
+        const taxCodes = taxResponse?.data || [];
+        const taxCache: Record<string, TaxData> = {};
+        taxCodes.forEach((tax) => {
+          taxCache[tax.tax_code] = tax;
+        });
+        setTaxDataCache(taxCache);
+
+        const tdsCodes = tdsResponse?.data || [];
+        const tdsCache: Record<string, TDSData> = {};
+        tdsCodes.forEach((tds) => {
+          tdsCache[tds.tds_code] = tds;
+        });
+        setTdsDataCache(tdsCache);
+      } catch (error) {
+        console.error("Error fetching items and codes:", error);
+      }
+    };
+
+    fetchItemsAndCodes();
+  }, []);
 
   useEffect(() => {
     if (previewUrlRef.current) {
@@ -184,7 +224,6 @@ export function InvoicePage() {
     if (!needsFetch) return;
 
     setTableLoading(true);
-    // Set invoice loading immediately if we're loading from ID
     if (shouldLoadFromId && id) {
       setInvoiceLoading(true);
     }
@@ -217,7 +256,6 @@ export function InvoicePage() {
             return;
           }
 
-          // Set invoice status
           if (isActive) {
             setInvoiceStatus(invoice.status || null);
           }
@@ -260,7 +298,6 @@ export function InvoicePage() {
           
           if (invoice.file_ids && invoice.file_ids.length > 0) {
             try {
-              // Loading state already set above, just fetch the URL
               const fileId = invoice.file_ids[0];
               const downloadUrlResponse = await getFileDownloadUrl(fileId);
               if (downloadUrlResponse?.data?.download_url) {
@@ -289,7 +326,7 @@ export function InvoicePage() {
                 itemDescription: item.description || "",
                 quantity: quantity > 0 ? quantity.toString() : "",
                 rate: rate > 0 ? rate.toString() : "",
-                hsnCode: item.hsn_sac || "", // Populate from API response
+                hsnCode: item.hsn_sac || "",
                 tdsCode: item.tds_code || "",
                 tdsAmount: item.tds_amount || "",
                 gstCode: item.tax_code || "",
@@ -313,14 +350,11 @@ export function InvoicePage() {
           lastLoadedRef.current = { id: currentId, fileKey, routeKey };
           setTableLoading(false);
 
-          // Fetch activity/workflow data for this invoice so Activity tab is ready
           (async () => {
             try {
               setPageActivityLoading(true);
               setPageActivityError(null);
               const actRes = await invoiceActivityService.getApprovers(currentId || "");
-              // map workflows to same structure InvoiceActivity expects (it can accept raw mapped array too)
-              // Keep raw workflows so the UI can reuse the report's WorkflowTimeline
               setPageActivities(actRes.data || []);
             } catch (e) {
               console.error("Error loading page activity:", e);
@@ -355,7 +389,6 @@ export function InvoicePage() {
           }
         }
       } catch (error) {
-        // Error handled silently - keep existing data
       } finally {
         if (isActive) {
           setTableLoading(false);
@@ -370,7 +403,6 @@ export function InvoicePage() {
     };
   }, [location.pathname, location.state, id]);
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (vendorSearchTimeoutRef.current) {
@@ -379,10 +411,8 @@ export function InvoicePage() {
     };
   }, []);
 
-  // Auto-fill vendor details when GST number reaches exactly 15 characters
   useEffect(() => {
     if (gstNumber.length === 15) {
-      // Check if we have a matching vendor in search results
       const matchedVendor = vendorSearchResults.find(v => v.gstin === gstNumber);
       if (matchedVendor) {
         setVendorName(matchedVendor.vendor_name || "");
@@ -390,14 +420,12 @@ export function InvoicePage() {
         setVendorPan(matchedVendor.pan || "");
         setVendorId(matchedVendor.vendor_code || "");
         
-        // Clear validation errors for vendor fields when auto-filled
         if (matchedVendor.vendor_name) setValidationErrors(prev => ({ ...prev, vendorName: false }));
         if (matchedVendor.email) setValidationErrors(prev => ({ ...prev, vendorEmail: false }));
         if (matchedVendor.pan) setValidationErrors(prev => ({ ...prev, vendorPan: false }));
         if (matchedVendor.vendor_code) setValidationErrors(prev => ({ ...prev, vendorId: false }));
       }
     } else if (gstNumber.length > 0 && gstNumber.length !== 15) {
-      // Clear vendor details if GST number is not exactly 15 characters
       setVendorName("");
       setVendorId("");
       setVendorEmail("");
@@ -424,11 +452,9 @@ export function InvoicePage() {
   }, []);
 
   const handleGstNumberChange = useCallback((value: string) => {
-    // Limit GST number to 15 characters
     const limitedValue = value.slice(0, 15);
     setGstNumber(limitedValue);
     
-    // Clear vendor details if GST number is not exactly 15 characters
     if (limitedValue.length !== 15) {
       setVendorName("");
       setVendorId("");
@@ -436,12 +462,10 @@ export function InvoicePage() {
       setVendorPan("");
     }
     
-    // Clear previous timeout
     if (vendorSearchTimeoutRef.current) {
       clearTimeout(vendorSearchTimeoutRef.current);
     }
 
-    // Debounce search - wait 300ms after user stops typing
     vendorSearchTimeoutRef.current = setTimeout(() => {
       if (limitedValue.trim() && limitedValue.trim().length >= 3) {
         searchVendors(limitedValue);
@@ -456,33 +480,27 @@ export function InvoicePage() {
       const gstin = vendor.gstin || "";
       setGstNumber(gstin);
       
-      // Only fill vendor details if GST number is exactly 15 characters
       if (gstin.length === 15) {
         setVendorName(vendor.vendor_name || "");
         setVendorEmail(vendor.email || "");
         setVendorPan(vendor.pan || "");
         setVendorId(vendor.vendor_code || "");
         
-        // Clear validation errors for vendor fields when auto-filled
         if (vendor.vendor_name) setValidationErrors(prev => ({ ...prev, vendorName: false }));
         if (vendor.email) setValidationErrors(prev => ({ ...prev, vendorEmail: false }));
         if (vendor.pan) setValidationErrors(prev => ({ ...prev, vendorPan: false }));
         if (vendor.vendor_code) setValidationErrors(prev => ({ ...prev, vendorId: false }));
         setValidationErrors(prev => ({ ...prev, gstNumber: false }));
       } else {
-        // Clear vendor details if GST is not 15 characters
         setVendorName("");
         setVendorId("");
         setVendorEmail("");
         setVendorPan("");
       }
     } else if (typeof vendor === 'string') {
-      // User typed a custom GST number
       setGstNumber(vendor);
       
-      // Only fill vendor details if GST number is exactly 15 characters
       if (vendor.length === 15) {
-        // Check if we have cached vendor data for this GST
         const cachedVendor = vendorSearchResults.find(v => v.gstin === vendor);
         if (cachedVendor) {
           setVendorName(cachedVendor.vendor_name || "");
@@ -490,7 +508,6 @@ export function InvoicePage() {
           setVendorPan(cachedVendor.pan || "");
           setVendorId(cachedVendor.vendor_code || "");
           
-          // Clear validation errors for vendor fields when auto-filled
           if (cachedVendor.vendor_name) setValidationErrors(prev => ({ ...prev, vendorName: false }));
           if (cachedVendor.email) setValidationErrors(prev => ({ ...prev, vendorEmail: false }));
           if (cachedVendor.pan) setValidationErrors(prev => ({ ...prev, vendorPan: false }));
@@ -503,14 +520,12 @@ export function InvoicePage() {
           setVendorPan("");
         }
       } else {
-        // Clear vendor details if GST is not 15 characters
         setVendorName("");
         setVendorId("");
         setVendorEmail("");
         setVendorPan("");
       }
     } else {
-      // Clear vendor data when selection is cleared
       setGstNumber("");
       setVendorName("");
       setVendorId("");
@@ -522,7 +537,7 @@ export function InvoicePage() {
   const addTableRow = useCallback(() => {
     const newRow: InvoiceLineRow = {
       id: nextRowIdRef.current++,
-      invoiceLineItemId: undefined, // New rows don't have an invoice line item ID yet
+      invoiceLineItemId: undefined,
       itemDescription: "",
       quantity: "",
       rate: "",
@@ -667,13 +682,144 @@ export function InvoicePage() {
     return compareWithOcr(field, currentValue) ? "bg-yellow-100" : "";
   };
 
+  const processHsnMatching = useCallback((rows: InvoiceLineRow[], ocrPayload: any) => {
+    if (itemsData.length === 0) {
+      return;
+    }
+
+    const unmatchedRows = new Set<number>();
+    const updatedRows = rows.map((row) => {
+      let hsnToMatch = "";
+      
+      if (row.hsnCode && row.hsnCode.trim()) {
+        hsnToMatch = String(row.hsnCode).trim().toUpperCase();
+      } else if (ocrPayload?.invoice_lineitems) {
+        const ocrLineItem = ocrPayload.invoice_lineitems[row.id - 1];
+        if (ocrLineItem?.hsn_sac) {
+          hsnToMatch = String(ocrLineItem.hsn_sac).trim().toUpperCase();
+        }
+      }
+      
+      if (!hsnToMatch) {
+        return row;
+      }
+
+      const matchingItem = itemsData.find(
+        (item) => String(item.hsn_sac_code || "").trim().toUpperCase() === hsnToMatch
+      );
+
+      if (matchingItem) {
+        const updatedRow = { ...row };
+        
+        if (!updatedRow.hsnCode.trim()) {
+          updatedRow.hsnCode = hsnToMatch;
+        }
+        
+        if (matchingItem.description) {
+          updatedRow.itemDescription = matchingItem.description;
+        }
+        
+        if (matchingItem.tax_code) {
+          updatedRow.gstCode = matchingItem.tax_code;
+          
+          const taxData = taxDataCache[matchingItem.tax_code];
+          if (taxData) {
+            const quantity = parseFloat(updatedRow.quantity) || 0;
+            const rate = parseFloat(updatedRow.rate) || 0;
+            const baseAmount = quantity * rate;
+            
+            const igstPercentage = parseFloat(taxData.igst_percentage) || 0;
+            const cgstPercentage = parseFloat(taxData.cgst_percentage) || 0;
+            const sgstPercentage = parseFloat(taxData.sgst_percentage) || 0;
+            const utgstPercentage = parseFloat(taxData.utgst_percentage) || 0;
+            
+            updatedRow.igst = ((baseAmount * igstPercentage) / 100).toFixed(2);
+            updatedRow.cgst = ((baseAmount * cgstPercentage) / 100).toFixed(2);
+            updatedRow.sgst = ((baseAmount * sgstPercentage) / 100).toFixed(2);
+            updatedRow.utgst = ((baseAmount * utgstPercentage) / 100).toFixed(2);
+          }
+        }
+        
+        if (matchingItem.tds_code) {
+          updatedRow.tdsCode = matchingItem.tds_code;
+          
+          const tdsData = tdsDataCache[matchingItem.tds_code];
+          if (tdsData) {
+            const quantity = parseFloat(updatedRow.quantity) || 0;
+            const rate = parseFloat(updatedRow.rate) || 0;
+            const baseAmount = quantity * rate;
+            const tdsPercentage = parseFloat(tdsData.tds_percentage) || 0;
+            updatedRow.tdsAmount = ((baseAmount * tdsPercentage) / 100).toFixed(2);
+          }
+        }
+        
+        setOriginalOcrValues(prev => ({
+          ...prev,
+          [updatedRow.id]: { ...prev[updatedRow.id], ...updatedRow }
+        }));
+        
+        return updatedRow;
+      } else {
+        unmatchedRows.add(row.id);
+        return row;
+      }
+    });
+
+    setTableRows(updatedRows);
+    setUnmatchedHsnRows(unmatchedRows);
+  }, [itemsData, taxDataCache, tdsDataCache]);
+
+  useEffect(() => {
+    if (itemsData.length > 0 && tableRows.length > 0 && Object.keys(taxDataCache).length > 0 && Object.keys(tdsDataCache).length > 0 && !hsnMatchingProcessedRef.current) {
+      const timeoutId = setTimeout(() => {
+        processHsnMatching(tableRows, rawOcrPayload);
+        hsnMatchingProcessedRef.current = true;
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [itemsData.length, tableRows.length, Object.keys(taxDataCache).length, Object.keys(tdsDataCache).length]);
+  
+  useEffect(() => {
+    hsnMatchingProcessedRef.current = false;
+  }, [id]);
+
   const updateTableRow = useCallback(
     (rowId: number, field: keyof Omit<InvoiceLineRow, "id">, value: string) => {
-      setTableRows((prev) =>
-        prev.map((row) => (row.id === rowId ? { ...row, [field]: value } : row))
-      );
+      setTableRows((prev) => {
+        const updated = prev.map((row) => (row.id === rowId ? { ...row, [field]: value } : row));
+        
+        if (field === "gstCode" || field === "tdsCode" || field === "quantity" || field === "rate") {
+          const row = updated.find(r => r.id === rowId);
+          if (row) {
+            const quantity = parseFloat(row.quantity) || 0;
+            const rate = parseFloat(row.rate) || 0;
+            const baseAmount = quantity * rate;
+            
+            if (row.gstCode && taxDataCache[row.gstCode]) {
+              const taxData = taxDataCache[row.gstCode];
+              const igstPercentage = parseFloat(taxData.igst_percentage) || 0;
+              const cgstPercentage = parseFloat(taxData.cgst_percentage) || 0;
+              const sgstPercentage = parseFloat(taxData.sgst_percentage) || 0;
+              const utgstPercentage = parseFloat(taxData.utgst_percentage) || 0;
+              
+              row.igst = ((baseAmount * igstPercentage) / 100).toFixed(2);
+              row.cgst = ((baseAmount * cgstPercentage) / 100).toFixed(2);
+              row.sgst = ((baseAmount * sgstPercentage) / 100).toFixed(2);
+              row.utgst = ((baseAmount * utgstPercentage) / 100).toFixed(2);
+            }
+            
+            if (row.tdsCode && tdsDataCache[row.tdsCode]) {
+              const tdsData = tdsDataCache[row.tdsCode];
+              const tdsPercentage = parseFloat(tdsData.tds_percentage) || 0;
+              row.tdsAmount = ((baseAmount * tdsPercentage) / 100).toFixed(2);
+            }
+          }
+        }
+        
+        return updated;
+      });
     },
-    []
+    [taxDataCache, tdsDataCache]
   );
 
 
@@ -694,7 +840,6 @@ export function InvoicePage() {
       toast.success(result.message);
       setShowActionDialog(false);
       setComments("");
-      // Navigate back to approvals list
       navigate("/flow/approvals");
     } catch (error: any) {
       console.error(`Failed to ${actionType} invoice`, error);
@@ -706,12 +851,10 @@ export function InvoicePage() {
     }
   };
 
-  // Validation function
   const validateFields = (): boolean => {
     const errors: Record<string, boolean> = {};
     const lineItemErrors: Record<number, Record<string, boolean>> = {};
     
-    // Validate main form fields
     if (!invoiceNumber.trim()) errors.invoiceNumber = true;
     if (!invoiceDate.trim()) errors.invoiceDate = true;
     if (!gstNumber.trim() || gstNumber.length !== 15) errors.gstNumber = true;
@@ -722,7 +865,6 @@ export function InvoicePage() {
     if (!billingAddress.trim()) errors.billingAddress = true;
     if (!shippingAddress.trim()) errors.shippingAddress = true;
     
-    // Validate line items
     if (tableRows.length === 0) {
       toast.error("Please add at least one line item");
       return false;
@@ -796,12 +938,10 @@ export function InvoicePage() {
             tds_amount: row.tdsAmount || null,
           };
 
-          // Calculate subtotal from quantity * rate
           const quantity = parseFloat(row.quantity) || 0;
           const rate = parseFloat(row.rate) || 0;
           const subtotal = quantity * rate;
 
-          // Use netAmount as total if provided, otherwise calculate
           const cgst = parseFloat(row.cgst) || 0;
           const sgst = parseFloat(row.sgst) || 0;
           const igst = parseFloat(row.igst) || 0;
@@ -811,7 +951,6 @@ export function InvoicePage() {
           lineItem.subtotal = subtotal.toFixed(2);
           lineItem.total = row.netAmount || calculatedTotal.toFixed(2);
 
-          // Include id if this is an existing line item
           if (row.invoiceLineItemId) {
             lineItem.id = row.invoiceLineItemId;
           }
@@ -1336,6 +1475,7 @@ export function InvoicePage() {
           onAddRow={addTableRow}
           isFieldChanged={isFieldChanged}
           validationErrors={lineItemValidationErrors}
+          unmatchedHsnRows={unmatchedHsnRows}
           onValidationErrorChange={(rowId, field, hasError) => {
             setLineItemValidationErrors(prev => {
               const newErrors = { ...prev };

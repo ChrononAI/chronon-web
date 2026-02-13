@@ -39,6 +39,7 @@ interface LineItemsTableProps {
   onAddRow: () => void;
   isFieldChanged: (rowId: number, field: keyof Omit<InvoiceLineRow, "id">, currentValue: string) => boolean;
   validationErrors?: Record<number, Record<string, boolean>>;
+  unmatchedHsnRows?: Set<number>;
   onValidationErrorChange?: (rowId: number, field: string, hasError: boolean) => void;
 }
 
@@ -50,6 +51,7 @@ export function LineItemsTable({
   onAddRow,
   isFieldChanged,
   validationErrors = {},
+  unmatchedHsnRows = new Set(),
   onValidationErrorChange,
 }: LineItemsTableProps) {
   const [tdsSearchResults, setTdsSearchResults] = useState<TDSData[]>([]);
@@ -746,7 +748,7 @@ export function LineItemsTable({
                             '& .MuiOutlinedInput-root': {
                               height: '32px',
                               fontSize: '14px',
-                              backgroundColor: isFieldChanged(row.id, "itemDescription", row.itemDescription) ? '#fef3c7' : 'transparent',
+                              backgroundColor: unmatchedHsnRows.has(row.id) ? '#fef3c7' : 'transparent',
                               padding: '0 !important',
                               '& fieldset': {
                                 border: validationErrors[row.id]?.itemDescription ? '1px solid #EF4444' : 'none',
