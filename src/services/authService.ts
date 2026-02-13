@@ -5,13 +5,13 @@ import { decodeJwtToken, getOrgIdFromToken } from "@/lib/jwtUtils";
 export const authService = {
   async login(
     credentials: LoginCredentials
-  ): Promise<{ user: User; token: string }> {
+  ): Promise<{ user: User; token: string; products: string[] }> {
     const response = await api.post("auth/em/login", {
       email: credentials.email,
       password: credentials.password,
     });
 
-    const { access_token, user_details } = response.data.data;
+    const { access_token, user_details, products } = response.data.data;
 
     const jwtData = decodeJwtToken(access_token);
 
@@ -32,7 +32,11 @@ export const authService = {
       },
     };
 
-    return { user, token: access_token };
+    return { 
+      user, 
+      token: access_token, 
+      products: products || []
+    };
   },
 
   async createPassword(payload: { password: string; token: string; }) {
