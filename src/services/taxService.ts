@@ -9,6 +9,7 @@ export interface TaxData {
   igst_percentage: string;
   utgst_percentage: string;
   description: string;
+  hsn_sac_code?: string | null;
   active_flag: boolean;
   created_at: string;
   updated_at: string;

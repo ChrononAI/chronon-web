@@ -328,7 +328,7 @@ export function InvoicePage() {
                 cgst: item.cgst_amount || "",
                 sgst: item.sgst_amount || "",
                 utgst: item.utgst_amount || "",
-                netAmount: item.total || "",
+                netAmount: item.subtotal || "",
               };
             });
             

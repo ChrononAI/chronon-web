@@ -25,6 +25,7 @@ export interface TaxCodeData {
   igst_percentage: string;
   utgst_percentage: string;
   description: string;
+  hsn_sac_code?: string;
   is_active: boolean;
   active_flag?: boolean;
   created_at: string;
@@ -152,6 +153,7 @@ export const itemsCodeService = {
     igst_percentage?: number;
     utgst_percentage?: number;
     description?: string;
+    hsn_sac_code?: string;
     is_active?: boolean;
   }): Promise<any> {
     try {
@@ -170,6 +172,8 @@ export const itemsCodeService = {
     igst_percentage?: number;
     utgst_percentage?: number;
     description?: string;
+    hsn_sac_code?: string;
+    is_active?: boolean;
     active_flag?: boolean;
   }): Promise<any> {
     try {

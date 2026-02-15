@@ -62,6 +62,7 @@ export function LineItemsTable({
   const [gstSearchResults, setGstSearchResults] = useState<TaxData[]>([]);
   const [gstSearchLoading, setGstSearchLoading] = useState(false);
   const gstSearchTimeoutRef = useRef<Record<number, NodeJS.Timeout>>({});
+  const hsnSearchTimeoutRef = useRef<Record<number, NodeJS.Timeout>>({});
   const gstDataCacheRef = useRef<Record<string, TaxData>>({});
 
   const [itemSearchResults, setItemSearchResults] = useState<ItemData[]>([]);
@@ -150,6 +151,9 @@ export function LineItemsTable({
         if (timeout) clearTimeout(timeout);
       });
       Object.values(itemSearchTimeoutRef.current).forEach((timeout) => {
+        if (timeout) clearTimeout(timeout);
+      });
+      Object.values(hsnSearchTimeoutRef.current).forEach((timeout) => {
         if (timeout) clearTimeout(timeout);
       });
     };
@@ -299,11 +303,51 @@ export function LineItemsTable({
         }
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows.map(r => `${r.id}-${r.quantity}-${r.rate}-${r.tdsCode}`).join(',')]); // Re-run when quantity, rate, or TDS codes change
 
-  // GST Code Search Functions
-  const searchGSTCodes = useCallback(async (searchTerm: string) => {
+  const filterTaxCodesByHsn = useCallback((taxCodes: TaxData[], hsnCode: string): TaxData[] => {
+    if (!hsnCode?.trim()) return taxCodes;
+    
+    const hsnToMatch = hsnCode.trim().toUpperCase();
+    const hasMatchingTax = taxCodes.some(tax => {
+      const taxHsn = tax.hsn_sac_code?.trim().toUpperCase();
+      return taxHsn === hsnToMatch;
+    });
+    
+    return taxCodes.filter((tax) => {
+      const taxHsn = tax.hsn_sac_code?.trim().toUpperCase();
+      if (hasMatchingTax) {
+        return taxHsn === hsnToMatch || !taxHsn;
+      }
+      return !taxHsn;
+    });
+  }, []);
+
+  const fetchTaxCodesByHsn = useCallback(async (hsnCode: string) => {
+    if (!hsnCode?.trim()) {
+      setGstSearchResults([]);
+      return;
+    }
+
+    setGstSearchLoading(true);
+    try {
+      const response = await taxService.getTaxes(200, 0);
+      const taxData = response?.data || [];
+      const filteredTaxData = filterTaxCodesByHsn(taxData, hsnCode);
+      setGstSearchResults(filteredTaxData);
+      
+      taxData.forEach((tax) => {
+        gstDataCacheRef.current[tax.tax_code] = tax;
+      });
+    } catch (error) {
+      console.error("Error fetching tax codes:", error);
+      setGstSearchResults([]);
+    } finally {
+      setGstSearchLoading(false);
+    }
+  }, [filterTaxCodesByHsn]);
+
+  const searchGSTCodes = useCallback(async (searchTerm: string, hsnCode?: string) => {
     if (!searchTerm.trim() || searchTerm.trim().length < 3) {
       setGstSearchResults([]);
       return;
@@ -313,9 +357,9 @@ export function LineItemsTable({
     try {
       const response = await taxService.searchTaxCodes(searchTerm, 200, 0);
       const taxData = response?.data || [];
-      setGstSearchResults(taxData);
+      const filteredTaxData = hsnCode ? filterTaxCodesByHsn(taxData, hsnCode) : taxData;
+      setGstSearchResults(filteredTaxData);
       
-      // Cache GST data for quick lookup
       taxData.forEach((tax) => {
         gstDataCacheRef.current[tax.tax_code] = tax;
       });
@@ -325,25 +369,26 @@ export function LineItemsTable({
     } finally {
       setGstSearchLoading(false);
     }
-  }, []);
+  }, [filterTaxCodesByHsn]);
 
   const handleGSTCodeChange = useCallback((rowId: number, newValue: string) => {
     onRowUpdate(rowId, "gstCode", newValue);
     
-    // Clear previous timeout for this row
     if (gstSearchTimeoutRef.current[rowId]) {
       clearTimeout(gstSearchTimeoutRef.current[rowId]);
     }
 
-    // Debounce search - wait 300ms after user stops typing
+    const row = rows.find(r => r.id === rowId);
+    const hsnCode = row?.hsnCode || "";
+
     gstSearchTimeoutRef.current[rowId] = setTimeout(() => {
       if (newValue.trim() && newValue.trim().length >= 3) {
-        searchGSTCodes(newValue);
+        searchGSTCodes(newValue, hsnCode);
       } else {
         setGstSearchResults([]);
       }
     }, 300);
-  }, [onRowUpdate, searchGSTCodes]);
+  }, [onRowUpdate, searchGSTCodes, rows]);
 
   const handleGSTCodeSelect = useCallback((rowId: number, taxData: TaxData | string | null) => {
     if (taxData && typeof taxData === 'object') {
@@ -605,9 +650,14 @@ export function LineItemsTable({
                           if (onValidationErrorChange && newValue.description.trim()) {
                             onValidationErrorChange(row.id, "itemDescription", false);
                           }
-                          // Auto-populate HSN code when item is selected
                           if (newValue.hsn_sac_code) {
                             onRowUpdate(row.id, "hsnCode", newValue.hsn_sac_code);
+                            if (hsnSearchTimeoutRef.current[row.id]) {
+                              clearTimeout(hsnSearchTimeoutRef.current[row.id]);
+                            }
+                            hsnSearchTimeoutRef.current[row.id] = setTimeout(() => {
+                              fetchTaxCodesByHsn(newValue.hsn_sac_code);
+                            }, 500);
                           }
                           // Optionally auto-populate tax_code and tds_code if they're empty
                           if (!row.gstCode && newValue.tax_code) {
@@ -853,7 +903,20 @@ export function LineItemsTable({
                       <Input
                         value={row.hsnCode}
                         onChange={(e) => {
-                          onRowUpdate(row.id, "hsnCode", e.target.value);
+                          const newHsnCode = e.target.value;
+                          onRowUpdate(row.id, "hsnCode", newHsnCode);
+                          
+                          if (hsnSearchTimeoutRef.current[row.id]) {
+                            clearTimeout(hsnSearchTimeoutRef.current[row.id]);
+                          }
+                          
+                          hsnSearchTimeoutRef.current[row.id] = setTimeout(() => {
+                            if (newHsnCode.trim()) {
+                              fetchTaxCodesByHsn(newHsnCode);
+                            } else {
+                              setGstSearchResults([]);
+                            }
+                          }, 500);
                         }}
                         className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                           isFieldChanged(row.id, "hsnCode", row.hsnCode) ? "bg-yellow-100" : ""
@@ -1018,9 +1081,20 @@ export function LineItemsTable({
                     <div>
                       <Autocomplete
                         freeSolo
-                        options={gstSearchResults.length > 0 ? gstSearchResults : defaultTaxCodes}
+                        options={(() => {
+                          const allOptions = gstSearchResults.length > 0 ? gstSearchResults : defaultTaxCodes;
+                          return row.hsnCode?.trim() 
+                            ? filterTaxCodesByHsn(allOptions, row.hsnCode)
+                            : allOptions;
+                        })()}
                         getOptionLabel={(option) => typeof option === 'string' ? option : option.tax_code}
-                        value={(gstSearchResults.length > 0 ? gstSearchResults : defaultTaxCodes).find(tax => tax.tax_code === row.gstCode) || row.gstCode || null}
+                        value={(() => {
+                          const allOptions = gstSearchResults.length > 0 ? gstSearchResults : defaultTaxCodes;
+                          const filtered = row.hsnCode?.trim() 
+                            ? filterTaxCodesByHsn(allOptions, row.hsnCode)
+                            : allOptions;
+                          return filtered.find(tax => tax.tax_code === row.gstCode) || row.gstCode || null;
+                        })()}
                         onInputChange={(_event, newValue) => {
                           handleGSTCodeChange(row.id, newValue);
                           if (onValidationErrorChange && newValue.trim()) {
