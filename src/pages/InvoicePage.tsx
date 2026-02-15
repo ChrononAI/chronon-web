@@ -1023,6 +1023,14 @@ export function InvoicePage() {
   const isFieldDisabled = isApprovalMode || isInvoiceFinalized || isPendingApproval;
   const shouldShowButtons = !tableLoading && (invoiceStatus !== null || !id);
 
+  const calculatedSubtotal = tableRows.reduce((sum, row) => sum + (parseFloat(row.netAmount) || 0), 0);
+  const calculatedCgst = tableRows.reduce((sum, row) => sum + (parseFloat(row.cgst) || 0), 0);
+  const calculatedSgst = tableRows.reduce((sum, row) => sum + (parseFloat(row.sgst) || 0), 0);
+  const calculatedIgst = tableRows.reduce((sum, row) => sum + (parseFloat(row.igst) || 0), 0);
+  const calculatedTds = tableRows.reduce((sum, row) => sum + (parseFloat(row.tdsAmount) || 0), 0);
+  const calculatedTotalAmount = calculatedSubtotal + calculatedCgst + calculatedSgst + calculatedIgst;
+  const calculatedTotalPayable = calculatedTotalAmount - calculatedTds;
+
   return (
     <div className="flex flex-col min-h-screen bg-sky-100">
       <div className="bg-white border-b px-0 py-4 sticky top-0 z-10">
@@ -1490,68 +1498,49 @@ export function InvoicePage() {
         />
 
         {/* Summary Section */}
-        <div className="bg-white border-t border-gray-200">
+        <div className="bg-white border-t border-gray-200 pb-20">
           <div className="flex justify-end pr-6 pl-0 py-1">
             <div className="flex flex-col items-end min-w-[140px]">
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">Subtotal</Label>
-                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("subtotal_amount", parseFloat(subtotalAmount) || 0) ? "bg-yellow-100" : "bg-gray-50"}`}>
-                  <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(subtotalAmount) || 0)}</span>
+                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("subtotal_amount", calculatedSubtotal) ? "bg-yellow-100" : "bg-gray-50"}`}>
+                  <span className="text-xs font-medium text-right">{formatCurrency(calculatedSubtotal)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">CGST</Label>
-                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("cgst_amount", parseFloat(cgstAmount) || 0) ? "bg-yellow-100" : "bg-gray-50"}`}>
-                  <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(cgstAmount) || 0)}</span>
+                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("cgst_amount", calculatedCgst) ? "bg-yellow-100" : "bg-gray-50"}`}>
+                  <span className="text-xs font-medium text-right">{formatCurrency(calculatedCgst)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">SGST</Label>
-                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("sgst_amount", parseFloat(sgstAmount) || 0) ? "bg-yellow-100" : "bg-gray-50"}`}>
-                  <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(sgstAmount) || 0)}</span>
+                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("sgst_amount", calculatedSgst) ? "bg-yellow-100" : "bg-gray-50"}`}>
+                  <span className="text-xs font-medium text-right">{formatCurrency(calculatedSgst)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">IGST</Label>
-                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("igst_amount", parseFloat(igstAmount) || 0) ? "bg-yellow-100" : "bg-gray-50"}`}>
-                  <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(igstAmount) || 0)}</span>
+                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("igst_amount", calculatedIgst) ? "bg-yellow-100" : "bg-gray-50"}`}>
+                  <span className="text-xs font-medium text-right">{formatCurrency(calculatedIgst)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
                 <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Total Amount</Label>
-                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("total_amount", (parseFloat(subtotalAmount) || 0) + (parseFloat(cgstAmount) || 0) + (parseFloat(sgstAmount) || 0) + (parseFloat(igstAmount) || 0)) ? "bg-yellow-100" : "bg-gray-50"}`}>
-                  <span className="text-xs font-semibold text-right">{formatCurrency(
-                    (parseFloat(subtotalAmount) || 0) +
-                    (parseFloat(cgstAmount) || 0) +
-                    (parseFloat(sgstAmount) || 0) +
-                    (parseFloat(igstAmount) || 0)
-                  )}</span>
+                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("total_amount", calculatedTotalAmount) ? "bg-yellow-100" : "bg-gray-50"}`}>
+                  <span className="text-xs font-semibold text-right">{formatCurrency(calculatedTotalAmount)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">TDS</Label>
                 <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
-                  <span className="text-xs font-medium text-right">{formatCurrency(
-                    tableRows.reduce((sum, row) => sum + (parseFloat(row.tdsAmount) || 0), 0)
-                  )}</span>
+                  <span className="text-xs font-medium text-right">{formatCurrency(calculatedTds)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
                 <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Total Payable</Label>
                 <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
-                  <span className="text-xs font-semibold text-right">{formatCurrency(
-                    ((parseFloat(subtotalAmount) || 0) +
-                    (parseFloat(cgstAmount) || 0) +
-                    (parseFloat(sgstAmount) || 0) +
-                    (parseFloat(igstAmount) || 0)) -
-                    tableRows.reduce((sum, row) => sum + (parseFloat(row.tdsAmount) || 0), 0)
-                  )}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
-                <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Payable Amount</Label>
-                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
-                  <span className="text-xs font-semibold text-right">{formatCurrency(parseFloat(totalAmount) || 0)}</span>
+                  <span className="text-xs font-semibold text-right">{formatCurrency(calculatedTotalPayable)}</span>
                 </div>
               </div>
             </div>

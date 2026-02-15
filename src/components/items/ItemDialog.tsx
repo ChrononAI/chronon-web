@@ -43,7 +43,7 @@ const itemSchema = z.object({
   item_code: z.string().min(1, "Item code is required"),
   description: z.string().min(1, "Description is required"),
   tax_code: z.string().min(1, "Tax code is required"),
-  tds_code: z.string().min(1, "TDS code is required"),
+  tds_code: z.string().optional(),
   hsn_sac_code: z.string().min(1, "HSN/SAC code is required"),
 });
 
@@ -176,7 +176,7 @@ export function ItemDialog({
           <DialogDescription className="text-gray-600">
             {isEditMode
               ? "Update the details for this item."
-              : "Fill in the details to create a new item. All fields are required."}
+              : "Fill in the details to create a new item."}
           </DialogDescription>
         </DialogHeader>
 
@@ -243,7 +243,7 @@ export function ItemDialog({
                   return (
                     <FormItem>
                       <FormLabel className="text-sm font-semibold text-gray-700">
-                        TDS Code <span className="text-red-500">*</span>
+                        TDS Code
                       </FormLabel>
                       <Popover open={tdsOpen} onOpenChange={setTdsOpen}>
                         <PopoverTrigger asChild>
