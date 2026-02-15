@@ -3,10 +3,12 @@ import {
   Routes,
   Route,
   Navigate,
+  useParams,
 } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { LoginPage } from "@/pages/auth/LoginPage";
+import { ProductSelectionPage } from "@/pages/auth/ProductSelectionPage";
 import { ExpenseDetailPage } from "@/pages/ExpenseDetailPage";
 import { MyReportsPage } from "@/pages/MyReportsPage";
 import { MyAdvancesPage } from "@/pages/MyAdvancesPage";
@@ -74,7 +76,50 @@ import ValidateFile from "./pages/bulk-upload/ValidateFile";
 import BulkUploadedFilesPage from "./pages/admin/BulkUploadedFilesPage";
 import TransactionsPage from "./pages/transactions/TransactionsPage";
 import TransactionDetailPage from "./pages/transactions/TransactionDetailPage";
+import { InvoicePage } from "./pages/InvoicePage";
+import { AllInvoicesPage } from "./pages/AllInvoicesPage";
+import { AllVendorsPage } from "./pages/AllVendorsPage";
+import { VendorDetailsPage } from "./pages/VendorDetailsPage";
+import { TDSCodePage } from "./pages/admin/TDSCodePage";
+import { TaxCodePage } from "./pages/admin/TaxCodePage";
+import { ItemsPage } from "./pages/admin/ItemsPage";
+import { AllInvoiceApprovalsPage } from "./pages/AllInvoiceApprovalsPage";
+import { FlowLayout } from "./components/layout/FlowLayout";
+import { BulkInvoiceUploadPage } from "./pages/BulkInvoiceUploadPage";
+import { useAuthStore } from "@/store/authStore";
 import { AdminReportsApprovalPage } from "./pages/admin-reports/AdminReportsApprovalPage";
+
+function VendorRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/flow/master/vendors/${id}`} replace />;
+}
+
+function RootRedirect() {
+  const { selectedProduct, products } = useAuthStore();
+  
+  if (selectedProduct === "Invoice Payments") {
+    return <Navigate to="/flow/invoice" replace />;
+  }
+  
+  if (selectedProduct === "Expense Management") {
+    return <Navigate to="/expenses" replace />;
+  }
+  
+  if (products.length === 1) {
+    if (products[0] === "Invoice Payments") {
+      return <Navigate to="/flow/invoice" replace />;
+    }
+    if (products[0] === "Expense Management") {
+      return <Navigate to="/expenses" replace />;
+    }
+  }
+  
+  if (products.length > 1) {
+    return <Navigate to="/select-product" replace />;
+  }
+  
+  return <Navigate to="/expenses" replace />;
+}
 
 function App() {
   return (
@@ -83,17 +128,36 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/select-product" element={<ProductSelectionPage />} />
           <Route path="/accounts/forgot_password" element={<ForgotPasswordPage />} />
           <Route path="/accounts/reset_password" element={<ResetPassword />} />
           <Route path="/accounts/create_password" element={<CreatePassword />} />
           <Route path="/accounts/resend_verification" element={<ResendVerificationMail />} />
 
+          {/* Invoice Flow Layout */}
+          <Route element={<FlowLayout />}>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/flow" element={<Navigate to="/flow/invoice" replace />} />
+              <Route path="/flow/invoice" element={<AllInvoicesPage />} />
+              <Route path="/flow/invoice/bulk-upload" element={<BulkInvoiceUploadPage />} />
+              <Route path="/flow/invoice/upload" element={<InvoicePage />} />
+              <Route path="/flow/invoice/:id" element={<InvoicePage />} />
+              <Route path="/flow/approvals" element={<AllInvoiceApprovalsPage />} />
+              <Route path="/flow/approvals/:id" element={<InvoicePage />} />
+              <Route path="/flow/master/vendors" element={<AllVendorsPage />} />
+              <Route path="/flow/master/vendors/new" element={<VendorDetailsPage />} />
+              <Route path="/flow/master/vendors/:id" element={<VendorDetailsPage />} />
+              <Route path="/flow/master/items" element={<ItemsPage />} />
+              <Route path="/flow/master/tds-code" element={<TDSCodePage />} />
+              <Route path="/flow/master/tax-code" element={<TaxCodePage />} />
+            </Route>
+          </Route>
+
           {/* Protected + Main Layout */}
           <Route element={<Layout />}>
             <Route element={<ProtectedRoute />}>
 
-              {/* Default Redirect */}
-              <Route path="/" element={<Navigate to="/expenses" replace />} />
+              <Route path="/" element={<RootRedirect />} />
 
               {/* EXPENSES */}
               <Route path="/expenses" element={<MyExpensesPage />} />
@@ -139,6 +203,7 @@ function App() {
               <Route path="/requests/stores" element={<Stores />} />
               <Route path="/requests/stores/create" element={<CreateStorePage />} />
               <Route path="/requests/stores/:id" element={<StoreDetailsPage />} />
+
 
               {/* SETTLEMENTS */}
               <Route path="/admin/settlements" element={<Settlements />} />
@@ -187,6 +252,15 @@ function App() {
                 <Route path="/admin-settings/product-config/bulk-uploads/column-mapping/:type/:fileid" element={<ColumnMapping />} />
                 <Route path="/admin-settings/product-config/bulk-uploads/validate-file/:type/:fileid" element={<ValidateFile />} />
               </Route>
+
+              {/* INVOICES - Redirect old routes to flow */}
+              <Route path="/invoice" element={<Navigate to="/flow/invoice" replace />} />
+              <Route path="/invoice/upload" element={<Navigate to="/flow/invoice/upload" replace />} />
+              <Route path="/invoice/:id" element={<InvoicePage />} />
+              <Route path="/vendors" element={<Navigate to="/flow/master/vendors" replace />} />
+              <Route path="/flow/vendors" element={<Navigate to="/flow/master/vendors" replace />} />
+              <Route path="/flow/vendors/new" element={<Navigate to="/flow/master/vendors/new" replace />} />
+              <Route path="/flow/vendors/:id" element={<VendorRedirect />} />
 
               {/* OTHER PAGES */}
               <Route path="/admin/all-reports" element={<AllReportsPage />} />

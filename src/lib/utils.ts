@@ -138,7 +138,7 @@ export function formatCurrency(
   amount: number,
   overrideCurrency?: string
 ): string {
-  const currency = overrideCurrency || getOrgCurrency();
+  const currency = overrideCurrency || getOrgCurrency() || "INR";
 
   let locale = "en-IN";
   if (currency === "USD") {
