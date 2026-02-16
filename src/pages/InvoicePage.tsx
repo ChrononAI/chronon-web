@@ -86,11 +86,6 @@ export function InvoicePage() {
   const [invoiceStatus, setInvoiceStatus] = useState<string | null>(null);
   const [tableRows, setTableRows] = useState<InvoiceLineRow[]>([]);
   const [originalOcrValues, setOriginalOcrValues] = useState<Record<number, Partial<InvoiceLineRow>>>({});
-  const [subtotalAmount, setSubtotalAmount] = useState<string>("0.00");
-  const [cgstAmount, setCgstAmount] = useState<string>("0.00");
-  const [sgstAmount, setSgstAmount] = useState<string>("0.00");
-  const [igstAmount, setIgstAmount] = useState<string>("0.00");
-  const [totalAmount, setTotalAmount] = useState<string>("0.00");
   const nextRowIdRef = useRef(1);
   const previewUrlRef = useRef<string | null>(null);
   const lastLoadedRef = useRef<{ id?: string; fileKey?: string; routeKey?: string }>({});
@@ -289,11 +284,6 @@ export function InvoicePage() {
             }
           }
           
-          setSubtotalAmount(invoice.subtotal_amount || "0.00");
-          setCgstAmount(invoice.cgst_amount || "0.00");
-          setSgstAmount(invoice.sgst_amount || "0.00");
-          setIgstAmount(invoice.igst_amount || "0.00");
-          setTotalAmount(invoice.total_amount || "0.00");
           
           setRawOcrPayload(invoice.raw_ocr_payload || null);
           
@@ -379,11 +369,6 @@ export function InvoicePage() {
             setTableRows([]);
             setOriginalOcrValues({});
             setRawOcrPayload(null);
-            setSubtotalAmount("0.00");
-            setCgstAmount("0.00");
-            setSgstAmount("0.00");
-            setIgstAmount("0.00");
-            setTotalAmount("0.00");
             nextRowIdRef.current = 1;
             setTableLoading(false);
             setInvoiceLoading(false);
