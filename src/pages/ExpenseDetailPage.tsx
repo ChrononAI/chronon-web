@@ -132,8 +132,11 @@ export function ExpenseDetailPage() {
     const fetchData = async () => {
       if (!expenseId) return;
       try {
+        const isFromApprovalReport = isFromApprovals || 
+          location.pathname.includes("/approvals");
+        
         const [expenseData] = await Promise.all([
-          expenseService.getExpenseById(expenseId),
+          expenseService.getExpenseById(expenseId, isFromApprovalReport),
           expenseService.getAllPoliciesWithCategories(),
         ]);
         setExpense(expenseData);
