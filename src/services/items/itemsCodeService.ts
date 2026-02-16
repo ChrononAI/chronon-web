@@ -218,7 +218,7 @@ export const itemsCodeService = {
     item_code: string;
     description: string;
     tax_code: string;
-    tds_code: string;
+    tds_code?: string;
     hsn_sac_code: string;
   }): Promise<any> {
     try {
