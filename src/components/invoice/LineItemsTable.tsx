@@ -177,6 +177,75 @@ export function LineItemsTable({
     }
   }, []);
 
+  const searchItemsByHsn = useCallback(async (hsnCode: string, rowId: number) => {
+    if (!hsnCode.trim()) {
+      return null;
+    }
+
+    try {
+      const response = await itemsCodeService.searchItemsByHsn(hsnCode.trim(), 10, 0);
+      const items = response?.data || [];
+      
+      const exactMatch = items.find(
+        (item) => item.hsn_sac_code?.trim().toUpperCase() === hsnCode.trim().toUpperCase()
+      );
+      
+      if (exactMatch) {
+        const currentRow = rows.find(r => r.id === rowId);
+        if (currentRow) {
+          onRowUpdate(rowId, "itemDescription", exactMatch.description);
+          if (onValidationErrorChange) {
+            onValidationErrorChange(rowId, "itemDescription", false);
+          }
+        }
+        
+        if (currentRow) {
+          if (!currentRow.gstCode && exactMatch.tax_code) {
+            onRowUpdate(rowId, "gstCode", exactMatch.tax_code);
+            if (onValidationErrorChange) {
+              onValidationErrorChange(rowId, "gstCode", false);
+            }
+            const cachedTax = gstDataCacheRef.current[exactMatch.tax_code];
+            if (cachedTax) {
+              const quantity = parseFloat(currentRow.quantity) || 0;
+              const rate = parseFloat(currentRow.rate) || 0;
+              const baseAmount = quantity * rate;
+              const igstPercentage = parseFloat(cachedTax.igst_percentage) || 0;
+              const cgstPercentage = parseFloat(cachedTax.cgst_percentage) || 0;
+              const sgstPercentage = parseFloat(cachedTax.sgst_percentage) || 0;
+              const utgstPercentage = parseFloat(cachedTax.utgst_percentage) || 0;
+              onRowUpdate(rowId, "igst", ((baseAmount * igstPercentage) / 100).toFixed(2));
+              onRowUpdate(rowId, "cgst", ((baseAmount * cgstPercentage) / 100).toFixed(2));
+              onRowUpdate(rowId, "sgst", ((baseAmount * sgstPercentage) / 100).toFixed(2));
+              onRowUpdate(rowId, "utgst", ((baseAmount * utgstPercentage) / 100).toFixed(2));
+            }
+          }
+          if (!currentRow.tdsCode && exactMatch.tds_code) {
+            onRowUpdate(rowId, "tdsCode", exactMatch.tds_code);
+            if (onValidationErrorChange) {
+              onValidationErrorChange(rowId, "tdsCode", false);
+            }
+            const cachedTds = tdsDataCacheRef.current[exactMatch.tds_code];
+            if (cachedTds) {
+              const quantity = parseFloat(currentRow.quantity) || 0;
+              const rate = parseFloat(currentRow.rate) || 0;
+              const baseAmount = quantity * rate;
+              const tdsPercentage = parseFloat(cachedTds.tds_percentage) || 0;
+              onRowUpdate(rowId, "tdsAmount", ((baseAmount * tdsPercentage) / 100).toFixed(2));
+            }
+          }
+        }
+        
+        return exactMatch;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error("Error searching items by HSN:", error);
+      return null;
+    }
+  }, [rows, onRowUpdate, onValidationErrorChange]);
+
   const handleItemDescriptionChange = useCallback((rowId: number, newValue: string) => {
     onRowUpdate(rowId, "itemDescription", newValue);
     if (itemSearchTimeoutRef.current[rowId]) {
@@ -906,6 +975,7 @@ export function LineItemsTable({
                           hsnSearchTimeoutRef.current[row.id] = setTimeout(() => {
                             if (newHsnCode.trim()) {
                               fetchTaxCodesByHsn(newHsnCode);
+                              searchItemsByHsn(newHsnCode, row.id);
                             } else {
                               setGstSearchResults([]);
                             }

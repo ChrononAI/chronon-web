@@ -852,12 +852,6 @@ export function InvoicePage() {
     if (!invoiceNumber.trim()) errors.invoiceNumber = true;
     if (!invoiceDate.trim()) errors.invoiceDate = true;
     if (!gstNumber.trim() || gstNumber.length !== 15) errors.gstNumber = true;
-    if (!vendorId.trim()) errors.vendorId = true;
-    if (!vendorName.trim()) errors.vendorName = true;
-    if (!vendorPan.trim()) errors.vendorPan = true;
-    if (!vendorEmail.trim()) errors.vendorEmail = true;
-    if (!billingAddress.trim()) errors.billingAddress = true;
-    if (!shippingAddress.trim()) errors.shippingAddress = true;
     
     if (tableRows.length === 0) {
       toast.error("Please add at least one line item");
@@ -1319,14 +1313,11 @@ export function InvoicePage() {
                         id="vendor-id"
                         value={vendorId}
                         readOnly
-                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${getFieldHighlightClass("vendor_id", vendorId)} ${validationErrors.vendorId ? 'border-red-500' : 'border-[#E9EAEE]'}`}
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${getFieldHighlightClass("vendor_id", vendorId)} border-[#E9EAEE]`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor ID" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
-                      {validationErrors.vendorId && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-name" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
@@ -1336,14 +1327,11 @@ export function InvoicePage() {
                         id="vendor-name"
                         value={vendorName}
                         readOnly
-                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${validationErrors.vendorName ? 'border-red-500' : 'border-[#E9EAEE]'}`}
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 border-[#E9EAEE]`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor name" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
-                      {validationErrors.vendorName && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-pan" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>PAN</Label>
@@ -1351,14 +1339,11 @@ export function InvoicePage() {
                         id="vendor-pan"
                         value={vendorPan}
                         readOnly
-                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${validationErrors.vendorPan ? 'border-red-500' : 'border-[#E9EAEE]'}`}
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 border-[#E9EAEE]`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "PAN number" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
-                      {validationErrors.vendorPan && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-email" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Vendor Email</Label>
@@ -1367,14 +1352,11 @@ export function InvoicePage() {
                         type="email"
                         value={vendorEmail}
                         readOnly
-                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${validationErrors.vendorEmail ? 'border-red-500' : 'border-[#E9EAEE]'}`}
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 border-[#E9EAEE]`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor email" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
-                      {validationErrors.vendorEmail && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
               </div>
             </div>
@@ -1390,18 +1372,12 @@ export function InvoicePage() {
                         value={billingAddress}
                         onChange={(e) => {
                           setBillingAddress(e.target.value);
-                          if (validationErrors.billingAddress && e.target.value.trim()) {
-                            setValidationErrors(prev => ({ ...prev, billingAddress: false }));
-                          }
                         }}
-                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("billing_address", billingAddress)} ${validationErrors.billingAddress ? 'border-red-500' : 'border-[#E9EAEE]'}`}
+                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("billing_address", billingAddress)} border-[#E9EAEE]`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder="Enter billing address..."
                         disabled={isFieldDisabled}
                       />
-                      {validationErrors.billingAddress && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                     <div>
                       <Label htmlFor="shipping-address" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Shipping Address</Label>
@@ -1410,18 +1386,12 @@ export function InvoicePage() {
                         value={shippingAddress}
                         onChange={(e) => {
                           setShippingAddress(e.target.value);
-                          if (validationErrors.shippingAddress && e.target.value.trim()) {
-                            setValidationErrors(prev => ({ ...prev, shippingAddress: false }));
-                          }
                         }}
-                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("shipping_address", shippingAddress)} ${validationErrors.shippingAddress ? 'border-red-500' : 'border-[#E9EAEE]'}`}
+                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("shipping_address", shippingAddress)} border-[#E9EAEE]`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder="Enter shipping address..."
                         disabled={isFieldDisabled}
                       />
-                      {validationErrors.shippingAddress && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
               </div>
             </div>
