@@ -112,33 +112,6 @@ const columns: GridColDef<ItemData>[] = [
     ),
   },
   {
-    field: "tds_code",
-    headerName: "TDS CODE",
-    flex: 1,
-    minWidth: 120,
-    renderCell: (params) => (
-      <div className="flex items-center h-full w-full overflow-hidden">
-        <span 
-          style={{
-            fontFamily: "Inter",
-            fontWeight: 500,
-            fontSize: "14px",
-            lineHeight: "100%",
-            letterSpacing: "0%",
-            color: "#1A1A1A",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            maxWidth: "100%",
-          }}
-          title={params.value}
-        >
-          {params.value || "-"}
-        </span>
-      </div>
-    ),
-  },
-  {
     field: "hsn_sac_code",
     headerName: "HSN/SAC CODE",
     flex: 1,
@@ -242,7 +215,6 @@ export const ItemsPage = () => {
         row.item_code?.toLowerCase().includes(searchLower) ||
         row.description?.toLowerCase().includes(searchLower) ||
         row.tax_code?.toLowerCase().includes(searchLower) ||
-        row.tds_code?.toLowerCase().includes(searchLower) ||
         row.hsn_sac_code?.toLowerCase().includes(searchLower)
     );
   }, [rows, searchTerm]);
@@ -258,7 +230,7 @@ export const ItemsPage = () => {
       showCreateButton={false}
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
-      searchPlaceholder="Search by item code, description, tax code, TDS code, or HSN/SAC code..."
+      searchPlaceholder="Search by item code, description, tax code, or HSN/SAC code..."
       showFilters={false}
       showDateFilter={false}
       marginBottom="mb-0"
