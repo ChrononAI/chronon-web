@@ -116,7 +116,12 @@ export const expenseService = {
     }
   },
 
-  async getExpenseById(id: string | number): Promise<Expense> {
+  async getExpenseById(id: string | number, isFromApprovals?: boolean): Promise<Expense> {
+    if (isFromApprovals) {
+      const response = await api.get(`/api/v1/expenses/admin?id=eq.${id}`);
+      return response.data.data?.[0];
+    }
+    
     const response = await api.get(`/api/v1/expenses/spender?id=eq.${id}`);
     return  response.data.data?.[0];
   },
