@@ -42,7 +42,9 @@ export function AllVendorsPage() {
   const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const [vendors, setVendors] = useState<VendorRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [rowsCalculated, setRowsCalculated] = useState(false);
+  const [rowCount, setRowCount] = useState(0);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 10,
@@ -54,10 +56,6 @@ export function AllVendorsPage() {
       setNoPadding(false);
     };
   }, [setNoPadding]);
-
-  useEffect(() => {
-    fetchVendors();
-  }, []);
 
   useEffect(() => {
     const calculatePageSize = () => {
@@ -80,10 +78,13 @@ export function AllVendorsPage() {
     return () => window.removeEventListener("resize", calculatePageSize);
   }, [rowsCalculated]);
 
-  const fetchVendors = async () => {
+  const fetchVendors = async (paginationModel: GridPaginationModel) => {
     try {
       setLoading(true);
-      const response = await vendorService.getVendors();
+      const limit = paginationModel.pageSize;
+      const offset = paginationModel.page * limit;
+      
+      const response = await vendorService.getVendors(limit, offset);
       const apiVendors: VendorData[] = response?.data || [];
       
       const mappedVendors: VendorRow[] = apiVendors.map((vendor) => ({
@@ -95,15 +96,19 @@ export function AllVendorsPage() {
       }));
 
       setVendors(mappedVendors);
+      setRowCount(response.count);
     } catch (error: any) {
       console.error("Failed to fetch vendors:", error);
       toast.error(error?.response?.data?.message || "Failed to load vendors");
     } finally {
       setLoading(false);
+      setIsInitialLoad(false);
     }
   };
 
-  const filtered = vendors;
+  useEffect(() => {
+    fetchVendors(paginationModel);
+  }, [paginationModel]);
 
   const handleCreateVendor = () => {
     navigate("/flow/vendors/new");
@@ -214,7 +219,7 @@ export function AllVendorsPage() {
         marginBottom="mb-0"
       >
         <DataTable
-          rows={filtered}
+          rows={loading && isInitialLoad ? [] : vendors}
           columns={columns}
           loading={loading}
           paginationModel={paginationModel}
@@ -222,6 +227,8 @@ export function AllVendorsPage() {
           onRowClick={handleRowClick}
           firstColumnField="vendorCode"
           emptyStateComponent={<CustomNoRows />}
+          rowCount={rowCount}
+          paginationMode="server"
           slots={{
             toolbar: CustomInvoiceToolbar,
           }}

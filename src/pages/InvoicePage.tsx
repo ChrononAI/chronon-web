@@ -268,7 +268,7 @@ export function InvoicePage() {
             setGstNumber(invoice.gst_number);
             if (invoice.gst_number.length === 15) {
               try {
-                const vendorResponse = await vendorService.searchVendorsByGst(invoice.gst_number);
+                const vendorResponse = await vendorService.searchVendorsByGst(invoice.gst_number, 17, 0);
                 const matchedVendor = vendorResponse?.data?.find(v => v.gstin === invoice.gst_number);
                 if (matchedVendor) {
                   setVendorName(matchedVendor.vendor_name || "");
@@ -435,7 +435,7 @@ export function InvoicePage() {
 
     setVendorSearchLoading(true);
     try {
-      const response = await vendorService.searchVendorsByGst(searchTerm);
+      const response = await vendorService.searchVendorsByGst(searchTerm, 17, 0);
       setVendorSearchResults(response?.data || []);
     } catch (error) {
       console.error("Error searching vendors:", error);

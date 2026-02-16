@@ -54,6 +54,7 @@ export function AllInvoicesPage() {
     osc_pending: 0,
     booked: 0,
   });
+  const [rowCount, setRowCount] = useState(0);
   // Cache invoices data for each tab
   const [cachedInvoices, setCachedInvoices] = useState<{
     osc_processed: InvoiceListRow[];
@@ -142,11 +143,13 @@ export function AllInvoicesPage() {
   const fetchAllTabData = useCallback(async () => {
     try {
       setLoadingInvoices(true);
-      // Fetch all three tabs' data in parallel
+      const limit = paginationModel.pageSize;
+      const offset = paginationModel.page * limit;
+      
       const [processedResponse, pendingResponse, bookedResponse] = await Promise.all([
-        getAllInvoices("ocr_status=in.(OCR_PROCESSED)"),
-        getAllInvoices("ocr_status=in.(OCR_PROCESSING,OCR_PENDING)"),
-        getAllInvoices("status=in.(REJECTED,APPROVED,PENDING_APPROVAL)"),
+        getAllInvoices("ocr_status=in.(OCR_PROCESSED)", limit, offset),
+        getAllInvoices("ocr_status=in.(OCR_PROCESSING,OCR_PENDING)", limit, offset),
+        getAllInvoices("status=in.(REJECTED,APPROVED,PENDING_APPROVAL)", limit, offset),
       ]);
 
       // Convert all responses to rows
@@ -168,27 +171,30 @@ export function AllInvoicesPage() {
         booked: bookedResponse.count || 0,
       });
 
-      // Set the active tab's data to the store
+      setRowCount(processedResponse.count || 0);
       useInvoiceFlowStore.setState({ invoices: processedRows });
-      
       setInitialLoadComplete(true);
     } catch (error) {
       // Error handled silently
     } finally {
       setLoadingInvoices(false);
     }
-  }, []);
+  }, [paginationModel]);
 
   const fetchInvoices = useCallback(async (tab: "osc_processed" | "osc_pending" | "booked", forceRefresh: boolean = false) => {
-    // If we have cached data and not forcing refresh, use cached data
     if (!forceRefresh && initialLoadComplete) {
-      useInvoiceFlowStore.setState({ invoices: cachedInvoices[tab] });
+      setCachedInvoices(prev => {
+        useInvoiceFlowStore.setState({ invoices: prev[tab] });
+        return prev;
+      });
       return;
     }
     try {
       setLoadingInvoices(true);
-      let queryParams = "";
+      const limit = paginationModel.pageSize;
+      const offset = paginationModel.page * limit;
       
+      let queryParams = "";
       if (tab === "booked") {
         queryParams = "status=in.(REJECTED,APPROVED,PENDING_APPROVAL)";
       } else if (tab === "osc_pending") {
@@ -197,22 +203,27 @@ export function AllInvoicesPage() {
         queryParams = "ocr_status=in.(OCR_PROCESSED)";
       }
       
-      const response = await getAllInvoices(queryParams);
+      const response = await getAllInvoices(queryParams, limit, offset);
       const invoiceRows: InvoiceListRow[] = response.data.map(convertInvoiceToRow);
       
-      // Update cache
       setCachedInvoices(prev => ({
         ...prev,
         [tab]: invoiceRows,
       }));
       
+      setTabCounts(prev => ({
+        ...prev,
+        [tab]: response.count || 0,
+      }));
+      
+      setRowCount(response.count || 0);
       useInvoiceFlowStore.setState({ invoices: invoiceRows });
     } catch (error) {
       // Error handled silently
     } finally {
       setLoadingInvoices(false);
     }
-  }, [initialLoadComplete, cachedInvoices]);
+  }, [initialLoadComplete, paginationModel]);
 
   // Fetch all tab data on initial load
   useEffect(() => {
@@ -221,12 +232,12 @@ export function AllInvoicesPage() {
     }
   }, [fetchAllTabData, initialLoadComplete]);
 
-  // When tab changes, use cached data (no API call)
   useEffect(() => {
     if (initialLoadComplete) {
       fetchInvoices(activeTab, false);
+      setRowCount(tabCounts[activeTab] || 0);
     }
-  }, [activeTab, fetchInvoices, initialLoadComplete]);
+  }, [activeTab, fetchInvoices, initialLoadComplete, tabCounts]);
 
 
   useEffect(() => {
@@ -525,6 +536,8 @@ export function AllInvoicesPage() {
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           onRowClick={handleRowClick}
+          rowCount={rowCount}
+          paginationMode="server"
           getRowClassName={(params) => {
             const row = params.row as any;
             if (row?.uploadState === "uploading") {

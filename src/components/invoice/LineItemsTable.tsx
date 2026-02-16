@@ -80,8 +80,8 @@ export function LineItemsTable({
       try {
         // Fetch items, TDS codes, and tax codes
         const [itemsResponse, tdsResponse, taxResponse] = await Promise.all([
-          itemsCodeService.getItems(),
-          tdsService.getTDS(),
+          itemsCodeService.getItems(200, 0),
+          tdsService.getTDS(200, 0),
           taxService.getTaxes(200, 0),
         ]);
 
@@ -167,7 +167,7 @@ export function LineItemsTable({
 
     setItemSearchLoading(true);
     try {
-      const response = await itemsCodeService.searchItems(searchTerm);
+      const response = await itemsCodeService.searchItems(searchTerm, 17, 0);
       setItemSearchResults(response?.data || []);
     } catch (error) {
       console.error("Error searching items:", error);
@@ -179,20 +179,16 @@ export function LineItemsTable({
 
   const handleItemDescriptionChange = useCallback((rowId: number, newValue: string) => {
     onRowUpdate(rowId, "itemDescription", newValue);
-
-    // Clear previous timeout for this row
     if (itemSearchTimeoutRef.current[rowId]) {
       clearTimeout(itemSearchTimeoutRef.current[rowId]);
     }
-
-    // Debounce search - wait 300ms after user stops typing
     itemSearchTimeoutRef.current[rowId] = setTimeout(() => {
       if (newValue.trim() && newValue.trim().length >= 3) {
         searchItemsByDescription(newValue);
       } else {
         setItemSearchResults([]);
       }
-    }, 300);
+  }, 300);
   }, [onRowUpdate, searchItemsByDescription]);
 
   const searchTDSCodes = useCallback(async (searchTerm: string) => {
@@ -203,7 +199,7 @@ export function LineItemsTable({
 
     setTdsSearchLoading(true);
     try {
-      const response = await tdsService.searchTDSCodes(searchTerm);
+      const response = await tdsService.searchTDSCodes(searchTerm, 17, 0);
       const tdsData = response?.data || [];
       setTdsSearchResults(tdsData);
       
@@ -221,13 +217,10 @@ export function LineItemsTable({
 
   const handleTDSCodeChange = useCallback((rowId: number, newValue: string) => {
     onRowUpdate(rowId, "tdsCode", newValue);
-    
-    // Clear previous timeout for this row
+  
     if (tdsSearchTimeoutRef.current[rowId]) {
       clearTimeout(tdsSearchTimeoutRef.current[rowId]);
     }
-
-    // Debounce search - wait 300ms after user stops typing
     tdsSearchTimeoutRef.current[rowId] = setTimeout(() => {
       if (newValue.trim() && newValue.trim().length >= 3) {
         searchTDSCodes(newValue);

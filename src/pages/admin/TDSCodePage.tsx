@@ -182,6 +182,7 @@ export const TDSCodePage = () => {
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [selectedTdsCode, setSelectedTdsCode] = useState<TDSCodeData | null>(null);
   const [rowsCalculated, setRowsCalculated] = useState(false);
+  const [rowCount, setRowCount] = useState(0);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 10,
@@ -194,16 +195,23 @@ export const TDSCodePage = () => {
     };
   }, [setNoPadding]);
 
-  const loadData = async () => {
+  const loadData = async (paginationModel: GridPaginationModel) => {
     try {
       setLoading(true);
-      const response = await itemsCodeService.getTDSCodes();
+      const limit = paginationModel.pageSize;
+      const offset = paginationModel.page * limit;
+      
+      const response = searchTerm.trim()
+        ? await itemsCodeService.searchTDSCodes(searchTerm, limit, offset)
+        : await itemsCodeService.getTDSCodes(limit, offset);
+      
       const mappedRows = response.data.map((item) => ({
         ...item,
         id: item.id,
         is_active: item.is_active ?? false,
       }));
       setRows(mappedRows);
+      setRowCount(response.count);
     } catch (error: any) {
       console.error("Error loading TDS codes:", error);
       toast.error(error?.response?.data?.message || "Failed to load TDS codes");
@@ -215,8 +223,8 @@ export const TDSCodePage = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData(paginationModel);
+  }, [paginationModel, searchTerm]);
 
   useEffect(() => {
     const calculatePageSize = () => {
@@ -239,15 +247,6 @@ export const TDSCodePage = () => {
     return () => window.removeEventListener("resize", calculatePageSize);
   }, [rowsCalculated]);
 
-  const filteredRows = useMemo(() => {
-    if (!searchTerm.trim()) return rows;
-    const searchLower = searchTerm.toLowerCase();
-    return rows.filter(
-      (row) =>
-        row.tds_code?.toLowerCase().includes(searchLower) ||
-        row.description?.toLowerCase().includes(searchLower)
-    );
-  }, [rows, searchTerm]);
 
   const handleRowClick = (params: GridRowParams<TDSCodeData>) => {
     setSelectedTdsCode(params.row);
@@ -266,7 +265,7 @@ export const TDSCodePage = () => {
       marginBottom="mb-0"
     >
       <DataTable
-        rows={loading && isInitialLoad ? [] : filteredRows}
+        rows={loading && isInitialLoad ? [] : rows}
         columns={columns}
         loading={loading}
         paginationModel={paginationModel}
@@ -274,6 +273,8 @@ export const TDSCodePage = () => {
         onRowClick={handleRowClick}
         firstColumnField="tds_code"
         emptyStateComponent={<CustomNoRows />}
+        rowCount={rowCount}
+        paginationMode="server"
         slots={{
           toolbar: CustomInvoiceToolbar,
           loadingOverlay:
@@ -290,7 +291,6 @@ export const TDSCodePage = () => {
             searchTerm,
             onSearchChange: setSearchTerm,
             onFilterClick: () => {
-              // Handle filter click
             },
             onShareClick: () => {
               // Handle share click
@@ -316,7 +316,7 @@ export const TDSCodePage = () => {
           }
         }}
         onSuccess={() => {
-          loadData();
+          loadData(paginationModel);
           setSelectedTdsCode(null);
         }}
         tdsCode={updateDialogOpen ? selectedTdsCode : null}

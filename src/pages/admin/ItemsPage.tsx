@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   GridColDef,
   GridPaginationModel,
@@ -162,16 +162,25 @@ export const ItemsPage = () => {
     };
   }, [setNoPadding]);
 
-  const loadData = async () => {
+  const [rowCount, setRowCount] = useState(0);
+
+  const loadData = async (paginationModel: GridPaginationModel) => {
     try {
       setLoading(true);
-      const response = await itemsCodeService.getItems();
+      const limit = paginationModel.pageSize;
+      const offset = paginationModel.page * limit;
+      
+      const response = searchTerm.trim()
+        ? await itemsCodeService.searchItems(searchTerm, limit, offset)
+        : await itemsCodeService.getItems(limit, offset);
+      
       const mappedRows = response.data.map((item) => ({
         ...item,
         id: item.id,
         is_active: item.is_active ?? false,
       }));
       setRows(mappedRows);
+      setRowCount(response.count);
     } catch (error: any) {
       console.error("Error loading items:", error);
       toast.error(error?.response?.data?.message || "Failed to load items");
@@ -183,8 +192,8 @@ export const ItemsPage = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData(paginationModel);
+  }, [paginationModel, searchTerm]);
 
   useEffect(() => {
     const calculatePageSize = () => {
@@ -207,17 +216,6 @@ export const ItemsPage = () => {
     return () => window.removeEventListener("resize", calculatePageSize);
   }, [rowsCalculated]);
 
-  const filteredRows = useMemo(() => {
-    if (!searchTerm.trim()) return rows;
-    const searchLower = searchTerm.toLowerCase();
-    return rows.filter(
-      (row) =>
-        row.item_code?.toLowerCase().includes(searchLower) ||
-        row.description?.toLowerCase().includes(searchLower) ||
-        row.tax_code?.toLowerCase().includes(searchLower) ||
-        row.hsn_sac_code?.toLowerCase().includes(searchLower)
-    );
-  }, [rows, searchTerm]);
 
   const handleRowClick = (params: GridRowParams<ItemData>) => {
     setSelectedItem(params.row);
@@ -236,7 +234,7 @@ export const ItemsPage = () => {
       marginBottom="mb-0"
     >
       <DataTable
-        rows={loading && isInitialLoad ? [] : filteredRows}
+        rows={loading && isInitialLoad ? [] : rows}
         columns={columns}
         loading={loading}
         paginationModel={paginationModel}
@@ -244,6 +242,8 @@ export const ItemsPage = () => {
         onRowClick={handleRowClick}
         firstColumnField="item_code"
         emptyStateComponent={<CustomNoRows />}
+        rowCount={rowCount}
+        paginationMode="server"
         slots={{
           toolbar: CustomInvoiceToolbar,
           loadingOverlay:
@@ -280,7 +280,7 @@ export const ItemsPage = () => {
           }
         }}
         onSuccess={() => {
-          loadData();
+          loadData(paginationModel);
           setSelectedItem(null);
         }}
         item={updateDialogOpen ? selectedItem : null}

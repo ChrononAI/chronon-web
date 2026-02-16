@@ -140,8 +140,12 @@ export const createInvoiceFromFile = async (
   return response.data;
 };
 
-export const getAllInvoices = async (queryParams?: string): Promise<GetAllInvoicesResponse> => {
-  const url = queryParams ? `/v1/invoices?${queryParams}` : "/v1/invoices";
+export const getAllInvoices = async (queryParams?: string, limit?: number, offset?: number): Promise<GetAllInvoicesResponse> => {
+  const params: string[] = [];
+  if (queryParams) params.push(queryParams);
+  if (limit !== undefined) params.push(`limit=${limit}`);
+  if (offset !== undefined) params.push(`offset=${offset}`);
+  const url = params.length > 0 ? `/v1/invoices?${params.join("&")}` : "/v1/invoices";
   const response = await baseAPI.get(url);
   return response.data;
 };
