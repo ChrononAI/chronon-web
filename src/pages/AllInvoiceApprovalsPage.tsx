@@ -5,10 +5,10 @@ import {
   GridPaginationModel,
   GridOverlay,
 } from "@mui/x-data-grid";
-import { Badge } from "@/components/ui/badge";
 import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import CustomInvoiceToolbar from "@/components/invoice/CustomInvoiceToolbar";
 import { FileText } from "lucide-react";
+import { StatusPill } from "@/components/shared/StatusPill";
 import { DataTable } from "@/components/shared/DataTable";
 import {
   getApprovalInvoices,
@@ -88,7 +88,7 @@ export function AllInvoiceApprovalsPage() {
       gstNumber: invoice.gst_number || "—",
       invoiceDate: formatDate(invoice.invoice_date),
       currency: invoice.currency || "—",
-      status: invoice.status === "PENDING_APPROVAL" ? "Pending" : invoice.status,
+      status: invoice.status || "",
       sequenceNumber: invoice.sequence_number || null,
       totalAmount: formatCurrency(totalAmount, invoice.currency),
     };
@@ -149,7 +149,11 @@ export function AllInvoiceApprovalsPage() {
     let filtered = approvals;
 
     if (activeTab === "pending") {
-      filtered = filtered.filter((approval) => approval.status === "Pending");
+      filtered = filtered.filter((approval) => 
+        approval.status === "PENDING_APPROVAL" || 
+        approval.status === "IN_PROGRESS" ||
+        approval.status.toUpperCase() === "PENDING"
+      );
     }
 
     if (searchTerm) {
@@ -167,7 +171,11 @@ export function AllInvoiceApprovalsPage() {
 
   const tabs = useMemo(() => {
     const allCount = approvals.length;
-    const pendingCount = approvals.filter((a) => a.status === "Pending").length;
+    const pendingCount = approvals.filter((a) => 
+      a.status === "PENDING_APPROVAL" || 
+      a.status === "IN_PROGRESS" ||
+      a.status.toUpperCase() === "PENDING"
+    ).length;
 
     return [
       { key: "all", label: "All", count: allCount },
@@ -293,21 +301,7 @@ export function AllInvoiceApprovalsPage() {
         minWidth: 120,
         renderCell: (params) => {
           const status = params.value;
-          return (
-            <Badge
-              className={
-                status === "Pending"
-                  ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                  : status === "Approved"
-                  ? "bg-green-100 text-green-800 hover:bg-green-100"
-                  : status === "Rejected"
-                  ? "bg-red-100 text-red-800 hover:bg-red-100"
-                  : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-              }
-            >
-              {status}
-            </Badge>
-          );
+          return <StatusPill status={status} />;
         },
       },
       {

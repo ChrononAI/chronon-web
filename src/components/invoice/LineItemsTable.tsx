@@ -35,6 +35,7 @@ interface LineItemsTableProps {
   rows: InvoiceLineRow[];
   isLoading: boolean;
   isApprovalMode: boolean;
+  invoiceStatus?: string | null;
   onRowUpdate: (rowId: number, field: keyof Omit<InvoiceLineRow, "id">, value: string) => void;
   onAddRow: () => void;
   isFieldChanged: (rowId: number, field: keyof Omit<InvoiceLineRow, "id">, currentValue: string) => boolean;
@@ -47,6 +48,7 @@ export function LineItemsTable({
   rows,
   isLoading,
   isApprovalMode,
+  invoiceStatus,
   onRowUpdate,
   onAddRow,
   isFieldChanged,
@@ -74,15 +76,28 @@ export function LineItemsTable({
   const [defaultTDSCodes, setDefaultTDSCodes] = useState<TDSData[]>([]);
   const [defaultTaxCodes, setDefaultTaxCodes] = useState<TaxData[]>([]);
 
-  // Fetch default options on mount
   useEffect(() => {
+    if (isApprovalMode) {
+      return;
+    }
+
+    if (!invoiceStatus) {
+      return;
+    }
+
+    const processedStatuses = ["PENDING_APPROVAL", "APPROVED", "REJECTED"];
+    const isProcessedInvoice = processedStatuses.includes(invoiceStatus);
+    
+    if (isProcessedInvoice) {
+      return;
+    }
+
     const fetchDefaults = async () => {
       try {
-        // Fetch items, TDS codes, and tax codes
         const [itemsResponse, tdsResponse, taxResponse] = await Promise.all([
-          itemsCodeService.getItems(200, 0),
-          tdsService.getTDS(200, 0),
-          taxService.getTaxes(200, 0),
+          itemsCodeService.getItems(20, 0),
+          tdsService.getTDS(20, 0),
+          taxService.getTaxes(20, 0),
         ]);
 
         const items = itemsResponse?.data || [];
@@ -116,20 +131,16 @@ export function LineItemsTable({
           }
         });
 
-        // Set first 2-3 TDS codes as defaults
         const tdsCodes = tdsResponse?.data || [];
         setDefaultTDSCodes(tdsCodes.slice(0, 3));
         
-        // Cache all TDS codes
         tdsCodes.forEach((tds) => {
           tdsDataCacheRef.current[tds.tds_code] = tds;
         });
 
-        // Set first 2-3 tax codes as defaults
         const taxCodes = taxResponse?.data || [];
         setDefaultTaxCodes(taxCodes.slice(0, 3));
         
-        // Cache all tax codes
         taxCodes.forEach((tax) => {
           gstDataCacheRef.current[tax.tax_code] = tax;
         });
@@ -139,7 +150,7 @@ export function LineItemsTable({
     };
 
     fetchDefaults();
-  }, []);
+  }, [isApprovalMode, invoiceStatus]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -167,7 +178,7 @@ export function LineItemsTable({
 
     setItemSearchLoading(true);
     try {
-      const response = await itemsCodeService.searchItems(searchTerm, 17, 0);
+      const response = await itemsCodeService.searchItems(searchTerm, 20, 0);
       setItemSearchResults(response?.data || []);
     } catch (error) {
       console.error("Error searching items:", error);
@@ -393,10 +404,9 @@ export function LineItemsTable({
 
     setGstSearchLoading(true);
     try {
-      const response = await taxService.getTaxes(200, 0);
+      const response = await taxService.searchTaxCodesByHsn(hsnCode.trim(), 20, 0);
       const taxData = response?.data || [];
-      const filteredTaxData = filterTaxCodesByHsn(taxData, hsnCode);
-      setGstSearchResults(filteredTaxData);
+      setGstSearchResults(taxData);
       
       taxData.forEach((tax) => {
         gstDataCacheRef.current[tax.tax_code] = tax;
@@ -407,7 +417,7 @@ export function LineItemsTable({
     } finally {
       setGstSearchLoading(false);
     }
-  }, [filterTaxCodesByHsn]);
+  }, []);
 
   const searchGSTCodes = useCallback(async (searchTerm: string, hsnCode?: string) => {
     if (!searchTerm.trim() || searchTerm.trim().length < 3) {
@@ -417,7 +427,7 @@ export function LineItemsTable({
 
     setGstSearchLoading(true);
     try {
-      const response = await taxService.searchTaxCodes(searchTerm, 200, 0);
+      const response = await taxService.searchTaxCodes(searchTerm, 20, 0);
       const taxData = response?.data || [];
       const filteredTaxData = hsnCode ? filterTaxCodesByHsn(taxData, hsnCode) : taxData;
       setGstSearchResults(filteredTaxData);

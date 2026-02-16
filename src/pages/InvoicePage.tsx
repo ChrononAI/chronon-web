@@ -110,19 +110,23 @@ export function InvoicePage() {
   const [unmatchedHsnRows, setUnmatchedHsnRows] = useState<Set<number>>(new Set());
 
   useEffect(() => {
+    const processedStatuses = ["PENDING_APPROVAL", "APPROVED", "REJECTED"];
+    const isProcessedInvoice = invoiceStatus && processedStatuses.includes(invoiceStatus);
+    
+    if (isProcessedInvoice || isApprovalMode) {
+      return;
+    }
+
+    if (id && invoiceStatus === null) {
+      return;
+    }
+
     const fetchItemsAndCodes = async () => {
-      const processedStatuses = ["PENDING_APPROVAL", "APPROVED", "REJECTED"];
-      const isProcessedInvoice = invoiceStatus && processedStatuses.includes(invoiceStatus);
-      
-      if (isProcessedInvoice) {
-        return;
-      }
-      
       try {
         const [itemsResponse, taxResponse, tdsResponse] = await Promise.all([
-          itemsCodeService.getItems(1000, 0),
-          taxService.getTaxes(1000, 0),
-          tdsService.getTDS(1000, 0),
+          itemsCodeService.getItems(20, 0),
+          taxService.getTaxes(20, 0),
+          tdsService.getTDS(20, 0),
         ]);
 
         const items = itemsResponse?.data || [];
@@ -147,7 +151,7 @@ export function InvoicePage() {
     };
 
     fetchItemsAndCodes();
-  }, [invoiceStatus]);
+  }, [invoiceStatus, isApprovalMode, id]);
 
   useEffect(() => {
     if (previewUrlRef.current) {
@@ -1442,6 +1446,7 @@ export function InvoicePage() {
           rows={tableRows}
           isLoading={tableLoading}
           isApprovalMode={isApprovalMode || isInvoiceFinalized || isPendingApproval}
+          invoiceStatus={invoiceStatus}
           onRowUpdate={updateTableRow}
           onAddRow={addTableRow}
           isFieldChanged={isFieldChanged}
