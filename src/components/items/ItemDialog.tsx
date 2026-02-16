@@ -108,7 +108,7 @@ export function ItemDialog({
         try {
           setLoadingCodes(true);
           const [tdsResponse, taxResponse] = await Promise.all([
-            itemsCodeService.getTDSCodes(),
+            itemsCodeService.getTDSCodes(200, 0),
             itemsCodeService.getTaxCodes(200, 0),
           ]);
           setTdsCodes(tdsResponse.data || []);
@@ -134,7 +134,7 @@ export function ItemDialog({
         item_code: data.item_code,
         description: data.description,
         tax_code: data.tax_code,
-        tds_code: data.tds_code,
+        tds_code: data.tds_code || "",
         hsn_sac_code: data.hsn_sac_code,
       };
 

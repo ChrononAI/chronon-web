@@ -214,6 +214,22 @@ export const itemsCodeService = {
     }
   },
 
+  async searchItemsByHsn(hsnCode: string, limit?: number, offset?: number): Promise<ItemResponse> {
+    try {
+      const trimmedHsn = hsnCode.trim();
+      const response = await api.get("/api/v1/items", {
+        params: {
+          hsn_sac_code: `ilike.%25${encodeURIComponent(trimmedHsn)}%25`,
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async createItem(data: {
     item_code: string;
     description: string;

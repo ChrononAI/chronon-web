@@ -50,5 +50,20 @@ export const taxService = {
       throw error;
     }
   },
+
+  async searchTaxCodesByHsn(hsnCode: string, limit?: number, offset?: number): Promise<TaxResponse> {
+    try {
+      const response = await api.get("/api/v1/tax", {
+        params: {
+          hsn_sac_code: `ilike.%${hsnCode}%`,
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && { offset }),
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 

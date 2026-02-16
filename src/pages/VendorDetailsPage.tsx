@@ -156,8 +156,13 @@ const VendorDetailsForm = ({
 
           if (values.pan?.trim()) updatePayload.pan = values.pan.trim();
           if (values.phoneNumber?.trim()) updatePayload.phone_number = values.phoneNumber.trim();
+          if (values.email?.trim()) updatePayload.email = values.email.trim();
           if (values.address?.trim()) updatePayload.address_line1 = values.address.trim();
           if (values.address2?.trim()) updatePayload.address_line2 = values.address2.trim();
+          if (values.city?.trim()) updatePayload.city = values.city.trim();
+          if (values.state?.trim()) updatePayload.state = values.state.trim();
+          if (values.postCode?.trim()) updatePayload.pincode = values.postCode.trim();
+          if (values.country?.trim()) updatePayload.country = values.country.trim();
           if (values.type?.trim()) updatePayload.vendor_type = values.type.trim();
 
           await vendorService.updateVendor(vendorId, updatePayload);

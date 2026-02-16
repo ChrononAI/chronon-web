@@ -110,12 +110,23 @@ export function InvoicePage() {
   const [unmatchedHsnRows, setUnmatchedHsnRows] = useState<Set<number>>(new Set());
 
   useEffect(() => {
+    const processedStatuses = ["PENDING_APPROVAL", "APPROVED", "REJECTED"];
+    const isProcessedInvoice = invoiceStatus && processedStatuses.includes(invoiceStatus);
+    
+    if (isProcessedInvoice || isApprovalMode) {
+      return;
+    }
+
+    if (id && invoiceStatus === null) {
+      return;
+    }
+
     const fetchItemsAndCodes = async () => {
       try {
         const [itemsResponse, taxResponse, tdsResponse] = await Promise.all([
-          itemsCodeService.getItems(1000, 0),
-          taxService.getTaxes(1000, 0),
-          tdsService.getTDS(1000, 0),
+          itemsCodeService.getItems(20, 0),
+          taxService.getTaxes(20, 0),
+          tdsService.getTDS(20, 0),
         ]);
 
         const items = itemsResponse?.data || [];
@@ -140,7 +151,7 @@ export function InvoicePage() {
     };
 
     fetchItemsAndCodes();
-  }, []);
+  }, [invoiceStatus, isApprovalMode, id]);
 
   useEffect(() => {
     if (previewUrlRef.current) {
@@ -263,7 +274,7 @@ export function InvoicePage() {
             setGstNumber(invoice.gst_number);
             if (invoice.gst_number.length === 15) {
               try {
-                const vendorResponse = await vendorService.searchVendorsByGst(invoice.gst_number);
+                const vendorResponse = await vendorService.searchVendorsByGst(invoice.gst_number, 17, 0);
                 const matchedVendor = vendorResponse?.data?.find(v => v.gstin === invoice.gst_number);
                 if (matchedVendor) {
                   setVendorName(matchedVendor.vendor_name || "");
@@ -276,7 +287,6 @@ export function InvoicePage() {
               }
             }
           }
-          
           setRawOcrPayload(invoice.raw_ocr_payload || null);
           
           if (invoice.file_ids && invoice.file_ids.length > 0) {
@@ -419,7 +429,7 @@ export function InvoicePage() {
 
     setVendorSearchLoading(true);
     try {
-      const response = await vendorService.searchVendorsByGst(searchTerm);
+      const response = await vendorService.searchVendorsByGst(searchTerm, 17, 0);
       setVendorSearchResults(response?.data || []);
     } catch (error) {
       console.error("Error searching vendors:", error);
@@ -748,6 +758,13 @@ export function InvoicePage() {
   }, [itemsData, taxDataCache, tdsDataCache]);
 
   useEffect(() => {
+    const processedStatuses = ["PENDING_APPROVAL", "APPROVED", "REJECTED"];
+    const isProcessedInvoice = invoiceStatus && processedStatuses.includes(invoiceStatus);
+    
+    if (isProcessedInvoice) {
+      return;
+    }
+    
     if (itemsData.length > 0 && tableRows.length > 0 && Object.keys(taxDataCache).length > 0 && Object.keys(tdsDataCache).length > 0 && !hsnMatchingProcessedRef.current) {
       const timeoutId = setTimeout(() => {
         processHsnMatching(tableRows, rawOcrPayload);
@@ -755,7 +772,7 @@ export function InvoicePage() {
       }, 100);
       return () => clearTimeout(timeoutId);
     }
-  }, [itemsData.length, tableRows.length, Object.keys(taxDataCache).length, Object.keys(tdsDataCache).length]);
+  }, [itemsData.length, tableRows.length, Object.keys(taxDataCache).length, Object.keys(tdsDataCache).length, invoiceStatus]);
   
   useEffect(() => {
     hsnMatchingProcessedRef.current = false;
@@ -836,12 +853,6 @@ export function InvoicePage() {
     if (!invoiceNumber.trim()) errors.invoiceNumber = true;
     if (!invoiceDate.trim()) errors.invoiceDate = true;
     if (!gstNumber.trim() || gstNumber.length !== 15) errors.gstNumber = true;
-    if (!vendorId.trim()) errors.vendorId = true;
-    if (!vendorName.trim()) errors.vendorName = true;
-    if (!vendorPan.trim()) errors.vendorPan = true;
-    if (!vendorEmail.trim()) errors.vendorEmail = true;
-    if (!billingAddress.trim()) errors.billingAddress = true;
-    if (!shippingAddress.trim()) errors.shippingAddress = true;
     
     if (tableRows.length === 0) {
       toast.error("Please add at least one line item");
@@ -1303,14 +1314,11 @@ export function InvoicePage() {
                         id="vendor-id"
                         value={vendorId}
                         readOnly
-                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${getFieldHighlightClass("vendor_id", vendorId)} ${validationErrors.vendorId ? 'border-red-500' : 'border-[#E9EAEE]'}`}
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${getFieldHighlightClass("vendor_id", vendorId)} border-[#E9EAEE]`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor ID" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
-                      {validationErrors.vendorId && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-name" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
@@ -1320,14 +1328,11 @@ export function InvoicePage() {
                         id="vendor-name"
                         value={vendorName}
                         readOnly
-                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${validationErrors.vendorName ? 'border-red-500' : 'border-[#E9EAEE]'}`}
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 border-[#E9EAEE]`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor name" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
-                      {validationErrors.vendorName && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-pan" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>PAN</Label>
@@ -1335,14 +1340,11 @@ export function InvoicePage() {
                         id="vendor-pan"
                         value={vendorPan}
                         readOnly
-                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${validationErrors.vendorPan ? 'border-red-500' : 'border-[#E9EAEE]'}`}
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 border-[#E9EAEE]`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "PAN number" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
-                      {validationErrors.vendorPan && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-email" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Vendor Email</Label>
@@ -1351,14 +1353,11 @@ export function InvoicePage() {
                         type="email"
                         value={vendorEmail}
                         readOnly
-                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${validationErrors.vendorEmail ? 'border-red-500' : 'border-[#E9EAEE]'}`}
+                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 border-[#E9EAEE]`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor email" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
-                      {validationErrors.vendorEmail && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
               </div>
             </div>
@@ -1374,18 +1373,12 @@ export function InvoicePage() {
                         value={billingAddress}
                         onChange={(e) => {
                           setBillingAddress(e.target.value);
-                          if (validationErrors.billingAddress && e.target.value.trim()) {
-                            setValidationErrors(prev => ({ ...prev, billingAddress: false }));
-                          }
                         }}
-                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("billing_address", billingAddress)} ${validationErrors.billingAddress ? 'border-red-500' : 'border-[#E9EAEE]'}`}
+                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("billing_address", billingAddress)} border-[#E9EAEE]`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder="Enter billing address..."
                         disabled={isFieldDisabled}
                       />
-                      {validationErrors.billingAddress && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
                     <div>
                       <Label htmlFor="shipping-address" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Shipping Address</Label>
@@ -1394,18 +1387,12 @@ export function InvoicePage() {
                         value={shippingAddress}
                         onChange={(e) => {
                           setShippingAddress(e.target.value);
-                          if (validationErrors.shippingAddress && e.target.value.trim()) {
-                            setValidationErrors(prev => ({ ...prev, shippingAddress: false }));
-                          }
                         }}
-                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("shipping_address", shippingAddress)} ${validationErrors.shippingAddress ? 'border-red-500' : 'border-[#E9EAEE]'}`}
+                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("shipping_address", shippingAddress)} border-[#E9EAEE]`}
                         style={{ borderWidth: '0.7px' }}
                         placeholder="Enter shipping address..."
                         disabled={isFieldDisabled}
                       />
-                      {validationErrors.shippingAddress && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
                     </div>
               </div>
             </div>
@@ -1457,6 +1444,7 @@ export function InvoicePage() {
           rows={tableRows}
           isLoading={tableLoading}
           isApprovalMode={isApprovalMode || isInvoiceFinalized || isPendingApproval}
+          invoiceStatus={invoiceStatus}
           onRowUpdate={updateTableRow}
           onAddRow={addTableRow}
           isFieldChanged={isFieldChanged}
