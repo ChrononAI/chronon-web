@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   GridColDef,
@@ -42,11 +42,21 @@ export function AllInvoicesPage() {
   const { setSidebarCollapsed } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"osc_processed" | "osc_pending" | "booked">("osc_processed");
+  const calculateInitialPageSize = () => {
+    const headerHeight = 80;
+    const paginationHeight = 52; 
+    const padding = 48; 
+    const gridHeight = window.innerHeight - headerHeight - paginationHeight - padding;
+    const rowHeight = 41; 
+    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+    return Math.max(calculatedPageSize, 10);
+  };
+
   const [rowsCalculated, setRowsCalculated] = useState(false);
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>(() => ({
     page: 0,
-    pageSize: 10,
-  });
+    pageSize: calculateInitialPageSize(),
+  }));
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [loadingInvoices, setLoadingInvoices] = useState(true);
   const [tabCounts, setTabCounts] = useState({
@@ -55,16 +65,6 @@ export function AllInvoicesPage() {
     booked: 0,
   });
   const [rowCount, setRowCount] = useState(0);
-  // Cache invoices data for each tab
-  const [cachedInvoices, setCachedInvoices] = useState<{
-    osc_processed: InvoiceListRow[];
-    osc_pending: InvoiceListRow[];
-    booked: InvoiceListRow[];
-  }>({
-    osc_processed: [],
-    osc_pending: [],
-    booked: [],
-  });
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Open sidebar when on AllInvoicesPage
@@ -140,11 +140,11 @@ export function AllInvoicesPage() {
     };
   };
 
-  const fetchAllTabData = useCallback(async () => {
+  const fetchAllTabData = useCallback(async (pageModel: GridPaginationModel) => {
     try {
       setLoadingInvoices(true);
-      const limit = paginationModel.pageSize;
-      const offset = paginationModel.page * limit;
+      const limit = pageModel.pageSize;
+      const offset = pageModel.page * limit;
       
       const [processedResponse, pendingResponse, bookedResponse] = await Promise.all([
         getAllInvoices("ocr_status=in.(OCR_PROCESSED)", limit, offset),
@@ -154,15 +154,6 @@ export function AllInvoicesPage() {
 
       // Convert all responses to rows
       const processedRows: InvoiceListRow[] = processedResponse.data.map(convertInvoiceToRow);
-      const pendingRows: InvoiceListRow[] = pendingResponse.data.map(convertInvoiceToRow);
-      const bookedRows: InvoiceListRow[] = bookedResponse.data.map(convertInvoiceToRow);
-
-      // Cache all data
-      setCachedInvoices({
-        osc_processed: processedRows,
-        osc_pending: pendingRows,
-        booked: bookedRows,
-      });
 
       // Set counts
       setTabCounts({
@@ -179,20 +170,13 @@ export function AllInvoicesPage() {
     } finally {
       setLoadingInvoices(false);
     }
-  }, [paginationModel]);
+  }, []);
 
-  const fetchInvoices = useCallback(async (tab: "osc_processed" | "osc_pending" | "booked", forceRefresh: boolean = false) => {
-    if (!forceRefresh && initialLoadComplete) {
-      setCachedInvoices(prev => {
-        useInvoiceFlowStore.setState({ invoices: prev[tab] });
-        return prev;
-      });
-      return;
-    }
+  const fetchInvoices = useCallback(async (tab: "osc_processed" | "osc_pending" | "booked", pageModel: GridPaginationModel) => {
     try {
       setLoadingInvoices(true);
-      const limit = paginationModel.pageSize;
-      const offset = paginationModel.page * limit;
+      const limit = pageModel.pageSize;
+      const offset = pageModel.page * limit;
       
       let queryParams = "";
       if (tab === "booked") {
@@ -206,11 +190,6 @@ export function AllInvoicesPage() {
       const response = await getAllInvoices(queryParams, limit, offset);
       const invoiceRows: InvoiceListRow[] = response.data.map(convertInvoiceToRow);
       
-      setCachedInvoices(prev => ({
-        ...prev,
-        [tab]: invoiceRows,
-      }));
-      
       setTabCounts(prev => ({
         ...prev,
         [tab]: response.count || 0,
@@ -223,21 +202,22 @@ export function AllInvoicesPage() {
     } finally {
       setLoadingInvoices(false);
     }
-  }, [initialLoadComplete, paginationModel]);
+  }, []);
 
-  // Fetch all tab data on initial load
+  // Fetch all tab data on initial load - only once
+  const initialFetchRef = useRef(false);
   useEffect(() => {
-    if (!initialLoadComplete) {
-      fetchAllTabData();
+    if (!initialLoadComplete && rowsCalculated && !initialFetchRef.current) {
+      initialFetchRef.current = true;
+      fetchAllTabData(paginationModel);
     }
-  }, [fetchAllTabData, initialLoadComplete]);
+  }, [fetchAllTabData, initialLoadComplete, rowsCalculated]);
 
   useEffect(() => {
     if (initialLoadComplete) {
-      fetchInvoices(activeTab, false);
-      setRowCount(tabCounts[activeTab] || 0);
+      fetchInvoices(activeTab, paginationModel);
     }
-  }, [activeTab, fetchInvoices, initialLoadComplete, tabCounts]);
+  }, [activeTab, paginationModel.page, paginationModel.pageSize, initialLoadComplete]);
 
 
   useEffect(() => {
@@ -249,11 +229,13 @@ export function AllInvoicesPage() {
       const rowHeight = 41; 
       const calculatedPageSize = Math.floor(gridHeight / rowHeight);
       const pageSize = Math.max(calculatedPageSize, 10);
-      setPaginationModel((prev) => ({ ...prev, pageSize }));
+      setPaginationModel((prev) => {
+        if (prev.pageSize === pageSize) return prev;
+        return { ...prev, pageSize };
+      });
     };
 
     if (!rowsCalculated) {
-      calculatePageSize();
       setRowsCalculated(true);
     }
 

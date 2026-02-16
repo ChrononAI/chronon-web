@@ -116,6 +116,13 @@ export function InvoicePage() {
 
   useEffect(() => {
     const fetchItemsAndCodes = async () => {
+      const processedStatuses = ["PENDING_APPROVAL", "APPROVED", "REJECTED"];
+      const isProcessedInvoice = invoiceStatus && processedStatuses.includes(invoiceStatus);
+      
+      if (isProcessedInvoice) {
+        return;
+      }
+      
       try {
         const [itemsResponse, taxResponse, tdsResponse] = await Promise.all([
           itemsCodeService.getItems(1000, 0),
@@ -145,7 +152,7 @@ export function InvoicePage() {
     };
 
     fetchItemsAndCodes();
-  }, []);
+  }, [invoiceStatus]);
 
   useEffect(() => {
     if (previewUrlRef.current) {
@@ -764,6 +771,13 @@ export function InvoicePage() {
   }, [itemsData, taxDataCache, tdsDataCache]);
 
   useEffect(() => {
+    const processedStatuses = ["PENDING_APPROVAL", "APPROVED", "REJECTED"];
+    const isProcessedInvoice = invoiceStatus && processedStatuses.includes(invoiceStatus);
+    
+    if (isProcessedInvoice) {
+      return;
+    }
+    
     if (itemsData.length > 0 && tableRows.length > 0 && Object.keys(taxDataCache).length > 0 && Object.keys(tdsDataCache).length > 0 && !hsnMatchingProcessedRef.current) {
       const timeoutId = setTimeout(() => {
         processHsnMatching(tableRows, rawOcrPayload);
@@ -771,7 +785,7 @@ export function InvoicePage() {
       }, 100);
       return () => clearTimeout(timeoutId);
     }
-  }, [itemsData.length, tableRows.length, Object.keys(taxDataCache).length, Object.keys(tdsDataCache).length]);
+  }, [itemsData.length, tableRows.length, Object.keys(taxDataCache).length, Object.keys(tdsDataCache).length, invoiceStatus]);
   
   useEffect(() => {
     hsnMatchingProcessedRef.current = false;
