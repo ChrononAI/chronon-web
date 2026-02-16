@@ -287,8 +287,6 @@ export function InvoicePage() {
               }
             }
           }
-          
-          
           setRawOcrPayload(invoice.raw_ocr_payload || null);
           
           if (invoice.file_ids && invoice.file_ids.length > 0) {
