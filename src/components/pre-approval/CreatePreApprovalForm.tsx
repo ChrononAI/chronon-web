@@ -195,7 +195,7 @@ function CreatePreApprovalForm({
 
   return (
     <div className="flex flex-col min-h-screen bg-sky-100">
-      <div className="bg-white border-b px-6 pt-3 pb-4 sticky top-0 z-10">
+      <div className="bg-white border-b pl-4 pr-6 pt-4 pb-4 sticky top-0 z-10">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Trip Details</h1>
           <p className="text-sm text-gray-600">
@@ -204,8 +204,8 @@ function CreatePreApprovalForm({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-white">
-        <div className="w-full p-6 pb-20">
+      <div className="flex-1 overflow-y-auto bg-white p-2">
+        <div className="w-full p-2 pb-20">
       <Form {...form}>
             <form id="trip-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <div className="space-y-4">
@@ -224,11 +224,11 @@ function CreatePreApprovalForm({
                 <FormItem>
                           <Label
                             htmlFor="trip-name"
-                            className="block mb-1.5"
+                            className="block mb-1.5 whitespace-nowrap"
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
-                              fontWeight: 500,
+                              fontWeight: 700,
                               lineHeight: "100%",
                               letterSpacing: "0%",
                               color: "#47536C",
@@ -258,11 +258,11 @@ function CreatePreApprovalForm({
                 <FormItem>
                           <Label
                             htmlFor="advance-amount"
-                            className="block mb-1.5"
+                            className="block mb-1.5 whitespace-nowrap"
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
-                              fontWeight: 500,
+                              fontWeight: 700,
                               lineHeight: "100%",
                               letterSpacing: "0%",
                               color: "#47536C",
@@ -300,11 +300,11 @@ function CreatePreApprovalForm({
                         <FormItem>
                           <Label
                             htmlFor="currency"
-                            className="block mb-1.5"
+                            className="block mb-1.5 whitespace-nowrap"
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
-                              fontWeight: 500,
+                              fontWeight: 700,
                               lineHeight: "100%",
                               letterSpacing: "0%",
                               color: "#47536C",
@@ -357,7 +357,7 @@ function CreatePreApprovalForm({
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
-                              fontWeight: 500,
+                              fontWeight: 700,
                               lineHeight: "100%",
                               letterSpacing: "0%",
                               color: "#47536C",
@@ -392,7 +392,7 @@ function CreatePreApprovalForm({
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
-                              fontWeight: 500,
+                              fontWeight: 700,
                               lineHeight: "100%",
                               letterSpacing: "0%",
                               color: "#47536C",
@@ -427,7 +427,7 @@ function CreatePreApprovalForm({
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
-                              fontWeight: 500,
+                              fontWeight: 700,
                               lineHeight: "100%",
                               letterSpacing: "0%",
                               color: "#47536C",
@@ -472,7 +472,7 @@ function CreatePreApprovalForm({
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
-                              fontWeight: 500,
+                              fontWeight: 700,
                               lineHeight: "100%",
                               letterSpacing: "0%",
                               color: "#47536C",
@@ -516,7 +516,7 @@ function CreatePreApprovalForm({
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
-                              fontWeight: 500,
+                              fontWeight: 700,
                               lineHeight: "100%",
                               letterSpacing: "0%",
                               color: "#47536C",
@@ -550,7 +550,7 @@ function CreatePreApprovalForm({
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
-                              fontWeight: 500,
+                              fontWeight: 700,
                               lineHeight: "100%",
                               letterSpacing: "0%",
                               color: "#47536C",
@@ -614,7 +614,7 @@ function CreatePreApprovalForm({
 
                       <div className="space-y-2 mb-6">
                         <div className="flex items-center justify-between">
-                          <Label className="block font-medium text-[12px] text-[#47536C] uppercase">
+                          <Label className="block font-bold text-[12px] text-[#47536C] uppercase">
                             TRAVEL MODE
                           </Label>
                           <div className="flex items-center gap-2">
@@ -665,7 +665,7 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.source`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         SOURCE CITY
                                       </Label>
                                       <FormControl>
@@ -687,7 +687,7 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.destination`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         DESTINATION CITY
                                       </Label>
                                       <FormControl>
@@ -709,7 +709,7 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.startDate`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         START DATE
                                       </Label>
                                       <FormControl>
@@ -732,7 +732,7 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.endDate`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         END DATE (IF RETURN)
                                       </Label>
                                       <FormControl>
@@ -757,7 +757,7 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.timePreference`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         TIME PREFERENCE
                                       </Label>
                                       <FormControl>
@@ -788,7 +788,7 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.flightPreference`}
               render={({ field }) => (
                 <FormItem>
-                                      <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         FLIGHT PREFERENCE
                                       </Label>
                                       <FormControl>
@@ -810,7 +810,7 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.mealPreference`}
               render={({ field }) => (
                 <FormItem>
-                                      <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         MEAL PREFERENCE
                                       </Label>
                                       <FormControl>
@@ -845,7 +845,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.source`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       SOURCE STATION
                                     </Label>
                     <FormControl>
@@ -867,7 +867,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.destination`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       DESTINATION STATION
                                     </Label>
                     <FormControl>
@@ -889,7 +889,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.startDate`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       TRAVEL DATE
                                     </Label>
                                     <FormControl>
@@ -912,7 +912,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.classPreference`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       CLASS PREFERENCE
                                     </Label>
                                     <FormControl>
@@ -947,7 +947,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.source`}
               render={({ field }) => (
                 <FormItem>
-                                    <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       FROM LOCATION
                                     </Label>
                   <FormControl>
@@ -969,7 +969,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.destination`}
               render={({ field }) => (
                 <FormItem>
-                                    <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       TO LOCATION
                                     </Label>
                   <FormControl>
@@ -991,7 +991,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.startDate`}
               render={({ field }) => (
                 <FormItem>
-                                    <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       TRAVEL DATE
                                     </Label>
                   <FormControl>
@@ -1014,7 +1014,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.departureTime`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       DEPARTURE TIME
                                     </Label>
                   <FormControl>
@@ -1043,7 +1043,7 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.source`}
               render={({ field }) => (
                 <FormItem>
-                                      <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         PICKUP LOCATION
                                       </Label>
                   <FormControl>
@@ -1065,7 +1065,7 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.destination`}
               render={({ field }) => (
                 <FormItem>
-                                      <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         DROP LOCATION
                                       </Label>
                   <FormControl>
@@ -1083,7 +1083,7 @@ function CreatePreApprovalForm({
                     </div>
                             </div>
                             <div>
-                              <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                              <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                 PERIOD (DATE/TIME RANGE)
                               </Label>
                               <div className="flex items-center gap-2">
@@ -1140,7 +1140,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.checkInDate`}
               render={({ field }) => (
                 <FormItem>
-                                    <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       CHECK IN DATE
                                     </Label>
                   <FormControl>
@@ -1163,7 +1163,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.checkOutDate`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       CHECK OUT DATE
                                     </Label>
                                     <FormControl>
@@ -1186,7 +1186,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.location`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       LOCATION
                                     </Label>
                                     <FormControl>
@@ -1205,7 +1205,7 @@ function CreatePreApprovalForm({
                           </div>
 
                           <div className="space-y-2">
-                            <Label className="block font-medium text-[12px] text-[#47536C] uppercase">
+                            <Label className="block font-bold text-[12px] text-[#47536C] uppercase">
                               OCCUPANCY
                             </Label>
                             <FormField
@@ -1257,7 +1257,7 @@ function CreatePreApprovalForm({
                               name={`journeys.${index}.preferredHotel1`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                  <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                     Preferred Hotel Option (1)
                                   </Label>
                                   <FormControl>
@@ -1277,7 +1277,7 @@ function CreatePreApprovalForm({
                               name={`journeys.${index}.preferredHotel2`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                  <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                     Preferred Hotel Option (2)
                                   </Label>
                                   <FormControl>
@@ -1297,7 +1297,7 @@ function CreatePreApprovalForm({
                               name={`journeys.${index}.preferredHotel3`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <Label className="block mb-1.5 font-medium text-[12px] text-[#47536C] uppercase">
+                                  <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
                                     Preferred Hotel Option (3)
                                   </Label>
                                   <FormControl>
