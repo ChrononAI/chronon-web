@@ -971,12 +971,59 @@ export function InvoicePage() {
 
     setSubmitting(true);
     try {
+      const updateData: UpdateInvoiceData = {
+        invoice_number: invoiceNumber || null,
+        type: invoiceType || null,
+        invoice_date: invoiceDate || null,
+        gst_number: gstNumber || null,
+        billing_address: billingAddress || null,
+        shipping_address: shippingAddress || null,
+        currency: currency,
+        invoice_lineitems: tableRows.map((row, index) => {
+          const lineItem: any = {
+            line_num: index + 1,
+            description: row.itemDescription || null,
+            quantity: row.quantity ? parseFloat(row.quantity).toFixed(4) : null,
+            rate: row.rate ? parseFloat(row.rate).toFixed(4) : null,
+            hsn_sac: row.hsnCode || null,
+            cgst_amount: row.cgst || null,
+            sgst_amount: row.sgst || null,
+            igst_amount: row.igst || null,
+            utgst_amount: row.utgst || null,
+            discount: "0.0000",
+            tax_code: row.gstCode || null,
+            tds_code: row.tdsCode || null,
+            tds_amount: row.tdsAmount || null,
+          };
+
+          const quantity = parseFloat(row.quantity) || 0;
+          const rate = parseFloat(row.rate) || 0;
+          const subtotal = quantity * rate;
+
+          const cgst = parseFloat(row.cgst) || 0;
+          const sgst = parseFloat(row.sgst) || 0;
+          const igst = parseFloat(row.igst) || 0;
+          const utgst = parseFloat(row.utgst) || 0;
+          const calculatedTotal = subtotal + cgst + sgst + igst + utgst;
+
+          lineItem.subtotal = subtotal.toFixed(2);
+          lineItem.total = row.netAmount || calculatedTotal.toFixed(2);
+
+          if (row.invoiceLineItemId) {
+            lineItem.id = row.invoiceLineItemId;
+          }
+
+          return lineItem;
+        }),
+      };
+
+      await updateInvoice(id, updateData);
       const response = await submitInvoice(id);
       toast.success(response.message || "Invoice submitted for approval");
       navigate("/flow/invoice");
     } catch (error: any) {
-      console.error("Error submitting invoice:", error);
-      toast.error(error?.response?.data?.message || "Failed to submit invoice. Please try again.");
+      console.error("Error updating or submitting invoice:", error);
+      toast.error(error?.response?.data?.message || "Failed to update or submit invoice. Please try again.");
     } finally {
       setSubmitting(false);
     }

@@ -164,7 +164,7 @@ const columns: GridColDef<TDSCodeData>[] = [
               color: "#1A1A1A",
             }}
           >
-            {date.toLocaleDateString()} {date.toLocaleTimeString()}
+            {date.toLocaleDateString()}
           </span>
         </div>
       );

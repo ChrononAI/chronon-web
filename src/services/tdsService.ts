@@ -33,13 +33,11 @@ export const tdsService = {
 
   async searchTDSCodes(searchTerm: string, limit?: number, offset?: number): Promise<TDSResponse> {
     try {
-      const response = await api.get("/api/v1/tds", {
-        params: {
-          tds_code: `ilike.%${searchTerm}%`,
-          ...(limit !== undefined && { limit }),
-          ...(offset !== undefined && { offset }),
-        },
-      });
+      let url = `/api/v1/tds?tds_code=ilike.%${searchTerm}%`;
+      if (limit !== undefined) url += `&limit=${limit}`;
+      if (offset !== undefined) url += `&offset=${offset}`;
+      
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       throw error;

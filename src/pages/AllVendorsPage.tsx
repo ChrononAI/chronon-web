@@ -10,6 +10,7 @@ import CustomInvoiceToolbar from "@/components/invoice/CustomInvoiceToolbar";
 import { vendorService, VendorData } from "@/services/vendorService";
 import { toast } from "sonner";
 import { FileText } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/shared/DataTable";
 import { useLayoutStore } from "@/store/layoutStore";
 
@@ -18,7 +19,7 @@ interface VendorRow {
   vendorCode: string;
   vendorName: string;
   gstin: string;
-  status: string;
+  isActive: boolean;
 }
 
 function CustomNoRows() {
@@ -92,7 +93,7 @@ export function AllVendorsPage() {
         vendorCode: vendor.vendor_code,
         vendorName: vendor.vendor_name,
         gstin: vendor.gstin,
-        status: vendor.status,
+        isActive: vendor.is_active ?? false,
       }));
 
       setVendors(mappedVendors);
@@ -194,14 +195,23 @@ export function AllVendorsPage() {
         },
       },
       {
-        field: "status",
+        field: "isActive",
         headerName: "STATUS",
         flex: 1,
         minWidth: 120,
         renderCell: (params) => {
+          const isActive = params.value ?? false;
           return (
             <div className="flex items-center h-full">
-              <span className="text-sm">{params.value}</span>
+              <Badge
+                className={
+                  isActive
+                    ? "bg-green-100 text-green-800 hover:bg-green-100"
+                    : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                }
+              >
+                {isActive ? "Active" : "Inactive"}
+              </Badge>
             </div>
           );
         },
