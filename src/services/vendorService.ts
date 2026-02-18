@@ -14,7 +14,7 @@ export interface VendorData {
   pincode?: string;
   state?: string;
   country?: string;
-  status: string;
+  is_active?: boolean;
   vendor_type?: string;
 }
 
