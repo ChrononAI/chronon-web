@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   GridColDef,
@@ -42,11 +42,21 @@ export function AllInvoicesPage() {
   const { setSidebarCollapsed } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"osc_processed" | "osc_pending" | "booked">("osc_processed");
+  const calculateInitialPageSize = () => {
+    const headerHeight = 80;
+    const paginationHeight = 52; 
+    const padding = 48; 
+    const gridHeight = window.innerHeight - headerHeight - paginationHeight - padding;
+    const rowHeight = 41; 
+    const calculatedPageSize = Math.floor(gridHeight / rowHeight);
+    return Math.max(calculatedPageSize, 10);
+  };
+
   const [rowsCalculated, setRowsCalculated] = useState(false);
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>(() => ({
     page: 0,
-    pageSize: 10,
-  });
+    pageSize: calculateInitialPageSize(),
+  }));
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [loadingInvoices, setLoadingInvoices] = useState(true);
   const [tabCounts, setTabCounts] = useState({
@@ -54,16 +64,7 @@ export function AllInvoicesPage() {
     osc_pending: 0,
     booked: 0,
   });
-  // Cache invoices data for each tab
-  const [cachedInvoices, setCachedInvoices] = useState<{
-    osc_processed: InvoiceListRow[];
-    osc_pending: InvoiceListRow[];
-    booked: InvoiceListRow[];
-  }>({
-    osc_processed: [],
-    osc_pending: [],
-    booked: [],
-  });
+  const [rowCount, setRowCount] = useState(0);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Open sidebar when on AllInvoicesPage
@@ -139,27 +140,20 @@ export function AllInvoicesPage() {
     };
   };
 
-  const fetchAllTabData = useCallback(async () => {
+  const fetchAllTabData = useCallback(async (pageModel: GridPaginationModel) => {
     try {
       setLoadingInvoices(true);
-      // Fetch all three tabs' data in parallel
+      const limit = pageModel.pageSize;
+      const offset = pageModel.page * limit;
+      
       const [processedResponse, pendingResponse, bookedResponse] = await Promise.all([
-        getAllInvoices("ocr_status=in.(OCR_PROCESSED)"),
-        getAllInvoices("ocr_status=in.(OCR_PROCESSING,OCR_PENDING)"),
-        getAllInvoices("status=in.(REJECTED,APPROVED,PENDING_APPROVAL)"),
+        getAllInvoices("ocr_status=in.(OCR_PROCESSED)", limit, offset),
+        getAllInvoices("ocr_status=in.(OCR_PROCESSING,OCR_PENDING)", limit, offset),
+        getAllInvoices("status=in.(REJECTED,APPROVED,PENDING_APPROVAL)", limit, offset),
       ]);
 
       // Convert all responses to rows
       const processedRows: InvoiceListRow[] = processedResponse.data.map(convertInvoiceToRow);
-      const pendingRows: InvoiceListRow[] = pendingResponse.data.map(convertInvoiceToRow);
-      const bookedRows: InvoiceListRow[] = bookedResponse.data.map(convertInvoiceToRow);
-
-      // Cache all data
-      setCachedInvoices({
-        osc_processed: processedRows,
-        osc_pending: pendingRows,
-        booked: bookedRows,
-      });
 
       // Set counts
       setTabCounts({
@@ -168,9 +162,8 @@ export function AllInvoicesPage() {
         booked: bookedResponse.count || 0,
       });
 
-      // Set the active tab's data to the store
+      setRowCount(processedResponse.count || 0);
       useInvoiceFlowStore.setState({ invoices: processedRows });
-      
       setInitialLoadComplete(true);
     } catch (error) {
       // Error handled silently
@@ -179,16 +172,13 @@ export function AllInvoicesPage() {
     }
   }, []);
 
-  const fetchInvoices = useCallback(async (tab: "osc_processed" | "osc_pending" | "booked", forceRefresh: boolean = false) => {
-    // If we have cached data and not forcing refresh, use cached data
-    if (!forceRefresh && initialLoadComplete) {
-      useInvoiceFlowStore.setState({ invoices: cachedInvoices[tab] });
-      return;
-    }
+  const fetchInvoices = useCallback(async (tab: "osc_processed" | "osc_pending" | "booked", pageModel: GridPaginationModel) => {
     try {
       setLoadingInvoices(true);
-      let queryParams = "";
+      const limit = pageModel.pageSize;
+      const offset = pageModel.page * limit;
       
+      let queryParams = "";
       if (tab === "booked") {
         queryParams = "status=in.(REJECTED,APPROVED,PENDING_APPROVAL)";
       } else if (tab === "osc_pending") {
@@ -197,36 +187,37 @@ export function AllInvoicesPage() {
         queryParams = "ocr_status=in.(OCR_PROCESSED)";
       }
       
-      const response = await getAllInvoices(queryParams);
+      const response = await getAllInvoices(queryParams, limit, offset);
       const invoiceRows: InvoiceListRow[] = response.data.map(convertInvoiceToRow);
       
-      // Update cache
-      setCachedInvoices(prev => ({
+      setTabCounts(prev => ({
         ...prev,
-        [tab]: invoiceRows,
+        [tab]: response.count || 0,
       }));
       
+      setRowCount(response.count || 0);
       useInvoiceFlowStore.setState({ invoices: invoiceRows });
     } catch (error) {
       // Error handled silently
     } finally {
       setLoadingInvoices(false);
     }
-  }, [initialLoadComplete, cachedInvoices]);
+  }, []);
 
-  // Fetch all tab data on initial load
+  // Fetch all tab data on initial load - only once
+  const initialFetchRef = useRef(false);
   useEffect(() => {
-    if (!initialLoadComplete) {
-      fetchAllTabData();
+    if (!initialLoadComplete && rowsCalculated && !initialFetchRef.current) {
+      initialFetchRef.current = true;
+      fetchAllTabData(paginationModel);
     }
-  }, [fetchAllTabData, initialLoadComplete]);
+  }, [fetchAllTabData, initialLoadComplete, rowsCalculated]);
 
-  // When tab changes, use cached data (no API call)
   useEffect(() => {
     if (initialLoadComplete) {
-      fetchInvoices(activeTab, false);
+      fetchInvoices(activeTab, paginationModel);
     }
-  }, [activeTab, fetchInvoices, initialLoadComplete]);
+  }, [activeTab, paginationModel.page, paginationModel.pageSize, initialLoadComplete]);
 
 
   useEffect(() => {
@@ -238,11 +229,13 @@ export function AllInvoicesPage() {
       const rowHeight = 41; 
       const calculatedPageSize = Math.floor(gridHeight / rowHeight);
       const pageSize = Math.max(calculatedPageSize, 10);
-      setPaginationModel((prev) => ({ ...prev, pageSize }));
+      setPaginationModel((prev) => {
+        if (prev.pageSize === pageSize) return prev;
+        return { ...prev, pageSize };
+      });
     };
 
     if (!rowsCalculated) {
-      calculatePageSize();
       setRowsCalculated(true);
     }
 
@@ -525,6 +518,8 @@ export function AllInvoicesPage() {
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           onRowClick={handleRowClick}
+          rowCount={rowCount}
+          paginationMode="server"
           getRowClassName={(params) => {
             const row = params.row as any;
             if (row?.uploadState === "uploading") {

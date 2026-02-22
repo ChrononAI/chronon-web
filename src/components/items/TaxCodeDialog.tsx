@@ -82,6 +82,7 @@ const taxCodeSchema = z.object({
     })
   ),
   description: z.string().min(1, "Description is required"),
+  hsn_sac_code: z.string().optional(),
 });
 
 type TaxCodeFormValues = z.infer<typeof taxCodeSchema>;
@@ -112,6 +113,7 @@ export function TaxCodeDialog({
       igst_percentage: 0,
       utgst_percentage: 0,
       description: "",
+      hsn_sac_code: "",
     },
   });
 
@@ -125,6 +127,7 @@ export function TaxCodeDialog({
         igst_percentage: parseFloat(taxCode.igst_percentage) || 0,
         utgst_percentage: parseFloat(taxCode.utgst_percentage) || 0,
         description: taxCode.description || "",
+        hsn_sac_code: taxCode.hsn_sac_code || "",
       });
     } else if (!taxCode && open) {
       // Reset to defaults for create mode
@@ -136,6 +139,7 @@ export function TaxCodeDialog({
         igst_percentage: 0,
         utgst_percentage: 0,
         description: "",
+        hsn_sac_code: "",
       });
     }
   }, [taxCode, open, isEditMode, form]);
@@ -153,10 +157,14 @@ export function TaxCodeDialog({
         igst_percentage: data.igst_percentage,
         utgst_percentage: data.utgst_percentage,
         description: data.description,
+        hsn_sac_code: data.hsn_sac_code || undefined,
       };
 
       if (isEditMode) {
-        await itemsCodeService.updateTaxCode(taxCode!.id, payload);
+        await itemsCodeService.updateTaxCode(taxCode!.id, {
+          ...payload,
+          is_active: true,
+        });
         toast.success("Tax code updated successfully!");
       } else {
         await itemsCodeService.createTaxCode({
@@ -509,6 +517,30 @@ export function TaxCodeDialog({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="hsn_sac_code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-semibold text-gray-700">
+                    HSN/SAC Code
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="e.g., 998314"
+                      className={cn(
+                        "h-10 border-gray-300 focus:border-[#0D9C99] focus:ring-[#0D9C99]",
+                        form.formState.errors.hsn_sac_code && "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      )}
+                      disabled={loading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

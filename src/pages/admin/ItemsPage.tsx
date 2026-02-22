@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   GridColDef,
   GridPaginationModel,
@@ -112,33 +112,6 @@ const columns: GridColDef<ItemData>[] = [
     ),
   },
   {
-    field: "tds_code",
-    headerName: "TDS CODE",
-    flex: 1,
-    minWidth: 120,
-    renderCell: (params) => (
-      <div className="flex items-center h-full w-full overflow-hidden">
-        <span 
-          style={{
-            fontFamily: "Inter",
-            fontWeight: 500,
-            fontSize: "14px",
-            lineHeight: "100%",
-            letterSpacing: "0%",
-            color: "#1A1A1A",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            maxWidth: "100%",
-          }}
-          title={params.value}
-        >
-          {params.value || "-"}
-        </span>
-      </div>
-    ),
-  },
-  {
     field: "hsn_sac_code",
     headerName: "HSN/SAC CODE",
     flex: 1,
@@ -189,16 +162,25 @@ export const ItemsPage = () => {
     };
   }, [setNoPadding]);
 
-  const loadData = async () => {
+  const [rowCount, setRowCount] = useState(0);
+
+  const loadData = async (paginationModel: GridPaginationModel) => {
     try {
       setLoading(true);
-      const response = await itemsCodeService.getItems();
+      const limit = paginationModel.pageSize;
+      const offset = paginationModel.page * limit;
+      
+      const response = searchTerm.trim()
+        ? await itemsCodeService.searchItems(searchTerm, limit, offset)
+        : await itemsCodeService.getItems(limit, offset);
+      
       const mappedRows = response.data.map((item) => ({
         ...item,
         id: item.id,
         is_active: item.is_active ?? false,
       }));
       setRows(mappedRows);
+      setRowCount(response.count);
     } catch (error: any) {
       console.error("Error loading items:", error);
       toast.error(error?.response?.data?.message || "Failed to load items");
@@ -210,8 +192,8 @@ export const ItemsPage = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData(paginationModel);
+  }, [paginationModel, searchTerm]);
 
   useEffect(() => {
     const calculatePageSize = () => {
@@ -234,6 +216,7 @@ export const ItemsPage = () => {
     return () => window.removeEventListener("resize", calculatePageSize);
   }, [rowsCalculated]);
 
+<<<<<<< HEAD
   const filteredRows = useMemo(() => {
     if (!searchTerm.trim()) return rows;
     const searchLower = searchTerm.toLowerCase();
@@ -246,6 +229,8 @@ export const ItemsPage = () => {
         row.hsn_sac_code?.toLowerCase().includes(searchLower)
     );
   }, [rows, searchTerm]);
+=======
+>>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
 
   const handleRowClick = (params: GridRowParams<ItemData>) => {
     setSelectedItem(params.row);
@@ -258,13 +243,13 @@ export const ItemsPage = () => {
       showCreateButton={false}
       searchTerm={searchTerm}
       onSearchChange={setSearchTerm}
-      searchPlaceholder="Search by item code, description, tax code, TDS code, or HSN/SAC code..."
+      searchPlaceholder="Search by item code, description, tax code, or HSN/SAC code..."
       showFilters={false}
       showDateFilter={false}
       marginBottom="mb-0"
     >
       <DataTable
-        rows={loading && isInitialLoad ? [] : filteredRows}
+        rows={loading && isInitialLoad ? [] : rows}
         columns={columns}
         loading={loading}
         paginationModel={paginationModel}
@@ -272,6 +257,8 @@ export const ItemsPage = () => {
         onRowClick={handleRowClick}
         firstColumnField="item_code"
         emptyStateComponent={<CustomNoRows />}
+        rowCount={rowCount}
+        paginationMode="server"
         slots={{
           toolbar: CustomInvoiceToolbar,
           loadingOverlay:
@@ -308,7 +295,7 @@ export const ItemsPage = () => {
           }
         }}
         onSuccess={() => {
-          loadData();
+          loadData(paginationModel);
           setSelectedItem(null);
         }}
         item={updateDialogOpen ? selectedItem : null}

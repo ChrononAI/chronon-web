@@ -14,7 +14,7 @@ export interface VendorData {
   pincode?: string;
   state?: string;
   country?: string;
-  status: string;
+  is_active?: boolean;
   vendor_type?: string;
 }
 
@@ -41,8 +41,13 @@ export interface UpdateVendorPayload {
   gstin: string;
   pan?: string;
   phone_number?: string;
+  email?: string;
   address_line1?: string;
   address_line2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  country?: string;
   vendor_type?: string;
 }
 

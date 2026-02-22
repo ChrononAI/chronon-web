@@ -43,7 +43,7 @@ const itemSchema = z.object({
   item_code: z.string().min(1, "Item code is required"),
   description: z.string().min(1, "Description is required"),
   tax_code: z.string().min(1, "Tax code is required"),
-  tds_code: z.string().min(1, "TDS code is required"),
+  tds_code: z.string().optional(),
   hsn_sac_code: z.string().min(1, "HSN/SAC code is required"),
 });
 
@@ -108,7 +108,7 @@ export function ItemDialog({
         try {
           setLoadingCodes(true);
           const [tdsResponse, taxResponse] = await Promise.all([
-            itemsCodeService.getTDSCodes(),
+            itemsCodeService.getTDSCodes(200, 0),
             itemsCodeService.getTaxCodes(200, 0),
           ]);
           setTdsCodes(tdsResponse.data || []);
@@ -134,7 +134,7 @@ export function ItemDialog({
         item_code: data.item_code,
         description: data.description,
         tax_code: data.tax_code,
-        tds_code: data.tds_code,
+        tds_code: data.tds_code || "",
         hsn_sac_code: data.hsn_sac_code,
       };
 
@@ -176,7 +176,7 @@ export function ItemDialog({
           <DialogDescription className="text-gray-600">
             {isEditMode
               ? "Update the details for this item."
-              : "Fill in the details to create a new item. All fields are required."}
+              : "Fill in the details to create a new item."}
           </DialogDescription>
         </DialogHeader>
 
@@ -243,7 +243,7 @@ export function ItemDialog({
                   return (
                     <FormItem>
                       <FormLabel className="text-sm font-semibold text-gray-700">
-                        TDS Code <span className="text-red-500">*</span>
+                        TDS Code
                       </FormLabel>
                       <Popover open={tdsOpen} onOpenChange={setTdsOpen}>
                         <PopoverTrigger asChild>
