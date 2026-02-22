@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Calendar, Plus, Plane, Train, Bus, Car, ChevronDown, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,9 @@ import { JourneyModal } from "@/components/trip/JourneyModal";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { FormActionFooter } from "@/components/layout/FormActionFooter";
+import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
+import { ApprovalWorkflow } from "@/types/expense";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +47,9 @@ function TripDetailPage() {
   const [journeyToDelete, setJourneyToDelete] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [collapsedJourneys, setCollapsedJourneys] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<"details" | "history">("details");
+  const [approvalWorkflow, setApprovalWorkflow] = useState<ApprovalWorkflow | null>(null);
+  const workflowFetchedRef = useRef<string | null>(null);
 
   const transformSegmentToJourney = (segment: any): Journey => {
     return {
@@ -64,8 +70,8 @@ function TripDetailPage() {
       preferredHotel2: segment.additional_info?.preferred_hotel_2 || "",
       preferredHotel3: segment.additional_info?.preferred_hotel_3 || "",
       occupancy: segment.additional_info?.occupancy || "single",
-      checkInDate: segment.hotel_checkin || segment.additional_info?.hotel_checkin || "",
-      checkOutDate: segment.hotel_checkout || segment.additional_info?.hotel_checkout || "",
+      checkInDate: segment.hotel_checkin ? (segment.hotel_checkin.split('T')[0] || segment.hotel_checkin) : (segment.additional_info?.hotel_checkin ? (segment.additional_info.hotel_checkin.split('T')[0] || segment.additional_info.hotel_checkin) : ""),
+      checkOutDate: segment.hotel_checkout ? (segment.hotel_checkout.split('T')[0] || segment.hotel_checkout) : (segment.additional_info?.hotel_checkout ? (segment.additional_info.hotel_checkout.split('T')[0] || segment.additional_info.hotel_checkout) : ""),
       periodStart: segment.departure_time || "",
       periodEnd: segment.arrival_time || "",
     };
@@ -78,18 +84,47 @@ function TripDetailPage() {
       if (segmentsResponse.data?.data && Array.isArray(segmentsResponse.data.data)) {
         const transformedJourneys: Journey[] = segmentsResponse.data.data.map(transformSegmentToJourney);
         setJourneys(transformedJourneys);
+        const allJourneyIds = new Set(transformedJourneys.map(j => j.id || "").filter(Boolean));
+        setCollapsedJourneys(allJourneyIds);
       }
     } catch (error: any) {
       console.error("Error refreshing journeys:", error);
     }
   };
 
+  const getApprovalWorkflow = async (tripId: string) => {
+    if (workflowFetchedRef.current === tripId) {
+      return;
+    }
+    try {
+      const approvalWorkflowRes: any = await tripService.getTripApprovalWorkflow(tripId);
+      if (approvalWorkflowRes.data && approvalWorkflowRes.data.data && approvalWorkflowRes.data.data.length > 0) {
+        const workflowData = approvalWorkflowRes.data.data[0];
+        setApprovalWorkflow({
+          report_id: tripId,
+          approval_steps: workflowData.approval_steps || [],
+          current_step: workflowData.current_step || 1,
+          total_steps: workflowData.total_steps || 0,
+          workflow_status: workflowData.workflow_status || "RUNNING",
+          workflow_execution_id: workflowData.workflow_execution_id || "",
+        });
+        workflowFetchedRef.current = tripId;
+      }
+    } catch (error) {
+      console.log("Error fetching approval workflow:", error);
+    }
+  };
+
   useEffect(() => {
     const fetchTrip = async () => {
       if (!id) return;
+      // Reset workflow ref when trip ID changes
+      if (workflowFetchedRef.current !== id) {
+        workflowFetchedRef.current = null;
+      }
       setLoading(true);
       try {
-        const response: any = await tripService.getTripRequestById(id);
+        const response = await tripService.getTripRequestById(id);
         const tripData = response.data.data[0]; // Extract first item from data array
         if (tripData) {
           setTrip(tripData);
@@ -99,6 +134,8 @@ function TripDetailPage() {
           return;
         }
         await refreshJourneys();
+        // Fetch workflow separately, it will check if already loaded
+        await getApprovalWorkflow(id);
       } catch (error: any) {
         console.error("Error fetching trip:", error);
         toast.error(error?.response?.data?.message || "Failed to load trip details");
@@ -327,35 +364,68 @@ function TripDetailPage() {
       {/* Journey Itinerary Section */}
       <div className="bg-white px-6 py-6 flex-1 overflow-y-auto min-h-0">
         <div className="max-w-7xl mx-auto">
+          {/* Tabs */}
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Journey Itinerary</h2>
-            
+            <div className="flex gap-8 border-b border-gray-200">
+              {[
+                { key: "details", label: "Trip Details" },
+                { key: "history", label: "Audit History" },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key as "details" | "history")}
+                  className={cn(
+                    "relative flex items-center gap-2 font-medium transition-colors pb-2",
+                    activeTab === tab.key
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  )}
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                >
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {activeTab === "details" && (
+            <div className="mb-6">
             {/* Journey List */}
             {journeys.length > 0 && (
-              <div className="space-y-4 mb-6">
+              <div className="space-y-2 mb-6">
                 {journeys.map((journey, index) => {
                   const journeyId = journey.id || `journey-${index}`;
                   const isCollapsed = collapsedJourneys.has(journeyId);
                   const toggleCollapse = () => {
-                    setCollapsedJourneys(prev => {
-                      const newSet = new Set(prev);
-                      if (newSet.has(journeyId)) {
-                        newSet.delete(journeyId);
-                      } else {
-                        newSet.add(journeyId);
-                      }
-                      return newSet;
-                    });
+                    if (isCollapsed) {
+                      const newSet = new Set<string>();
+                      journeys.forEach((j) => {
+                        const jId = j.id || "";
+                        if (jId && jId !== journeyId) {
+                          newSet.add(jId);
+                        }
+                      });
+                      setCollapsedJourneys(newSet);
+                    } else {
+                      const newSet = new Set<string>();
+                      journeys.forEach((j) => {
+                        const jId = j.id || "";
+                        if (jId) {
+                          newSet.add(jId);
+                        }
+                      });
+                      setCollapsedJourneys(newSet);
+                    }
                   };
 
                   return (
                     <Card key={journeyId} className="border border-gray-200 rounded-lg shadow-sm">
-                      <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D9C99] text-white font-semibold text-sm">
+                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-200">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#0D9C99] text-white font-semibold text-xs">
                           {index + 1}
                         </div>
-                        {getTravelModeIcon(journey.travelMode)}
-                        <h3 className="font-medium text-gray-900 flex-1">
+                        <div className="scale-75">{getTravelModeIcon(journey.travelMode)}</div>
+                        <h3 className="font-medium text-gray-900 flex-1 text-sm">
                           {journey.source && journey.destination
                             ? `${journey.source} → ${journey.destination}`
                             : `Journey ${index + 1}`}
@@ -365,13 +435,13 @@ function TripDetailPage() {
                           variant="ghost"
                           size="sm"
                           onClick={toggleCollapse}
-                          className="text-gray-600 hover:text-gray-900 flex items-center gap-1"
+                          className="text-gray-600 hover:text-gray-900 flex items-center gap-1 h-7 px-2 text-xs"
                         >
-                          <ChevronDown className="h-4 w-4" />
+                          <ChevronDown className="h-3 w-3" />
                           <span>{isCollapsed ? "Expand" : "Collapse"}</span>
                         </Button>
                         {trip.status === "DRAFT" && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <Button
                               variant="outline"
                               size="sm"
@@ -379,15 +449,17 @@ function TripDetailPage() {
                                 setEditingJourney(journey);
                                 setModalOpen(true);
                               }}
+                              disabled
+                              className="h-7 px-2 text-xs"
                             >
-                              <Edit className="h-4 w-4 mr-2" />
+                              <Edit className="h-3 w-3 mr-1" />
                               Edit
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => journey.id && handleDeleteClick(journey.id)}
-                              className="text-red-600 hover:text-red-700"
+                              className="text-red-600 hover:text-red-700 h-7 px-2 text-xs"
                             >
                               Delete
                             </Button>
@@ -396,28 +468,28 @@ function TripDetailPage() {
                       </div>
 
                       {isCollapsed ? (
-                        <div className="px-6 py-4">
-                          <div className="grid grid-cols-4 gap-6">
+                        <div className="px-4 py-2.5">
+                          <div className="grid grid-cols-4 gap-4">
                             <div>
-                              <span className="text-gray-500 text-xs font-medium uppercase block mb-2">SOURCE</span>
+                              <span className="text-gray-500 text-xs font-semibold uppercase block mb-1">SOURCE</span>
                               <p className="text-sm font-medium text-gray-900">
                                 {journey.source || "Not specified"}
                               </p>
                             </div>
                             <div>
-                              <span className="text-gray-500 text-xs font-medium uppercase block mb-2">DESTINATION</span>
+                              <span className="text-gray-500 text-xs font-semibold uppercase block mb-1">DESTINATION</span>
                               <p className="text-sm font-medium text-gray-900">
                                 {journey.destination || "Not specified"}
                               </p>
                             </div>
                             <div>
-                              <span className="text-gray-500 text-xs font-medium uppercase block mb-2">START DATE</span>
+                              <span className="text-gray-500 text-xs font-semibold uppercase block mb-1">START DATE</span>
                               <p className="text-sm font-medium text-gray-900">
                                 {journey.startDate ? formatDate(journey.startDate) : "Not specified"}
                               </p>
                             </div>
                             <div>
-                              <span className="text-gray-500 text-xs font-medium uppercase block mb-2">END DATE</span>
+                              <span className="text-gray-500 text-xs font-semibold uppercase block mb-1">END DATE</span>
                               <p className="text-sm font-medium text-gray-900">
                                 {journey.endDate ? formatDate(journey.endDate) : "Not specified"}
                               </p>
@@ -425,47 +497,124 @@ function TripDetailPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="px-6 py-4">
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-6">
+                        <div className="px-4 py-3">
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-5">
                               <div>
-                                <span className="text-gray-500 text-xs font-medium uppercase block mb-2">Source</span>
-                                <p className="text-sm text-gray-900">{journey.source || "Not specified"}</p>
+                                <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">TRAVEL MODE</span>
+                                <p className="text-sm font-medium text-gray-900 capitalize">{journey.travelMode || "Not specified"}</p>
                               </div>
                               <div>
-                                <span className="text-gray-500 text-xs font-medium uppercase block mb-2">Destination</span>
-                                <p className="text-sm text-gray-900">{journey.destination || "Not specified"}</p>
+                                <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">SOURCE</span>
+                                <p className="text-sm font-medium text-gray-900">{journey.source || "Not specified"}</p>
                               </div>
                               <div>
-                                <span className="text-gray-500 text-xs font-medium uppercase block mb-2">Start Date</span>
-                                <p className="text-sm text-gray-900">{journey.startDate ? formatDate(journey.startDate) : "Not specified"}</p>
+                                <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">DESTINATION</span>
+                                <p className="text-sm font-medium text-gray-900">{journey.destination || "Not specified"}</p>
                               </div>
                               <div>
-                                <span className="text-gray-500 text-xs font-medium uppercase block mb-2">End Date</span>
-                                <p className="text-sm text-gray-900">{journey.endDate ? formatDate(journey.endDate) : "Not specified"}</p>
+                                <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">START DATE</span>
+                                <p className="text-sm font-medium text-gray-900">{journey.startDate ? formatDate(journey.startDate) : "Not specified"}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">END DATE</span>
+                                <p className="text-sm font-medium text-gray-900">{journey.endDate ? formatDate(journey.endDate) : "Not specified"}</p>
                               </div>
                             </div>
                             {(journey.timePreference || journey.flightPreference || journey.mealPreference) && (
-                              <div className="pt-4 border-t border-gray-200">
-                                <div className="grid grid-cols-3 gap-6">
+                              <div className="pt-3 border-t border-gray-200">
+                                <div className="grid grid-cols-2 gap-5">
                                   {journey.timePreference && (
                                     <div>
-                                      <span className="text-gray-500 text-xs font-medium uppercase block mb-2">Time Preference</span>
-                                      <p className="text-sm text-gray-900">{journey.timePreference}</p>
+                                      <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">TIME PREFERENCE</span>
+                                      <p className="text-sm font-medium text-gray-900">{journey.timePreference}</p>
                                     </div>
                                   )}
                                   {journey.flightPreference && (
                                     <div>
-                                      <span className="text-gray-500 text-xs font-medium uppercase block mb-2">Flight Preference</span>
-                                      <p className="text-sm text-gray-900">{journey.flightPreference}</p>
+                                      <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">FLIGHT PREFERENCE</span>
+                                      <p className="text-sm font-medium text-gray-900">{journey.flightPreference}</p>
                                     </div>
                                   )}
                                   {journey.mealPreference && (
                                     <div>
-                                      <span className="text-gray-500 text-xs font-medium uppercase block mb-2">Meal Preference</span>
-                                      <p className="text-sm text-gray-900">{journey.mealPreference}</p>
+                                      <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">MEAL PREFERENCE</span>
+                                      <p className="text-sm font-medium text-gray-900">{journey.mealPreference}</p>
                                     </div>
                                   )}
+                                </div>
+                              </div>
+                            )}
+                            {journey.needsAccommodation && (
+                              <div className="pt-4 mt-4 border-t-2 border-gray-300">
+                                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                  <h4 className="font-bold text-base text-gray-900 mb-4 flex items-center gap-2">
+                                    <span className="w-1 h-5 bg-[#0D9C99] rounded"></span>
+                                    ACCOMMODATION
+                                  </h4>
+                                  <div className="grid grid-cols-2 gap-5">
+                                    {journey.checkInDate && (
+                                      <div>
+                                        <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">CHECK IN DATE</span>
+                                        <p className="text-sm font-medium text-gray-900">{formatDate(journey.checkInDate)}</p>
+                                      </div>
+                                    )}
+                                    {journey.checkOutDate && (
+                                      <div>
+                                        <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">CHECK OUT DATE</span>
+                                        <p className="text-sm font-medium text-gray-900">{formatDate(journey.checkOutDate)}</p>
+                                      </div>
+                                    )}
+                                    {journey.occupancy && (
+                                      <div>
+                                        <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">OCCUPANCY</span>
+                                        <p className="text-sm font-medium text-gray-900 capitalize">{journey.occupancy}</p>
+                                      </div>
+                                    )}
+                                    {journey.location && (
+                                      <div>
+                                        <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">LOCATION</span>
+                                        <p className="text-sm font-medium text-gray-900">{journey.location}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {(journey.preferredHotel1 || journey.preferredHotel2 || journey.preferredHotel3) && (
+                                    <div className="mt-4 pt-4 border-t border-gray-200">
+                                      <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">PREFERRED HOTELS</span>
+                                      <div className="grid grid-cols-2 gap-3">
+                                        {journey.preferredHotel1 && (
+                                          <p className="text-sm font-medium text-gray-900">1. {journey.preferredHotel1}</p>
+                                        )}
+                                        {journey.preferredHotel2 && (
+                                          <p className="text-sm font-medium text-gray-900">2. {journey.preferredHotel2}</p>
+                                        )}
+                                        {journey.preferredHotel3 && (
+                                          <p className="text-sm font-medium text-gray-900">3. {journey.preferredHotel3}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {!journey.needsAccommodation && (journey.preferredHotel1 || journey.preferredHotel2 || journey.preferredHotel3) && (
+                              <div className="pt-4 mt-4 border-t-2 border-gray-300">
+                                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                  <h4 className="font-bold text-base text-gray-900 mb-4 flex items-center gap-2">
+                                    <span className="w-1 h-5 bg-[#0D9C99] rounded"></span>
+                                    PREFERRED HOTELS
+                                  </h4>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    {journey.preferredHotel1 && (
+                                      <p className="text-sm font-medium text-gray-900">1. {journey.preferredHotel1}</p>
+                                    )}
+                                    {journey.preferredHotel2 && (
+                                      <p className="text-sm font-medium text-gray-900">2. {journey.preferredHotel2}</p>
+                                    )}
+                                    {journey.preferredHotel3 && (
+                                      <p className="text-sm font-medium text-gray-900">3. {journey.preferredHotel3}</p>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -493,6 +642,21 @@ function TripDetailPage() {
               </Button>
             )}
           </div>
+          )}
+
+          {activeTab === "history" && (
+            <div className="w-full">
+              {approvalWorkflow && approvalWorkflow.approval_steps && approvalWorkflow.approval_steps.length > 0 ? (
+                <div className="mt-6">
+                  <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-12">
+                  <p className="text-sm text-gray-500">No workflow timeline available</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

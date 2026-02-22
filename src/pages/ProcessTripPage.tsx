@@ -27,7 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { formatDate, getStatusColor } from "@/lib/utils";
+import { formatDate, getStatusColor, cn } from "@/lib/utils";
 import { trackEvent } from "@/mixpanel";
 import { tripService, TripType } from "@/services/tripService";
 import { useAuthStore } from "@/store/authStore";
@@ -41,7 +41,7 @@ import {
   Loader2,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -103,6 +103,8 @@ function ProcessTripPage() {
   const [actionType, setActionType] = useState<"approve" | "reject" | null>(null);
   const [comments, setComments] = useState("");
   const [showActionDialog, setShowActionDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<"details" | "history">("details");
+  const workflowFetchedRef = useRef<string | null>(null);
 
   const getUserSpecificStatus = (): string => {
     if (!user || !approvalWorkflow?.approval_steps?.length) {
@@ -168,6 +170,9 @@ function ProcessTripPage() {
   };
 
   const getApprovalWorkflow = async (id: string) => {
+    if (workflowFetchedRef.current === id) {
+      return;
+    }
     try {
       const approvalWorkflowRes: any = await tripService.getTripApprovalWorkflow(id);
       if (approvalWorkflowRes.data && approvalWorkflowRes.data.data && approvalWorkflowRes.data.data.length > 0) {
@@ -180,6 +185,7 @@ function ProcessTripPage() {
           workflow_status: workflowData.workflow_status || "RUNNING",
           workflow_execution_id: workflowData.workflow_execution_id || "",
         });
+        workflowFetchedRef.current = id;
       }
     } catch (error) {
       console.log(error);
@@ -205,6 +211,9 @@ function ProcessTripPage() {
 
   useEffect(() => {
     if (id) {
+      if (workflowFetchedRef.current !== id) {
+        workflowFetchedRef.current = null;
+      }
       getApprovalWorkflow(id);
       fetchTripData(id);
     }
@@ -337,38 +346,63 @@ function ProcessTripPage() {
             )}
           </div>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="col-span-1 lg:col-span-2 space-y-6">
-            {loadingTrip ? (
-              <Card>
-                <CardContent className="flex items-center justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                </CardContent>
-              </Card>
-            ) : (
-              <CreateTripJourneyForm
-                mode="view"
-                showOnlyJourneys={false}
-                tripData={trip || undefined}
-                tripId={id}
-              />
-            )}
-          </div>
-          {approvalWorkflow && approvalWorkflow.approval_steps && (
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-xl font-semibold">
-                    <Activity className="h-5 w-5" />
-                    Approval Workflow
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
-                </CardContent>
-              </Card>
+        <div className="space-y-6">
+          {/* Tabs */}
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+            <div className="flex gap-8 border-b border-gray-200">
+              {[
+                { key: "details", label: "Trip Details" },
+                { key: "history", label: "Audit History" },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key as "details" | "history")}
+                  className={cn(
+                    "relative flex items-center gap-2 font-medium transition-colors pb-2",
+                    activeTab === tab.key
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  )}
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                >
+                  <span>{tab.label}</span>
+                </button>
+              ))}
             </div>
-          )}
+          </div>
+
+          <div className={cn(activeTab !== "details" && "hidden")}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="col-span-1 lg:col-span-3 space-y-6">
+                {loadingTrip ? (
+                  <Card>
+                    <CardContent className="flex items-center justify-center py-12">
+                      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <CreateTripJourneyForm
+                    mode="view"
+                    showOnlyJourneys={false}
+                    tripData={trip || undefined}
+                    tripId={id}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className={cn(activeTab !== "history" && "hidden")}>
+            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+              {approvalWorkflow && approvalWorkflow.approval_steps && approvalWorkflow.approval_steps.length > 0 ? (
+                <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
+              ) : (
+                <div className="flex items-center justify-center py-12">
+                  <p className="text-sm text-gray-500">No workflow timeline available</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       <AlertDialog open={showCurrencyAlert} onOpenChange={setShowCurrencyAlert}>

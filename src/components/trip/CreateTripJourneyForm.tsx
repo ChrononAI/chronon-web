@@ -22,13 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { tripService, TripType } from "@/services/tripService";
 import { toast } from "sonner";
 import { Currency } from "../advances/CreateAdvanceForm";
 import { trackEvent } from "@/mixpanel";
 import { FormActionFooter } from "../layout/FormActionFooter";
 import { format, parseISO } from "date-fns";
+import { formatDate } from "@/lib/utils";
 import { useTripStore } from "@/store/tripStore";
 
 type TravelMode = "flight" | "train" | "bus" | "cab";
@@ -99,6 +100,7 @@ function CreateTripJourneyForm({
   const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(
     currencies.find((c) => c.code === "USD") || null
   );
+  const segmentsFetchedRef = useRef<string | null>(null);
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -143,32 +145,42 @@ function CreateTripJourneyForm({
         let journeysData: any[] = [];
         
         if (tripId) {
-          try {
-            const segmentsResponse: any = await tripService.getTripSegments(tripId);
-            if (segmentsResponse.data?.data && Array.isArray(segmentsResponse.data.data)) {
-              journeysData = segmentsResponse.data.data.map((segment: any) => ({
-                travelMode: segment.travel_mode || "flight",
-                source: segment.from_location || "",
-                destination: segment.to_location || "",
-                startDate: segment.departure_time ? segment.departure_time.split('T')[0] : "",
-                endDate: segment.arrival_time ? segment.arrival_time.split('T')[0] : "",
-                timePreference: segment.additional_info?.time_preference || "",
-                flightPreference: segment.additional_info?.flight_preference || "",
-                mealPreference: segment.additional_info?.meal_preference || "",
-                classPreference: segment.additional_info?.class_preference || "",
-                departureTime: segment.departure_time ? segment.departure_time.split('T')[1]?.split(':').slice(0, 2).join(':') : "",
-                needsAccommodation: segment.hotel_required || false,
-                location: segment.additional_info?.hotel_location || "",
-                preferredHotel1: segment.additional_info?.preferred_hotel_1 || "",
-                preferredHotel2: segment.additional_info?.preferred_hotel_2 || "",
-                preferredHotel3: segment.additional_info?.preferred_hotel_3 || "",
-                occupancy: segment.additional_info?.occupancy || "single",
-                checkInDate: segment.hotel_checkin ? segment.hotel_checkin.split('T')[0] : "",
-                checkOutDate: segment.hotel_checkout ? segment.hotel_checkout.split('T')[0] : "",
-              }));
+          // Only fetch if not already loaded for this trip
+          if (segmentsFetchedRef.current !== tripId) {
+            try {
+              const segmentsResponse: any = await tripService.getTripSegments(tripId);
+              if (segmentsResponse.data?.data && Array.isArray(segmentsResponse.data.data)) {
+                journeysData = segmentsResponse.data.data.map((segment: any) => ({
+                  travelMode: segment.travel_mode || "flight",
+                  source: segment.from_location || "",
+                  destination: segment.to_location || "",
+                  startDate: segment.departure_time ? segment.departure_time.split('T')[0] : "",
+                  endDate: segment.arrival_time ? segment.arrival_time.split('T')[0] : "",
+                  timePreference: segment.additional_info?.time_preference || "",
+                  flightPreference: segment.additional_info?.flight_preference || "",
+                  mealPreference: segment.additional_info?.meal_preference || "",
+                  classPreference: segment.additional_info?.class_preference || "",
+                  departureTime: segment.departure_time ? segment.departure_time.split('T')[1]?.split(':').slice(0, 2).join(':') : "",
+                  needsAccommodation: segment.hotel_required || false,
+                  location: segment.additional_info?.hotel_location || "",
+                  preferredHotel1: segment.additional_info?.preferred_hotel_1 || "",
+                  preferredHotel2: segment.additional_info?.preferred_hotel_2 || "",
+                  preferredHotel3: segment.additional_info?.preferred_hotel_3 || "",
+                  occupancy: segment.additional_info?.occupancy || "single",
+                  checkInDate: segment.hotel_checkin ? segment.hotel_checkin.split('T')[0] : "",
+                  checkOutDate: segment.hotel_checkout ? segment.hotel_checkout.split('T')[0] : "",
+                }));
+              }
+              segmentsFetchedRef.current = tripId;
+            } catch (error) {
+              console.error("Error loading journey segments:", error);
             }
-          } catch (error) {
-            console.error("Error loading journey segments:", error);
+          } else {
+            // Use existing form data if already fetched
+            const currentJourneys = form.getValues("journeys");
+            if (currentJourneys && currentJourneys.length > 0) {
+              journeysData = currentJourneys;
+            }
           }
         }
         
@@ -205,6 +217,10 @@ function CreateTripJourneyForm({
           currency: tripData.currency || "USD",
           journeys: journeysData,
         });
+        if (journeysData.length > 0 && (mode === "view" || mode === "create")) {
+          const allIndices = new Set(journeysData.map((_, index) => index));
+          setCollapsedJourneys(allIndices);
+        }
       } else if (mode === "edit" && selectedTrip) {
         form.reset({
           tripName: selectedTrip.title || "",
@@ -240,8 +256,13 @@ function CreateTripJourneyForm({
       }
     };
     
+
+    if (segmentsFetchedRef.current !== tripId && tripId) {
+      segmentsFetchedRef.current = null;
+    }
+    
     loadTripData();
-  }, [mode, selectedTrip, showOnlyJourneys, tripData, tripId, form]);
+  }, [mode, selectedTrip, showOnlyJourneys, tripData, tripId]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -249,9 +270,16 @@ function CreateTripJourneyForm({
   });
 
   useEffect(() => {
-    if (mode === "view" && fields.length > 0) {
+    if ((mode === "view" || mode === "create") && fields.length > 0) {
       const allIndices = new Set(fields.map((_, index) => index));
-      setCollapsedJourneys(allIndices);
+      setCollapsedJourneys(prev => {
+        if (prev.size === 0 || prev.size !== allIndices.size) {
+          return allIndices;
+        }
+        return prev;
+      });
+    } else if (mode === "create" && fields.length === 0) {
+      setCollapsedJourneys(new Set());
     }
   }, [mode, fields.length]);
 
@@ -723,25 +751,31 @@ function CreateTripJourneyForm({
                   const travelMode = journey?.travelMode || "flight";
                   const isCollapsed = collapsedJourneys.has(index);
                   const toggleCollapse = () => {
-                    setCollapsedJourneys(prev => {
-                      const newSet = new Set(prev);
-                      if (newSet.has(index)) {
-                        newSet.delete(index);
-                      } else {
-                        newSet.add(index);
-                      }
-                      return newSet;
-                    });
+                    if (isCollapsed) {
+                      const newSet = new Set<number>();
+                      fields.forEach((_, idx) => {
+                        if (idx !== index) {
+                          newSet.add(idx);
+                        }
+                      });
+                      setCollapsedJourneys(newSet);
+                    } else {
+                      const newSet = new Set<number>();
+                      fields.forEach((_, idx) => {
+                        newSet.add(idx);
+                      });
+                      setCollapsedJourneys(newSet);
+                    }
                   };
 
                   return (
-                    <div key={field.id} className="bg-white border border-gray-200 rounded-lg mb-4 shadow-sm">
-                      <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D9C99] text-white font-semibold text-sm">
+                    <div key={field.id} className="bg-white border border-gray-200 rounded-lg mb-2 shadow-sm">
+                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-200">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#0D9C99] text-white font-semibold text-xs">
                           {index + 1}
                         </div>
-                        {getTravelModeIcon(travelMode as TravelMode)}
-                        <h3 className="font-medium text-gray-900 flex-1">
+                        <div className="scale-75">{getTravelModeIcon(travelMode as TravelMode)}</div>
+                        <h3 className="font-medium text-gray-900 flex-1 text-sm">
                           {journey.source && journey.destination 
                             ? getRouteLabel(journey, index)
                             : `Journey ${index + 1}`}
@@ -751,9 +785,9 @@ function CreateTripJourneyForm({
                           variant="ghost"
                           size="sm"
                           onClick={toggleCollapse}
-                          className="text-gray-600 hover:text-gray-900 flex items-center gap-1"
+                          className="text-gray-600 hover:text-gray-900 flex items-center gap-1 h-7 px-2 text-xs"
                         >
-                          <ChevronDown className="h-4 w-4" />
+                          <ChevronDown className="h-3 w-3" />
                           <span>{isCollapsed ? "Expand" : "Collapse"}</span>
                         </Button>
                         {fields.length > 1 && mode !== "view" && (
@@ -762,7 +796,7 @@ function CreateTripJourneyForm({
                             variant="ghost"
                             size="sm"
                             onClick={() => remove(index)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 h-7 px-2 text-xs"
                           >
                             Remove
                           </Button>
@@ -770,22 +804,22 @@ function CreateTripJourneyForm({
                       </div>
 
                       {isCollapsed ? (
-                        <div className="px-6 py-4">
-                          <div className="grid grid-cols-4 gap-6">
+                        <div className="px-4 py-2.5">
+                          <div className="grid grid-cols-4 gap-4">
                             <div>
-                              <span className="text-gray-500 text-xs font-medium uppercase block mb-2">SOURCE</span>
+                              <span className="text-gray-500 text-xs font-semibold uppercase block mb-1">SOURCE</span>
                               <p className="text-sm font-medium text-gray-900">
                                 {journey.source || "Not specified"}
                               </p>
                             </div>
                             <div>
-                              <span className="text-gray-500 text-xs font-medium uppercase block mb-2">DESTINATION</span>
+                              <span className="text-gray-500 text-xs font-semibold uppercase block mb-1">DESTINATION</span>
                               <p className="text-sm font-medium text-gray-900">
                                 {journey.destination || "Not specified"}
                               </p>
                             </div>
                             <div>
-                              <span className="text-gray-500 text-xs font-medium uppercase block mb-2">START DATE</span>
+                              <span className="text-gray-500 text-xs font-semibold uppercase block mb-1">START DATE</span>
                               <p className="text-sm font-medium text-gray-900">
                                 {journey.startDate ? (() => {
                                   try {
@@ -800,7 +834,7 @@ function CreateTripJourneyForm({
                               </p>
                             </div>
                             <div>
-                              <span className="text-gray-500 text-xs font-medium uppercase block mb-2">END DATE</span>
+                              <span className="text-gray-500 text-xs font-semibold uppercase block mb-1">END DATE</span>
                               <p className="text-sm font-medium text-gray-900">
                                 {journey.endDate ? (() => {
                                   try {
@@ -816,10 +850,134 @@ function CreateTripJourneyForm({
                             </div>
                           </div>
                         </div>
+                      ) : mode === "view" ? (
+                        <div className="px-4 py-3">
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-5">
+                              <div>
+                                <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">TRAVEL MODE</span>
+                                <p className="text-sm font-medium text-gray-900 capitalize">{journey.travelMode || "Not specified"}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">SOURCE</span>
+                                <p className="text-sm font-medium text-gray-900">{journey.source || "Not specified"}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">DESTINATION</span>
+                                <p className="text-sm font-medium text-gray-900">{journey.destination || "Not specified"}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">START DATE</span>
+                                <p className="text-sm font-medium text-gray-900">{journey.startDate ? formatDate(journey.startDate) : "Not specified"}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">END DATE</span>
+                                <p className="text-sm font-medium text-gray-900">{journey.endDate ? formatDate(journey.endDate) : "Not specified"}</p>
+                              </div>
+                            </div>
+                            {(journey.timePreference || journey.flightPreference || journey.mealPreference) && (
+                              <div className="pt-3 border-t border-gray-200">
+                                <div className="grid grid-cols-2 gap-5">
+                                  {journey.timePreference && (
+                                    <div>
+                                      <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">TIME PREFERENCE</span>
+                                      <p className="text-sm font-medium text-gray-900">{journey.timePreference}</p>
+                                    </div>
+                                  )}
+                                  {journey.flightPreference && (
+                                    <div>
+                                      <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">FLIGHT PREFERENCE</span>
+                                      <p className="text-sm font-medium text-gray-900">{journey.flightPreference}</p>
+                                    </div>
+                                  )}
+                                  {journey.mealPreference && (
+                                    <div>
+                                      <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">MEAL PREFERENCE</span>
+                                      <p className="text-sm font-medium text-gray-900">{journey.mealPreference}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {journey.needsAccommodation && (
+                              <div className="pt-4 mt-4 border-t-2 border-gray-300">
+                                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                  <h4 className="font-bold text-base text-gray-900 mb-4 flex items-center gap-2">
+                                    <span className="w-1 h-5 bg-[#0D9C99] rounded"></span>
+                                    ACCOMMODATION
+                                  </h4>
+                                  <div className="grid grid-cols-2 gap-5">
+                                    {journey.checkInDate && (
+                                      <div>
+                                        <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">CHECK IN DATE</span>
+                                        <p className="text-sm font-medium text-gray-900">{formatDate(journey.checkInDate.includes('T') ? journey.checkInDate.split('T')[0] : journey.checkInDate)}</p>
+                                      </div>
+                                    )}
+                                    {journey.checkOutDate && (
+                                      <div>
+                                        <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">CHECK OUT DATE</span>
+                                        <p className="text-sm font-medium text-gray-900">{formatDate(journey.checkOutDate.includes('T') ? journey.checkOutDate.split('T')[0] : journey.checkOutDate)}</p>
+                                      </div>
+                                    )}
+                                    {journey.occupancy && (
+                                      <div>
+                                        <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">OCCUPANCY</span>
+                                        <p className="text-sm font-medium text-gray-900 capitalize">{journey.occupancy}</p>
+                                      </div>
+                                    )}
+                                    {journey.location && (
+                                      <div>
+                                        <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">LOCATION</span>
+                                        <p className="text-sm font-medium text-gray-900">{journey.location}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {(journey.preferredHotel1 || journey.preferredHotel2 || journey.preferredHotel3) && (
+                                    <div className="mt-4 pt-4 border-t border-gray-200">
+                                      <span className="text-gray-500 text-xs font-semibold uppercase block mb-1.5">PREFERRED HOTELS</span>
+                                      <div className="grid grid-cols-2 gap-3">
+                                        {journey.preferredHotel1 && (
+                                          <p className="text-sm font-medium text-gray-900">1. {journey.preferredHotel1}</p>
+                                        )}
+                                        {journey.preferredHotel2 && (
+                                          <p className="text-sm font-medium text-gray-900">2. {journey.preferredHotel2}</p>
+                                        )}
+                                        {journey.preferredHotel3 && (
+                                          <p className="text-sm font-medium text-gray-900">3. {journey.preferredHotel3}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {!journey.needsAccommodation && (journey.preferredHotel1 || journey.preferredHotel2 || journey.preferredHotel3) && (
+                              <div className="pt-4 mt-4 border-t-2 border-gray-300">
+                                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                  <h4 className="font-bold text-base text-gray-900 mb-4 flex items-center gap-2">
+                                    <span className="w-1 h-5 bg-[#0D9C99] rounded"></span>
+                                    PREFERRED HOTELS
+                                  </h4>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    {journey.preferredHotel1 && (
+                                      <p className="text-sm font-medium text-gray-900">1. {journey.preferredHotel1}</p>
+                                    )}
+                                    {journey.preferredHotel2 && (
+                                      <p className="text-sm font-medium text-gray-900">2. {journey.preferredHotel2}</p>
+                                    )}
+                                    {journey.preferredHotel3 && (
+                                      <p className="text-sm font-medium text-gray-900">3. {journey.preferredHotel3}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       ) : (
                         <>
 
-                      <div className="space-y-3 mb-8">
+                      <div className="space-y-2 mb-4 px-4 py-2.5">
                         <div className="flex items-center justify-between">
                           <Label className="block font-bold text-[12px] text-[#47536C] uppercase">
                             TRAVEL MODE
@@ -834,7 +992,7 @@ function CreateTripJourneyForm({
                                   <Switch
                                     checked={field.value || false}
                                     onCheckedChange={field.onChange}
-                                    disabled={mode === "view"}
+                                    disabled={false}
                                   />
                                 </FormControl>
                               )}
@@ -849,7 +1007,7 @@ function CreateTripJourneyForm({
                             variant={travelMode === travelModeOption ? "default" : "outline"}
                             size="sm"
                             onClick={() => form.setValue(`journeys.${index}.travelMode`, travelModeOption)}
-                            disabled={mode === "view"}
+                            disabled={false}
                             className={`capitalize rounded-full ${
                               travelMode === travelModeOption
                                 ? "bg-[#161B53] text-white hover:bg-[#161B53]"
@@ -879,7 +1037,7 @@ function CreateTripJourneyForm({
                                         <Input
                                           {...field}
                                           placeholder="e.g. New York (JFK)"
-                                          disabled={mode === "view"}
+                                          disabled={false}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                         />
                                       </FormControl>
@@ -901,7 +1059,7 @@ function CreateTripJourneyForm({
                                         <Input
                                           {...field}
                                           placeholder="e.g. London (LHR)"
-                                          disabled={mode === "view"}
+                                          disabled={false}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                         />
                                       </FormControl>
@@ -923,7 +1081,7 @@ function CreateTripJourneyForm({
                                         <TripDateField
                                           value={field.value || ""}
                                           onChange={field.onChange}
-                                          disabled={mode === "view"}
+                                          disabled={false}
                                           minDate={today}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none pr-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none [&_input]:pr-10 [&_input]:pl-0 [&_input]:focus:border-0 [&_input]:focus:border-b-2 [&_input]:focus:border-[#0D9C99] [&_input]:focus-visible:outline-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:border-0 [&_input]:focus-visible:border-b-2 [&_input]:focus-visible:border-[#0D9C99]"
                                         />
@@ -946,7 +1104,7 @@ function CreateTripJourneyForm({
                                         <TripDateField
                                           value={field.value || ""}
                                           onChange={field.onChange}
-                                          disabled={mode === "view"}
+                                          disabled={false}
                                           minDate={form.watch(`journeys.${index}.startDate`) || today}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none pr-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none [&_input]:pr-10 [&_input]:pl-0 [&_input]:focus:border-0 [&_input]:focus:border-b-2 [&_input]:focus:border-[#0D9C99] [&_input]:focus-visible:outline-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:border-0 [&_input]:focus-visible:border-b-2 [&_input]:focus-visible:border-[#0D9C99]"
                                         />
@@ -971,7 +1129,7 @@ function CreateTripJourneyForm({
                                         <Select
                                           value={field.value}
                                           onValueChange={field.onChange}
-                                          disabled={mode === "view"}
+                                          disabled={false}
                                         >
                                           <SelectTrigger className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none">
                                             <SelectValue placeholder="Select time" />
@@ -1002,7 +1160,7 @@ function CreateTripJourneyForm({
                                         <Input
                                           {...field}
                                           placeholder="e.g. Window, Aisle, Extra Legroom"
-                                          disabled={mode === "view"}
+                                          disabled={false}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                         />
                                       </FormControl>
@@ -1024,7 +1182,7 @@ function CreateTripJourneyForm({
                   <Select
                     value={field.value}
                     onValueChange={field.onChange}
-                    disabled={mode === "view"}
+                    disabled={false}
                   >
                     <SelectTrigger className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none">
                       <SelectValue placeholder="Select meal" />
@@ -1257,7 +1415,7 @@ function CreateTripJourneyForm({
                                         <Input
                                           {...field}
                                           placeholder="e.g. Brussels-Midi Station"
-                                          disabled={mode === "view"}
+                                          disabled={false}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                         />
                   </FormControl>
@@ -1304,7 +1462,7 @@ function CreateTripJourneyForm({
                                           {...field}
                                           type="datetime-local"
                                           placeholder="11/20/2023, 02:30 PM"
-                                          disabled={mode === "view"}
+                                          disabled={false}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                         />
                   </FormControl>
@@ -1323,7 +1481,7 @@ function CreateTripJourneyForm({
                                           {...field}
                                           type="datetime-local"
                                           placeholder="11/20/2023, 03:30 PM"
-                                          disabled={mode === "view"}
+                                          disabled={false}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                         />
                   </FormControl>
@@ -1354,7 +1512,7 @@ function CreateTripJourneyForm({
                                       <TripDateField
                                         value={field.value || ""}
                                         onChange={field.onChange}
-                                        disabled={mode === "view"}
+                                        disabled={false}
                                         minDate={today}
                                         className="h-[40px] border-0 border-b border-gray-300 rounded-none pr-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none [&_input]:pr-10 [&_input]:pl-0 [&_input]:focus:border-0 [&_input]:focus:border-b-2 [&_input]:focus:border-[#0D9C99] [&_input]:focus-visible:outline-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:border-0 [&_input]:focus-visible:border-b-2 [&_input]:focus-visible:border-[#0D9C99]"
                                       />
@@ -1377,7 +1535,7 @@ function CreateTripJourneyForm({
                                       <TripDateField
                                         value={field.value || ""}
                                         onChange={field.onChange}
-                        disabled={mode === "view"}
+                        disabled={false}
                                         minDate={form.watch(`journeys.${index}.checkInDate`) || today}
                                         className="h-[40px] border-0 border-b border-gray-300 rounded-none pr-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none [&_input]:pr-10 [&_input]:pl-0 [&_input]:focus:border-0 [&_input]:focus:border-b-2 [&_input]:focus:border-[#0D9C99] [&_input]:focus-visible:outline-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:border-0 [&_input]:focus-visible:border-b-2 [&_input]:focus-visible:border-[#0D9C99]"
                                       />
@@ -1400,7 +1558,7 @@ function CreateTripJourneyForm({
                                       <Input
                                         {...field}
                                         placeholder="Enter location"
-                                        disabled={mode === "view"}
+                                        disabled={false}
                                         className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                       />
                   </FormControl>
@@ -1429,7 +1587,7 @@ function CreateTripJourneyForm({
                                           value="single"
                                           checked={field.value === "single"}
                                           onChange={() => field.onChange("single")}
-                                          disabled={mode === "view"}
+                                          disabled={false}
                                           className="w-4 h-4 text-[#0D9C99] focus:ring-[#0D9C99]"
                                         />
                                         <Label htmlFor={`occupancy-single-${index}`} className="text-sm font-normal text-gray-700 cursor-pointer">
@@ -1443,7 +1601,7 @@ function CreateTripJourneyForm({
                                           value="double"
                                           checked={field.value === "double"}
                                           onChange={() => field.onChange("double")}
-                                          disabled={mode === "view"}
+                                          disabled={false}
                                           className="w-4 h-4 text-[#0D9C99] focus:ring-[#0D9C99]"
                                         />
                                         <Label htmlFor={`occupancy-double-${index}`} className="text-sm font-normal text-gray-700 cursor-pointer">
@@ -1471,7 +1629,7 @@ function CreateTripJourneyForm({
                                     <Input
                                       {...field}
                                       placeholder="Enter Preferred Hotel Option (1)"
-                                      disabled={mode === "view"}
+                                      disabled={false}
                                       className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                     />
                                   </FormControl>
@@ -1491,7 +1649,7 @@ function CreateTripJourneyForm({
                                     <Input
                                       {...field}
                                       placeholder="Enter Preferred Hotel Option (2)"
-                                      disabled={mode === "view"}
+                                      disabled={false}
                                       className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                     />
                                   </FormControl>
@@ -1511,7 +1669,7 @@ function CreateTripJourneyForm({
                                     <Input
                                       {...field}
                                       placeholder="Enter Preferred Hotel Option (3)"
-                                      disabled={mode === "view"}
+                                      disabled={false}
                                       className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                     />
                                   </FormControl>
@@ -1535,7 +1693,8 @@ function CreateTripJourneyForm({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() =>
+                  onClick={() => {
+                    const newIndex = fields.length;
                     append({
                       travelMode: "flight",
                       source: "",
@@ -1553,8 +1712,13 @@ function CreateTripJourneyForm({
                       preferredHotel2: "",
                       preferredHotel3: "",
                       occupancy: "single",
-                    })
-                  }
+                    });
+                    setCollapsedJourneys(prev => {
+                      const newSet = new Set(prev);
+                      newSet.add(newIndex);
+                      return newSet;
+                    });
+                  }}
                   className="border-[#0D9C99] text-[#0D9C99] hover:bg-[#0D9C99] hover:text-white transition-colors"
                 >
                   <Plus className="mr-2 h-4 w-4" />

@@ -88,10 +88,19 @@ function CreateTripBasicForm({
         },
       };
 
-      await tripService.createTripRequest(payload);
+      const response: any = await tripService.createTripRequest(payload);
       
       toast.success("Trip created successfully");
-      navigate("/requests/trips");
+      const tripId = response?.data?.data?.id || response?.data?.id || response?.id;
+      if (tripId) {
+        if (pathname.includes("/approvals")) {
+          navigate(`/approvals/pre-approvals/${tripId}`);
+        } else {
+          navigate(`/requests/pre-approvals/${tripId}`);
+        }
+      } else {
+        navigate("/requests/trips");
+      }
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Failed to create trip");
     } finally {
