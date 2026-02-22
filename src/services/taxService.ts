@@ -38,13 +38,11 @@ export const taxService = {
 
   async searchTaxCodes(searchTerm: string, limit?: number, offset?: number): Promise<TaxResponse> {
     try {
-      const response = await api.get("/api/v1/tax", {
-        params: {
-          tax_code: `ilike.%${searchTerm}%`,
-          ...(limit !== undefined && { limit }),
-          ...(offset !== undefined && { offset }),
-        },
-      });
+      let url = `/api/v1/tax?tax_code=ilike.%${searchTerm}%`;
+      if (limit !== undefined) url += `&limit=${limit}`;
+      if (offset !== undefined) url += `&offset=${offset}`;
+      
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       throw error;
@@ -53,13 +51,11 @@ export const taxService = {
 
   async searchTaxCodesByHsn(hsnCode: string, limit?: number, offset?: number): Promise<TaxResponse> {
     try {
-      const response = await api.get("/api/v1/tax", {
-        params: {
-          hsn_sac_code: `ilike.%${hsnCode}%`,
-          ...(limit !== undefined && { limit }),
-          ...(offset !== undefined && { offset }),
-        },
-      });
+      let url = `/api/v1/tax?hsn_sac_code=ilike.%${hsnCode}%`;
+      if (limit !== undefined) url += `&limit=${limit}`;
+      if (offset !== undefined) url += `&offset=${offset}`;
+      
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       throw error;

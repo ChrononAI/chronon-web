@@ -74,13 +74,11 @@ export const itemsCodeService = {
 
   async searchTDSCodes(searchTerm: string, limit?: number, offset?: number): Promise<TDSCodeResponse> {
     try {
-      const response = await api.get("/api/v1/tds", {
-        params: {
-          tds_code: `ilike.%${searchTerm}%`,
-          ...(limit !== undefined && { limit }),
-          ...(offset !== undefined && { offset }),
-        },
-      });
+      let url = `/api/v1/tds?tds_code=ilike.%${searchTerm}%`;
+      if (limit !== undefined) url += `&limit=${limit}`;
+      if (offset !== undefined) url += `&offset=${offset}`;
+      
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       throw error;
@@ -132,13 +130,11 @@ export const itemsCodeService = {
 
   async searchTaxCodes(searchTerm: string, limit?: number, offset?: number): Promise<TaxCodeResponse> {
     try {
-      const response = await api.get("/api/v1/tax", {
-        params: {
-          tax_code: `ilike.%25${encodeURIComponent(searchTerm)}%25`,
-          ...(limit !== undefined && { limit }),
-          ...(offset !== undefined && { offset }),
-        },
-      });
+      let url = `/api/v1/tax?tax_code=ilike.%${searchTerm}%`;
+      if (limit !== undefined) url += `&limit=${limit}`;
+      if (offset !== undefined) url += `&offset=${offset}`;
+      
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       throw error;
@@ -201,13 +197,11 @@ export const itemsCodeService = {
 
   async searchItems(searchTerm: string, limit?: number, offset?: number): Promise<ItemResponse> {
     try {
-      const response = await api.get("/api/v1/items", {
-        params: {
-          description: `ilike.%${searchTerm}%`,
-          ...(limit !== undefined && { limit }),
-          ...(offset !== undefined && { offset }),
-        },
-      });
+      let url = `/api/v1/items?description=ilike.%${searchTerm}%`;
+      if (limit !== undefined) url += `&limit=${limit}`;
+      if (offset !== undefined) url += `&offset=${offset}`;
+      
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       throw error;
@@ -217,13 +211,11 @@ export const itemsCodeService = {
   async searchItemsByHsn(hsnCode: string, limit?: number, offset?: number): Promise<ItemResponse> {
     try {
       const trimmedHsn = hsnCode.trim();
-      const response = await api.get("/api/v1/items", {
-        params: {
-          hsn_sac_code: `ilike.%25${encodeURIComponent(trimmedHsn)}%25`,
-          ...(limit !== undefined && { limit }),
-          ...(offset !== undefined && { offset }),
-        },
-      });
+      let url = `/api/v1/items?hsn_sac_code=ilike.%${trimmedHsn}%`;
+      if (limit !== undefined) url += `&limit=${limit}`;
+      if (offset !== undefined) url += `&offset=${offset}`;
+      
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       throw error;
