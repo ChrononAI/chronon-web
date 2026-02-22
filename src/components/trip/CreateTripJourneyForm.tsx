@@ -13,7 +13,7 @@ import { Button } from "../ui/button";
 import { TripDateField } from "./TripDateField";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
-import { Plus, Plane, Train, Bus, Car } from "lucide-react";
+import { Plus, Plane, Train, Bus, Car, ChevronDown } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Select,
@@ -22,16 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { useState } from "react";
-import {
-  preApprovalService,
-  PreApprovalType,
-} from "@/services/preApprovalService";
+import { useState, useEffect } from "react";
+import { tripService, TripType } from "@/services/tripService";
 import { toast } from "sonner";
 import { Currency } from "../advances/CreateAdvanceForm";
 import { trackEvent } from "@/mixpanel";
 import { FormActionFooter } from "../layout/FormActionFooter";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { useTripStore } from "@/store/tripStore";
 
 type TravelMode = "flight" | "train" | "bus" | "cab";
 
@@ -79,18 +77,25 @@ const currencies: Currency[] = [
 
 type TripFormValues = z.infer<typeof tripSchema>;
 
-interface CreatePreApprovalFormProps {
+interface CreateTripJourneyFormProps {
   mode?: "create" | "view" | "edit";
-  data?: PreApprovalType;
+  showOnlyJourneys?: boolean;
+  tripData?: TripType;
+  tripId?: string;
 }
 
-function CreatePreApprovalForm({
+function CreateTripJourneyForm({
   mode = "create",
-}: CreatePreApprovalFormProps) {
+  showOnlyJourneys = false,
+  tripData,
+  tripId,
+}: CreateTripJourneyFormProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { selectedTrip } = useTripStore();
 
   const [loading, setLoading] = useState(false);
+  const [collapsedJourneys, setCollapsedJourneys] = useState<Set<number>>(new Set());
   const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(
     currencies.find((c) => c.code === "USD") || null
   );
@@ -132,10 +137,123 @@ function CreatePreApprovalForm({
     },
   });
 
+  useEffect(() => {
+    const loadTripData = async () => {
+      if ((showOnlyJourneys || mode === "view") && tripData) {
+        let journeysData: any[] = [];
+        
+        if (tripId) {
+          try {
+            const segmentsResponse: any = await tripService.getTripSegments(tripId);
+            if (segmentsResponse.data?.data && Array.isArray(segmentsResponse.data.data)) {
+              journeysData = segmentsResponse.data.data.map((segment: any) => ({
+                travelMode: segment.travel_mode || "flight",
+                source: segment.from_location || "",
+                destination: segment.to_location || "",
+                startDate: segment.departure_time ? segment.departure_time.split('T')[0] : "",
+                endDate: segment.arrival_time ? segment.arrival_time.split('T')[0] : "",
+                timePreference: segment.additional_info?.time_preference || "",
+                flightPreference: segment.additional_info?.flight_preference || "",
+                mealPreference: segment.additional_info?.meal_preference || "",
+                classPreference: segment.additional_info?.class_preference || "",
+                departureTime: segment.departure_time ? segment.departure_time.split('T')[1]?.split(':').slice(0, 2).join(':') : "",
+                needsAccommodation: segment.hotel_required || false,
+                location: segment.additional_info?.hotel_location || "",
+                preferredHotel1: segment.additional_info?.preferred_hotel_1 || "",
+                preferredHotel2: segment.additional_info?.preferred_hotel_2 || "",
+                preferredHotel3: segment.additional_info?.preferred_hotel_3 || "",
+                occupancy: segment.additional_info?.occupancy || "single",
+                checkInDate: segment.hotel_checkin ? segment.hotel_checkin.split('T')[0] : "",
+                checkOutDate: segment.hotel_checkout ? segment.hotel_checkout.split('T')[0] : "",
+              }));
+            }
+          } catch (error) {
+            console.error("Error loading journey segments:", error);
+          }
+        }
+        
+        if (journeysData.length === 0) {
+          journeysData = [{
+            travelMode: "flight",
+            source: "",
+            destination: "",
+            startDate: "",
+            endDate: "",
+            timePreference: "",
+            flightPreference: "",
+            mealPreference: "",
+            needsAccommodation: false,
+            checkInDate: "",
+            checkOutDate: "",
+            location: "",
+            preferredHotel1: "",
+            preferredHotel2: "",
+            preferredHotel3: "",
+            occupancy: "single",
+          }];
+        }
+        
+        form.reset({
+          tripName: tripData.title || "",
+          fromDate: tripData.start_date || "",
+          toDate: tripData.end_date || "",
+          purpose: tripData.purpose || "",
+          department: tripData.additional_info?.department || "",
+          projectCode: tripData.additional_info?.project_code || "",
+          costCenter: tripData.additional_info?.cost_center || "",
+          advanceAmount: tripData.advance_amount || "",
+          currency: tripData.currency || "USD",
+          journeys: journeysData,
+        });
+      } else if (mode === "edit" && selectedTrip) {
+        form.reset({
+          tripName: selectedTrip.title || "",
+          fromDate: selectedTrip.start_date || "",
+          toDate: selectedTrip.end_date || "",
+          purpose: selectedTrip.purpose || "",
+          department: "",
+          projectCode: "",
+          costCenter: "",
+          advanceAmount: "",
+          currency: "USD",
+          journeys: [
+            {
+              travelMode: "flight",
+              source: "",
+              destination: "",
+              startDate: "",
+              endDate: "",
+              timePreference: "",
+              flightPreference: "",
+              mealPreference: "",
+              needsAccommodation: false,
+              checkInDate: "",
+              checkOutDate: "",
+              location: "",
+              preferredHotel1: "",
+              preferredHotel2: "",
+              preferredHotel3: "",
+              occupancy: "single",
+            },
+          ],
+        });
+      }
+    };
+    
+    loadTripData();
+  }, [mode, selectedTrip, showOnlyJourneys, tripData, tripId, form]);
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "journeys",
   });
+
+  useEffect(() => {
+    if (mode === "view" && fields.length > 0) {
+      const allIndices = new Set(fields.map((_, index) => index));
+      setCollapsedJourneys(allIndices);
+    }
+  }, [mode, fields.length]);
 
   const onSubmit = async (formData: TripFormValues) => {
     trackEvent("Create Trip Button Clicked", {
@@ -143,31 +261,48 @@ function CreatePreApprovalForm({
     });
     setLoading(true);
     try {
-      const payload = {
-        title: formData.tripName,
-        start_date: formData.fromDate,
-        end_date: formData.toDate,
-        description: formData.purpose,
-        amount: formData.advanceAmount || undefined,
-        currency: formData.currency || undefined,
-      };
-
-      const response: any = await preApprovalService.createPreApproval(payload);
-      await preApprovalService.submitPreApproval(response.data.data.id);
-      toast.success("Trip created successfully");
-        navigate("/requests/pre-approvals");
-      } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to create trip");
-      } finally {
-        setLoading(false);
+      if (showOnlyJourneys && tripId) {
+        const journeyPayload = {
+          journeys: formData.journeys.map((journey) => ({
+            travel_mode: journey.travelMode,
+            source: journey.source,
+            destination: journey.destination,
+            start_date: journey.startDate,
+            end_date: journey.endDate || null,
+            time_preference: journey.timePreference || null,
+            flight_preference: journey.flightPreference || null,
+            meal_preference: journey.mealPreference || null,
+            class_preference: journey.classPreference || null,
+            departure_time: journey.departureTime || null,
+            period_start: journey.periodStart || null,
+            period_end: journey.periodEnd || null,
+            needs_accommodation: journey.needsAccommodation || false,
+            check_in_date: journey.checkInDate || null,
+            check_out_date: journey.checkOutDate || null,
+            location: journey.location || null,
+            preferred_hotel_1: journey.preferredHotel1 || null,
+            preferred_hotel_2: journey.preferredHotel2 || null,
+            preferred_hotel_3: journey.preferredHotel3 || null,
+            occupancy: journey.occupancy || null,
+          })),
+        };
+        
+        await tripService.updateTripWithJourneys(tripId, journeyPayload);
+        toast.success("Journey itinerary saved successfully");
+        window.location.reload();
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to save trip");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleBack = () => {
     if (pathname.includes("/approvals")) {
-      navigate("/approvals/pre-approvals");
+      navigate("/approvals/trips");
     } else {
-      navigate("/requests/pre-approvals");
+      navigate("/requests/trips");
     }
   };
 
@@ -194,20 +329,13 @@ function CreatePreApprovalForm({
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-sky-100">
-      <div className="bg-white border-b pl-4 pr-6 pt-4 pb-4 sticky top-0 z-10">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Trip Details</h1>
-          <p className="text-sm text-gray-600">
-            Submit a new multi-journey travel request for approval.
-          </p>
-        </div>
-      </div>
+    <div className={`flex flex-col ${showOnlyJourneys ? '' : 'min-h-screen bg-sky-100'}`}>
 
-      <div className="flex-1 overflow-y-auto bg-white p-2">
-        <div className="w-full p-2 pb-20">
+      <div className={`flex-1 ${showOnlyJourneys ? 'overflow-y-auto' : 'overflow-y-auto bg-white p-2'}`}>
+        <div className={`${showOnlyJourneys ? 'pb-24' : 'w-full p-2 pb-20'}`}>
       <Form {...form}>
             <form id="trip-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              {!showOnlyJourneys && (
               <div className="space-y-4">
                 <div>
                   <h2 className="font-medium text-[12px] leading-[100%] tracking-wider text-[#0D9C99] uppercase mb-2">
@@ -224,7 +352,7 @@ function CreatePreApprovalForm({
                 <FormItem>
                           <Label
                             htmlFor="trip-name"
-                            className="block mb-1.5 whitespace-nowrap"
+                            className="block mb-2.5 whitespace-nowrap"
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
@@ -258,7 +386,7 @@ function CreatePreApprovalForm({
                 <FormItem>
                           <Label
                             htmlFor="advance-amount"
-                            className="block mb-1.5 whitespace-nowrap"
+                            className="block mb-2.5 whitespace-nowrap"
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
@@ -300,7 +428,7 @@ function CreatePreApprovalForm({
                         <FormItem>
                           <Label
                             htmlFor="currency"
-                            className="block mb-1.5 whitespace-nowrap"
+                            className="block mb-2.5 whitespace-nowrap"
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
@@ -353,7 +481,7 @@ function CreatePreApprovalForm({
                 <FormItem>
                           <Label
                             htmlFor="from-date"
-                            className="block mb-1.5"
+                            className="block mb-2.5"
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
@@ -388,7 +516,7 @@ function CreatePreApprovalForm({
                 <FormItem>
                           <Label
                             htmlFor="to-date"
-                            className="block mb-1.5"
+                            className="block mb-2.5"
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
@@ -406,7 +534,7 @@ function CreatePreApprovalForm({
                       value={field.value}
                               onChange={(value) => field.onChange(value)}
                       disabled={mode !== "create"}
-                      minDate={today}
+                      minDate={form.watch("fromDate") || today}
                               className="h-[40px] border-0 border-b border-gray-300 rounded-none pr-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none [&_input]:pr-10 [&_input]:pl-0 [&_input]:focus:border-0 [&_input]:focus:border-b-2 [&_input]:focus:border-[#0D9C99] [&_input]:focus-visible:outline-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:border-0 [&_input]:focus-visible:border-b-2 [&_input]:focus-visible:border-[#0D9C99]"
                     />
                   </FormControl>
@@ -423,7 +551,7 @@ function CreatePreApprovalForm({
                         <FormItem>
                           <Label
                             htmlFor="purpose"
-                            className="block mb-1.5"
+                            className="block mb-2.5"
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
@@ -451,7 +579,9 @@ function CreatePreApprovalForm({
                   </div>
                 </div>
               </div>
+              )}
 
+              {!showOnlyJourneys && (
               <div className="space-y-4 pt-6">
                 <div>
                   <h2 className="font-medium text-[12px] leading-[100%] tracking-wider text-[#0D9C99] uppercase mb-2">
@@ -468,7 +598,7 @@ function CreatePreApprovalForm({
                 <FormItem>
                             <Label
                             htmlFor="department"
-                            className="block mb-1.5"
+                            className="block mb-2.5"
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
@@ -512,7 +642,7 @@ function CreatePreApprovalForm({
                         <FormItem>
                             <Label
                             htmlFor="project-code"
-                            className="block mb-1.5"
+                            className="block mb-2.5"
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
@@ -546,7 +676,7 @@ function CreatePreApprovalForm({
                         <FormItem>
                             <Label
                             htmlFor="cost-center"
-                            className="block mb-1.5"
+                            className="block mb-2.5"
                             style={{
                               fontFamily: "Inter",
                               fontSize: "12px",
@@ -574,45 +704,122 @@ function CreatePreApprovalForm({
                   </div>
                 </div>
               </div>
+              )}
 
-              <div className="space-y-4 pt-6">
+              <div className={`space-y-4 ${showOnlyJourneys ? '' : 'pt-6'}`}>
+                            {!showOnlyJourneys && (
                             <div>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="mb-2">
                     <h2 className="font-medium text-[12px] leading-[100%] tracking-wider text-[#0D9C99] uppercase">
                       03. JOURNEY ITINERARY
                     </h2>
-                    <p className="text-xs text-gray-500">Add legs chronologically</p>
                                 </div>
                   <div className="h-[1px] bg-gray-200 mb-8"></div>
                                 </div>
+                            )}
 
                 {fields.map((field, index) => {
                   const journey = form.watch(`journeys.${index}`);
                   const travelMode = journey?.travelMode || "flight";
+                  const isCollapsed = collapsedJourneys.has(index);
+                  const toggleCollapse = () => {
+                    setCollapsedJourneys(prev => {
+                      const newSet = new Set(prev);
+                      if (newSet.has(index)) {
+                        newSet.delete(index);
+                      } else {
+                        newSet.add(index);
+                      }
+                      return newSet;
+                    });
+                  };
 
                   return (
-                    <div key={field.id} className="space-y-4 pb-6 border-b border-gray-200 last:border-b-0">
-                      <div className="flex items-center gap-2">
+                    <div key={field.id} className="bg-white border border-gray-200 rounded-lg mb-4 shadow-sm">
+                      <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0D9C99] text-white font-semibold text-sm">
+                          {index + 1}
+                        </div>
                         {getTravelModeIcon(travelMode as TravelMode)}
-                        <h3 className="font-semibold text-gray-900">
+                        <h3 className="font-medium text-gray-900 flex-1">
                           {journey.source && journey.destination 
                             ? getRouteLabel(journey, index)
-                            : `Journey ${index + 1}: ${getRouteLabel(journey, index)}`}
+                            : `Journey ${index + 1}`}
                         </h3>
-                        {fields.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={toggleCollapse}
+                          className="text-gray-600 hover:text-gray-900 flex items-center gap-1"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                          <span>{isCollapsed ? "Expand" : "Collapse"}</span>
+                        </Button>
+                        {fields.length > 1 && mode !== "view" && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => remove(index)}
-                            className="ml-auto text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700"
                           >
                             Remove
                           </Button>
-                              )}
-                            </div>
+                        )}
+                      </div>
 
-                      <div className="space-y-2 mb-6">
+                      {isCollapsed ? (
+                        <div className="px-6 py-4">
+                          <div className="grid grid-cols-4 gap-6">
+                            <div>
+                              <span className="text-gray-500 text-xs font-medium uppercase block mb-2">SOURCE</span>
+                              <p className="text-sm font-medium text-gray-900">
+                                {journey.source || "Not specified"}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500 text-xs font-medium uppercase block mb-2">DESTINATION</span>
+                              <p className="text-sm font-medium text-gray-900">
+                                {journey.destination || "Not specified"}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500 text-xs font-medium uppercase block mb-2">START DATE</span>
+                              <p className="text-sm font-medium text-gray-900">
+                                {journey.startDate ? (() => {
+                                  try {
+                                    const date = journey.startDate.includes('T') 
+                                      ? parseISO(journey.startDate) 
+                                      : new Date(journey.startDate);
+                                    return format(date, "dd/MM/yyyy");
+                                  } catch {
+                                    return journey.startDate;
+                                  }
+                                })() : "Not specified"}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500 text-xs font-medium uppercase block mb-2">END DATE</span>
+                              <p className="text-sm font-medium text-gray-900">
+                                {journey.endDate ? (() => {
+                                  try {
+                                    const date = journey.endDate.includes('T') 
+                                      ? parseISO(journey.endDate) 
+                                      : new Date(journey.endDate);
+                                    return format(date, "dd/MM/yyyy");
+                                  } catch {
+                                    return journey.endDate;
+                                  }
+                                })() : "Not specified"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+
+                      <div className="space-y-3 mb-8">
                         <div className="flex items-center justify-between">
                           <Label className="block font-bold text-[12px] text-[#47536C] uppercase">
                             TRAVEL MODE
@@ -655,24 +862,24 @@ function CreatePreApprovalForm({
                         </div>
                       </div>
 
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                         {travelMode === "flight" && (
                           <>
-                            <div className="grid grid-cols-4 gap-4">
+                            <div className="grid grid-cols-4 gap-6">
                               <div>
                                 <FormField
                                   control={form.control}
                                   name={`journeys.${index}.source`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         SOURCE CITY
                                       </Label>
                                       <FormControl>
                                         <Input
                                           {...field}
                                           placeholder="e.g. New York (JFK)"
-                                          disabled={mode !== "create"}
+                                          disabled={mode === "view"}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                         />
                                       </FormControl>
@@ -687,14 +894,14 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.destination`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         DESTINATION CITY
                                       </Label>
                                       <FormControl>
                                         <Input
                                           {...field}
                                           placeholder="e.g. London (LHR)"
-                                          disabled={mode !== "create"}
+                                          disabled={mode === "view"}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                         />
                                       </FormControl>
@@ -709,14 +916,14 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.startDate`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         START DATE
                                       </Label>
                                       <FormControl>
                                         <TripDateField
                                           value={field.value || ""}
                                           onChange={field.onChange}
-                                          disabled={mode !== "create"}
+                                          disabled={mode === "view"}
                                           minDate={today}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none pr-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none [&_input]:pr-10 [&_input]:pl-0 [&_input]:focus:border-0 [&_input]:focus:border-b-2 [&_input]:focus:border-[#0D9C99] [&_input]:focus-visible:outline-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:border-0 [&_input]:focus-visible:border-b-2 [&_input]:focus-visible:border-[#0D9C99]"
                                         />
@@ -732,15 +939,15 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.endDate`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         END DATE (IF RETURN)
                                       </Label>
                                       <FormControl>
                                         <TripDateField
                                           value={field.value || ""}
                                           onChange={field.onChange}
-                                          disabled={mode !== "create"}
-                                          minDate={today}
+                                          disabled={mode === "view"}
+                                          minDate={form.watch(`journeys.${index}.startDate`) || today}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none pr-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none [&_input]:pr-10 [&_input]:pl-0 [&_input]:focus:border-0 [&_input]:focus:border-b-2 [&_input]:focus:border-[#0D9C99] [&_input]:focus-visible:outline-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:border-0 [&_input]:focus-visible:border-b-2 [&_input]:focus-visible:border-[#0D9C99]"
                                         />
                                       </FormControl>
@@ -750,21 +957,21 @@ function CreatePreApprovalForm({
                                 />
                               </div>
                             </div>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-3 gap-6">
                               <div>
                                 <FormField
                                   control={form.control}
                                   name={`journeys.${index}.timePreference`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         TIME PREFERENCE
                                       </Label>
                                       <FormControl>
                                         <Select
                                           value={field.value}
                                           onValueChange={field.onChange}
-                                          disabled={mode !== "create"}
+                                          disabled={mode === "view"}
                                         >
                                           <SelectTrigger className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none">
                                             <SelectValue placeholder="Select time" />
@@ -788,14 +995,14 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.flightPreference`}
               render={({ field }) => (
                 <FormItem>
-                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         FLIGHT PREFERENCE
                                       </Label>
                                       <FormControl>
                                         <Input
                                           {...field}
                                           placeholder="e.g. Window, Aisle, Extra Legroom"
-                                          disabled={mode !== "create"}
+                                          disabled={mode === "view"}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                         />
                                       </FormControl>
@@ -810,23 +1017,23 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.mealPreference`}
               render={({ field }) => (
                 <FormItem>
-                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         MEAL PREFERENCE
                                       </Label>
                                       <FormControl>
                   <Select
                     value={field.value}
-                                          onValueChange={field.onChange}
-                    disabled={mode !== "create"}
+                    onValueChange={field.onChange}
+                    disabled={mode === "view"}
                   >
-                                          <SelectTrigger className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none">
-                                            <SelectValue placeholder="Select meal" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="veg">Veg</SelectItem>
-                                            <SelectItem value="non-veg">Non Veg</SelectItem>
-                                          </SelectContent>
-                                        </Select>
+                    <SelectTrigger className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none">
+                      <SelectValue placeholder="Select meal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="veg">Veg</SelectItem>
+                      <SelectItem value="non-veg">Non Veg</SelectItem>
+                    </SelectContent>
+                  </Select>
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
@@ -838,14 +1045,14 @@ function CreatePreApprovalForm({
                         )}
 
                         {travelMode === "train" && (
-                          <div className="grid grid-cols-4 gap-4">
+                          <div className="grid grid-cols-4 gap-6">
                             <div>
                               <FormField
                                 control={form.control}
                                 name={`journeys.${index}.source`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       SOURCE STATION
                                     </Label>
                     <FormControl>
@@ -867,7 +1074,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.destination`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       DESTINATION STATION
                                     </Label>
                     <FormControl>
@@ -889,7 +1096,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.startDate`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       TRAVEL DATE
                                     </Label>
                                     <FormControl>
@@ -912,7 +1119,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.classPreference`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       CLASS PREFERENCE
                                     </Label>
                                     <FormControl>
@@ -940,14 +1147,14 @@ function CreatePreApprovalForm({
                         )}
 
                         {travelMode === "bus" && (
-                          <div className="grid grid-cols-4 gap-4">
+                          <div className="grid grid-cols-4 gap-6">
                             <div>
             <FormField
               control={form.control}
                                 name={`journeys.${index}.source`}
               render={({ field }) => (
                 <FormItem>
-                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       FROM LOCATION
                                     </Label>
                   <FormControl>
@@ -969,7 +1176,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.destination`}
               render={({ field }) => (
                 <FormItem>
-                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       TO LOCATION
                                     </Label>
                   <FormControl>
@@ -991,7 +1198,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.startDate`}
               render={({ field }) => (
                 <FormItem>
-                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       TRAVEL DATE
                                     </Label>
                   <FormControl>
@@ -1014,7 +1221,7 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.departureTime`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       DEPARTURE TIME
                                     </Label>
                   <FormControl>
@@ -1036,21 +1243,21 @@ function CreatePreApprovalForm({
 
                         {travelMode === "cab" && (
                           <>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-6">
                               <div>
             <FormField
               control={form.control}
                                   name={`journeys.${index}.source`}
               render={({ field }) => (
                 <FormItem>
-                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         PICKUP LOCATION
                                       </Label>
                   <FormControl>
                                         <Input
                                           {...field}
                                           placeholder="e.g. Brussels-Midi Station"
-                                          disabled={mode !== "create"}
+                                          disabled={mode === "view"}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                         />
                   </FormControl>
@@ -1065,7 +1272,7 @@ function CreatePreApprovalForm({
                                   name={`journeys.${index}.destination`}
               render={({ field }) => (
                 <FormItem>
-                                      <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                      <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                         DROP LOCATION
                                       </Label>
                   <FormControl>
@@ -1083,7 +1290,7 @@ function CreatePreApprovalForm({
                     </div>
                             </div>
                             <div>
-                              <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                              <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                 PERIOD (DATE/TIME RANGE)
                               </Label>
                               <div className="flex items-center gap-2">
@@ -1097,7 +1304,7 @@ function CreatePreApprovalForm({
                                           {...field}
                                           type="datetime-local"
                                           placeholder="11/20/2023, 02:30 PM"
-                                          disabled={mode !== "create"}
+                                          disabled={mode === "view"}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                         />
                   </FormControl>
@@ -1116,7 +1323,7 @@ function CreatePreApprovalForm({
                                           {...field}
                                           type="datetime-local"
                                           placeholder="11/20/2023, 03:30 PM"
-                                          disabled={mode !== "create"}
+                                          disabled={mode === "view"}
                                           className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                         />
                   </FormControl>
@@ -1140,14 +1347,14 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.checkInDate`}
               render={({ field }) => (
                 <FormItem>
-                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       CHECK IN DATE
                                     </Label>
                   <FormControl>
                                       <TripDateField
                                         value={field.value || ""}
                                         onChange={field.onChange}
-                                        disabled={mode !== "create"}
+                                        disabled={mode === "view"}
                                         minDate={today}
                                         className="h-[40px] border-0 border-b border-gray-300 rounded-none pr-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none [&_input]:pr-10 [&_input]:pl-0 [&_input]:focus:border-0 [&_input]:focus:border-b-2 [&_input]:focus:border-[#0D9C99] [&_input]:focus-visible:outline-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:border-0 [&_input]:focus-visible:border-b-2 [&_input]:focus-visible:border-[#0D9C99]"
                                       />
@@ -1163,15 +1370,15 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.checkOutDate`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       CHECK OUT DATE
                                     </Label>
                                     <FormControl>
                                       <TripDateField
                                         value={field.value || ""}
                                         onChange={field.onChange}
-                        disabled={mode !== "create"}
-                                        minDate={today}
+                        disabled={mode === "view"}
+                                        minDate={form.watch(`journeys.${index}.checkInDate`) || today}
                                         className="h-[40px] border-0 border-b border-gray-300 rounded-none pr-0 pt-2 pb-1 bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none [&_input]:pr-10 [&_input]:pl-0 [&_input]:focus:border-0 [&_input]:focus:border-b-2 [&_input]:focus:border-[#0D9C99] [&_input]:focus-visible:outline-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:border-0 [&_input]:focus-visible:border-b-2 [&_input]:focus-visible:border-[#0D9C99]"
                                       />
                                     </FormControl>
@@ -1186,14 +1393,14 @@ function CreatePreApprovalForm({
                                 name={`journeys.${index}.location`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                    <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                       LOCATION
                                     </Label>
                                     <FormControl>
                                       <Input
                                         {...field}
                                         placeholder="Enter location"
-                                        disabled={mode !== "create"}
+                                        disabled={mode === "view"}
                                         className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                       />
                   </FormControl>
@@ -1251,20 +1458,20 @@ function CreatePreApprovalForm({
                             />
                           </div>
 
-                          <div className="space-y-4">
+                          <div className="space-y-6">
                             <FormField
                               control={form.control}
                               name={`journeys.${index}.preferredHotel1`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                  <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                     Preferred Hotel Option (1)
                                   </Label>
                                   <FormControl>
                                     <Input
                                       {...field}
                                       placeholder="Enter Preferred Hotel Option (1)"
-                                      disabled={mode !== "create"}
+                                      disabled={mode === "view"}
                                       className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                     />
                                   </FormControl>
@@ -1277,14 +1484,14 @@ function CreatePreApprovalForm({
                               name={`journeys.${index}.preferredHotel2`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                  <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                     Preferred Hotel Option (2)
                                   </Label>
                                   <FormControl>
                                     <Input
                                       {...field}
                                       placeholder="Enter Preferred Hotel Option (2)"
-                                      disabled={mode !== "create"}
+                                      disabled={mode === "view"}
                                       className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                     />
                                   </FormControl>
@@ -1297,14 +1504,14 @@ function CreatePreApprovalForm({
                               name={`journeys.${index}.preferredHotel3`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <Label className="block mb-1.5 font-bold text-[12px] text-[#47536C] uppercase">
+                                  <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
                                     Preferred Hotel Option (3)
                                   </Label>
                                   <FormControl>
                                     <Input
                                       {...field}
                                       placeholder="Enter Preferred Hotel Option (3)"
-                                      disabled={mode !== "create"}
+                                      disabled={mode === "view"}
                                       className="h-[40px] border-0 border-b border-gray-300 rounded-none px-0 pt-2 pb-1 text-sm bg-transparent focus:outline-none focus:ring-0 focus:border-0 focus:border-b-2 focus:border-[#0D9C99] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0 focus-visible:border-b-2 focus-visible:border-[#0D9C99] shadow-none"
                                     />
                                   </FormControl>
@@ -1316,13 +1523,18 @@ function CreatePreApprovalForm({
                         </div>
                       )}
                       </div>
+                        </>
+                      )}
                     </div>
                   );
                 })}
 
-            <Button
-              type="button"
-              variant="outline"
+            {mode !== "view" && (
+              <div className="flex justify-center mt-6 mb-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() =>
                     append({
                       travelMode: "flight",
@@ -1333,28 +1545,37 @@ function CreatePreApprovalForm({
                       timePreference: "",
                       flightPreference: "",
                       mealPreference: "",
+                      needsAccommodation: false,
+                      checkInDate: "",
+                      checkOutDate: "",
+                      location: "",
+                      preferredHotel1: "",
+                      preferredHotel2: "",
+                      preferredHotel3: "",
+                      occupancy: "single",
                     })
                   }
-                  disabled={mode !== "create"}
-                  className="w-full border-[#0D9C99] text-[#0D9C99] hover:bg-[#0D9C99] hover:text-white"
+                  className="border-[#0D9C99] text-[#0D9C99] hover:bg-[#0D9C99] hover:text-white transition-colors"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  ADD ANOTHER JOURNEY
-            </Button>
+                  Add Another Journey
+                </Button>
+              </div>
+            )}
               </div>
         </form>
       </Form>
         </div>
       </div>
 
-      {mode !== "view" && (
+      {mode !== "view" && !showOnlyJourneys && (
         <FormActionFooter
           secondaryButton={{
             label: "Cancel",
             onClick: handleBack,
           }}
           primaryButton={{
-            label: "Submit for Approval",
+            label: mode === "edit" ? "Save Changes" : "Submit for Approval",
             onClick: () => {
               const formElement = document.getElementById("trip-form") as HTMLFormElement;
               if (formElement) {
@@ -1363,7 +1584,28 @@ function CreatePreApprovalForm({
             },
             disabled: loading,
             loading: loading,
-            loadingText: "Submitting...",
+            loadingText: mode === "edit" ? "Saving..." : "Submitting...",
+          }}
+        />
+      )}
+      
+      {showOnlyJourneys && mode !== "view" && (
+        <FormActionFooter
+          secondaryButton={{
+            label: "Cancel",
+            onClick: () => navigate(-1),
+          }}
+          primaryButton={{
+            label: "Save Journey Itinerary",
+            onClick: () => {
+              const formElement = document.getElementById("trip-form") as HTMLFormElement;
+              if (formElement) {
+                formElement.requestSubmit();
+              }
+            },
+            disabled: loading,
+            loading: loading,
+            loadingText: "Saving...",
           }}
         />
       )}
@@ -1371,4 +1613,4 @@ function CreatePreApprovalForm({
   );
 }
 
-export default CreatePreApprovalForm;
+export default CreateTripJourneyForm;

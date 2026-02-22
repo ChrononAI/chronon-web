@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
 import {
   DataGrid,
@@ -6,23 +6,26 @@ import {
   GridPaginationModel,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
-import { formatDate, getStatusColor } from "@/lib/utils";
+import { formatDate, getStatusColor, buildApprovalBackendQuery } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import {
-  preApprovalService,
-  PreApprovalType,
-} from "@/services/preApprovalService";
+import { tripService, TripType } from "@/services/tripService";
 import { useNavigate } from "react-router-dom";
-import { usePreApprovalStore } from "@/store/preApprovalStore";
+import { useTripStore } from "@/store/tripStore";
 import { PaginationInfo } from "@/store/expenseStore";
 import { Box } from "@mui/material";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import {
+  FieldFilter,
+  FilterMap,
+  FilterValue,
+  Operator,
+} from "./MyExpensesPage";
 
 const columns: GridColDef[] = [
   {
     field: "sequence_number",
-    headerName: "PRE APPROVAL ID",
+    headerName: "TRIP ID",
     minWidth: 160,
     flex: 1,
   },
@@ -51,12 +54,6 @@ const columns: GridColDef[] = [
     },
   },
   {
-    field: "policy_name",
-    headerName: "POLICY",
-    minWidth: 150,
-    flex: 1,
-  },
-  {
     field: "status",
     headerName: "STATUS",
     minWidth: 180,
@@ -70,15 +67,6 @@ const columns: GridColDef[] = [
     },
   },
   {
-    field: "created_by",
-    headerName: "CREATED BY",
-    minWidth: 150,
-    flex: 1,
-    renderCell: ({ value }) => {
-      return value.email;
-    },
-  },
-  {
     field: "created_at",
     headerName: "CREATED AT",
     minWidth: 150,
@@ -88,32 +76,33 @@ const columns: GridColDef[] = [
     },
   },
   {
-    field: "description",
+    field: "purpose",
     headerName: "PURPOSE",
     flex: 1,
     minWidth: 150,
   },
 ];
 
-function ApprovalsPreApprovalsPage() {
+function ApprovalsTripsPage() {
   const navigate = useNavigate();
-  const { setSelectedPreApprovalToApprove } = usePreApprovalStore();
+  const { setSelectedTripToApprove } = useTripStore();
 
   const [loading, setLoading] = useState(true);
-  const [allRows, setAllRows] = useState([]);
+  const [allRows, setAllRows] = useState<TripType[]>([]);
   const [allPagination, setAllPagination] = useState<PaginationInfo | null>(
     null
   );
-  const [pendingRows, setPendingRows] = useState([]);
+  const [pendingRows, setPendingRows] = useState<TripType[]>([]);
   const [pendingPagination, setPendingPagination] =
     useState<PaginationInfo | null>(null);
-  const [processedRows, setProcessedRows] = useState([]);
+  const [processedRows, setProcessedRows] = useState<TripType[]>([]);
   const [processedPagination, setProcessedPagination] =
     useState<PaginationInfo | null>(null);
 
   const [activeTab, setActiveTab] = useState<"pending" | "processed" | "all">(
     "all"
   );
+  const [approvalQuery, setApprovalQuery] = useState<FilterMap>({});
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({
     type: "include",
     ids: new Set(),
@@ -135,6 +124,51 @@ function ApprovalsPreApprovalsPage() {
       pageSize: calculatePageSize(),
     });
 
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  function updateQuery(key: string, operator: Operator, value: FilterValue) {
+    setApprovalQuery((prev) => {
+      const prevFilters: FieldFilter[] = prev[key] ?? [];
+
+      if (
+        !value ||
+        (typeof value === "string" && value.trim() === "") ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        const nextFilters = prevFilters.filter((f) => f.operator !== operator);
+
+        if (nextFilters.length === 0) {
+          const { [key]: _, ...rest } = prev;
+          return rest;
+        }
+
+        return {
+          ...prev,
+          [key]: nextFilters,
+        };
+      }
+
+      const existingIndex = prevFilters.findIndex(
+        (f) => f.operator === operator
+      );
+
+      if (existingIndex >= 0) {
+        const nextFilters = [...prevFilters];
+        nextFilters[existingIndex] = { operator, value };
+        return {
+          ...prev,
+          [key]: nextFilters,
+        };
+      }
+
+      return {
+        ...prev,
+        [key]: [...prevFilters, { operator, value }],
+      };
+    });
+  }
+
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
   }, [activeTab]);
@@ -155,107 +189,127 @@ function ApprovalsPreApprovalsPage() {
     },
   ];
 
-  const onRowClick = ({ row }: { row: PreApprovalType }) => {
-    setSelectedPreApprovalToApprove(row);
-    navigate(`/approvals/pre-approvals/${row.id}`);
+  const onRowClick = ({ row }: { row: TripType }) => {
+    setSelectedTripToApprove(row);
+    navigate(`/approvals/trips/${row.id}`);
   };
 
-  const getAllPreApprovalsToApprove = async ({
-    page,
-    perPage,
-  }: {
-    page: number;
-    perPage: number;
-  }) => {
-    try {
-      const res: any = await preApprovalService.getPreApprovalToApprove({
-        page,
-        perPage,
+  const fetchFilteredTrips = useCallback(
+    async ({ signal }: { signal: AbortSignal }) => {
+      const limit = paginationModel?.pageSize ?? 10;
+      const offset = (paginationModel?.page ?? 0) * limit;
+
+      let newQuery: FilterMap = approvalQuery;
+
+      if (!approvalQuery?.status) {
+        if (activeTab === "pending") {
+          newQuery = {
+            ...approvalQuery,
+            status: [{ operator: "in", value: ["IN_PROGRESS"] }],
+          };
+        } else if (activeTab === "processed") {
+          newQuery = {
+            ...approvalQuery,
+            status: [{ operator: "in", value: ["APPROVED", "REJECTED"] }],
+          };
+        } else if (activeTab === "all") {
+          newQuery = {
+            ...approvalQuery,
+            status: [
+              {
+                operator: "in",
+                value: ["APPROVED", "REJECTED", "IN_PROGRESS"],
+              },
+            ],
+          };
+        } else newQuery = approvalQuery;
+      }
+
+      const response = await tripService.getTripRequestsForApproval({
+        query: buildApprovalBackendQuery(newQuery),
+        limit,
+        offset,
+        signal,
       });
-      setAllRows(res.data.data);
-      setAllPagination(res.data.pagination);
-    } catch (error) {
-      console.log(error);
-    }
-  };
 
-  const getPendingPreApprovalsToApprove = async ({
-    page,
-    perPage,
-  }: {
-    page: number;
-    perPage: number;
-  }) => {
-    try {
-      const res: any = await preApprovalService.getPreApprovalToApproveByStatus(
-        {
-          status: "IN_PROGRESS",
-          page,
-          perPage,
-        }
-      );
-      setPendingRows(res.data.data);
-      setPendingPagination(res.data.pagination);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+      switch (activeTab) {
+        case "pending":
+          setPendingRows(response.data.data);
+          setPendingPagination({ total: response.data.count });
+          break;
 
-  const getProcessedApprovals = async ({
-    page,
-    perPage,
-  }: {
-    page: number;
-    perPage: number;
-  }) => {
-    try {
-      const res: any = await preApprovalService.getPreApprovalToApproveByStatus(
-        { status: "APPROVED,REJECTED", page, perPage }
-      );
-      setProcessedRows(res.data.data);
-      setProcessedPagination(res.data.pagination);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+        case "processed":
+          setProcessedRows(response.data.data);
+          setProcessedPagination({ total: response.data.count });
+          break;
 
-  const fetchAll = async ({
-    page,
-    perPage,
-  }: {
-    page: number;
-    perPage: number;
-  }) => {
-    try {
-      setLoading(true);
-      await Promise.all([
-        getAllPreApprovalsToApprove({ page, perPage }),
-        getPendingPreApprovalsToApprove({ page, perPage }),
-        getProcessedApprovals({ page, perPage }),
-      ]);
-    } catch (error) {
-      console.error("Failed to fetch approvals:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        case "all":
+        default:
+          setAllRows(response.data.data);
+          setAllPagination({ total: response.data.count });
+      }
+    },
+    [approvalQuery, activeTab, paginationModel?.page, paginationModel?.pageSize]
+  );
 
   useEffect(() => {
-    if (paginationModel) {
-      fetchAll({
-        page: paginationModel?.page + 1,
-        perPage: paginationModel.pageSize,
-      });
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
     }
-    setRowSelection({ type: "include", ids: new Set() });
-  }, [paginationModel?.page, paginationModel?.pageSize]);
+
+    debounceRef.current = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      setLoading(true);
+
+      fetchFilteredTrips({ signal: controller.signal })
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            console.error(err);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setLoading(false);
+            setRowSelection({ type: "include", ids: new Set() });
+          }
+        });
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [fetchFilteredTrips]);
+
+  useEffect(() => {
+    setApprovalQuery((prev) => {
+      const { status, ...rest } = prev;
+      return { ...rest };
+    });
+  }, []);
   return (
     <ReportsPageWrapper
       title="Approver Dashboard"
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={(tabId) => {
+        setLoading(true);
         setActiveTab(tabId as "all" | "pending" | "processed");
+        const filter =
+          tabId === "all"
+            ? []
+            : tabId === "pending"
+              ? ["IN_PROGRESS"]
+              : ["APPROVED", "REJECTED"];
+
+        updateQuery("status", "in", filter);
         setPaginationModel((prev) => ({
           ...prev,
           page: 0,
@@ -281,7 +335,7 @@ function ApprovalsPreApprovalsPage() {
           rows={loading ? [] : rows}
           loading={loading}
           slots={{
-            noRowsOverlay: () => <CustomNoRows title="No pre approvals found" description="There are currently no pre approvals." />,
+            noRowsOverlay: () => <CustomNoRows title="No trips found" description="There are currently no trips awaiting approval." />,
             loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           sx={{
@@ -348,4 +402,4 @@ function ApprovalsPreApprovalsPage() {
   );
 }
 
-export default ApprovalsPreApprovalsPage;
+export default ApprovalsTripsPage;

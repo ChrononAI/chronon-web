@@ -1,8 +1,8 @@
 import { useEffect } from "react";
-import CreatePreApprovalForm from "@/components/pre-approval/CreatePreApprovalForm";
+import CreateTripBasicForm from "@/components/trip/CreateTripBasicForm";
 import { useLayoutStore } from "@/store/layoutStore";
 
-function CreatePreApprovalPage() {
+function CreateTripPage() {
   const setNoPadding = useLayoutStore((s) => s.setNoPadding);
 
   useEffect(() => {
@@ -12,7 +12,7 @@ function CreatePreApprovalPage() {
     };
   }, [setNoPadding]);
 
-  return <CreatePreApprovalForm />;
+  return <CreateTripBasicForm />;
 }
 
-export default CreatePreApprovalPage;
+export default CreateTripPage;
