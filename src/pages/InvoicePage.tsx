@@ -86,14 +86,6 @@ export function InvoicePage() {
   const [invoiceStatus, setInvoiceStatus] = useState<string | null>(null);
   const [tableRows, setTableRows] = useState<InvoiceLineRow[]>([]);
   const [originalOcrValues, setOriginalOcrValues] = useState<Record<number, Partial<InvoiceLineRow>>>({});
-<<<<<<< HEAD
-  const [subtotalAmount, setSubtotalAmount] = useState<string>("0.00");
-  const [cgstAmount, setCgstAmount] = useState<string>("0.00");
-  const [sgstAmount, setSgstAmount] = useState<string>("0.00");
-  const [igstAmount, setIgstAmount] = useState<string>("0.00");
-  const [totalAmount, setTotalAmount] = useState<string>("0.00");
-=======
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
   const nextRowIdRef = useRef(1);
   const previewUrlRef = useRef<string | null>(null);
   const lastLoadedRef = useRef<{ id?: string; fileKey?: string; routeKey?: string }>({});
@@ -118,14 +110,6 @@ export function InvoicePage() {
   const [unmatchedHsnRows, setUnmatchedHsnRows] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-<<<<<<< HEAD
-    const fetchItemsAndCodes = async () => {
-      try {
-        const [itemsResponse, taxResponse, tdsResponse] = await Promise.all([
-          itemsCodeService.getItems(1000, 0),
-          taxService.getTaxes(1000, 0),
-          tdsService.getTDS(1000, 0),
-=======
     const processedStatuses = ["PENDING_APPROVAL", "APPROVED", "REJECTED"];
     const isProcessedInvoice = invoiceStatus && processedStatuses.includes(invoiceStatus);
     
@@ -143,7 +127,6 @@ export function InvoicePage() {
           itemsCodeService.getItems(20, 0),
           taxService.getTaxes(20, 0),
           tdsService.getTDS(20, 0),
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
         ]);
 
         const items = itemsResponse?.data || [];
@@ -168,11 +151,7 @@ export function InvoicePage() {
     };
 
     fetchItemsAndCodes();
-<<<<<<< HEAD
-  }, []);
-=======
   }, [invoiceStatus, isApprovalMode, id]);
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
 
   useEffect(() => {
     if (previewUrlRef.current) {
@@ -265,13 +244,7 @@ export function InvoicePage() {
             : await getInvoiceById(id);
           
           if (!response || !response.data) {
-<<<<<<< HEAD
-            if (isActive) {
-              setTableLoading(false);
-            }
-=======
             setTableLoading(false);
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
             return;
           }
           
@@ -280,25 +253,12 @@ export function InvoicePage() {
             : null;
           
           if (!invoice || !isActive) {
-<<<<<<< HEAD
-            if (isActive) {
-              setTableLoading(false);
-              setInvoiceLoading(false);
-            }
-            return;
-          }
-
-          if (isActive) {
-            setInvoiceStatus(invoice.status || null);
-          }
-=======
             setTableLoading(false);
             setInvoiceLoading(false);
             return;
           }
 
           setInvoiceStatus(invoice.status || null);
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
 
           const formatDate = (dateString: string | null): string => {
             if (!dateString) return "";
@@ -314,11 +274,7 @@ export function InvoicePage() {
             setGstNumber(invoice.gst_number);
             if (invoice.gst_number.length === 15) {
               try {
-<<<<<<< HEAD
-                const vendorResponse = await vendorService.searchVendorsByGst(invoice.gst_number);
-=======
                 const vendorResponse = await vendorService.searchVendorsByGst(invoice.gst_number, 17, 0);
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                 const matchedVendor = vendorResponse?.data?.find(v => v.gstin === invoice.gst_number);
                 if (matchedVendor) {
                   setVendorName(matchedVendor.vendor_name || "");
@@ -331,16 +287,6 @@ export function InvoicePage() {
               }
             }
           }
-<<<<<<< HEAD
-          
-          setSubtotalAmount(invoice.subtotal_amount || "0.00");
-          setCgstAmount(invoice.cgst_amount || "0.00");
-          setSgstAmount(invoice.sgst_amount || "0.00");
-          setIgstAmount(invoice.igst_amount || "0.00");
-          setTotalAmount(invoice.total_amount || "0.00");
-          
-=======
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
           setRawOcrPayload(invoice.raw_ocr_payload || null);
           
           if (invoice.file_ids && invoice.file_ids.length > 0) {
@@ -381,11 +327,7 @@ export function InvoicePage() {
                 cgst: item.cgst_amount || "",
                 sgst: item.sgst_amount || "",
                 utgst: item.utgst_amount || "",
-<<<<<<< HEAD
-                netAmount: item.total || "",
-=======
                 netAmount: item.subtotal || "",
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
               };
             });
             
@@ -429,14 +371,6 @@ export function InvoicePage() {
             setTableRows([]);
             setOriginalOcrValues({});
             setRawOcrPayload(null);
-<<<<<<< HEAD
-            setSubtotalAmount("0.00");
-            setCgstAmount("0.00");
-            setSgstAmount("0.00");
-            setIgstAmount("0.00");
-            setTotalAmount("0.00");
-=======
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
             nextRowIdRef.current = 1;
             setTableLoading(false);
             setInvoiceLoading(false);
@@ -495,11 +429,7 @@ export function InvoicePage() {
 
     setVendorSearchLoading(true);
     try {
-<<<<<<< HEAD
-      const response = await vendorService.searchVendorsByGst(searchTerm);
-=======
       const response = await vendorService.searchVendorsByGst(searchTerm, 17, 0);
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
       setVendorSearchResults(response?.data || []);
     } catch (error) {
       console.error("Error searching vendors:", error);
@@ -828,8 +758,6 @@ export function InvoicePage() {
   }, [itemsData, taxDataCache, tdsDataCache]);
 
   useEffect(() => {
-<<<<<<< HEAD
-=======
     const processedStatuses = ["PENDING_APPROVAL", "APPROVED", "REJECTED"];
     const isProcessedInvoice = invoiceStatus && processedStatuses.includes(invoiceStatus);
     
@@ -837,7 +765,6 @@ export function InvoicePage() {
       return;
     }
     
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
     if (itemsData.length > 0 && tableRows.length > 0 && Object.keys(taxDataCache).length > 0 && Object.keys(tdsDataCache).length > 0 && !hsnMatchingProcessedRef.current) {
       const timeoutId = setTimeout(() => {
         processHsnMatching(tableRows, rawOcrPayload);
@@ -845,11 +772,7 @@ export function InvoicePage() {
       }, 100);
       return () => clearTimeout(timeoutId);
     }
-<<<<<<< HEAD
-  }, [itemsData.length, tableRows.length, Object.keys(taxDataCache).length, Object.keys(tdsDataCache).length]);
-=======
   }, [itemsData.length, tableRows.length, Object.keys(taxDataCache).length, Object.keys(tdsDataCache).length, invoiceStatus]);
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
   
   useEffect(() => {
     hsnMatchingProcessedRef.current = false;
@@ -930,15 +853,6 @@ export function InvoicePage() {
     if (!invoiceNumber.trim()) errors.invoiceNumber = true;
     if (!invoiceDate.trim()) errors.invoiceDate = true;
     if (!gstNumber.trim() || gstNumber.length !== 15) errors.gstNumber = true;
-<<<<<<< HEAD
-    if (!vendorId.trim()) errors.vendorId = true;
-    if (!vendorName.trim()) errors.vendorName = true;
-    if (!vendorPan.trim()) errors.vendorPan = true;
-    if (!vendorEmail.trim()) errors.vendorEmail = true;
-    if (!billingAddress.trim()) errors.billingAddress = true;
-    if (!shippingAddress.trim()) errors.shippingAddress = true;
-=======
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
     
     if (tableRows.length === 0) {
       toast.error("Please add at least one line item");
@@ -1057,8 +971,6 @@ export function InvoicePage() {
 
     setSubmitting(true);
     try {
-<<<<<<< HEAD
-=======
       const updateData: UpdateInvoiceData = {
         invoice_number: invoiceNumber || null,
         type: invoiceType || null,
@@ -1106,18 +1018,12 @@ export function InvoicePage() {
       };
 
       await updateInvoice(id, updateData);
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
       const response = await submitInvoice(id);
       toast.success(response.message || "Invoice submitted for approval");
       navigate("/flow/invoice");
     } catch (error: any) {
-<<<<<<< HEAD
-      console.error("Error submitting invoice:", error);
-      toast.error(error?.response?.data?.message || "Failed to submit invoice. Please try again.");
-=======
       console.error("Error updating or submitting invoice:", error);
       toast.error(error?.response?.data?.message || "Failed to update or submit invoice. Please try again.");
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
     } finally {
       setSubmitting(false);
     }
@@ -1159,8 +1065,6 @@ export function InvoicePage() {
   const isFieldDisabled = isApprovalMode || isInvoiceFinalized || isPendingApproval;
   const shouldShowButtons = !tableLoading && (invoiceStatus !== null || !id);
 
-<<<<<<< HEAD
-=======
   const calculatedSubtotal = tableRows.reduce((sum, row) => sum + (parseFloat(row.netAmount) || 0), 0);
   const calculatedCgst = tableRows.reduce((sum, row) => sum + (parseFloat(row.cgst) || 0), 0);
   const calculatedSgst = tableRows.reduce((sum, row) => sum + (parseFloat(row.sgst) || 0), 0);
@@ -1169,7 +1073,6 @@ export function InvoicePage() {
   const calculatedTotalAmount = calculatedSubtotal + calculatedCgst + calculatedSgst + calculatedIgst;
   const calculatedTotalPayable = calculatedTotalAmount - calculatedTds;
 
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
   return (
     <div className="flex flex-col min-h-screen bg-sky-100">
       <div className="bg-white border-b px-0 py-4 sticky top-0 z-10">
@@ -1458,21 +1361,11 @@ export function InvoicePage() {
                         id="vendor-id"
                         value={vendorId}
                         readOnly
-<<<<<<< HEAD
-                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${getFieldHighlightClass("vendor_id", vendorId)} ${validationErrors.vendorId ? 'border-red-500' : 'border-[#E9EAEE]'}`}
-=======
                         className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${getFieldHighlightClass("vendor_id", vendorId)} border-[#E9EAEE]`}
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor ID" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
-<<<<<<< HEAD
-                      {validationErrors.vendorId && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
-=======
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-name" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>
@@ -1482,21 +1375,11 @@ export function InvoicePage() {
                         id="vendor-name"
                         value={vendorName}
                         readOnly
-<<<<<<< HEAD
-                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${validationErrors.vendorName ? 'border-red-500' : 'border-[#E9EAEE]'}`}
-=======
                         className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 border-[#E9EAEE]`}
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor name" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
-<<<<<<< HEAD
-                      {validationErrors.vendorName && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
-=======
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-pan" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>PAN</Label>
@@ -1504,21 +1387,11 @@ export function InvoicePage() {
                         id="vendor-pan"
                         value={vendorPan}
                         readOnly
-<<<<<<< HEAD
-                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${validationErrors.vendorPan ? 'border-red-500' : 'border-[#E9EAEE]'}`}
-=======
                         className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 border-[#E9EAEE]`}
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "PAN number" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
-<<<<<<< HEAD
-                      {validationErrors.vendorPan && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
-=======
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                     </div>
                     <div className="col-span-2">
                       <Label htmlFor="vendor-email" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Vendor Email</Label>
@@ -1527,21 +1400,11 @@ export function InvoicePage() {
                         type="email"
                         value={vendorEmail}
                         readOnly
-<<<<<<< HEAD
-                        className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 ${validationErrors.vendorEmail ? 'border-red-500' : 'border-[#E9EAEE]'}`}
-=======
                         className={`mt-0.5 h-[33px] border-[0.7px] rounded-[4px] py-2 px-3 text-sm font-normal bg-gray-50 border-[#E9EAEE]`}
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                         style={{ borderWidth: '0.7px' }}
                         placeholder={gstNumber.length === 15 ? "Vendor email" : "Fill GST number first"}
                         disabled={isFieldDisabled || gstNumber.length !== 15}
                       />
-<<<<<<< HEAD
-                      {validationErrors.vendorEmail && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
-=======
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                     </div>
               </div>
             </div>
@@ -1557,26 +1420,12 @@ export function InvoicePage() {
                         value={billingAddress}
                         onChange={(e) => {
                           setBillingAddress(e.target.value);
-<<<<<<< HEAD
-                          if (validationErrors.billingAddress && e.target.value.trim()) {
-                            setValidationErrors(prev => ({ ...prev, billingAddress: false }));
-                          }
-                        }}
-                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("billing_address", billingAddress)} ${validationErrors.billingAddress ? 'border-red-500' : 'border-[#E9EAEE]'}`}
-=======
                         }}
                         className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("billing_address", billingAddress)} border-[#E9EAEE]`}
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                         style={{ borderWidth: '0.7px' }}
                         placeholder="Enter billing address..."
                         disabled={isFieldDisabled}
                       />
-<<<<<<< HEAD
-                      {validationErrors.billingAddress && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
-=======
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                     </div>
                     <div>
                       <Label htmlFor="shipping-address" className="h-[15px]" style={{ fontFamily: 'Inter', fontSize: '12px', fontWeight: 400, lineHeight: '100%', letterSpacing: '0%', color: '#47536C' }}>Shipping Address</Label>
@@ -1585,26 +1434,12 @@ export function InvoicePage() {
                         value={shippingAddress}
                         onChange={(e) => {
                           setShippingAddress(e.target.value);
-<<<<<<< HEAD
-                          if (validationErrors.shippingAddress && e.target.value.trim()) {
-                            setValidationErrors(prev => ({ ...prev, shippingAddress: false }));
-                          }
-                        }}
-                        className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("shipping_address", shippingAddress)} ${validationErrors.shippingAddress ? 'border-red-500' : 'border-[#E9EAEE]'}`}
-=======
                         }}
                         className={`mt-1 font-normal min-h-[120px] resize-none border-[0.7px] rounded-[4px] py-2 px-3 ${getFieldHighlightClass("shipping_address", shippingAddress)} border-[#E9EAEE]`}
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                         style={{ borderWidth: '0.7px' }}
                         placeholder="Enter shipping address..."
                         disabled={isFieldDisabled}
                       />
-<<<<<<< HEAD
-                      {validationErrors.shippingAddress && (
-                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
-                      )}
-=======
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                     </div>
               </div>
             </div>
@@ -1656,10 +1491,7 @@ export function InvoicePage() {
           rows={tableRows}
           isLoading={tableLoading}
           isApprovalMode={isApprovalMode || isInvoiceFinalized || isPendingApproval}
-<<<<<<< HEAD
-=======
           invoiceStatus={invoiceStatus}
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
           onRowUpdate={updateTableRow}
           onAddRow={addTableRow}
           isFieldChanged={isFieldChanged}
@@ -1685,105 +1517,49 @@ export function InvoicePage() {
         />
 
         {/* Summary Section */}
-<<<<<<< HEAD
-        <div className="bg-white border-t border-gray-200">
-=======
         <div className="bg-white border-t border-gray-200 pb-20">
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
           <div className="flex justify-end pr-6 pl-0 py-1">
             <div className="flex flex-col items-end min-w-[140px]">
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">Subtotal</Label>
-<<<<<<< HEAD
-                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("subtotal_amount", parseFloat(subtotalAmount) || 0) ? "bg-yellow-100" : "bg-gray-50"}`}>
-                  <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(subtotalAmount) || 0)}</span>
-=======
                 <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("subtotal_amount", calculatedSubtotal) ? "bg-yellow-100" : "bg-gray-50"}`}>
                   <span className="text-xs font-medium text-right">{formatCurrency(calculatedSubtotal)}</span>
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">CGST</Label>
-<<<<<<< HEAD
-                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("cgst_amount", parseFloat(cgstAmount) || 0) ? "bg-yellow-100" : "bg-gray-50"}`}>
-                  <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(cgstAmount) || 0)}</span>
-=======
                 <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("cgst_amount", calculatedCgst) ? "bg-yellow-100" : "bg-gray-50"}`}>
                   <span className="text-xs font-medium text-right">{formatCurrency(calculatedCgst)}</span>
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">SGST</Label>
-<<<<<<< HEAD
-                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("sgst_amount", parseFloat(sgstAmount) || 0) ? "bg-yellow-100" : "bg-gray-50"}`}>
-                  <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(sgstAmount) || 0)}</span>
-=======
                 <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("sgst_amount", calculatedSgst) ? "bg-yellow-100" : "bg-gray-50"}`}>
                   <span className="text-xs font-medium text-right">{formatCurrency(calculatedSgst)}</span>
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">IGST</Label>
-<<<<<<< HEAD
-                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("igst_amount", parseFloat(igstAmount) || 0) ? "bg-yellow-100" : "bg-gray-50"}`}>
-                  <span className="text-xs font-medium text-right">{formatCurrency(parseFloat(igstAmount) || 0)}</span>
-=======
                 <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("igst_amount", calculatedIgst) ? "bg-yellow-100" : "bg-gray-50"}`}>
                   <span className="text-xs font-medium text-right">{formatCurrency(calculatedIgst)}</span>
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
                 <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Total Amount</Label>
-<<<<<<< HEAD
-                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("total_amount", (parseFloat(subtotalAmount) || 0) + (parseFloat(cgstAmount) || 0) + (parseFloat(sgstAmount) || 0) + (parseFloat(igstAmount) || 0)) ? "bg-yellow-100" : "bg-gray-50"}`}>
-                  <span className="text-xs font-semibold text-right">{formatCurrency(
-                    (parseFloat(subtotalAmount) || 0) +
-                    (parseFloat(cgstAmount) || 0) +
-                    (parseFloat(sgstAmount) || 0) +
-                    (parseFloat(igstAmount) || 0)
-                  )}</span>
-=======
                 <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("total_amount", calculatedTotalAmount) ? "bg-yellow-100" : "bg-gray-50"}`}>
                   <span className="text-xs font-semibold text-right">{formatCurrency(calculatedTotalAmount)}</span>
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full py-1">
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">TDS</Label>
                 <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
-<<<<<<< HEAD
-                  <span className="text-xs font-medium text-right">{formatCurrency(
-                    tableRows.reduce((sum, row) => sum + (parseFloat(row.tdsAmount) || 0), 0)
-                  )}</span>
-=======
                   <span className="text-xs font-medium text-right">{formatCurrency(calculatedTds)}</span>
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
                 <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Total Payable</Label>
                 <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
-<<<<<<< HEAD
-                  <span className="text-xs font-semibold text-right">{formatCurrency(
-                    ((parseFloat(subtotalAmount) || 0) +
-                    (parseFloat(cgstAmount) || 0) +
-                    (parseFloat(sgstAmount) || 0) +
-                    (parseFloat(igstAmount) || 0)) -
-                    tableRows.reduce((sum, row) => sum + (parseFloat(row.tdsAmount) || 0), 0)
-                  )}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
-                <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Payable Amount</Label>
-                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
-                  <span className="text-xs font-semibold text-right">{formatCurrency(parseFloat(totalAmount) || 0)}</span>
-=======
                   <span className="text-xs font-semibold text-right">{formatCurrency(calculatedTotalPayable)}</span>
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
                 </div>
               </div>
             </div>

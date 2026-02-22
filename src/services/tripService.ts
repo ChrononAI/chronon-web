@@ -84,7 +84,7 @@ export const tripService = {
         }
     },
 
-    addJourney: async (tripId: string, journey: any) => {
+    addJourney: async (_tripId: string, journey: any) => {
         try {
             return await api.post('/api/v1/trip_requests/segment', journey);
         } catch (error) {

@@ -216,21 +216,6 @@ export const ItemsPage = () => {
     return () => window.removeEventListener("resize", calculatePageSize);
   }, [rowsCalculated]);
 
-<<<<<<< HEAD
-  const filteredRows = useMemo(() => {
-    if (!searchTerm.trim()) return rows;
-    const searchLower = searchTerm.toLowerCase();
-    return rows.filter(
-      (row) =>
-        row.item_code?.toLowerCase().includes(searchLower) ||
-        row.description?.toLowerCase().includes(searchLower) ||
-        row.tax_code?.toLowerCase().includes(searchLower) ||
-        row.tds_code?.toLowerCase().includes(searchLower) ||
-        row.hsn_sac_code?.toLowerCase().includes(searchLower)
-    );
-  }, [rows, searchTerm]);
-=======
->>>>>>> f59baa283a6320101c10052dfc1352b6cfcd6c2e
 
   const handleRowClick = (params: GridRowParams<ItemData>) => {
     setSelectedItem(params.row);
