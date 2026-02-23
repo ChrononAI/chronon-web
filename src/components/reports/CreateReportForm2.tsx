@@ -478,6 +478,7 @@ export function CreateReportForm2({
   const [postingComment, setPostingComment] = useState(false);
   const [newComment, setNewComment] = useState<string>();
   const [tripId, setTripId] = useState<string | null>(null);
+  const [tripSequenceNumber, setTripSequenceNumber] = useState<string | null>(null);
   const [removingTrip, setRemovingTrip] = useState(false);
   const [showTripDialog, setShowTripDialog] = useState(false);
   const [availableTrips, setAvailableTrips] = useState<TripType[]>([]);
@@ -1059,8 +1060,17 @@ export function CreateReportForm2({
           
           if (fullReportResponse.data.trip_id) {
             setTripId(fullReportResponse.data.trip_id);
+            try {
+              const tripResponse = await tripService.getTripRequestById(fullReportResponse.data.trip_id);
+              if (tripResponse.data?.data?.[0]?.sequence_number) {
+                setTripSequenceNumber(tripResponse.data.data[0].sequence_number);
+              }
+            } catch (error) {
+              console.error("Error fetching trip sequence number:", error);
+            }
           } else {
             setTripId(null);
+            setTripSequenceNumber(null);
           }
 
           if (["SENT_BACK", "APPROVED", "REJECTED"].includes(currentStatus)) {
@@ -1310,6 +1320,7 @@ export function CreateReportForm2({
 
       if (response.success) {
         setTripId(null);
+        setTripSequenceNumber(null);
         toast.success("Trip removed from report successfully");
       } else {
         toast.error(response.message || "Failed to remove trip");
@@ -1355,7 +1366,9 @@ export function CreateReportForm2({
       );
 
       if (response.success) {
+        const selectedTrip = availableTrips.find(trip => trip.id === selectedTripId);
         setTripId(selectedTripId);
+        setTripSequenceNumber(selectedTrip?.sequence_number || null);
         setShowTripDialog(false);
         setSelectedTripId(null);
         toast.success("Trip added to report successfully");
@@ -1503,7 +1516,7 @@ export function CreateReportForm2({
                     onClick={handleNavigateToTrip}
                     className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
                   >
-                    {tripId}
+                    {tripSequenceNumber || tripId}
                     <ExternalLink className="h-3 w-3" />
                   </button>
                 </div>
