@@ -1,12 +1,5 @@
 import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
 import CreateTripJourneyForm from "@/components/trip/CreateTripJourneyForm";
-import {
-  AlertDialog,
-  AlertDialogHeader,
-  AlertDialogContent,
-  AlertDialogTitle,
-  AlertDialogDescription,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,15 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { formatDate, getStatusColor, cn } from "@/lib/utils";
 import { trackEvent } from "@/mixpanel";
 import { tripService, TripType } from "@/services/tripService";
@@ -35,7 +19,6 @@ import { AttachmentFullscreenViewer } from "@/components/trip/AttachmentFullscre
 import { useAuthStore } from "@/store/authStore";
 import { useTripStore } from "@/store/tripStore";
 import { ApprovalWorkflow } from "@/types/expense";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Activity,
   CheckCircle,
@@ -44,16 +27,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
-import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import * as z from "zod";
-
-const currencyConversionSchema = z.object({
-  usd: z.string({ required_error: "This field is required" }),
-  eur: z.string({ required_error: "This field is required" }),
-});
-
 export interface CurrencyConversionRate {
   currency: string;
   rate: number;
@@ -63,42 +38,17 @@ export interface CurrencyConversionPayload {
   currency_conversion_rates: CurrencyConversionRate[];
 }
 
-type CurrencyConversionFormValues = z.infer<typeof currencyConversionSchema>;
-
 function ProcessTripPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
   const { selectedTripToApprove } = useTripStore();
 
-  const form = useForm<CurrencyConversionFormValues>({
-    resolver: zodResolver(currencyConversionSchema),
-    defaultValues: {
-      usd: undefined,
-      eur: undefined,
-    },
-  });
-
-  const handleCurrencyConversionSubmit = async (
-    formData: CurrencyConversionFormValues
-  ) => {
-    const payload = {
-      currency_conversion_rates: Object.entries(formData).map(
-        ([key, value]) => ({
-          currency: key.toUpperCase(),
-          rate: Number(value),
-        })
-      ),
-    };
-    processPreApproval("approve", payload);
-  };
-
   const report = selectedTripToApprove;
 
   const [trip, setTrip] = useState<TripType | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<ApprovalWorkflow | null>(null);
-  const [showCurrencyAlert, setShowCurrencyAlert] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingTrip, setLoadingTrip] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -363,16 +313,8 @@ function ProcessTripPage() {
 
     setActionLoading(true);
     try {
-      if (
-        approvalWorkflow?.current_step === approvalWorkflow?.total_steps &&
-        actionType === "approve"
-      ) {
-        setShowCurrencyAlert(true);
-        setShowActionDialog(false);
-      } else {
-        await processPreApproval(actionType, undefined, comments);
-        setShowActionDialog(false);
-      }
+      await processPreApproval(actionType, undefined, comments);
+      setShowActionDialog(false);
     } catch (error: any) {
       console.error(`Failed to ${actionType} trip`, error);
       toast.error(
@@ -508,82 +450,6 @@ function ProcessTripPage() {
           </div>
         </div>
       </div>
-      <AlertDialog open={showCurrencyAlert} onOpenChange={setShowCurrencyAlert}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold text-gray-900">
-              Currency Conversion
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600 mt-3 leading-relaxed">
-              Please enter conversion rates for below currencies into INR
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(handleCurrencyConversionSubmit)}
-              className="space-y-3"
-            >
-              <FormField
-                control={form.control}
-                name="usd"
-                render={({ field }) => (
-                  <FormItem className="flex items-center gap-8">
-                    <FormLabel>USD</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        placeholder="Enter USD Conversion"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="eur"
-                render={({ field }) => (
-                  <FormItem className="flex items-center gap-8">
-                    <FormLabel>EUR</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        placeholder="Enter EUR Conversion"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex items-center justify-end gap-8 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCurrencyAlert(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-primary hover:bg-primary/90"
-                  disabled={loading}
-                  type="submit"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Approving...
-                    </>
-                  ) : (
-                    "Approve"
-                  )}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Action Dialog */}
       <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
