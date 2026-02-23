@@ -13,7 +13,7 @@ import { Button } from "../ui/button";
 import { TripDateField } from "./TripDateField";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
-import { Plus, Plane, Train, Bus, Car, ChevronDown } from "lucide-react";
+import { Plus, Plane, Train, Bus, Car, ChevronDown, Eye, Upload } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Select,
@@ -83,6 +83,9 @@ interface CreateTripJourneyFormProps {
   showOnlyJourneys?: boolean;
   tripData?: TripType;
   tripId?: string;
+  onViewAttachment?: (journeyId: string) => void;
+  onUploadAttachment?: (journeyId: string) => void;
+  journeySegmentIds?: Record<number, string>;
 }
 
 function CreateTripJourneyForm({
@@ -90,6 +93,9 @@ function CreateTripJourneyForm({
   showOnlyJourneys = false,
   tripData,
   tripId,
+  onViewAttachment,
+  onUploadAttachment,
+  journeySegmentIds,
 }: CreateTripJourneyFormProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -101,6 +107,7 @@ function CreateTripJourneyForm({
     currencies.find((c) => c.code === "USD") || null
   );
   const segmentsFetchedRef = useRef<string | null>(null);
+  const [segmentIdMap, setSegmentIdMap] = useState<Record<number, string>>({});
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -150,26 +157,31 @@ function CreateTripJourneyForm({
             try {
               const segmentsResponse: any = await tripService.getTripSegments(tripId);
               if (segmentsResponse.data?.data && Array.isArray(segmentsResponse.data.data)) {
-                journeysData = segmentsResponse.data.data.map((segment: any) => ({
-                  travelMode: segment.travel_mode || "flight",
-                  source: segment.from_location || "",
-                  destination: segment.to_location || "",
-                  startDate: segment.departure_time ? segment.departure_time.split('T')[0] : "",
-                  endDate: segment.arrival_time ? segment.arrival_time.split('T')[0] : "",
-                  timePreference: segment.additional_info?.time_preference || "",
-                  flightPreference: segment.additional_info?.flight_preference || "",
-                  mealPreference: segment.additional_info?.meal_preference || "",
-                  classPreference: segment.additional_info?.class_preference || "",
-                  departureTime: segment.departure_time ? segment.departure_time.split('T')[1]?.split(':').slice(0, 2).join(':') : "",
-                  needsAccommodation: segment.hotel_required || false,
-                  location: segment.additional_info?.hotel_location || "",
-                  preferredHotel1: segment.additional_info?.preferred_hotel_1 || "",
-                  preferredHotel2: segment.additional_info?.preferred_hotel_2 || "",
-                  preferredHotel3: segment.additional_info?.preferred_hotel_3 || "",
-                  occupancy: segment.additional_info?.occupancy || "single",
-                  checkInDate: segment.hotel_checkin ? segment.hotel_checkin.split('T')[0] : "",
-                  checkOutDate: segment.hotel_checkout ? segment.hotel_checkout.split('T')[0] : "",
-                }));
+                const idMap: Record<number, string> = {};
+                journeysData = segmentsResponse.data.data.map((segment: any, idx: number) => {
+                  idMap[idx] = segment.id;
+                  return {
+                    travelMode: segment.travel_mode || "flight",
+                    source: segment.from_location || "",
+                    destination: segment.to_location || "",
+                    startDate: segment.departure_time ? segment.departure_time.split('T')[0] : "",
+                    endDate: segment.arrival_time ? segment.arrival_time.split('T')[0] : "",
+                    timePreference: segment.additional_info?.time_preference || "",
+                    flightPreference: segment.additional_info?.flight_preference || "",
+                    mealPreference: segment.additional_info?.meal_preference || "",
+                    classPreference: segment.additional_info?.class_preference || "",
+                    departureTime: segment.departure_time ? segment.departure_time.split('T')[1]?.split(':').slice(0, 2).join(':') : "",
+                    needsAccommodation: segment.hotel_required || false,
+                    location: segment.additional_info?.hotel_location || "",
+                    preferredHotel1: segment.additional_info?.preferred_hotel_1 || "",
+                    preferredHotel2: segment.additional_info?.preferred_hotel_2 || "",
+                    preferredHotel3: segment.additional_info?.preferred_hotel_3 || "",
+                    occupancy: segment.additional_info?.occupancy || "single",
+                    checkInDate: segment.hotel_checkin ? segment.hotel_checkin.split('T')[0] : "",
+                    checkOutDate: segment.hotel_checkout ? segment.hotel_checkout.split('T')[0] : "",
+                  };
+                });
+                setSegmentIdMap(idMap);
               }
               segmentsFetchedRef.current = tripId;
             } catch (error) {
@@ -775,11 +787,45 @@ function CreateTripJourneyForm({
                           {index + 1}
                         </div>
                         <div className="scale-75">{getTravelModeIcon(travelMode as TravelMode)}</div>
-                        <h3 className="font-medium text-gray-900 flex-1 text-sm">
-                          {journey.source && journey.destination 
-                            ? getRouteLabel(journey, index)
-                            : `Journey ${index + 1}`}
-                        </h3>
+                        <div className="flex items-center gap-2 flex-1">
+                          <h3 className="font-medium text-gray-900 text-sm">
+                            {journey.source && journey.destination 
+                              ? getRouteLabel(journey, index)
+                              : `Journey ${index + 1}`}
+                          </h3>
+                          {(onViewAttachment || onUploadAttachment) && (() => {
+                            const segmentId = journeySegmentIds?.[index] || segmentIdMap[index];
+                            if (!segmentId) return null;
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                {onViewAttachment && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onViewAttachment(segmentId)}
+                                    className="text-gray-600 hover:text-gray-900 flex items-center gap-1 h-7 px-2 text-xs"
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                    View
+                                  </Button>
+                                )}
+                                {onUploadAttachment && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onUploadAttachment(segmentId)}
+                                    className="text-gray-600 hover:text-gray-900 flex items-center gap-1 h-7 px-2 text-xs"
+                                  >
+                                    <Upload className="h-3 w-3" />
+                                    Upload
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
                         <Button
                           type="button"
                           variant="ghost"

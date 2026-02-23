@@ -18,6 +18,7 @@ export interface TripType {
     user_id: string;
     created_at: string;
     updated_at: string;
+    report_id?: string | null;
 }
 
 export interface CreateTripRequestPayloadType {
@@ -176,6 +177,54 @@ export const tripService = {
                 action: action
             };
             return await api.post(`/api/v1/trip_requests/${tripId}/action`, payload);
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    },
+
+    attachDocument: async (payload: {
+        trip_id: string;
+        trip_segment_id: string;
+        document_type: string;
+        file_ids: string[];
+        additional_info?: any;
+    }) => {
+        try {
+            return await api.post('/api/v1/trip_requests/attach_document', payload);
+        } catch (error) {
+            console.log(error);
+            toast.error('Error attaching document');
+            throw error;
+        }
+    },
+
+    createFileMetadata: async (name: string) => {
+        try {
+            return await api.post('/api/v1/files/create', {
+                type: "RECEIPT",
+                name: name,
+            });
+        } catch (error) {
+            console.log(error);
+            toast.error('Error creating file metadata');
+            throw error;
+        }
+    },
+
+    getAttachedDocuments: async (tripRequestId: string) => {
+        try {
+            return await api.get(`/api/v1/trip_requests/${tripRequestId}/attached_documents`);
+        } catch (error) {
+            console.log(error);
+            toast.error('Error fetching attached documents');
+            throw error;
+        }
+    },
+
+    generateFileUrl: async (fileId: string) => {
+        try {
+            return await api.post(`/api/v1/files/generate_upload_url?id=${fileId}`);
         } catch (error) {
             console.log(error);
             throw error;

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { AlertTriangle, Calendar, Loader2, Trash2, X } from "lucide-react";
+import { AlertTriangle, Calendar, Loader2, Trash2, X, ExternalLink, Plus, XCircle, MapPin, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -69,6 +69,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { format } from "date-fns";
 import { ExpenseComments } from "../expenses/ExpenseComments";
 import ExpenseLogs from "../expenses/ExpenseLogs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import { tripService, TripType } from "@/services/tripService";
 import {
   Tooltip,
   TooltipContent,
@@ -470,6 +477,13 @@ export function CreateReportForm2({
   const [reportLogs, setReportLogs] = useState<ExpenseComment[]>([]);
   const [postingComment, setPostingComment] = useState(false);
   const [newComment, setNewComment] = useState<string>();
+  const [tripId, setTripId] = useState<string | null>(null);
+  const [removingTrip, setRemovingTrip] = useState(false);
+  const [showTripDialog, setShowTripDialog] = useState(false);
+  const [availableTrips, setAvailableTrips] = useState<TripType[]>([]);
+  const [loadingTrips, setLoadingTrips] = useState(false);
+  const [addingTrip, setAddingTrip] = useState(false);
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -1042,6 +1056,12 @@ export function CreateReportForm2({
             fullReportResponse.data.status || ""
           ).toUpperCase();
           setReportStatus(currentStatus);
+          
+          if (fullReportResponse.data.trip_id) {
+            setTripId(fullReportResponse.data.trip_id);
+          } else {
+            setTripId(null);
+          }
 
           if (["SENT_BACK", "APPROVED", "REJECTED"].includes(currentStatus)) {
             try {
@@ -1275,6 +1295,81 @@ export function CreateReportForm2({
     }
   };
 
+  const handleNavigateToTrip = () => {
+    if (tripId) {
+      navigate(`/requests/trips/${tripId}`);
+    }
+  };
+
+  const handleRemoveTrip = async () => {
+    if (!reportData?.id || !tripId) return;
+
+    setRemovingTrip(true);
+    try {
+      const response = await reportService.removeTripFromReport(reportData.id);
+
+      if (response.success) {
+        setTripId(null);
+        toast.success("Trip removed from report successfully");
+      } else {
+        toast.error(response.message || "Failed to remove trip");
+      }
+    } catch (error) {
+      console.error("Failed to remove trip:", error);
+      toast.error("Failed to remove trip");
+    } finally {
+      setRemovingTrip(false);
+    }
+  };
+
+  const handleAddTrip = async () => {
+    setShowTripDialog(true);
+    setSelectedTripId(null);
+    setLoadingTrips(true);
+    try {
+      const response = await tripService.getTripRequests();
+      const trips = response.data.data || [];
+      const filtered = trips.filter(
+        (trip: TripType) => trip.status === "APPROVED" && !trip.report_id
+      );
+      setAvailableTrips(filtered);
+    } catch (error) {
+      console.error("Failed to fetch trips:", error);
+      toast.error("Failed to load trips");
+    } finally {
+      setLoadingTrips(false);
+    }
+  };
+
+  const handleConfirmTrip = async () => {
+    if (!reportData?.id || !selectedTripId) {
+      toast.error("Please select a trip");
+      return;
+    }
+
+    setAddingTrip(true);
+    try {
+      const response = await reportService.addTripToReport(
+        reportData.id,
+        selectedTripId
+      );
+
+      if (response.success) {
+        setTripId(selectedTripId);
+        setShowTripDialog(false);
+        setSelectedTripId(null);
+        toast.success("Trip added to report successfully");
+      } else {
+        toast.error(response.message || "Failed to add trip");
+      }
+    } catch (error) {
+      console.error("Failed to add trip:", error);
+      toast.error("Failed to add trip");
+    } finally {
+      setAddingTrip(false);
+    }
+  };
+
   const onSubmit = async (data: ReportFormValues) => {
     if (selectedIds.length === 0) {
       toast.error("Please add at least one expense to the report");
@@ -1394,9 +1489,60 @@ export function CreateReportForm2({
 
   return (
     <div className="flex flex-col space-y-6 min-h-[calc(100vh-40px)]">
-      <h1 className="text-2xl font-bold">
-        {editMode ? "Edit Report" : "Create Report"}
-      </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">
+          {editMode ? "Edit Report" : "Create Report"}
+        </h1>
+        {editMode && (
+          <div className="flex items-center gap-3">
+            {tripId ? (
+              <>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-md">
+                  <span className="text-sm text-gray-600">Trip ID:</span>
+                  <button
+                    onClick={handleNavigateToTrip}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                  >
+                    {tripId}
+                    <ExternalLink className="h-3 w-3" />
+                  </button>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemoveTrip}
+                  disabled={removingTrip}
+                  className="text-red-600 border-red-300 hover:bg-red-50"
+                >
+                  {removingTrip ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Removing...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-3 w-3 mr-1" />
+                      Remove
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddTrip}
+                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Trip
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
 
       <div>
         <Form {...form}>
@@ -1923,6 +2069,117 @@ export function CreateReportForm2({
           </div>
         </div>
       </FormFooter>
+
+      <Dialog open={showTripDialog} onOpenChange={setShowTripDialog}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-5 pb-4">
+            <DialogTitle className="text-xl font-semibold">Select Trip</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Choose an approved trip to associate with this report
+            </p>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-6 pb-4">
+            {loadingTrips ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : availableTrips.length === 0 ? (
+              <div className="text-center py-12">
+                <MapPin className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+                <p className="text-sm font-medium text-gray-900 mb-1">No available trips</p>
+                
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {availableTrips.map((trip) => (
+                  <button
+                    key={trip.id}
+                    onClick={() => setSelectedTripId(trip.id)}
+                    disabled={addingTrip}
+                    className={`group w-full text-left relative rounded-lg border transition-all ${
+                      selectedTripId === trip.id
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-gray-200 bg-white hover:border-primary/40 hover:bg-gray-50/50"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    <div className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                          selectedTripId === trip.id
+                            ? "border-primary bg-primary"
+                            : "border-gray-300 group-hover:border-primary/60"
+                        }`}>
+                          {selectedTripId === trip.id && (
+                            <Check className="h-3 w-3 text-white stroke-[2.5]" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3 mb-1.5">
+                            <div className="flex-1">
+                              <h3 className={`font-semibold text-base mb-1 transition-colors ${
+                                selectedTripId === trip.id
+                                  ? "text-primary"
+                                  : "text-gray-900"
+                              }`}>
+                                {trip.title}
+                              </h3>
+                              {trip.sequence_number && (
+                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-100 text-xs font-medium text-gray-700 mb-1.5">
+                                  <MapPin className="h-3 w-3" />
+                                  {trip.sequence_number}
+                                </div>
+                              )}
+                            </div>
+                            {selectedTripId === trip.id && (
+                              <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                            <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                            <span>
+                              {formatDate(trip.start_date)} - {formatDate(trip.end_date)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowTripDialog(false);
+                setSelectedTripId(null);
+              }}
+              disabled={addingTrip}
+              className="h-9"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmTrip}
+              disabled={!selectedTripId || addingTrip}
+              className="h-9"
+            >
+              {addingTrip ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Check className="h-3.5 w-3.5 mr-2" />
+                  Select Trip
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

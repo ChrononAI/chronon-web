@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,8 @@ import { Input } from "@/components/ui/input";
 import { formatDate, getStatusColor, cn } from "@/lib/utils";
 import { trackEvent } from "@/mixpanel";
 import { tripService, TripType } from "@/services/tripService";
+import { JourneyAttachmentModal, Attachment } from "@/components/trip/JourneyAttachmentModal";
+import { AttachmentFullscreenViewer } from "@/components/trip/AttachmentFullscreenViewer";
 import { useAuthStore } from "@/store/authStore";
 import { useTripStore } from "@/store/tripStore";
 import { ApprovalWorkflow } from "@/types/expense";
@@ -105,6 +107,13 @@ function ProcessTripPage() {
   const [showActionDialog, setShowActionDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "history">("details");
   const workflowFetchedRef = useRef<string | null>(null);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
+  const [journeyAttachments, setJourneyAttachments] = useState<Record<string, Attachment[]>>({});
+  const [fullscreenViewerOpen, setFullscreenViewerOpen] = useState(false);
+  const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
+  const [journeySegments, setJourneySegments] = useState<any[]>([]);
 
   const getUserSpecificStatus = (): string => {
     if (!user || !approvalWorkflow?.approval_steps?.length) {
@@ -201,12 +210,99 @@ function ProcessTripPage() {
         setTrip(tripData);
       }
 
+      const segmentsResponse: any = await tripService.getTripSegments(tripId);
+      if (segmentsResponse.data?.data && Array.isArray(segmentsResponse.data.data)) {
+        setJourneySegments(segmentsResponse.data.data);
+      }
+
     } catch (error: any) {
       console.error("Error fetching trip data:", error);
       toast.error("Failed to load trip details");
     } finally {
       setLoadingTrip(false);
     }
+  };
+
+  const loadAllAttachments = async (tripId: string) => {
+    try {
+      const response = await tripService.getAttachedDocuments(tripId);
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        const allAttachments: Record<string, Attachment[]> = {};
+        
+        for (const doc of response.data.data) {
+          const segmentId = doc.trip_segment_id;
+          if (!segmentId) continue;
+          
+          if (!allAttachments[segmentId]) {
+            allAttachments[segmentId] = [];
+          }
+          
+          if (doc.file_ids && Array.isArray(doc.file_ids) && doc.file_ids.length > 0) {
+            for (const fileId of doc.file_ids) {
+              try {
+                const fileUrlResponse = await tripService.generateFileUrl(fileId);
+                if (fileUrlResponse.data?.data?.download_url) {
+                  allAttachments[segmentId].push({
+                    fileId: fileId,
+                    url: fileUrlResponse.data.data.download_url,
+                    name: fileUrlResponse.data.data.name || `Attachment ${allAttachments[segmentId].length + 1}`,
+                  });
+                }
+              } catch (error) {
+                console.error(`Error fetching URL for file ${fileId}:`, error);
+                allAttachments[segmentId].push({
+                  fileId: fileId,
+                  url: "",
+                  name: `Attachment ${allAttachments[segmentId].length + 1}`,
+                });
+              }
+            }
+          }
+        }
+        
+        setJourneyAttachments(allAttachments);
+      }
+    } catch (error) {
+      console.error("Error loading attachments:", error);
+    }
+  };
+
+  const handleViewClick = (journeyId: string) => {
+    if (!id) return;
+    setSelectedJourneyId(journeyId);
+    
+    const attachments = journeyAttachments[journeyId] || [];
+    
+    if (attachments.length > 0) {
+      setViewerInitialIndex(0);
+      setFullscreenViewerOpen(true);
+    } else {
+      toast.info("No attachments found for this journey segment");
+    }
+  };
+
+  const handleUploadClick = (journeyId: string) => {
+    setSelectedJourneyId(journeyId);
+    setUploadDialogOpen(true);
+  };
+
+  const handleAttachmentsChange = async (newAttachments: Attachment[]) => {
+    if (!selectedJourneyId || !id) return;
+    
+    setJourneyAttachments((prev) => ({
+      ...prev,
+      [selectedJourneyId]: newAttachments,
+    }));
+    
+    await loadAllAttachments(id);
+  };
+
+  const handleDeleteAttachment = (fileId: string) => {
+    if (!selectedJourneyId) return;
+    setJourneyAttachments((prev) => ({
+      ...prev,
+      [selectedJourneyId]: (prev[selectedJourneyId] || []).filter((att) => att.fileId !== fileId),
+    }));
   };
 
   useEffect(() => {
@@ -216,6 +312,7 @@ function ProcessTripPage() {
       }
       getApprovalWorkflow(id);
       fetchTripData(id);
+      loadAllAttachments(id);
     }
   }, [id]);
 
@@ -386,6 +483,12 @@ function ProcessTripPage() {
                     showOnlyJourneys={false}
                     tripData={trip || undefined}
                     tripId={id}
+                    onViewAttachment={handleViewClick}
+                    onUploadAttachment={handleUploadClick}
+                    journeySegmentIds={journeySegments.reduce((acc, segment, index) => {
+                      acc[index] = segment.id;
+                      return acc;
+                    }, {} as Record<number, string>)}
                   />
                 )}
               </div>
@@ -590,6 +693,29 @@ function ProcessTripPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Journey Attachment Modal */}
+      <JourneyAttachmentModal
+        uploadDialogOpen={uploadDialogOpen}
+        viewDialogOpen={viewDialogOpen}
+        selectedJourneyId={selectedJourneyId}
+        tripId={id || null}
+        attachments={selectedJourneyId ? (journeyAttachments[selectedJourneyId] || []) : []}
+        onUploadDialogChange={setUploadDialogOpen}
+        onViewDialogChange={setViewDialogOpen}
+        onAttachmentsChange={handleAttachmentsChange}
+        onDeleteAttachment={handleDeleteAttachment}
+      />
+
+      {/* Fullscreen Attachment Viewer */}
+      {selectedJourneyId && (
+        <AttachmentFullscreenViewer
+          attachments={journeyAttachments[selectedJourneyId] || []}
+          isOpen={fullscreenViewerOpen}
+          onClose={() => setFullscreenViewerOpen(false)}
+          initialIndex={viewerInitialIndex}
+        />
+      )}
     </>
   );
 }

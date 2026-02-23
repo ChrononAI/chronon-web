@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, Plus, Plane, Train, Bus, Car, ChevronDown, Edit } from "lucide-react";
+import { ArrowLeft, Calendar, Plus, Plane, Train, Bus, Car, ChevronDown, Edit, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { tripService, TripType } from "@/services/tripService";
 import { formatDate } from "@/lib/utils";
@@ -21,6 +21,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Attachment } from "@/components/trip/JourneyAttachmentModal";
+import { AttachmentFullscreenViewer } from "@/components/trip/AttachmentFullscreenViewer";
 
 interface Journey {
   id?: string;
@@ -50,6 +52,10 @@ function TripDetailPage() {
   const [activeTab, setActiveTab] = useState<"details" | "history">("details");
   const [approvalWorkflow, setApprovalWorkflow] = useState<ApprovalWorkflow | null>(null);
   const workflowFetchedRef = useRef<string | null>(null);
+  const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
+  const [journeyAttachments, setJourneyAttachments] = useState<Record<string, Attachment[]>>({});
+  const [fullscreenViewerOpen, setFullscreenViewerOpen] = useState(false);
+  const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
 
   const transformSegmentToJourney = (segment: any): Journey => {
     return {
@@ -115,6 +121,50 @@ function TripDetailPage() {
     }
   };
 
+  const loadAllAttachments = async (tripId: string) => {
+    try {
+      const response = await tripService.getAttachedDocuments(tripId);
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        const allAttachments: Record<string, Attachment[]> = {};
+        
+        for (const doc of response.data.data) {
+          const segmentId = doc.trip_segment_id;
+          if (!segmentId) continue;
+          
+          if (!allAttachments[segmentId]) {
+            allAttachments[segmentId] = [];
+          }
+          
+          if (doc.file_ids && Array.isArray(doc.file_ids) && doc.file_ids.length > 0) {
+            for (const fileId of doc.file_ids) {
+              try {
+                const fileUrlResponse = await tripService.generateFileUrl(fileId);
+                if (fileUrlResponse.data?.data?.download_url) {
+                  allAttachments[segmentId].push({
+                    fileId: fileId,
+                    url: fileUrlResponse.data.data.download_url,
+                    name: fileUrlResponse.data.data.name || `Attachment ${allAttachments[segmentId].length + 1}`,
+                  });
+                }
+              } catch (error) {
+                console.error(`Error fetching URL for file ${fileId}:`, error);
+                allAttachments[segmentId].push({
+                  fileId: fileId,
+                  url: "",
+                  name: `Attachment ${allAttachments[segmentId].length + 1}`,
+                });
+              }
+            }
+          }
+        }
+        
+        setJourneyAttachments(allAttachments);
+      }
+    } catch (error) {
+      console.error("Error loading attachments:", error);
+    }
+  };
+
   useEffect(() => {
     const fetchTrip = async () => {
       if (!id) return;
@@ -136,6 +186,8 @@ function TripDetailPage() {
         await refreshJourneys();
         // Fetch workflow separately, it will check if already loaded
         await getApprovalWorkflow(id);
+        // Load all attachments in the background
+        loadAllAttachments(id);
       } catch (error: any) {
         console.error("Error fetching trip:", error);
         toast.error(error?.response?.data?.message || "Failed to load trip details");
@@ -215,6 +267,11 @@ function TripDetailPage() {
       // Refresh journey segments
       await refreshJourneys();
       
+      // Reload attachments after journey changes
+      if (id) {
+        await loadAllAttachments(id);
+      }
+      
       setEditingJourney(null);
     } catch (error: any) {
       throw error;
@@ -272,6 +329,22 @@ function TripDetailPage() {
         return <Plane className="h-5 w-5 text-[#0D9C99]" />;
     }
   };
+
+
+  const handleViewClick = (journeyId: string) => {
+    if (!id) return;
+    setSelectedJourneyId(journeyId);
+    
+    const attachments = journeyAttachments[journeyId] || [];
+    
+    if (attachments.length > 0) {
+      setViewerInitialIndex(0);
+      setFullscreenViewerOpen(true);
+    } else {
+      toast.info("No attachments found for this journey segment");
+    }
+  };
+
 
   const formatDateRange = () => {
     if (!trip?.start_date || !trip?.end_date) return "Not specified";
@@ -425,11 +498,24 @@ function TripDetailPage() {
                           {index + 1}
                         </div>
                         <div className="scale-75">{getTravelModeIcon(journey.travelMode)}</div>
-                        <h3 className="font-medium text-gray-900 flex-1 text-sm">
-                          {journey.source && journey.destination
-                            ? `${journey.source} → ${journey.destination}`
-                            : `Journey ${index + 1}`}
-                        </h3>
+                        <div className="flex items-center gap-2 flex-1">
+                          <h3 className="font-medium text-gray-900 text-sm">
+                            {journey.source && journey.destination
+                              ? `${journey.source} → ${journey.destination}`
+                              : `Journey ${index + 1}`}
+                          </h3>
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => journey.id && handleViewClick(journey.id)}
+                              className="text-gray-600 hover:text-gray-900 flex items-center gap-1 h-7 px-2 text-xs"
+                            >
+                              <Eye className="h-3 w-3" />
+                              View
+                            </Button>
+                          </div>
+                        </div>
                         <Button
                           type="button"
                           variant="ghost"
@@ -696,6 +782,18 @@ function TripDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+
+      {/* Fullscreen Attachment Viewer */}
+      {selectedJourneyId && (
+        <AttachmentFullscreenViewer
+          attachments={journeyAttachments[selectedJourneyId] || []}
+          isOpen={fullscreenViewerOpen}
+          onClose={() => setFullscreenViewerOpen(false)}
+          initialIndex={viewerInitialIndex}
+        />
+      )}
+
       {trip?.status === "DRAFT" && (
         <FormActionFooter
           secondaryButton={{
