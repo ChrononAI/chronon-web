@@ -133,7 +133,9 @@ export function ExpenseDetailPage() {
       if (!expenseId) return;
       try {
         const isFromApprovalReport = isFromApprovals || 
-          location.pathname.includes("/approvals");
+          location.pathname.includes("/approvals") ||
+          location.pathname.includes("/admin-reports") ||
+          location.pathname.includes("/settlements");
         
         const [expenseData] = await Promise.all([
           expenseService.getExpenseById(expenseId, isFromApprovalReport),
