@@ -69,7 +69,6 @@ const journeySchema = z.object({
   preferredHotel3: z.string().optional(),
   occupancy: z.enum(["single", "double"]).optional(),
 }).refine((data) => {
-  // Validate based on travel mode
   if (data.travelMode === "flight") {
     return !!(data.flightSource && data.flightDestination && data.flightStartDate);
   }
@@ -85,6 +84,30 @@ const journeySchema = z.object({
   return true;
 }, {
   message: "Required fields are missing for the selected travel mode",
+}).refine((data) => {
+  if (data.needsAccommodation && !data.checkInDate) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Check in date is required",
+  path: ["checkInDate"],
+}).refine((data) => {
+  if (data.needsAccommodation && !data.checkOutDate) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Check out date is required",
+  path: ["checkOutDate"],
+}).refine((data) => {
+  if (data.needsAccommodation && !data.location) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Location is required",
+  path: ["location"],
 });
 
 type JourneyFormValues = z.infer<typeof journeySchema>;
@@ -674,7 +697,7 @@ export function JourneyModal({
                     render={({ field }) => (
                       <FormItem>
                         <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
-                          CHECK IN DATE
+                          CHECK IN DATE <span className="text-red-500">*</span>
                         </Label>
                         <FormControl>
                           <TripDateField
@@ -694,7 +717,7 @@ export function JourneyModal({
                     render={({ field }) => (
                       <FormItem>
                         <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
-                          CHECK OUT DATE
+                          CHECK OUT DATE <span className="text-red-500">*</span>
                         </Label>
                         <FormControl>
                           <TripDateField
@@ -714,7 +737,7 @@ export function JourneyModal({
                     render={({ field }) => (
                       <FormItem>
                         <Label className="block mb-2.5 font-bold text-[12px] text-[#47536C] uppercase">
-                          LOCATION
+                          LOCATION <span className="text-red-500">*</span>
                         </Label>
                         <FormControl>
                           <Input
