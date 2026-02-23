@@ -263,14 +263,8 @@ function TripDetailPage() {
         const payload = transformFormDataToApiPayload(journeyData, segmentOrder);
         await tripService.addJourney(id, payload);
       }
-      
-      // Refresh journey segments
       await refreshJourneys();
-      
-      // Reload attachments after journey changes
-      if (id) {
-        await loadAllAttachments(id);
-      }
+      await loadAllAttachments(id);
       
       setEditingJourney(null);
     } catch (error: any) {
