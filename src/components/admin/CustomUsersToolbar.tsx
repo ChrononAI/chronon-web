@@ -7,7 +7,7 @@ import { toast } from "sonner";
 function CustomUsersToolbar() {
   const { selectedUsers } = useUsersStore();
   const handleDisableUser = async () => {
-    const payload = selectedUsers.map((user: any) => {
+    const payload = selectedUsers?.map((user: any) => {
         return {
             email: user.email,
             is_active: false
@@ -23,7 +23,7 @@ function CustomUsersToolbar() {
   }
   return (
     <Toolbar className="flex items-center !justify-start !px-[1px] !gap-2 !my-3 !border-0 bg-white">
-      <Button variant="outline" disabled={selectedUsers.length === 0} onClick={handleDisableUser}>
+      <Button variant="outline" disabled={selectedUsers?.length === 0} onClick={handleDisableUser}>
         Disable Users
       </Button>
     </Toolbar>

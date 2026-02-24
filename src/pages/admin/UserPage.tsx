@@ -82,7 +82,6 @@ const UserPage = () => {
         minWidth: 120,
         flex: 1,
         renderCell: ({ value }) => {
-          console.log(value);
           return (
             <Badge
               className={
