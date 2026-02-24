@@ -82,8 +82,8 @@ const expenseSchema = z.object({
   expense_policy_id: z.string().min(1, "Please select a policy"),
   category_id: z.string().min(1, "Please select a category"),
   category_type: z.string(),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
+  start_date: z.string().optional().nullable(),
+  end_date: z.string().optional().nullable(),
   invoice_number: z.string().min(1, "Invoice number is required"),
   vendor: z.string().min(1, "Vendor is required"),
   amount: z.string().min(1, "Amount is required"),
@@ -109,7 +109,7 @@ const expenseSchema = z.object({
   user_conversion_rate: z.string().optional().nullable(),
   api_conversion_rate: z.string().optional().nullable(),
 }).superRefine((data, ctx) => {
-    if (data.category_type === "EXPENSE") {
+    if (data.category_type === "MULTI_DAY") {
       if (!data.start_date) {
         ctx.addIssue({
           path: ["start_date"],
@@ -581,11 +581,10 @@ export function ExpenseDetailsStep2({
             : format(parseLocalDate(String(expense.expense_date)), "yyyy-MM-dd")
         : undefined;
     
-        const startDate = format(parseLocalDate(expense.start_date), 'yyyy-MM-dd');
-        const endDate = format(parseLocalDate(expense.end_date), 'yyyy-MM-dd');
-        console.log(startDate, endDate, parseLocalDate(expense.start_date));
-      
-      form.reset({
+        const startDate = expense.start_date ? format(parseLocalDate(expense.start_date), 'yyyy-MM-dd') : undefined;
+        const endDate = expense.end_date ? format(parseLocalDate(expense.end_date), 'yyyy-MM-dd') : undefined;
+
+        form.reset({
         ...expense,
         expense_date: normalizedDate,
         start_date: startDate,
@@ -868,7 +867,11 @@ useEffect(() => {
     // Check the appropriate key
     if (selectedCategory?.category_type === "MULTI_DAY") {
       setIsMultiDayExpense(true);
-    };
+    } else {
+      setIsMultiDayExpense(false);
+      form.setValue("start_date", null);
+      form.setValue("end_date", null);
+    }
   }, [selectedCategory]);
 
   const fileToBase64 = (file: File): Promise<string> => {
@@ -972,7 +975,6 @@ useEffect(() => {
               onSubmit={form.handleSubmit((data) => {
                 const allFormValues = form.getValues();
                 const mergedData = { ...allFormValues, ...data, file_ids: fileIds };
-                console.log(mergedData);
                 onSubmit(mergedData);
               })}
               className={`rounded-2xl border border-gray-200 bg-white shadow-sm p-2 ${expense?.original_expense_id
