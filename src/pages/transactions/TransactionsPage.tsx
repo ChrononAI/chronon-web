@@ -1,7 +1,7 @@
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { StatusPill } from "@/components/shared/StatusPill";
 import { transactionService } from "@/services/transactionService";
 import { Box } from "@mui/material";
 import {
@@ -44,9 +44,7 @@ const columns: GridColDef[] = [
     minWidth: 120,
     flex: 1,
     renderCell: (params) => (
-      <Badge className={getStatusColor(params.value)}>
-        {params.value.replace("_", " ")}
-      </Badge>
+      <StatusPill status={params.value} />
     ),
   },
   {
