@@ -612,7 +612,7 @@ export function ExpenseDetailsStep2({
             if (category) {
               setSelectedCategory(category);
               form.setValue("category_id", expense.category_id);
-              form.setValue("category_type", category.category_type)
+              form.setValue("category_type", category.category_type);
             }
           }
         }
