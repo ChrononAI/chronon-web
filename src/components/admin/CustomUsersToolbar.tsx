@@ -22,7 +22,7 @@ function CustomUsersToolbar() {
     }
   }
   return (
-    <Toolbar className="flex items-center !justify-start !px-[1px] !gap-2 !my-3 !border-0 bg-white">
+    <Toolbar className="flex items-center !justify-end !px-[1px] !gap-2 !my-3 !border-0 bg-white">
       <Button variant="outline" disabled={selectedUsers?.length === 0} onClick={handleDisableUser}>
         Disable Users
       </Button>

@@ -204,7 +204,7 @@ const UserPage = () => {
 
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-1">
         <div>
           <h1 className="text-2xl font-bold">Users</h1>
         </div>
