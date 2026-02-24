@@ -17,6 +17,9 @@ import { getTemplates } from "@/services/admin/templates";
 import { Box } from "@mui/material";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import CustomUsersToolbar from "@/components/admin/CustomUsersToolbar";
+import { useUsersStore } from "@/store/admin/usersStore";
+import { Badge } from "@/components/ui/badge";
 
 type APIUser = {
   id?: string | number;
@@ -24,6 +27,7 @@ type APIUser = {
   first_name?: string;
   last_name?: string;
   phone_number?: string;
+  is_active: boolean;
   role?: string;
   status?: string;
   entity_assignments: Record<string, string | undefined>;
@@ -35,12 +39,14 @@ type UserRow = {
   email: string;
   role: string;
   phone?: string;
+  is_active: boolean;
   status?: string;
-  [entityKey: string]: string | undefined;
+  [entityKey: string]: string | boolean | undefined;
 };
 
 const UserPage = () => {
   const navigate = useNavigate();
+  const { setSelectedUsers } = useUsersStore();
   const [rows, setRows] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [entityCols, setEntityCols] = useState<any>([]);
@@ -52,19 +58,17 @@ const UserPage = () => {
 
   const GRID_OFFSET = 190;
   const ROW_HEIGHT = 38;
-  const HEADER_HEIGHT = 0;
+  const HEADER_HEIGHT = 56;
 
   const calculatePageSize = () => {
-    const availableHeight =
-      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    const availableHeight = window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
     return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
   };
 
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel>({
-      page: 0,
-      pageSize: calculatePageSize(),
-    });
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: calculatePageSize(),
+  });
 
   const baseColumns = useMemo<GridColDef<UserRow>[]>(
     () => [
@@ -72,7 +76,26 @@ const UserPage = () => {
       { field: "email", headerName: "EMAIL", minWidth: 260, flex: 1 },
       { field: "role", headerName: "ROLE", minWidth: 160, flex: 1 },
       { field: "phone", headerName: "PHONE", minWidth: 200, flex: 1 },
-      { field: "status", headerName: "STATUS", minWidth: 120, flex: 1 },
+      {
+        field: "is_active",
+        headerName: "STATUS",
+        minWidth: 120,
+        flex: 1,
+        renderCell: ({ value }) => {
+          console.log(value);
+          return (
+            <Badge
+              className={
+                value
+                  ? "bg-green-100 text-green-800 hover:bg-green-100"
+                  : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+              }
+            >
+              {value ? "ACTIVE" : "INACTIVE"}
+            </Badge>
+          );
+        },
+      },
     ],
     []
   );
@@ -150,6 +173,7 @@ const UserPage = () => {
         return {
           id: String(id),
           name: fullName || user.email || `User ${index + 1}`,
+          is_active: user.is_active,
           email: user.email || "-",
           role: (user.role || "-").toUpperCase(),
           phone: user.phone_number || "-",
@@ -214,9 +238,18 @@ const UserPage = () => {
           rows={loading ? [] : rows}
           loading={loading}
           slots={{
-            noRowsOverlay: () => <CustomNoRows title="No users found" description="There are currently no users." />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+            noRowsOverlay: () => (
+              <CustomNoRows
+                title="No users found"
+                description="There are currently no users."
+              />
+            ),
+            loadingOverlay: () => (
+              <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+            ),
+            toolbar: CustomUsersToolbar,
           }}
+          showToolbar
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {
@@ -239,9 +272,6 @@ const UserPage = () => {
               borderTop: "none",
               borderBottom: "none",
             },
-            "& .MuiCheckbox-root": {
-              color: "#9AA0A6",
-            },
             "& .MuiDataGrid-row:hover": {
               cursor: "pointer",
               backgroundColor: "#f5f5f5",
@@ -263,7 +293,12 @@ const UserPage = () => {
           density="compact"
           checkboxSelection
           rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
+          onRowSelectionModelChange={(val) => {
+            const users = rows.filter((user) => val.ids.has(user.id));
+            setSelectedUsers(users);
+            setRowSelection(val);
+          }}
+          disableRowSelectionExcludeModel
           pagination
           paginationMode="server"
           paginationModel={paginationModel}
