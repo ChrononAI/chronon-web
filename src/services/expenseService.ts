@@ -53,6 +53,8 @@ export interface UpdateExpenseData {
   currency?: string | null;
   api_conversion_rate?: number;
   user_conversion_rate?: number;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface CreateExpenseResponse {
