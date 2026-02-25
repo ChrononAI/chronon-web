@@ -20,6 +20,7 @@ import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import CustomUsersToolbar from "@/components/admin/CustomUsersToolbar";
 import { useUsersStore } from "@/store/admin/usersStore";
 import { Badge } from "@/components/ui/badge";
+import { userService } from "@/services/admin/userService";
 
 type APIUser = {
   id?: string | number;
@@ -46,7 +47,7 @@ type UserRow = {
 
 const UserPage = () => {
   const navigate = useNavigate();
-  const { setSelectedUsers } = useUsersStore();
+  const { selectedUsers, setSelectedUsers } = useUsersStore();
   const [rows, setRows] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [entityCols, setEntityCols] = useState<any>([]);
@@ -189,6 +190,32 @@ const UserPage = () => {
       setLoading(false);
     }
   };
+
+  const handleDisableUser = async () => {
+    const payload = selectedUsers?.map((user: any) => {
+      return {
+        email: user.email,
+        is_active: false,
+      };
+    });
+    try {
+      await userService.disableUsers(payload);
+      setRows((prev) =>
+        prev.map((row) =>
+          selectedUsers.some((u: any) => u.email === row.email)
+            ? { ...row, is_active: false }
+            : row
+        )
+      );
+      setSelectedUsers([]);
+      setRowSelection({ type: "include", ids: new Set() });
+      toast.success("Successfully disbaled users");
+    } catch (error: any) {
+      console.log(error);
+      toast.error(error?.response?.data?.message || error?.message);
+    }
+  };
+
   useEffect(() => {
     if (paginationModel) {
       loadUsers(paginationModel);
@@ -247,6 +274,11 @@ const UserPage = () => {
               <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
             ),
             toolbar: CustomUsersToolbar,
+          }}
+          slotProps={{
+            toolbar: {
+              handleDisableUser,
+            } as any,
           }}
           showToolbar
           sx={{

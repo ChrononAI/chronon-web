@@ -1,26 +1,19 @@
 import { useUsersStore } from "@/store/admin/usersStore";
 import { Button } from "../ui/button";
 import { Toolbar } from "@mui/x-data-grid";
-import { userService } from "@/services/admin/userService";
-import { toast } from "sonner";
+import { GridToolbarProps } from "@mui/x-data-grid/internals";
+import { ToolbarPropsOverrides } from "@mui/x-data-grid";
 
-function CustomUsersToolbar() {
+export interface CustomUsersToolbarProps {
+ handleDisableUser: () => void
+}
+
+type Props = GridToolbarProps &
+  ToolbarPropsOverrides &
+  Partial<CustomUsersToolbarProps>;
+
+function CustomUsersToolbar({ handleDisableUser }: Props) {
   const { selectedUsers } = useUsersStore();
-  const handleDisableUser = async () => {
-    const payload = selectedUsers?.map((user: any) => {
-        return {
-            email: user.email,
-            is_active: false
-        }
-    });
-    try {
-        await userService.disableUsers(payload);
-        toast.success("Successfully disabled users");
-    } catch (error: any) {
-        console.log(error);
-        toast.error(error?.response?.data?.message || error?.message);
-    }
-  }
   return (
     <Toolbar className="flex items-center !justify-end !px-[1px] !gap-2 !my-3 !border-0 bg-white">
       <Button variant="outline" disabled={selectedUsers?.length === 0} onClick={handleDisableUser}>
