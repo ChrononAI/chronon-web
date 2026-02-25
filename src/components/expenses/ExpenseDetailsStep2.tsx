@@ -84,7 +84,7 @@ const expenseSchema = z.object({
   invoice_number: z.string().min(1, "Invoice number is required"),
   vendor: z.string().min(1, "Vendor is required"),
   amount: z.string().min(1, "Amount is required"),
-  receipt_id: z.string().optional(),
+  receipt_id: z.string().optional().nullable(),
   expense_date: z
     .string()
     .min(1, "Date is required")
@@ -920,6 +920,7 @@ useEffect(() => {
             <form
               onSubmit={form.handleSubmit((data) => {
                 const allFormValues = form.getValues();
+                console.log(allFormValues);
                 const mergedData = { ...allFormValues, ...data, file_ids: fileIds };
                 onSubmit(mergedData);
               })}
