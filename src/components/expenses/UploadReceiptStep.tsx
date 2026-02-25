@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, X, CheckCircle, FileText, Loader2 } from 'lucide-react';
+import { Upload, X, CheckCircle, FileText, Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -89,28 +89,28 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
     setDuplicateIds([]);
   };
 
-  // const handleNext = () => {
-  //   if (uploadedFile && previewUrl) {
-  //     onNext({
-  //       uploadedFile,
-  //       parsedData,
-  //       previewUrl,
-  //     });
-  //   }
-  // };
+  const handleNext = () => {
+    if (uploadedFile && previewUrl) {
+      onNext({
+        uploadedFile,
+        parsedData,
+        previewUrl,
+      });
+    }
+  };
 
-  // const handleAddManually = () => {
-  //   setParsedData(null);
-  //   setUploadedFile(null);
-  //   setPreviewUrl(null);
-  //   setShowPotentialDuplicateAlert(false);
-  //   setDuplicateIds([]);
-  //   onNext({
-  //     uploadedFile: null as any,
-  //     parsedData: null,
-  //     previewUrl: '',
-  //   });
-  // };
+  const handleAddManually = () => {
+    setParsedData(null);
+    setUploadedFile(null);
+    setPreviewUrl(null);
+    setShowPotentialDuplicateAlert(false);
+    setDuplicateIds([]);
+    onNext({
+      uploadedFile: null as any,
+      parsedData: null,
+      previewUrl: '',
+    });
+  };
 
   return (
     <div className="space-y-6 h-[50vh]">
@@ -232,10 +232,7 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
       </Card>
 
       {/* Navigation Buttons */}
-      {/* {type === "upload" && <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Back
-        </Button>
+      {<div className="flex justify-between">
         <div className="flex gap-3">
           <Button 
             variant="outline" 
@@ -253,7 +250,7 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
-      </div>} */}
+      </div>}
     </div>
   );
 }
