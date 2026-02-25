@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, X, CheckCircle, FileText, Loader2, ArrowRight } from 'lucide-react';
+import { Upload, X, CheckCircle, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -87,16 +87,6 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
     setParsedData(null);
     setShowPotentialDuplicateAlert(false);
     setDuplicateIds([]);
-  };
-
-  const handleNext = () => {
-    if (uploadedFile && previewUrl) {
-      onNext({
-        uploadedFile,
-        parsedData,
-        previewUrl,
-      });
-    }
   };
 
   const handleAddManually = () => {
@@ -232,7 +222,7 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
       </Card>
 
       {/* Navigation Buttons */}
-      {<div className="flex justify-between">
+      {<div className="flex justify-end">
         <div className="flex gap-3">
           <Button 
             variant="outline" 
@@ -240,14 +230,6 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
             className="border-primary text-primary hover:bg-primary hover:text-white"
           >
             Add Manually
-          </Button>
-          <Button 
-            onClick={handleNext} 
-            disabled={!uploadedFile || isProcessing}
-            className="bg-primary hover:bg-primary/90"
-          >
-            {isProcessing ? 'Processing...' : 'Next'}
-            <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
       </div>}
