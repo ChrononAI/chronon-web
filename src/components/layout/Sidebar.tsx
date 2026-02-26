@@ -62,12 +62,12 @@ const hasPermittedChild = (item: NavigationItem): boolean => {
 const navigation: NavigationItem[] = [
   {
     name: "Requests",
-    href: "/requests/pre-approvals",
+    href: "/requests/trips",
     icon: FilePlus,
     children: [
       {
-        name: "Pre Approval",
-        href: "/requests/pre-approvals",
+        name: "Trips",
+        href: "/requests/trips",
         icon: CheckSquare,
       },
       {
@@ -101,8 +101,8 @@ const navigation: NavigationItem[] = [
         icon: CheckSquare,
       },
       {
-        name: "Pre Approval",
-        href: "/approvals/pre-approvals",
+        name: "Trips",
+        href: "/approvals/trips",
         icon: ClipboardCheck,
       },
       {
@@ -155,7 +155,7 @@ const navigation: NavigationItem[] = [
 ];
 
 const permissionMap: any = {
-  "Pre Approval": "pre_approval_settings",
+  "Trips": "trip_settings",
   Advances: "advance_settings",
   Transactions: "mobile_payment_settings",
   Admin: "admin_dashboard_settings",
@@ -236,7 +236,7 @@ export function Sidebar() {
           permissions: permission,
           children,
         };
-      } else if (item.name === "Pre Approval" || item.name === "Advances") {
+      } else if (item.name === "Trips" || item.name === "Advances") {
         const key = permissionMap[item.name];
         const permission =
           key && permissions

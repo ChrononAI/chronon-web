@@ -1,0 +1,589 @@
+import { WorkflowTimeline } from "@/components/expenses/WorkflowTimeline";
+import CreateTripJourneyForm from "@/components/trip/CreateTripJourneyForm";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { formatDate, getStatusColor, cn } from "@/lib/utils";
+import { trackEvent } from "@/mixpanel";
+import { tripService, TripType } from "@/services/tripService";
+import { JourneyAttachmentModal, Attachment } from "@/components/trip/JourneyAttachmentModal";
+import { AttachmentFullscreenViewer } from "@/components/trip/AttachmentFullscreenViewer";
+import { useAuthStore } from "@/store/authStore";
+import { useTripStore } from "@/store/tripStore";
+import { ApprovalWorkflow } from "@/types/expense";
+import {
+  Activity,
+  CheckCircle,
+  Clock,
+  Loader2,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+export interface CurrencyConversionRate {
+  currency: string;
+  rate: number;
+}
+
+export interface CurrencyConversionPayload {
+  currency_conversion_rates: CurrencyConversionRate[];
+}
+
+function ProcessTripPage() {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const { user } = useAuthStore();
+  const { selectedTripToApprove } = useTripStore();
+
+  const report = selectedTripToApprove;
+
+  const [trip, setTrip] = useState<TripType | null>(null);
+  const [approvalWorkflow, setApprovalWorkflow] =
+    useState<ApprovalWorkflow | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingTrip, setLoadingTrip] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionType, setActionType] = useState<"approve" | "reject" | null>(null);
+  const [comments, setComments] = useState("");
+  const [showActionDialog, setShowActionDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<"details" | "history">("details");
+  const workflowFetchedRef = useRef<string | null>(null);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
+  const [journeyAttachments, setJourneyAttachments] = useState<Record<string, Attachment[]>>({});
+  const [fullscreenViewerOpen, setFullscreenViewerOpen] = useState(false);
+  const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
+  const [journeySegments, setJourneySegments] = useState<any[]>([]);
+
+  const getUserSpecificStatus = (): string => {
+    if (!user || !approvalWorkflow?.approval_steps?.length) {
+      return report?.status || "UNDER_REVIEW";
+    }
+
+    const currentUserId = user.id.toString();
+    const steps = approvalWorkflow.approval_steps;
+
+    const anyRejected = steps.some((step) => step.status === "REJECTED");
+    if (anyRejected) return "REJECTED";
+
+    const userStep = steps.find((step) =>
+      step.approvers?.some((a) => a.user_id?.toString() === currentUserId)
+    );
+
+    if (!userStep) {
+      return report?.status || "UNDER_REVIEW";
+    }
+
+    const userStepOrder = userStep.step_order;
+    const currentStepOrder = approvalWorkflow.current_step;
+
+    if (userStepOrder > currentStepOrder) return "PENDING_APPROVAL";
+
+    if (
+      userStep.status === "PENDING" ||
+      userStep.status === "PENDING_APPROVAL"
+    ) {
+      return "PENDING";
+    }
+
+    return report?.status || "PENDING_APPROVAL";
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status.toUpperCase()) {
+      case "APPROVED":
+      case "FULLY_APPROVED":
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case "PENDING":
+      case "PENDING_APPROVAL":
+        return <Clock className="h-5 w-5 text-yellow-600" />;
+      case "REJECTED":
+        return <XCircle className="h-5 w-5 text-red-600" />;
+      default:
+        return <Activity className="h-5 w-5 text-blue-600" />;
+    }
+  };
+
+  const canApprove = () => {
+    if (!user || !approvalWorkflow || !approvalWorkflow.approval_steps) {
+      return false;
+    }
+
+    const currentUserId = user.id.toString();
+    const userStep = approvalWorkflow.approval_steps.find((step) =>
+      step.approvers.some((approver) => approver.user_id === currentUserId)
+    );
+    if (userStep?.status === "IN_PROGRESS") return true;
+
+    return false;
+  };
+
+  const getApprovalWorkflow = async (id: string) => {
+    if (workflowFetchedRef.current === id) {
+      return;
+    }
+    try {
+      const approvalWorkflowRes: any = await tripService.getTripApprovalWorkflow(id);
+      if (approvalWorkflowRes.data && approvalWorkflowRes.data.data && approvalWorkflowRes.data.data.length > 0) {
+        const workflowData = approvalWorkflowRes.data.data[0];
+        setApprovalWorkflow({
+          report_id: id,
+          approval_steps: workflowData.approval_steps || [],
+          current_step: workflowData.current_step || 1,
+          total_steps: workflowData.total_steps || 0,
+          workflow_status: workflowData.workflow_status || "RUNNING",
+          workflow_execution_id: workflowData.workflow_execution_id || "",
+        });
+        workflowFetchedRef.current = id;
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const fetchTripData = async (tripId: string) => {
+    try {
+      setLoadingTrip(true);
+      const response: any = await tripService.getTripRequestByIdForAdmin(tripId);
+      if (response.data?.data && response.data.data.length > 0) {
+        const tripData = response.data.data[0];
+        setTrip(tripData);
+      }
+
+      const segmentsResponse: any = await tripService.getTripSegments(tripId);
+      if (segmentsResponse.data?.data && Array.isArray(segmentsResponse.data.data)) {
+        setJourneySegments(segmentsResponse.data.data);
+      }
+
+    } catch (error: any) {
+      console.error("Error fetching trip data:", error);
+      toast.error("Failed to load trip details");
+    } finally {
+      setLoadingTrip(false);
+    }
+  };
+
+  const loadAllAttachments = async (tripId: string) => {
+    try {
+      const response = await tripService.getAttachedDocuments(tripId);
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        const allAttachments: Record<string, Attachment[]> = {};
+        
+        for (const doc of response.data.data) {
+          const segmentId = doc.trip_segment_id;
+          if (!segmentId) continue;
+          
+          if (!allAttachments[segmentId]) {
+            allAttachments[segmentId] = [];
+          }
+          
+          if (doc.file_ids && Array.isArray(doc.file_ids) && doc.file_ids.length > 0) {
+            for (const fileId of doc.file_ids) {
+              try {
+                const fileUrlResponse = await tripService.generateFileUrl(fileId);
+                if (fileUrlResponse.data?.data?.download_url) {
+                  allAttachments[segmentId].push({
+                    fileId: fileId,
+                    url: fileUrlResponse.data.data.download_url,
+                    name: fileUrlResponse.data.data.name || `Attachment ${allAttachments[segmentId].length + 1}`,
+                  });
+                }
+              } catch (error) {
+                console.error(`Error fetching URL for file ${fileId}:`, error);
+                allAttachments[segmentId].push({
+                  fileId: fileId,
+                  url: "",
+                  name: `Attachment ${allAttachments[segmentId].length + 1}`,
+                });
+              }
+            }
+          }
+        }
+        
+        setJourneyAttachments(allAttachments);
+      }
+    } catch (error) {
+      console.error("Error loading attachments:", error);
+    }
+  };
+
+  const handleViewClick = (journeyId: string) => {
+    if (!id) return;
+    setSelectedJourneyId(journeyId);
+    
+    const attachments = journeyAttachments[journeyId] || [];
+    
+    if (attachments.length > 0) {
+      setViewerInitialIndex(0);
+      setFullscreenViewerOpen(true);
+    } else {
+      toast.info("No attachments found for this journey segment");
+    }
+  };
+
+  const handleUploadClick = (journeyId: string) => {
+    setSelectedJourneyId(journeyId);
+    setUploadDialogOpen(true);
+  };
+
+  const handleAttachmentsChange = async (newAttachments: Attachment[]) => {
+    if (!selectedJourneyId || !id) return;
+    
+    setJourneyAttachments((prev) => ({
+      ...prev,
+      [selectedJourneyId]: newAttachments,
+    }));
+    
+    await loadAllAttachments(id);
+  };
+
+  const handleDeleteAttachment = (fileId: string) => {
+    if (!selectedJourneyId) return;
+    setJourneyAttachments((prev) => ({
+      ...prev,
+      [selectedJourneyId]: (prev[selectedJourneyId] || []).filter((att) => att.fileId !== fileId),
+    }));
+  };
+
+  useEffect(() => {
+    if (id) {
+      if (workflowFetchedRef.current !== id) {
+        workflowFetchedRef.current = null;
+      }
+      getApprovalWorkflow(id);
+      fetchTripData(id);
+      loadAllAttachments(id);
+    }
+  }, [id]);
+
+  const processPreApproval = async (
+    action: string,
+    _payload?: CurrencyConversionPayload,
+    _approvalComments?: string
+  ) => {
+    if (!selectedTripToApprove?.id) return;
+    setLoading(true);
+    try {
+      const actionValue = action === "approve" ? "approved" : "rejected";
+      await tripService.processTripAction(selectedTripToApprove.id, actionValue);
+      
+      if (action === "approve") {
+        toast.success("Trip approved successfully");
+      } else {
+        toast.success("Trip rejected successfully");
+      }
+      navigate("/approvals/trips");
+    } catch (error: any) {
+      console.log(error);
+      toast.error(
+        error?.response?.data?.message || "Failed to process trip"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleAction = (action: "approve" | "reject") => {
+    const text =
+      action === "approve" ? "Approve Trip" : "Reject Trip";
+    trackEvent(text + " Button Clicked", {
+      button_name: text,
+    });
+    setActionType(action);
+    setComments("");
+    setShowActionDialog(true);
+  };
+
+  const executeAction = async () => {
+    if (!selectedTripToApprove?.id || !actionType) return;
+
+    if (actionType !== "approve" && !comments.trim()) {
+      toast.error("Comments are required for rejection");
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      await processPreApproval(actionType, undefined, comments);
+      setShowActionDialog(false);
+    } catch (error: any) {
+      console.error(`Failed to ${actionType} trip`, error);
+      toast.error(
+        error?.response?.data?.message || `Failed to ${actionType} trip`
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+  return (
+    <>
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h1 className="text-xl font-semibold text-gray-900 mb-2">
+                {report?.title || "Trip Request"}
+              </h1>
+              <div className="flex items-center gap-3">
+                {getStatusIcon(getUserSpecificStatus())}
+                <Badge
+                  className={`${getStatusColor(
+                    getUserSpecificStatus()
+                  )} text-xs px-2.5 py-1 font-medium`}
+                >
+                  {getUserSpecificStatus().replace("_", " ")}
+                </Badge>
+                {report?.created_at && (
+                  <span className="text-xs text-gray-500">
+                    Created {formatDate(report.created_at)}
+                  </span>
+                )}
+              </div>
+            </div>
+            {canApprove() && (
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => handleAction("approve")}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6"
+                  disabled={
+                    loading &&
+                    approvalWorkflow?.current_step !==
+                      approvalWorkflow?.total_steps
+                  }
+                >
+                  {loading &&
+                  approvalWorkflow?.current_step !==
+                    approvalWorkflow?.total_steps ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Approving...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Approve
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => handleAction("reject")}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Reject
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="space-y-6">
+          {/* Tabs */}
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+            <div className="flex gap-8 border-b border-gray-200">
+              {[
+                { key: "details", label: "Trip Details" },
+                { key: "history", label: "Audit History" },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key as "details" | "history")}
+                  className={cn(
+                    "relative flex items-center gap-2 font-medium transition-colors pb-2",
+                    activeTab === tab.key
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  )}
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                >
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={cn(activeTab !== "details" && "hidden")}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="col-span-1 lg:col-span-3 space-y-6">
+                {loadingTrip ? (
+                  <Card>
+                    <CardContent className="flex items-center justify-center py-12">
+                      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <CreateTripJourneyForm
+                    mode="view"
+                    showOnlyJourneys={false}
+                    tripData={trip || undefined}
+                    tripId={id}
+                    onViewAttachment={handleViewClick}
+                    onUploadAttachment={handleUploadClick}
+                    journeySegmentIds={journeySegments.reduce((acc, segment, index) => {
+                      acc[index] = segment.id;
+                      return acc;
+                    }, {} as Record<number, string>)}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className={cn(activeTab !== "history" && "hidden")}>
+            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+              {approvalWorkflow && approvalWorkflow.approval_steps && approvalWorkflow.approval_steps.length > 0 ? (
+                <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
+              ) : (
+                <div className="flex items-center justify-center py-12">
+                  <p className="text-sm text-gray-500">No workflow timeline available</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Dialog */}
+      <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {actionType === "approve" ? (
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-600" />
+              )}
+              {actionType === "approve" ? "Approve" : "Reject"} Trip
+            </DialogTitle>
+          </DialogHeader>
+
+          {report && (
+            <div className="space-y-4">
+              <div className="bg-muted/30 rounded-lg space-y-4 p-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Trip:
+                    </span>
+                    <span className="text-sm font-medium">{report.title}</span>
+                  </div>
+                  {report.purpose && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Purpose:
+                      </span>
+                      <span className="text-sm font-medium">{report.purpose}</span>
+                    </div>
+                  )}
+                  {report.advance_amount && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Advance Amount:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {report.currency} {report.advance_amount}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="comments">
+                      Comments {actionType !== "approve" && <span className="text-red-500">*</span>}
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      {comments.length}/500 characters
+                    </span>
+                  </div>
+                  <Textarea
+                    id="comments"
+                    placeholder={
+                      actionType === "approve"
+                        ? "Please provide comments for approval..."
+                        : "Please provide reason for rejection..."
+                    }
+                    value={comments}
+                    onChange={(e) => setComments(e.target.value)}
+                    rows={3}
+                    maxLength={500}
+                    className="resize-none"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 w-full text-center">
+                <div className="flex flex-row gap-3 justify-end w-full">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowActionDialog(false)}
+                    disabled={actionLoading}
+                    className="w-full sm:w-auto px-6 py-2.5 border-gray-300 hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={executeAction}
+                    disabled={actionLoading || (actionType !== "approve" && !comments.trim())}
+                    className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-200 ${
+                      actionType === "approve"
+                        ? "bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md"
+                        : "bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {actionLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        {actionType === "approve" ? "Approving..." : "Rejecting..."}
+                      </>
+                    ) : (
+                      <>
+                        {actionType === "approve" ? (
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                        ) : (
+                          <XCircle className="h-4 w-4 mr-2" />
+                        )}
+                        {actionType === "approve" ? "Approve Trip" : "Reject Trip"}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Journey Attachment Modal */}
+      <JourneyAttachmentModal
+        uploadDialogOpen={uploadDialogOpen}
+        viewDialogOpen={viewDialogOpen}
+        selectedJourneyId={selectedJourneyId}
+        tripId={id || null}
+        attachments={selectedJourneyId ? (journeyAttachments[selectedJourneyId] || []) : []}
+        onUploadDialogChange={setUploadDialogOpen}
+        onViewDialogChange={setViewDialogOpen}
+        onAttachmentsChange={handleAttachmentsChange}
+        onDeleteAttachment={handleDeleteAttachment}
+      />
+
+      {/* Fullscreen Attachment Viewer */}
+      {selectedJourneyId && (
+        <AttachmentFullscreenViewer
+          attachments={journeyAttachments[selectedJourneyId] || []}
+          isOpen={fullscreenViewerOpen}
+          onClose={() => setFullscreenViewerOpen(false)}
+          initialIndex={viewerInitialIndex}
+        />
+      )}
+    </>
+  );
+}
+
+export default ProcessTripPage;

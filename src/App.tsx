@@ -26,14 +26,14 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { PermissionDeniedPage } from "@/pages/PermissionDeniedPage";
 import { MyExpensesPage } from "@/pages/MyExpensesPage";
 import { UnifiedExpensesPage } from "@/pages/UnifiedExpensesPage";
-import PreApprovalPage from "./pages/PreApprovalPage";
-import CreatePreApprovalPage from "./pages/CreatePreApprovalPage";
-import PreApprovalDetailsPage from "./pages/PreApprovalDetailsPage";
-import ApprovalsPreApprovalsPage from "./pages/ApprovalsPreApprovalsPage";
-import ProcessPreApprovalPage from "./pages/ProcessPreApprovalPage";
+import TripPage from "./pages/TripPage";
+import CreateTripPage from "./pages/CreateTripPage";
+import TripDetailPage from "./pages/TripDetailPage";
 import AdvanceDetailsPage from "./pages/AdvanceDetailsPage";
 import ApprovalsAdvancesPage from "./pages/ApprovalsAdvancesPage";
 import ProcessAdvancePage from "./pages/ProcessAdvancePage";
+import ApprovalsTripsPage from "./pages/ApprovalsTripsPage";
+import ProcessTripPage from "./pages/ProcessTripPage";
 import { EntityPage } from "./pages/admin/EntityPage";
 import { CreateEntityPage } from "./pages/admin/CreateEntityPage";
 import ExpenseMasterPage from "./pages/admin/ExpenseMasterPage";
@@ -175,10 +175,14 @@ function App() {
               <Route path="/reports/:id" element={<ReportDetailPage2 />} />
               <Route path="/reports/:id/:expenseId" element={<ExpenseDetailPage />} />
 
-              {/* PRE APPROVALS */}
-              <Route path="/requests/pre-approvals" element={<PreApprovalPage />} />
-              <Route path="/requests/pre-approvals/create" element={<CreatePreApprovalPage />} />
-              <Route path="/requests/pre-approvals/:id" element={<PreApprovalDetailsPage />} />
+              {/* TRIPS */}
+              <Route path="/requests/trips" element={<TripPage />} />
+              <Route path="/requests/trips/create" element={<CreateTripPage />} />
+              <Route path="/requests/trips/:id" element={<TripDetailPage />} />
+              {/* Legacy routes for backward compatibility */}
+              <Route path="/requests/pre-approvals" element={<TripPage />} />
+              <Route path="/requests/pre-approvals/create" element={<CreateTripPage />} />
+              <Route path="/requests/pre-approvals/:id" element={<TripDetailPage />} />
 
               {/* ADVANCES */}
               <Route path="/requests/advances" element={<MyAdvancesPage />} />
@@ -195,8 +199,11 @@ function App() {
               <Route path="/approvals/advances" element={<ApprovalsAdvancesPage />} />
               <Route path="/approvals/stores" element={<ApprovalsStoresPage />} />
               <Route path="/approvals/advances/:id" element={<ProcessAdvancePage />} />
-              <Route path="/approvals/pre-approvals" element={<ApprovalsPreApprovalsPage />} />
-              <Route path="/approvals/pre-approvals/:id" element={<ProcessPreApprovalPage />} />
+              <Route path="/approvals/trips" element={<ApprovalsTripsPage />} />
+              <Route path="/approvals/trips/:id" element={<ProcessTripPage />} />
+              {/* Legacy routes for backward compatibility */}
+              <Route path="/approvals/pre-approvals" element={<ApprovalsTripsPage />} />
+              <Route path="/approvals/pre-approvals/:id" element={<ProcessTripPage />} />
               <Route path="/approvals/stores/:id" element={<ProcessStorePage />} />
 
               {/* STORE */}
