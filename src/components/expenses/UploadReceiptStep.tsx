@@ -110,15 +110,15 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
-                <div className="w-5 h-5 rounded-full bg-yellow-100 flex items-center justify-center">
-                  <span className="text-yellow-600 text-xs font-bold">!</span>
+                <div className="w-6 h-6 rounded-full bg-yellow-100 flex items-center justify-center">
+                  <span className="text-yellow-600 text-sm font-bold">!</span>
                 </div>
               </div>
               <div className="flex-1">
-                <h4 className="text-sm font-semibold text-yellow-800 mb-1">Potential Duplicate Detected</h4>
-                <AlertDescription className="text-yellow-700">
+                <h4 className="text-base font-bold text-yellow-800 mb-1">Potential Duplicate Detected</h4>
+                <AlertDescription className="text-sm font-medium text-yellow-700">
                   <span>
-                    This invoice may be similar to existing expense(s). Similar IDs: <span className="font-semibold">{duplicateIds.join(', ')}</span>
+                    This invoice may be similar to existing expense(s). Similar IDs: <span className="font-bold">{duplicateIds.join(', ')}</span>
                   </span>
                 </AlertDescription>
               </div>
@@ -139,7 +139,7 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
         <CardContent className="p-8 h-full">
           {!uploadedFile ? (
             <div
-              className="border-2 border-dashed border-primary/30 h-full rounded-lg p-12 text-center flex items-center justify-center hover:border-primary/50 transition-colors cursor-pointer"
+              className="border-2 border-dashed border-[#0D9C99]/30 h-full rounded-lg p-12 text-center flex items-center justify-center hover:border-[#0D9C99]/50 transition-colors cursor-pointer"
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onClick={() => {
@@ -156,14 +156,14 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
               }}
             >
               <div className="flex flex-col items-center justify-center space-y-4">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                  <Upload className="h-8 w-8 text-primary" />
+                <div className="w-20 h-20 bg-[#0D9C99]/10 rounded-full flex items-center justify-center">
+                  <Upload className="h-10 w-10 text-[#0D9C99]" />
                 </div>
                 <div>
-                  <p className="text-xl font-semibold text-gray-900 mb-2">Upload a receipt</p>
-                  <p className="text-gray-600 mb-4">Drag and drop or click to upload</p>
-                  <Button className="bg-primary hover:bg-primary/90">
-                    <FileText className="h-4 w-4 mr-2" />
+                  <p className="text-2xl font-bold text-[#1A1A1A] mb-2">Upload a receipt</p>
+                  <p className="text-base font-medium text-[#64748B] mb-4">Drag and drop or click to upload</p>
+                  <Button className="bg-[#0D9C99] hover:bg-[#0D9C99]/90 text-white font-semibold text-base px-6 py-2.5">
+                    <FileText className="h-5 w-5 mr-2" />
                     Browse files
                   </Button>
                 </div>
@@ -173,9 +173,9 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
             <div className="space-y-6">
               {isProcessing ? (
                 <div className="text-center py-12">
-                  <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Processing receipt...</h3>
-                  <p className="text-gray-600">Our OCR is extracting the details. Please wait...</p>
+                  <Loader2 className="h-14 w-14 animate-spin mx-auto mb-4 text-[#0D9C99]" />
+                  <h3 className="text-xl font-bold text-[#1A1A1A] mb-2">Processing receipt...</h3>
+                  <p className="text-base font-medium text-[#64748B]">Our OCR is extracting the details. Please wait...</p>
                 </div>
               ) : (
                 <>
@@ -184,11 +184,11 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <FileText className="h-5 w-5 text-green-600" />
-                              <span className="font-medium">{uploadedFile.name}</span>
+                              <FileText className="h-6 w-6 text-[#0D9C99]" />
+                              <span className="text-base font-semibold text-[#1A1A1A]">{uploadedFile.name}</span>
                               {parsedData && (
-                                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                <Badge variant="secondary" className="bg-[#0D9C99]/10 text-[#0D9C99] font-semibold text-sm px-3 py-1">
+                                  <CheckCircle className="h-4 w-4 mr-1" />
                                   Processed
                                 </Badge>
                               )}

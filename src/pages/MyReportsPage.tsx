@@ -1,19 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ReportTabs } from "@/components/reports/ReportTabs";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import { useReportsStore } from "@/store/reportsStore";
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { GridColDef, GridRowSelectionModel, GridPaginationModel } from "@mui/x-data-grid";
 import { Report } from "@/types/expense";
-import { GridPaginationModel } from "@mui/x-data-grid";
-import { Box } from "@mui/material";
 import { useAuthStore } from "@/store/authStore";
+import { useLayoutStore } from "@/store/layoutStore";
 import CustomReportsToolbar from "@/components/reports/CustomReportsToolbar";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import { toast } from "sonner";
+import { DataTable } from "@/components/shared/DataTable";
+import { StatusPill } from "@/components/shared/StatusPill";
 import {
   buildBackendQuery,
   FieldFilter,
@@ -31,7 +29,9 @@ const columns: GridColDef[] = [
     flex: 1,
     minWidth: 180,
     renderCell: (params) => (
-      <Badge className={getStatusColor(params.value)}>{params.value}</Badge>
+      <div className="flex items-center h-full">
+        <StatusPill status={params.value} />
+      </div>
     ),
   },
   {
@@ -65,6 +65,7 @@ const UNSUBMITTED_REPORT_STATUSES = ["DRAFT"];
 const SUBMITTED_REPORT_STATUSES = ["APPROVED", "REJECTED", "UNDER_REVIEW"];
 
 export function MyReportsPage() {
+  const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const {
     allReports,
     unsubmittedReports,
@@ -111,6 +112,13 @@ export function MyReportsPage() {
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setNoPadding(true);
+    return () => {
+      setNoPadding(false);
+    };
+  }, [setNoPadding]);
 
   const allowedStatus =
     activeTab === "all"
@@ -358,132 +366,80 @@ export function MyReportsPage() {
     });
   }, []);
 
-  return (
-    <>
-      {/* Header Section */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Expense Reports</h1>
-        <Button asChild>
-          <Link to="/reports/create">
-            <Plus className="mr-2 h-4 w-4" />
-            Create New Report
-          </Link>
-        </Button>
-      </div>
+  const tabs = [
+    { key: "all", label: "All", count: allReportsPagination.count },
+    {
+      key: "unsubmitted",
+      label: "Unsubmitted",
+      count: unsubmittedReportsPagination.count,
+    },
+    {
+      key: "submitted",
+      label: "Submitted",
+      count: submittedReportsPagination.count,
+    },
+  ];
 
-      {/* Tabs Section */}
-      <ReportTabs
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        tabs={[
-          { key: "all", label: "All", count: allReportsPagination.count },
-          {
-            key: "unsubmitted",
-            label: "Unsubmitted",
-            count: unsubmittedReportsPagination.count,
-          },
-          {
-            key: "submitted",
-            label: "Submitted",
-            count: submittedReportsPagination.count,
-          },
-        ]}
-        className="mb-8"
-      />
-      <Box
-        sx={{
-          height: "calc(100vh - 160px)",
-          width: "100%",
-          marginTop: "-30px",
-        }}
-      >
-        <DataGrid
-          rows={loading ? [] : reportsArr}
-          columns={newCols}
-          loading={loading}
-          onRowClick={(params, event) => {
-            event.stopPropagation();
-            const report = params.row;
-            if (report.status === "DRAFT" || report.status === "SENT_BACK") {
-              handleReportClick(report);
-            } else {
-              navigate(`/reports/${report.id}`);
-            }
-          }}
-          slots={{
-            toolbar: CustomReportsToolbar,
-            noRowsOverlay: () => (
-              <CustomNoRows
-                title="No reports found"
-                description="There are currently no reports"
-              />
-            ),
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />,
-          }}
-          slotProps={{
-            toolbar: {
-              allStatuses: allowedStatus,
-            } as any,
-          }}
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          showToolbar
-          checkboxSelection
-          rowCount={
-            activeTab === "all"
-              ? allReportsPagination.count
-              : activeTab === "unsubmitted"
-                ? unsubmittedReportsPagination.count
-                : submittedReportsPagination.count
+  const rowCount =
+    activeTab === "all"
+      ? allReportsPagination.count
+      : activeTab === "unsubmitted"
+        ? unsubmittedReportsPagination.count
+        : submittedReportsPagination.count;
+
+  return (
+    <InvoicePageWrapper
+      title="Expense Reports"
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={handleTabChange}
+      showFilters={false}
+      showDateFilter={false}
+      showCreateButton={false}
+      marginBottom="mb-0"
+    >
+      <DataTable
+        rows={loading ? [] : reportsArr}
+        columns={newCols}
+        loading={loading}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={(params, event) => {
+          event?.stopPropagation();
+          const report = params.row;
+          if (report.status === "DRAFT" || report.status === "SENT_BACK") {
+            handleReportClick(report);
+          } else {
+            navigate(`/reports/${report.id}`);
           }
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
-          pagination
-          paginationMode="server"
-          disableRowSelectionOnClick
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          density="compact"
-          showCellVerticalBorder
-        />
-      </Box>
-    </>
+        }}
+        rowCount={rowCount}
+        paginationMode="server"
+        firstColumnField="sequence_number"
+        emptyStateComponent={
+          <CustomNoRows
+            title="No reports found"
+            description="There are currently no reports"
+          />
+        }
+        slots={{
+          toolbar: CustomReportsToolbar,
+          loadingOverlay: () => (
+            <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          ),
+        }}
+        slotProps={{
+          toolbar: {
+            allStatuses: allowedStatus,
+            onCreateClick: () => navigate("/reports/create"),
+            createButtonText: "Create New Report",
+          } as any,
+        }}
+        showToolbar
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={setRowSelection}
+      />
+    </InvoicePageWrapper>
   );
 }

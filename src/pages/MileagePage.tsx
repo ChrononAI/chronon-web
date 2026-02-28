@@ -62,6 +62,7 @@ import { trackEvent } from "@/mixpanel";
 import ExpenseLogs from "@/components/expenses/ExpenseLogs";
 import { Attachment } from "@/components/expenses/ExpenseDetailsStep2";
 import AttachmentViewer from "@/components/expenses/AttachmentViewer";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -1063,14 +1064,14 @@ const MileagePage = ({
 
       <div className="grid gap-6 md:grid-cols-2">
         <div
-          className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
+          className={`rounded-2xl border border-[#EBEBEB] bg-white shadow-sm min-h-full ${
             pathname.includes("create")
               ? "md:h-[calc(100vh-18rem)]"
               : "md:h-[calc(100vh-13rem)]"
           } md:overflow-y-auto`}
         >
           <div className="flex flex-col h-full">
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
+            <div className="sticky top-0 z-10 bg-white border-b border-[#EBEBEB] p-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {[
                   { key: "map", label: "Map" },
@@ -1085,10 +1086,10 @@ const MileagePage = ({
                       setActiveMapTab(tab.key as "map" | "comments")
                     }
                     className={cn(
-                      "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                      "rounded-full px-4 py-2 text-sm font-semibold transition-all",
                       activeMapTab === tab.key
-                        ? "bg-primary/10 text-primary"
-                        : "text-gray-500 hover:text-gray-900"
+                        ? "bg-[#0D9C99]/10 text-[#0D9C99]"
+                        : "text-[#64748B] hover:text-[#1A1A1A]"
                     )}
                   >
                     {tab.label}
@@ -1196,7 +1197,7 @@ const MileagePage = ({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <div
-              className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
+              className={`rounded-2xl border border-[#EBEBEB] bg-white shadow-sm min-h-full ${
                 pathname.includes("create")
                   ? "md:h-[calc(100vh-16rem)]"
                   : "md:h-[calc(100vh-13rem)]"
@@ -1242,7 +1243,7 @@ const MileagePage = ({
                       variant="outline"
                       onClick={() => handleAddStop(0)}
                       disabled={mode === "view" && !editMode}
-                      className="text-blue-600 border-blue-300 hover:bg-blue-50 px-2 py-0.5 text-xs h-7"
+                      className="text-[#0D9C99] border-[#0D9C99]/30 hover:bg-[#0D9C99]/10 px-2 py-0.5 text-xs h-7 font-semibold"
                     >
                       + ADD
                     </Button>
@@ -1290,7 +1291,7 @@ const MileagePage = ({
                           size="sm"
                           onClick={() => handleRemoveStop(stop.id)}
                           disabled={mode === "view" && !editMode}
-                          className="text-xs text-red-600 border-red-300 hover:bg-red-50 px-2 py-0.5 h-7"
+                          className="text-xs text-red-600 border-red-300 hover:bg-red-50 px-2 py-0.5 h-7 font-semibold"
                         >
                           X REMOVE
                         </Button>
@@ -1556,13 +1557,13 @@ const MileagePage = ({
             </div>
 
             <>
-              <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
+              <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-[#EBEBEB] bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <Label className="text-sm font-medium text-gray-600">
+                    <Label className="text-sm font-semibold text-[#64748B]">
                       Total Amount
                     </Label>
-                    <div className="text-2xl font-bold text-blue-600 mt-1">
+                    <div className="text-2xl font-bold text-[#0D9C99] mt-1">
                       {formData.amount ||
                         formatCurrency(0, orgSettings.currency)}
                     </div>
@@ -1588,78 +1589,101 @@ const MileagePage = ({
                     type="button"
                     variant="outline"
                     onClick={onCancel}
-                    className="h-11"
+                    style={{
+                      width: "auto",
+                      minWidth: "65px",
+                      height: "31px",
+                      paddingTop: "8px",
+                      paddingRight: "12px",
+                      paddingBottom: "8px",
+                      paddingLeft: "12px",
+                      gap: "8px",
+                      borderRadius: "4px",
+                      border: "1px solid #0D9C99",
+                      fontFamily: "Inter",
+                      fontWeight: 600,
+                      fontSize: "12px",
+                      lineHeight: "100%",
+                      letterSpacing: "0%",
+                      color: "#0D9C99",
+                      backgroundColor: "transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#f5f5f5";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
                     disabled={saving || isCalculating}
-                    className="h-11 bg-blue-600 hover:bg-blue-700 text-white"
+                    style={{
+                      width: "auto",
+                      minWidth: "65px",
+                      height: "31px",
+                      paddingTop: "8px",
+                      paddingRight: "12px",
+                      paddingBottom: "8px",
+                      paddingLeft: "12px",
+                      gap: "8px",
+                      borderRadius: "4px",
+                      border: "1px solid #0D9C99",
+                      fontFamily: "Inter",
+                      fontWeight: 600,
+                      fontSize: "12px",
+                      lineHeight: "100%",
+                      letterSpacing: "0%",
+                      color: "#FFFFFF",
+                      backgroundColor: "#0D9C99",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#0a7d7a";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#0D9C99";
+                    }}
                   >
                     {renderPrimaryButtonContent()}
                   </Button>
                 </div>
               </div>
 
-              <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
-                <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-3">
-                  <div>
-                    <div className="flex">
-                      <div>
-                        <div className="text-sm font-medium text-gray-600">
-                          Total Amount
-                        </div>
-                        <span className="flex items-end gap-2">
-                          <span className="text-2xl font-bold text-blue-600">
-                            {formData.amount ||
-                              formatCurrency(0, orgSettings.currency)}
-                          </span>
-                          {chargeableDistanceValue &&
-                          mileagePrice &&
-                          !usesMetricSystem() ? (
-                            <div className="text-sm font-semibold text-gray-600 mb-1 block">
-                              {chargeableDistanceValue.toFixed(2)}{" "}
-                              {getDistanceUnit()} ×{" "}
-                              {formatCurrency(
-                                mileagePrice,
-                                orgSettings.currency
-                              )}{" "}
-                              per {getDistanceUnit()}
-                            </div>
-                          ) : (
-                            formData.distance && (
-                              <span className="text-sm text-gray-500 mb-1 mr-2">
-                                {`(${formData.distance})`}
-                              </span>
-                            )
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={onCancel}
-                      className="px-6 py-2"
-                    >
-                      Back
-                    </Button>
-                    {(mode === "create" || mode === "edit" || editMode) && (
-                      <Button
-                        type="submit"
-                        disabled={loading || saving || isCalculating}
-                        className="min-w-[200px]"
-                      >
-                        {renderPrimaryButtonContent()}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
+              {(mode === "create" || mode === "edit" || editMode) && (
+                <FormActionFooter
+                  secondaryButton={{
+                    label: "Back",
+                    onClick: onCancel || (() => navigate(-1)),
+                    disabled: loading || saving || isCalculating,
+                  }}
+                  primaryButton={{
+                    label: isUpdateFlow ? "Update Expense" : "Create Expense",
+                    onClick: () => {
+                      if (!isCalculating) {
+                        form.handleSubmit(handleSubmit)();
+                      }
+                    },
+                    type: "button",
+                    disabled: loading || saving || isCalculating,
+                    loading: loading || saving,
+                    loadingText: loading 
+                      ? (isUpdateFlow ? "Updating..." : "Creating...")
+                      : saving 
+                        ? "Saving..." 
+                        : undefined,
+                  }}
+                  totalAmount={formData.amount || formatCurrency(0, orgSettings.currency)}
+                  calculationDetails={
+                    chargeableDistanceValue &&
+                    mileagePrice &&
+                    !usesMetricSystem()
+                      ? `${chargeableDistanceValue.toFixed(2)} ${getDistanceUnit()} × ${formatCurrency(mileagePrice, orgSettings.currency)} per ${getDistanceUnit()}`
+                      : formData.distance || undefined
+                  }
+                />
+              )}
             </>
           </form>
         </Form>

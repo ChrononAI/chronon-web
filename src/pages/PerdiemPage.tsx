@@ -20,7 +20,8 @@ import {
 import { toast } from "sonner";
 import { expenseService } from "@/services/expenseService";
 import { ExpenseComments } from "@/components/expenses/ExpenseComments";
-import { cn, parseLocalDate } from "@/lib/utils";
+import { cn, parseLocalDate, formatCurrency } from "@/lib/utils";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 import {
   Select,
   SelectContent,
@@ -91,6 +92,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const { single_date_per_diem_settings } = useAuthStore(
     (state) => state.orgSettings
   );
+  const { orgSettings } = useAuthStore();
   const singleDate = single_date_per_diem_settings;
   const { pathname } = useLocation();
   const form = useForm<PerdiemFormValues>({
@@ -561,13 +563,13 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
       <div className="grid gap-6 md:grid-cols-2">
         <div
-          className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${pathname.includes("create")
+          className={`rounded-2xl border border-[#EBEBEB] bg-white shadow-sm min-h-full ${pathname.includes("create")
               ? "md:h-[calc(100vh-16rem)]"
               : "md:h-[calc(100vh-13rem)]"
             } md:overflow-y-auto`}
         >
           <div className="flex flex-col h-full">
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
+            <div className="sticky top-0 z-10 bg-white border-b border-[#EBEBEB] p-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {[
                   { key: "attachment", label: "Attachment" },
@@ -581,10 +583,10 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                       setActivePerdiemTab(tab.key as "attachment" | "comments" | "logs")
                     }
                     className={cn(
-                      "rounded-full px-4 py-2 text-sm font-medium transition-all",
+                      "rounded-full px-4 py-2 text-sm font-semibold transition-all",
                       activePerdiemTab === tab.key
-                        ? "bg-primary/10 text-primary"
-                        : "text-gray-500 hover:text-gray-900"
+                        ? "bg-[#0D9C99]/10 text-[#0D9C99]"
+                        : "text-[#64748B] hover:text-[#1A1A1A]"
                     )}
                   >
                     {tab.label}
@@ -630,7 +632,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(handleSubmit)}
-              className={`rounded-2xl border border-gray-200 space-y-6 bg-white shadow-sm min-h-full ${pathname.includes("create")
+              className={`rounded-2xl border border-[#EBEBEB] space-y-6 bg-white shadow-sm min-h-full ${pathname.includes("create")
                   ? "md:h-[calc(100vh-18rem)]"
                   : "md:h-[calc(100vh-13rem)]"
                 } md:overflow-y-auto`}
@@ -835,72 +837,113 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
               </div>
 
               <>
-                <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
+                <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-[#EBEBEB] bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
                   <div>
-                    <Label className="text-sm font-medium text-gray-600">
-                      Total Per Diem
+                    <Label className="text-sm font-semibold text-[#64748B]">
+                      Total Amount
                     </Label>
-                    <div className="text-2xl font-bold text-blue-600 mt-1">
-                      ₹{(Number(formData.totalAmount) || 0).toFixed(2)}
+                    <div className="text-2xl font-bold text-[#1A1A1A] mt-1">
+                      {formatCurrency(Number(formData.totalAmount) || 0, orgSettings?.currency)}
                     </div>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm font-medium text-[#64748B] mt-1">
                       {days} {days === 1 ? "day" : "days"}
                     </p>
                   </div>
-                  <Button
-                    type="submit"
-                    className="h-11 bg-blue-600 text-white hover:bg-blue-700"
-                  >
-                    {mode === "create" ? "Create" : "Update"} Expense
-                  </Button>
-                </div>
-
-                <div className="pointer-events-none fixed bottom-0 right-0 left-0 md:left-64 z-30 hidden md:block">
-                  <div className="pointer-events-auto flex w-full items-center justify-between gap-6 border-t border-gray-200 bg-white px-12 py-3">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-600">
-                          Total Per Diem Amount
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          ({days} {days === 1 ? "day" : "days"})
-                        </span>
-                      </div>
-                      <span className="text-2xl font-bold text-blue-600">
-                        ₹{(Number(formData.totalAmount) || 0).toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="px-6 py-2"
-                        onClick={() => navigate(-1)}
-                      >
-                        Back
-                      </Button>
-
-                      {mode !== "view" && (
-                        <Button
-                          type="submit"
-                          className="min-w-[200px]"
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              {mode === "edit" ? "Updating..." : "Creating..."}
-                            </>
-                          ) : mode === "create" ? (
-                            "Create Expense"
-                          ) : (
-                            "Update Expense"
-                          )}{" "}
-                        </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => navigate(-1)}
+                      style={{
+                        width: "auto",
+                        minWidth: "65px",
+                        height: "31px",
+                        paddingTop: "8px",
+                        paddingRight: "12px",
+                        paddingBottom: "8px",
+                        paddingLeft: "12px",
+                        gap: "8px",
+                        borderRadius: "4px",
+                        border: "1px solid #161B53",
+                        fontFamily: "Inter",
+                        fontWeight: 600,
+                        fontSize: "12px",
+                        lineHeight: "100%",
+                        letterSpacing: "0%",
+                        color: "#161B53",
+                        backgroundColor: "transparent",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#f5f5f5";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      style={{
+                        width: "auto",
+                        minWidth: "65px",
+                        height: "31px",
+                        paddingTop: "8px",
+                        paddingRight: "12px",
+                        paddingBottom: "8px",
+                        paddingLeft: "12px",
+                        gap: "8px",
+                        borderRadius: "4px",
+                        border: "1px solid #161B53",
+                        fontFamily: "Inter",
+                        fontWeight: 600,
+                        fontSize: "12px",
+                        lineHeight: "100%",
+                        letterSpacing: "0%",
+                        color: "#FFFFFF",
+                        backgroundColor: "#161B53",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#0f1340";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "#161B53";
+                      }}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {mode === "edit" ? "Updating..." : "Creating..."}
+                        </>
+                      ) : mode === "create" ? (
+                        "Create Expense"
+                      ) : (
+                        "Update Expense"
                       )}
-                    </div>
+                    </Button>
                   </div>
                 </div>
+
+                {mode !== "view" && (
+                  <FormActionFooter
+                    secondaryButton={{
+                      label: "Back",
+                      onClick: () => navigate(-1),
+                      disabled: loading,
+                    }}
+                    primaryButton={{
+                      label: mode === "create" ? "Create Expense" : "Update Expense",
+                      onClick: () => form.handleSubmit(handleSubmit)(),
+                      type: "button",
+                      disabled: loading,
+                      loading: loading,
+                      loadingText: mode === "edit" ? "Updating..." : "Creating...",
+                    }}
+                    totalAmount={formatCurrency(Number(formData.totalAmount) || 0, orgSettings?.currency)}
+                    calculationDetails={`${days} ${days === 1 ? "day" : "days"}`}
+                  />
+                )}
               </>
             </form>
           </Form>

@@ -21,6 +21,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -67,8 +68,9 @@ import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { getTemplates, type Template } from "@/services/admin/templates";
 import { getEntities, type Entity } from "@/services/admin/entities";
-import { FormFooter } from "../layout/FormFooter";
+import { FormActionFooter } from "../layout/FormActionFooter";
 import ReceiptViewer from "./ReceiptViewer";
+import { formatCurrency } from "@/lib/utils";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
 
 export type Attachment = {
@@ -260,6 +262,7 @@ export function ExpenseDetailsStep2({
   const apiRate = form.watch("api_conversion_rate");
   const currency = form.watch("currency");
   const foreignAmount = form.watch("foreign_amount");
+  const amount = form.watch("amount");
   const hasAdvanceOnExpense = Boolean(expense?.advance_account_id);
   const hasResolvedAdvanceRef = useRef(false);
 
@@ -1718,54 +1721,111 @@ useEffect(() => {
                   </section>
                 </div>
 
-                <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
-                  <Button type="button" variant="outline" onClick={onBack}>
-                    Back
-                  </Button>
-                  {mode !== "view" && (
-                    <Button type="submit" disabled={loading}>
-                      {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {mode === "edit" ? "Updating..." : "Creating..."}
-                        </>
-                      ) : mode === "edit" ? (
-                        "Update expense"
-                      ) : (
-                        "Create expense"
-                      )}
+                <div className="fixed inset-x-4 bottom-4 z-30 flex flex-col gap-3 rounded-2xl border border-[#EBEBEB] bg-white/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-white/80 md:hidden">
+                  <div>
+                    <Label className="text-sm font-semibold text-[#64748B]">
+                      Total Amount
+                    </Label>
+                    <div className="text-2xl font-bold text-[#1A1A1A] mt-1">
+                      {amount ? formatCurrency(parseFloat(amount) || 0, currency || baseCurrency) : formatCurrency(0, currency || baseCurrency)}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onBack}
+                      style={{
+                        width: "auto",
+                        minWidth: "65px",
+                        height: "31px",
+                        paddingTop: "8px",
+                        paddingRight: "12px",
+                        paddingBottom: "8px",
+                        paddingLeft: "12px",
+                        gap: "8px",
+                        borderRadius: "4px",
+                        border: "1px solid #161B53",
+                        fontFamily: "Inter",
+                        fontWeight: 600,
+                        fontSize: "12px",
+                        lineHeight: "100%",
+                        letterSpacing: "0%",
+                        color: "#161B53",
+                        backgroundColor: "transparent",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#f5f5f5";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      Back
                     </Button>
-                  )}
+                    {mode !== "view" && (
+                      <Button
+                        type="submit"
+                        disabled={loading || fetchingConversion}
+                        style={{
+                          width: "auto",
+                          minWidth: "65px",
+                          height: "31px",
+                          paddingTop: "8px",
+                          paddingRight: "12px",
+                          paddingBottom: "8px",
+                          paddingLeft: "12px",
+                          gap: "8px",
+                          borderRadius: "4px",
+                          border: "1px solid #161B53",
+                          fontFamily: "Inter",
+                          fontWeight: 600,
+                          fontSize: "12px",
+                          lineHeight: "100%",
+                          letterSpacing: "0%",
+                          color: "#FFFFFF",
+                          backgroundColor: "#161B53",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#0f1340";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "#161B53";
+                        }}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {mode === "edit" ? "Updating..." : "Creating..."}
+                          </>
+                        ) : mode === "edit" ? (
+                          "Update expense"
+                        ) : (
+                          "Create expense"
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
-                <FormFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={onBack}
-                    className="px-6 py-2"
-                  >
-                    Back
-                  </Button>
-                  {!readOnly && (
-                    <Button
-                      type="submit"
-                      disabled={loading || fetchingConversion}
-                      className="min-w-[200px]"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {mode === "edit" ? "Updating..." : "Creating..."}
-                        </>
-                      ) : mode === "edit" ? (
-                        "Update expense"
-                      ) : (
-                        "Create expense"
-                      )}
-                    </Button>
-                  )}
-                </FormFooter>
+                {!readOnly && (
+                  <FormActionFooter
+                    secondaryButton={{
+                      label: "Back",
+                      onClick: onBack,
+                      disabled: loading || fetchingConversion,
+                    }}
+                    primaryButton={{
+                      label: mode === "edit" ? "Update expense" : "Create expense",
+                      onClick: () => form.handleSubmit(onSubmit)(),
+                      type: "button",
+                      disabled: loading || fetchingConversion,
+                      loading: loading,
+                      loadingText: mode === "edit" ? "Updating..." : "Creating...",
+                    }}
+                    totalAmount={amount ? formatCurrency(parseFloat(amount) || 0, currency || baseCurrency) : formatCurrency(0, currency || baseCurrency)}
+                  />
+                )}
               </div>
             </form>
           </Form>

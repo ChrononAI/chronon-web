@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { expenseService } from "@/services/expenseService";
-import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
+import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import { useExpenseStore } from "@/store/expenseStore";
-import { Box } from "@mui/material";
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
   GridRowSelectionModel,
@@ -16,17 +14,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
 import {
   formatCurrency,
   formatDate,
-  getStatusColor,
   getOrgCurrency,
 } from "@/lib/utils";
+import { StatusPill } from "@/components/shared/StatusPill";
 import { useNavigate } from "react-router-dom";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import CustomExpenseToolbar from "@/components/expenses/CustomExpenseToolbar";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import { DataTable } from "@/components/shared/DataTable";
+import { useLayoutStore } from "@/store/layoutStore";
 
 export function getExpenseType(type: string) {
   if (type === "RECEIPT_BASED") return "Expense";
@@ -227,9 +226,9 @@ const columns: GridColDef[] = [
     flex: 1,
     minWidth: 180,
     renderCell: (params) => (
-      <Badge className={getStatusColor(params.value)}>
-        {params.value.replace("_", " ")}
-      </Badge>
+      <div className="flex items-center h-full">
+        <StatusPill status={params.value} />
+      </div>
     ),
   },
 ];
@@ -252,6 +251,7 @@ export function MyExpensesPage() {
     setReportedExpensesPagination,
   } = useExpenseStore();
   const navigate = useNavigate();
+  const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const [loading, setLoading] = useState(true);
 
   // Tab and filter states
@@ -426,6 +426,13 @@ export function MyExpensesPage() {
     setRowSelection({ type: "include", ids: new Set() });
   }, [activeTab]);
 
+  useEffect(() => {
+    setNoPadding(true);
+    return () => {
+      setNoPadding(false);
+    };
+  }, [setNoPadding]);
+
   const tabs = [
     { key: "all", label: "All", count: allExpensesPagination?.total },
     { key: "draft", label: "Drafts", count: draftExpensesPagination.total },
@@ -461,124 +468,63 @@ export function MyExpensesPage() {
     })
   }, []);
 
+  const rowCount =
+    activeTab === "all"
+      ? allExpensesPagination?.total
+      : activeTab === "draft"
+        ? draftExpensesPagination?.total
+        : reportedExpensesPagination?.total || 0;
+
   return (
-    <ReportsPageWrapper
+    <InvoicePageWrapper
       title="Expenses"
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={handleTabChange}
       showFilters={false}
       showDateFilter={false}
-      showCreateButton={true}
-      createButtonText="Create New Expense"
+      showCreateButton={false}
       marginBottom="mb-0"
-      createButtonLink="/expenses/create"
     >
-      <Box
-        sx={{
-          height: "calc(100vh - 160px)",
-          width: "100%",
+      <DataTable
+        rows={loading ? [] : rows}
+        columns={columns}
+        loading={loading}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={(params) => navigate(`/expenses/${params.id}`)}
+        rowCount={rowCount}
+        paginationMode="server"
+        getRowClassName={(params) =>
+          params.row.original_expense_id ? "bg-yellow-50" : ""
+        }
+        firstColumnField="sequence_number"
+        emptyStateComponent={
+          <CustomNoRows
+            title="No expenses found"
+            description="There are currently no expenses"
+          />
+        }
+        slots={{
+          toolbar: CustomExpenseToolbar,
+          loadingOverlay: () => (
+            <SkeletonLoaderOverlay
+              rowCount={paginationModel?.pageSize}
+            />
+          ),
         }}
-      >
-        <DataGrid
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          rows={loading ? [] : rows}
-          columns={columns}
-          loading={loading}
-          slots={{
-            toolbar: CustomExpenseToolbar,
-            noRowsOverlay: () => (
-              <CustomNoRows
-                title={"No expenses found"}
-                description={"There are currently no expenses"}
-              />
-            ),
-            loadingOverlay: () => (
-              <SkeletonLoaderOverlay
-                rowCount={paginationModel?.pageSize}
-              />
-            ),
-          }}
-          slotProps={{
-            toolbar: {
-              allStatuses: allowedStatus,
-              query,
-              updateQuery,
-            } as any,
-          }}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-panel .MuiSelect-select": {
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGridToolbar-root": {
-              paddingX: "2px",
-              width: "100%",
-              justifyContent: "start",
-            },
-            "& .MuiDataGridToolbar": {
-              justifyContent: "start",
-              border: "none !important",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          density="compact"
-          getRowClassName={(params) =>
-            params.row.original_expense_id ? "bg-yellow-50" : ""
-          }
-          showToolbar
-          checkboxSelection
-          disableRowSelectionOnClick
-          showCellVerticalBorder
-          onRowClick={(params) => navigate(`/expenses/${params.id}`)}
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
-          paginationMode="server"
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          rowCount={
-            (activeTab === "all"
-              ? allExpensesPagination?.total
-              : activeTab === "draft"
-                ? draftExpensesPagination?.total
-                : reportedExpensesPagination?.total) || 0
-          }
-        />
-      </Box>
-    </ReportsPageWrapper>
+        slotProps={{
+          toolbar: {
+            allStatuses: allowedStatus,
+            onCreateClick: () => navigate("/expenses/create"),
+            createButtonText: "Create New Expense",
+          } as any,
+        }}
+        showToolbar
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={setRowSelection}
+      />
+    </InvoicePageWrapper>
   );
 }

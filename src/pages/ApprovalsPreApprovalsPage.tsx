@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
+import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
+import { useLayoutStore } from "@/store/layoutStore";
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
-import { formatDate, getStatusColor } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/lib/utils";
 import {
   preApprovalService,
   PreApprovalType,
@@ -15,9 +14,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import { usePreApprovalStore } from "@/store/preApprovalStore";
 import { PaginationInfo } from "@/store/expenseStore";
-import { Box } from "@mui/material";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import { DataTable } from "@/components/shared/DataTable";
+import CustomInvoiceToolbar from "@/components/invoice/CustomInvoiceToolbar";
+import { StatusPill } from "@/components/shared/StatusPill";
 
 const columns: GridColDef[] = [
   {
@@ -62,11 +63,7 @@ const columns: GridColDef[] = [
     minWidth: 180,
     flex: 1,
     renderCell: ({ value }) => {
-      return (
-        <Badge className={getStatusColor(value)}>
-          {value.replace("_", " ")}
-        </Badge>
-      );
+      return <StatusPill status={value} />;
     },
   },
   {
@@ -100,6 +97,15 @@ function ApprovalsPreApprovalsPage() {
   const { setSelectedPreApprovalToApprove } = usePreApprovalStore();
 
   const [loading, setLoading] = useState(true);
+  const setNoPadding = useLayoutStore((s) => s.setNoPadding);
+
+  useEffect(() => {
+    setNoPadding(true);
+    return () => {
+      setNoPadding(false);
+    };
+  }, [setNoPadding]);
+
   const [allRows, setAllRows] = useState([]);
   const [allPagination, setAllPagination] = useState<PaginationInfo | null>(
     null
@@ -249,8 +255,15 @@ function ApprovalsPreApprovalsPage() {
     }
     setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
+  const rowCount =
+    activeTab === "all"
+      ? allPagination?.total
+      : activeTab === "pending"
+        ? pendingPagination?.total
+        : processedPagination?.total || 0;
+
   return (
-    <ReportsPageWrapper
+    <InvoicePageWrapper
       title="Approver Dashboard"
       tabs={tabs}
       activeTab={activeTab}
@@ -261,90 +274,45 @@ function ApprovalsPreApprovalsPage() {
           page: 0,
         }));
       }}
-      showDateFilter={true}
       showFilters={false}
-      searchTerm={""}
-      onSearchChange={function (): void {
-        throw new Error("Function not implemented.");
-      }}
+      showDateFilter={false}
+      showCreateButton={false}
+      marginBottom="mb-0"
     >
-      <Box
-        sx={{
-          height: "calc(100vh - 160px)",
-          width: "100%",
-          marginTop: "-30px",
+      <DataTable
+        rows={loading ? [] : rows}
+        columns={columns}
+        loading={loading}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={onRowClick}
+        rowCount={rowCount}
+        paginationMode="server"
+        firstColumnField="sequence_number"
+        emptyStateComponent={
+          <CustomNoRows
+            title="No pre approvals found"
+            description="There are currently no pre approvals."
+          />
+        }
+        slots={{
+          toolbar: CustomInvoiceToolbar,
+          loadingOverlay: () => (
+            <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          ),
         }}
-      >
-        <DataGrid
-          className="rounded border h-full"
-          columns={columns}
-          rows={loading ? [] : rows}
-          loading={loading}
-          slots={{
-            noRowsOverlay: () => <CustomNoRows title="No pre approvals found" description="There are currently no pre approvals." />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
-          }}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-panel .MuiSelect-select": {
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          density="compact"
-          checkboxSelection
-          disableRowSelectionOnClick
-          onRowClick={onRowClick}
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
-          pagination
-          paginationMode="server"
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          rowCount={
-            (activeTab === "all"
-              ? allPagination?.total
-              : activeTab === "pending"
-                ? pendingPagination?.total
-                : processedPagination?.total) || 0
-          }
-        />
-      </Box>
-    </ReportsPageWrapper>
+        slotProps={{
+          toolbar: {
+            searchTerm: "",
+            onSearchChange: () => {},
+          } as any,
+        }}
+        showToolbar
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={setRowSelection}
+      />
+    </InvoicePageWrapper>
   );
 }
 

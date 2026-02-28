@@ -176,6 +176,62 @@ export function DataTable({
     "& .MuiDataGrid-columnSeparator": {
       display: "none",
     },
+    "& .MuiCheckbox-root": {
+      color: "#9AA0A6",
+      padding: "5px",
+      opacity: 1,
+      visibility: "visible",
+      display: "flex",
+      "& .MuiSvgIcon-root": {
+        fontSize: "18px",
+        width: "18px !important",
+        height: "18px !important",
+        minWidth: "18px",
+        minHeight: "18px",
+        opacity: 1,
+        visibility: "visible",
+        display: "block",
+        fill: "currentColor",
+      },
+      "&.Mui-checked": {
+        color: "#9AA0A6",
+      },
+      "&:hover": {
+        backgroundColor: "rgba(0, 0, 0, 0.04)",
+      },
+    },
+    "& .MuiDataGrid-checkboxInput": {
+      opacity: 1,
+      visibility: "visible",
+      display: "flex",
+      "& .MuiSvgIcon-root": {
+        fontSize: "18px",
+        width: "18px !important",
+        height: "18px !important",
+        minWidth: "18px",
+        minHeight: "18px",
+        opacity: 1,
+        visibility: "visible",
+        display: "block",
+        fill: "currentColor",
+      },
+    },
+    "& .MuiDataGrid-columnHeader[data-field='__check__']": {
+      paddingLeft: "12px",
+      paddingRight: "12px",
+      "& .MuiCheckbox-root": {
+        opacity: 1,
+        visibility: "visible",
+      },
+    },
+    "& .MuiDataGrid-cell[data-field='__check__']": {
+      paddingLeft: "12px",
+      paddingRight: "12px",
+      "& .MuiCheckbox-root": {
+        opacity: 1,
+        visibility: "visible",
+      },
+    },
     "& .MuiDataGrid-columnsContainer": {
       gap: "10px",
     },

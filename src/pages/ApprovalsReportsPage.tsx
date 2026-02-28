@@ -5,18 +5,17 @@ import { Report } from "@/types/expense";
 import {
   formatDate,
   formatCurrency,
-  getStatusColor,
   buildApprovalBackendQuery,
 } from "@/lib/utils";
-import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
-import { Badge } from "@/components/ui/badge";
-import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
-import { Box } from "@mui/material";
-import { GridPaginationModel } from "@mui/x-data-grid";
+import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
+import { useLayoutStore } from "@/store/layoutStore";
+import { GridColDef, GridRowSelectionModel, GridPaginationModel } from "@mui/x-data-grid";
 import { useAuthStore } from "@/store/authStore";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import CustomReportsApprovalToolbar from "@/components/reports/CustomReportsApprovalToolbar";
+import { DataTable } from "@/components/shared/DataTable";
+import { StatusPill } from "@/components/shared/StatusPill";
 import { useReportsStore } from "@/store/reportsStore";
 import {
   FieldFilter,
@@ -48,7 +47,9 @@ const columns: GridColDef[] = [
     flex: 1,
     minWidth: 180,
     renderCell: (params) => (
-      <Badge className={getStatusColor(params.value)}>{params.value}</Badge>
+      <div className="flex items-center h-full">
+        <StatusPill status={params.value} />
+      </div>
     ),
   },
   {
@@ -82,6 +83,7 @@ export function ApprovalsReportsPage() {
   const navigate = useNavigate();
   const { orgSettings } = useAuthStore();
   const { approvalQuery, setApprovalQuery } = useReportsStore();
+  const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const customIdEnabled =
     orgSettings?.custom_report_id_settings?.enabled ?? false;
   const showDescription = orgSettings?.report_description_settings?.enabled ?? true;
@@ -112,6 +114,13 @@ export function ApprovalsReportsPage() {
   });
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setNoPadding(true);
+    return () => {
+      setNoPadding(false);
+    };
+  }, [setNoPadding]);
 
   const GRID_OFFSET = 240;
   const ROW_HEIGHT = 38;
@@ -431,126 +440,71 @@ export function ApprovalsReportsPage() {
     });
   }, []);
 
+  const rowCount =
+    activeTab === "all"
+      ? allReportsPagination?.total
+      : activeTab === "pending"
+        ? pendingReportsPagination?.total
+        : processedReportsPagination?.total || 0;
+
   return (
-    <>
-      <ReportsPageWrapper
-        title="Approver Dashboard"
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={(tabId) => {
-          setLoading(true);
-          setActiveTab(tabId as "all" | "pending" | "processed");
-          const filter =
-            tabId === "all"
-              ? []
-              : tabId === "pending"
+    <InvoicePageWrapper
+      title="Approver Dashboard"
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={(tabId) => {
+        setLoading(true);
+        setActiveTab(tabId as "all" | "pending" | "processed");
+        const filter =
+          tabId === "all"
+            ? []
+            : tabId === "pending"
               ? ["PENDING_APPROVAL"]
               : ["APPROVED", "REJECTED"];
 
-          updateQuery("status", "in", filter);
-          setPaginationModel((prev) => ({
-            ...prev,
-            page: 0,
-          }));
-        }}
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Search reports..."
-        statusOptions={statusOptions}
-        selectedDate={selectedDate}
-        showFilters={false}
-        showDateFilter={false}
-        onDateChange={setSelectedDate}
-      >
-        <Box
-          sx={{
-            height: "calc(100vh - 160px)",
-            width: "100%",
-            marginTop: "-30px",
-          }}
-        >
-          <DataGrid
-            className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-            rows={loading ? [] : rows}
-            columns={newCols}
-            loading={loading}
-            slots={{
-              toolbar: CustomReportsApprovalToolbar,
-              noRowsOverlay: () => (
-                <CustomNoRows
-                  title="No reports found"
-                  description="There are currently no reports."
-                />
-              ),
-              loadingOverlay: () => (
-                <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
-              ),
-            }}
-            slotProps={{
-              toolbar: {
-                allStatuses: allowedStatus,
-              } as any,
-            }}
-            sx={{
-              border: 0,
-              "& .MuiDataGrid-columnHeaderTitle": {
-                color: "#9AA0A6",
-                fontWeight: "bold",
-                fontSize: "12px",
-              },
-              "& .MuiDataGrid-main": {
-                border: "0.2px solid #f3f4f6",
-              },
-              "& .MuiDataGrid-virtualScroller": {
-                overflow: loading ? "hidden" : "auto",
-              },
-              "& .MuiDataGrid-columnHeader": {
-                backgroundColor: "#f3f4f6",
-                border: "none",
-              },
-              "& .MuiDataGrid-columnHeaders": {
-                border: "none",
-              },
-              "& .MuiDataGrid-row:hover": {
-                cursor: "pointer",
-                backgroundColor: "#f5f5f5",
-              },
-              "& .MuiDataGrid-cell": {
-                color: "#2E2E2E",
-                border: "0.2px solid #f3f4f6",
-              },
-              "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-                outline: "none",
-              },
-              "& .MuiDataGrid-cell:focus-within": {
-                outline: "none",
-              },
-              "& .MuiDataGrid-columnSeparator": {
-                color: "#f3f4f6",
-              },
-            }}
-            density="compact"
-            showToolbar
-            checkboxSelection
-            disableRowSelectionOnClick
-            showCellVerticalBorder
-            onRowClick={(params) => handleViewDetails(params.row.id)}
-            rowSelectionModel={rowSelection}
-            onRowSelectionModelChange={setRowSelection}
-            pagination
-            paginationMode="server"
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            rowCount={
-              (activeTab === "all"
-                ? allReportsPagination?.total
-                : activeTab === "pending"
-                ? pendingReportsPagination?.total
-                : processedReportsPagination?.total) || 0
-            }
+        updateQuery("status", "in", filter);
+        setPaginationModel((prev) => ({
+          ...prev,
+          page: 0,
+        }));
+      }}
+      showFilters={false}
+      showDateFilter={false}
+      showCreateButton={false}
+      marginBottom="mb-0"
+    >
+      <DataTable
+        rows={loading ? [] : rows}
+        columns={newCols}
+        loading={loading}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={(params) => handleViewDetails(params.row.id)}
+        rowCount={rowCount}
+        paginationMode="server"
+        firstColumnField="sequence_number"
+        emptyStateComponent={
+          <CustomNoRows
+            title="No reports found"
+            description="There are currently no reports."
           />
-        </Box>
-      </ReportsPageWrapper>
-    </>
+        }
+        slots={{
+          toolbar: CustomReportsApprovalToolbar,
+          loadingOverlay: () => (
+            <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          ),
+        }}
+        slotProps={{
+          toolbar: {
+            allStatuses: allowedStatus,
+          } as any,
+        }}
+        showToolbar
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={setRowSelection}
+      />
+    </InvoicePageWrapper>
   );
 }

@@ -48,6 +48,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/authStore";
 import { trackEvent } from "@/mixpanel";
+import newLogo from "@/assets/NewLogo.png";
 
 const hasPermittedChild = (item: NavigationItem): boolean => {
   if (!item.children) return false;
@@ -350,7 +351,6 @@ export function Sidebar() {
       return null;
     }
 
-    const paddingLeft = level * 12 + 12;
     const isDisabled = item.disabled;
 
     if (item.children) {
@@ -374,22 +374,44 @@ export function Sidebar() {
             <Button
               variant="ghost"
               onClick={() => setSidebarCollapsed(false)}
-              className={cn(
-                "w-full justify-between h-auto font-normal transition-all duration-200",
-                isDisabled &&
-                "opacity-50 cursor-not-allowed hover:bg-transparent"
-              )}
-              style={{ paddingLeft: `${paddingLeft}px` }}
+              className="transition-all duration-200"
+              style={{
+                width: sidebarCollapsed ? "36px" : "224px",
+                height: sidebarCollapsed ? "36px" : "41px",
+                justifyContent: sidebarCollapsed ? "center" : "space-between",
+                borderRadius: sidebarCollapsed ? "6px" : "8px",
+                padding: sidebarCollapsed ? "6px" : "12px",
+                opacity: isDisabled ? 0.5 : 1,
+                cursor: isDisabled ? "not-allowed" : "pointer",
+              }}
               disabled={isDisabled}
             >
-              <div className="flex items-center text-muted-foreground">
-                {item.icon && <item.icon className="mr-3 h-4 w-4" />}
-                {item.name}
+              <div 
+                className="flex items-center"
+                style={{
+                  fontFamily: "Inter",
+                  fontWeight: 500,
+                  fontStyle: "normal",
+                  fontSize: "14px",
+                  lineHeight: "100%",
+                  letterSpacing: "0%",
+                  color: "#47536C",
+                }}
+              >
+                {item.icon && (
+                  <item.icon 
+                    className={cn("h-4 w-4", !sidebarCollapsed && "mr-3")} 
+                    style={{ color: "#47536C" }} 
+                  />
+                )}
+                {!sidebarCollapsed && item.name}
               </div>
-              {isOpen ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
+              {!sidebarCollapsed && (
+                isOpen ? (
+                  <ChevronDown className="h-4 w-4" style={{ color: "#47536C" }} />
+                ) : (
+                  <ChevronRight className="h-4 w-4" style={{ color: "#47536C" }} />
+                )
               )}
             </Button>
           </CollapsibleTrigger>
@@ -407,39 +429,85 @@ export function Sidebar() {
         return (
           <div
             key={item.name}
-            className={cn(
-              "flex items-center py-2 text-sm rounded-md transition-colors",
-              item.isBold && "font-bold",
-              "opacity-50 cursor-not-allowed text-muted-foreground"
-            )}
-            style={{ paddingLeft: `${paddingLeft}px` }}
+            className="flex items-center transition-colors"
+            style={{
+              width: sidebarCollapsed ? "36px" : "224px",
+              height: sidebarCollapsed ? "36px" : "41px",
+              justifyContent: sidebarCollapsed ? "center" : "flex-start",
+              borderRadius: sidebarCollapsed ? "6px" : "8px",
+              padding: sidebarCollapsed ? "6px" : "12px",
+              opacity: 0.5,
+              cursor: "not-allowed",
+              fontFamily: "Inter",
+              fontWeight: 500,
+              fontSize: "14px",
+              lineHeight: "100%",
+              letterSpacing: "0%",
+              color: "#47536C",
+            }}
           >
-            {item.icon && <item.icon className="mr-3 h-4 w-4" />}
-            {item.name}
+            {item.icon && (
+              <item.icon 
+                className={cn("h-4 w-4", !sidebarCollapsed && "mr-3")} 
+                style={{ color: "#47536C" }} 
+              />
+            )}
+            {!sidebarCollapsed && item.name}
           </div>
         );
       }
+
+      const currentPath = location.pathname;
+      const isActive = currentPath.startsWith(item.href) || (item.name === "Admin Settings" && isAdminActive);
 
       return (
         <NavLink
           key={item.name}
           to={item.href}
-          className={({ isActive }) => {
-            const active =
-              isActive || (item.name === "Admin Settings" && isAdminActive);
+          className={({ isActive: navIsActive }) => {
+            const active = navIsActive || isActive;
 
             return cn(
-              "flex items-center py-2 text-sm rounded-md transition-colors",
-              item.isBold && "font-bold",
+              "flex items-center transition-colors",
               active
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                ? "bg-[#0D9C99] hover:bg-[#0b8a87]"
+                : "hover:bg-muted"
             );
           }}
-          style={{ paddingLeft: `${paddingLeft}px` }}
+          style={{
+            width: sidebarCollapsed ? "36px" : "224px",
+            height: sidebarCollapsed ? "36px" : "41px",
+            justifyContent: sidebarCollapsed ? "center" : "flex-start",
+            borderRadius: sidebarCollapsed ? "6px" : "8px",
+            padding: sidebarCollapsed ? "6px" : "12px",
+          }}
         >
-          {item.icon && <item.icon className="mr-3 h-4 w-4" />}
-          {item.name}
+          <div 
+            className="flex items-center"
+            style={{
+              fontFamily: "Inter",
+              fontWeight: 500,
+              fontStyle: "normal",
+              fontSize: "14px",
+              lineHeight: "100%",
+              letterSpacing: "0%",
+              color: isActive
+                ? "#FFFFFF"
+                : "#47536C",
+            }}
+          >
+            {item.icon && (
+              <item.icon 
+                className={cn("h-4 w-4", !sidebarCollapsed && "mr-3")} 
+                style={{ 
+                  color: isActive
+                    ? "#FFFFFF"
+                    : "#47536C"
+                }} 
+              />
+            )}
+            {!sidebarCollapsed && item.name}
+          </div>
         </NavLink>
       );
     }
@@ -448,11 +516,28 @@ export function Sidebar() {
     return (
       <div
         key={item.name}
-        className="flex items-center py-2 text-sm text-muted-foreground font-medium"
-        style={{ paddingLeft: `${paddingLeft}px` }}
+        className="flex items-center"
+        style={{
+          width: sidebarCollapsed ? "36px" : "224px",
+          height: sidebarCollapsed ? "36px" : "41px",
+          justifyContent: sidebarCollapsed ? "center" : "flex-start",
+          borderRadius: sidebarCollapsed ? "6px" : "8px",
+          padding: sidebarCollapsed ? "6px" : "12px",
+          fontFamily: "Inter",
+          fontWeight: 500,
+          fontSize: "14px",
+          lineHeight: "100%",
+          letterSpacing: "0%",
+          color: "#47536C",
+        }}
       >
-        {item.icon && <item.icon className="mr-3 h-4 w-4" />}
-        {item.name}
+        {item.icon && (
+          <item.icon 
+            className={cn("h-4 w-4", !sidebarCollapsed && "mr-3")} 
+            style={{ color: "#47536C" }} 
+          />
+        )}
+        {!sidebarCollapsed && item.name}
       </div>
     );
   };
@@ -460,24 +545,40 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        "bg-card border-r h-screen overflow-y-auto flex flex-col transition-all duration-300 ease-in-out",
-        sidebarCollapsed ? "w-12" : "w-64"
+        "bg-card border-r h-full flex flex-col transition-all duration-300 ease-in-out",
+        sidebarCollapsed ? "w-12 overflow-hidden" : "w-[240px] overflow-y-auto"
       )}
     >
-      {/* Header Section */}
-      <div className="flex items-center justify-between p-4">
+      <div 
+        className={cn(
+          "flex items-center",
+          sidebarCollapsed ? "justify-center" : "justify-between"
+        )}
+        style={{
+          width: sidebarCollapsed ? "48px" : "240px",
+          height: "56px",
+          padding: "12px",
+          gap: "10px",
+        }}
+      >
         {!sidebarCollapsed && (
-          <Link to="/" className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-primary truncate">
-              CHRONON
-            </h1>
+          <Link 
+            to="/" 
+            className="flex items-center"
+            style={{ gap: "10px" }}
+          >
+            <img 
+              src={newLogo} 
+              alt="CHRONON" 
+              className="h-8 w-auto"
+            />
           </Link>
         )}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="ml-auto"
+          className={sidebarCollapsed ? "" : "ml-auto"}
         >
           {sidebarCollapsed ? (
             <ChevronRight className="h-5 w-5" />
@@ -489,21 +590,22 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav
-        className={cn(
-          "px-2 space-y-2 flex-1 overflow-auto transition-all duration-300",
-          sidebarCollapsed && "px-1"
-        )}
+        className="flex-1"
+        style={{
+          width: sidebarCollapsed ? "48px" : "224px",
+          marginTop: "10px",
+          marginLeft: sidebarCollapsed ? "0px" : "8px",
+          marginRight: sidebarCollapsed ? "0px" : "0px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "4px",
+          alignItems: sidebarCollapsed ? "center" : "flex-start",
+        }}
       >
         {newNavItems.length > 0 &&
           newNavItems.map((item) => (
             <div key={item.name}>
-              {renderNavigationItem(
-                {
-                  ...item,
-                  name: sidebarCollapsed ? "" : item.name, // Hide text if collapsed
-                },
-                0
-              )}
+              {renderNavigationItem(item, 0)}
             </div>
           ))}
       </nav>
@@ -515,7 +617,7 @@ export function Sidebar() {
             <div className="flex items-center justify-between cursor-pointer">
               <div
                 className={cn(
-                  "flex items-center space-x-2 transition-all duration-300",
+                  "flex items-center space-x-2 transition-all duration-300 min-w-0",
                   sidebarCollapsed && "justify-center w-full"
                 )}
               >
@@ -528,11 +630,11 @@ export function Sidebar() {
                 </Avatar>
 
                 {!sidebarCollapsed && (
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
+                  <div className="flex flex-col space-y-1 min-w-0 flex-1">
+                    <p className="text-sm font-medium leading-none truncate" title={`${user?.firstName} ${user?.lastName}`}>
                       {user?.firstName} {user?.lastName}
                     </p>
-                    <p className="text-xs leading-none text-muted-foreground">
+                    <p className="text-xs leading-none text-muted-foreground truncate" title={user?.email}>
                       {user?.email}
                     </p>
                   </div>

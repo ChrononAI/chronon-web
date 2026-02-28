@@ -1,24 +1,25 @@
 import { useEffect, useState } from "react";
-import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
+import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
+import { useLayoutStore } from "@/store/layoutStore";
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
   GridRowModel,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
-import { Box } from "@mui/material";
-import { formatDate, getStatusColor } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import {
   preApprovalService,
   PreApprovalType,
 } from "@/services/preApprovalService";
-import { Badge } from "@/components/ui/badge";
 import { usePreApprovalStore } from "@/store/preApprovalStore";
 import { PaginationInfo } from "@/store/expenseStore";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import CustomNoRows from "@/components/shared/CustomNoRows";
+import { DataTable } from "@/components/shared/DataTable";
+import CustomInvoiceToolbar from "@/components/invoice/CustomInvoiceToolbar";
+import { StatusPill } from "@/components/shared/StatusPill";
 
 const columns: GridColDef[] = [
   {
@@ -63,11 +64,7 @@ const columns: GridColDef[] = [
     minWidth: 170,
     flex: 1,
     renderCell: ({ value }) => {
-      return (
-        <Badge className={getStatusColor(value)}>
-          {value.replace("_", " ")}
-        </Badge>
-      );
+      return <StatusPill status={value} />;
     },
   },
   {
@@ -95,9 +92,15 @@ function PreApprovalPage() {
     "all"
   );
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [loading, setLoading] = useState<boolean>(true);
+  const setNoPadding = useLayoutStore((s) => s.setNoPadding);
+
+  useEffect(() => {
+    setNoPadding(true);
+    return () => {
+      setNoPadding(false);
+    };
+  }, [setNoPadding]);
 
   const GRID_OFFSET = 240;
   const ROW_HEIGHT = 38;
@@ -114,12 +117,6 @@ function PreApprovalPage() {
       page: 0,
       pageSize: calculatePageSize(),
     });
-
-  const statusOptions = [
-    { value: "all", label: "All" },
-    { value: "PENDING", label: "Pending" },
-    { value: "APPROVED", label: "approved" },
-  ];
 
   const handleRowClick = ({ row }: GridRowModel) => {
     setSelectedPreApproval(row);
@@ -245,8 +242,15 @@ function PreApprovalPage() {
     setRowSelection({ type: "include", ids: new Set() });
   }, [activeTab]);
 
+  const rowCount =
+    activeTab === "all"
+      ? allPagination?.total
+      : activeTab === "pending"
+        ? pendingPagination?.total
+        : processedPagination?.total || 0;
+
   return (
-    <ReportsPageWrapper
+    <InvoicePageWrapper
       title="Pre Approval"
       tabs={tabs}
       activeTab={activeTab}
@@ -257,98 +261,47 @@ function PreApprovalPage() {
           page: 0,
         }));
       }}
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      searchPlaceholder="Search expenses..."
-      statusFilter={statusFilter}
-      onStatusChange={setStatusFilter}
-      statusOptions={statusOptions}
-      selectedDate={selectedDate}
-      onDateChange={setSelectedDate}
       showFilters={false}
       showDateFilter={false}
-      showCreateButton={true}
-      createButtonText="Create Pre Approval"
-      createButtonLink="/requests/pre-approvals/create"
+      showCreateButton={false}
+      marginBottom="mb-0"
     >
-      <Box
-        sx={{
-          height: "calc(100vh - 160px)",
-          width: "100%",
-          marginTop: "-30px",
+      <DataTable
+        rows={loading ? [] : rows}
+        columns={columns}
+        loading={loading}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={handleRowClick}
+        rowCount={rowCount}
+        paginationMode="server"
+        firstColumnField="sequence_number"
+        emptyStateComponent={
+          <CustomNoRows
+            title="No pre approvals found"
+            description="There are currently no pre approvals."
+          />
+        }
+        slots={{
+          toolbar: CustomInvoiceToolbar,
+          loadingOverlay: () => (
+            <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          ),
         }}
-      >
-        <DataGrid
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          columns={columns}
-          rows={loading ? [] : rows}
-          loading={loading}
-          slots={{
-            noRowsOverlay: () => <CustomNoRows title="No pre apporvals found" description="There are currently no pre approvals." />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
-          }}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-panel .MuiSelect-select": {
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          density="compact"
-          checkboxSelection
-          disableRowSelectionOnClick
-          showCellVerticalBorder
-          onRowClick={handleRowClick}
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
-          pagination
-          paginationMode="server"
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          rowCount={
-            (activeTab === "all"
-              ? allPagination?.total
-              : activeTab === "pending"
-                ? pendingPagination?.total
-                : processedPagination?.total) || 0
-          }
-        />
-      </Box>
-    </ReportsPageWrapper>
+        slotProps={{
+          toolbar: {
+            searchTerm,
+            onSearchChange: setSearchTerm,
+            onCreateClick: () => navigate("/requests/pre-approvals/create"),
+            createButtonText: "Create Pre Approval",
+          } as any,
+        }}
+        showToolbar
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={setRowSelection}
+      />
+    </InvoicePageWrapper>
   );
 }
 

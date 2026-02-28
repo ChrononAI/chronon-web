@@ -64,7 +64,7 @@ import { Box, Toolbar } from "@mui/material";
 import { categoryService } from "@/services/admin/categoryService";
 import { SearchableSelect } from "./SearchableSelect";
 import { trackEvent } from "@/mixpanel";
-import { FormFooter } from "../layout/FormFooter";
+import { FormActionFooter } from "../layout/FormActionFooter";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { format } from "date-fns";
 import { ExpenseComments } from "../expenses/ExpenseComments";
@@ -201,7 +201,7 @@ const columns: GridColDef[] = [
       const { vendor, expense_type } = params.row;
       if (vendor) return vendor;
       if (expense_type === "RECEIPT_BASED") {
-        return <span className="text-gray-600 italic">Unknown Vendor</span>;
+        return <span className="text-[#64748B] italic font-medium">Unknown Vendor</span>;
       }
       return "NA";
     },
@@ -278,8 +278,8 @@ function CustomToolbar({
             <Button
               variant="outline"
               className={cn(
-                "h-11 w-full justify-between gap-3 pl-3 text-left font-normal",
-                !dateFrom && "text-muted-foreground"
+                "h-11 w-full justify-between gap-3 pl-3 text-left font-medium",
+                !dateFrom && "text-[#64748B]"
               )}
             >
               {dateFrom ? (
@@ -309,8 +309,8 @@ function CustomToolbar({
             <Button
               variant="outline"
               className={cn(
-                "h-11 w-full justify-between gap-3 pl-3 text-left font-normal",
-                !dateTo && "text-muted-foreground"
+                "h-11 w-full justify-between gap-3 pl-3 text-left font-medium",
+                !dateTo && "text-[#64748B]"
               )}
             >
               {dateTo ? format(parseLocalDate(dateTo), "PPP") : <span>To</span>}
@@ -1394,7 +1394,7 @@ export function CreateReportForm2({
 
   return (
     <div className="flex flex-col space-y-6 min-h-[calc(100vh-40px)]">
-      <h1 className="text-2xl font-bold">
+      <h1 className="text-2xl font-bold text-[#1A1A1A]">
         {editMode ? "Edit Report" : "Create Report"}
       </h1>
 
@@ -1410,7 +1410,7 @@ export function CreateReportForm2({
                 name="reportName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Report Name *</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-[#64748B]">Report Name *</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="Enter report name" />
                     </FormControl>
@@ -1471,7 +1471,7 @@ export function CreateReportForm2({
                             }}
                             className="absolute right-8 top-1/2 -translate-y-1/2 h-4 w-4 flex items-center justify-center hover:bg-gray-200 rounded z-10"
                           >
-                            <X className="h-3 w-3 text-gray-500" />
+                            <X className="h-3 w-3 text-[#64748B]" />
                           </button>
                         )}
                       </div>
@@ -1533,7 +1533,7 @@ export function CreateReportForm2({
                             }}
                             className="absolute right-8 top-1/2 -translate-y-1/2 h-4 w-4 flex items-center justify-center hover:bg-gray-200 rounded z-10"
                           >
-                            <X className="h-3 w-3 text-gray-500" />
+                            <X className="h-3 w-3 text-[#64748B]" />
                           </button>
                         )}
                       </div>
@@ -1550,7 +1550,7 @@ export function CreateReportForm2({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-[#64748B]">Description</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -1565,8 +1565,8 @@ export function CreateReportForm2({
 
             {loadingMeta && (
               <div className="flex items-center py-8 col-span-2">
-                <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                <span className="text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin mr-2 text-[#0D9C99]" />
+                <span className="text-[#64748B] font-medium">
                   Loading additional fields...
                 </span>
               </div>
@@ -1635,8 +1635,8 @@ export function CreateReportForm2({
                   sx={{
                     border: 0,
                     "& .MuiDataGrid-columnHeaderTitle": {
-                      color: "#9AA0A6",
-                      fontWeight: "bold",
+                      color: "#64748B",
+                      fontWeight: "600",
                       fontSize: "12px",
                     },
                     "& .MuiDataGrid-panel .MuiSelect-select": {
@@ -1661,7 +1661,7 @@ export function CreateReportForm2({
                       backgroundColor: "#f5f5f5",
                     },
                     "& .MuiDataGrid-cell": {
-                      color: "#2E2E2E",
+                      color: "#1A1A1A",
                       border: "0.2px solid #f3f4f6",
                     },
                     "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
@@ -1706,7 +1706,7 @@ export function CreateReportForm2({
                 {approvalWorkflow && approvalWorkflow.approval_steps ? (
                   <WorkflowTimeline approvalWorkflow={approvalWorkflow} />
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-8 text-[#64748B] font-medium">
                     No audit history available
                   </div>
                 )}
@@ -1757,8 +1757,8 @@ export function CreateReportForm2({
               sx={{
                 border: 0,
                 "& .MuiDataGrid-columnHeaderTitle": {
-                  color: "#9AA0A6",
-                  fontWeight: "bold",
+                  color: "#64748B",
+                  fontWeight: "600",
                   fontSize: "12px",
                 },
                 "& .MuiDataGrid-panel .MuiSelect-select": {
@@ -1784,7 +1784,7 @@ export function CreateReportForm2({
                   backgroundColor: "#f5f5f5",
                 },
                 "& .MuiDataGrid-cell": {
-                  color: "#2E2E2E",
+                  color: "#1A1A1A",
                   border: "0.2px solid #f3f4f6",
                 },
                 "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
@@ -1827,102 +1827,78 @@ export function CreateReportForm2({
         )}
       </div>
 
-      <FormFooter>
-        <div className="flex w-full items-center justify-between gap-4">
-          <div>
-            <span className="text-gray-600">Total Amount: </span>
-            <span className="text-lg font-bold text-primary">
-              {formatCurrency(totalAmount || 0)}
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            {editMode && reportData && (
-              <AlertDialog
-                open={showDeleteDialog}
-                onOpenChange={setShowDeleteDialog}
+      {editMode && reportData && (
+        <AlertDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-bold text-[#1A1A1A]">Delete Report</AlertDialogTitle>
+              <AlertDialogDescription className="text-[#64748B] font-medium">
+                Are you sure you want to delete this report? This action
+                cannot be undone.
+                {reportData.title && (
+                  <span className="block mt-2 font-semibold text-[#1A1A1A]">
+                    Report: {reportData.title}
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteReport}
+                disabled={isDeleting}
+                className="bg-red-600 hover:bg-red-700"
               >
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="px-10 py-3 border-red-500 text-red-600 hover:bg-red-50"
-                    onClick={() => setShowDeleteDialog(true)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Report</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete this report? This action
-                      cannot be undone.
-                      {reportData.title && (
-                        <span className="block mt-2 font-medium">
-                          Report: {reportData.title}
-                        </span>
-                      )}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeleting}>
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDeleteReport}
-                      disabled={isDeleting}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      {isDeleting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Deleting...
-                        </>
-                      ) : (
-                        "Delete"
-                      )}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate("/reports")}
-              className="px-6 py-2"
-            >
-              Back
-            </Button>
-            <Button onClick={onSave} disabled={saving} variant="outline">
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {editMode ? "Updating..." : "Saving..."}
-                </>
-              ) : editMode ? (
-                "Update Report"
-              ) : (
-                "Save Draft"
-              )}
-            </Button>
-            <Button
-              onClick={form.handleSubmit(onSubmit)}
-              disabled={loading}
-              className="px-10 py-3"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                "Submit"
-              )}
-            </Button>
-          </div>
-        </div>
-      </FormFooter>
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      <FormActionFooter
+        deleteButton={editMode && reportData ? {
+          label: "Delete",
+          onClick: () => setShowDeleteDialog(true),
+          disabled: loading || saving || isDeleting,
+          loading: isDeleting,
+          loadingText: "Deleting...",
+          icon: <Trash2 className="h-4 w-4 mr-2" />,
+        } : undefined}
+        secondaryButton={{
+          label: "Back",
+          onClick: () => navigate("/reports"),
+          disabled: loading || saving,
+        }}
+        updateButton={{
+          label: editMode ? "Update Report" : "Save Draft",
+          onClick: onSave,
+          disabled: saving || loading,
+          loading: saving,
+          loadingText: editMode ? "Updating..." : "Saving...",
+        }}
+        primaryButton={{
+          label: "Submit",
+          onClick: () => form.handleSubmit(onSubmit)(),
+          type: "button",
+          disabled: loading || saving,
+          loading: loading,
+          loadingText: "Submitting...",
+        }}
+        totalAmount={formatCurrency(totalAmount || 0, orgSettings?.currency)}
+      />
     </div>
   );
 }

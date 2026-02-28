@@ -3,9 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { ReportTabs } from "@/components/reports/ReportTabs";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
+import { StatusPill } from "@/components/shared/StatusPill";
 import { GridPaginationModel } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
 import { useAuthStore } from "@/store/authStore";
@@ -44,7 +44,9 @@ const columns: GridColDef[] = [
     flex: 1,
     minWidth: 180,
     renderCell: (params) => (
-      <Badge className={getStatusColor(params.value)}>{params.value}</Badge>
+      <div className="flex items-center h-full">
+        <StatusPill status={params.value} />
+      </div>
     ),
   },
   {
