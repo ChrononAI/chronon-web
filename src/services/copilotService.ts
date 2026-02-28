@@ -70,5 +70,13 @@ export const copilotService = {
       } catch (error) {
         throw error;
       }
+    },
+
+    deleteChat: async (payload: {id: string}[]) => {
+      try {
+        return await api.delete('/api/v1/finance_agent/chats',{ data: payload });
+      } catch (error) {
+        throw error;
+      }
     }
 }

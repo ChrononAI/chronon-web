@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn, formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   Chat,
   ChatMessage,
@@ -8,38 +8,12 @@ import {
   LineGraphMetadata,
 } from "@/services/copilotService";
 import { Paperclip, SendHorizonal } from "lucide-react";
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BotChatBubble from "../../components/copilot/BotChatBubble";
 import UserChatBubble from "../../components/copilot/UserChatBubble";
 import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
-
-function ChatListItem({
-  chat,
-  selectedChatId,
-  setSelectedChatId,
-}: {
-  chat: Chat;
-  selectedChatId: string | undefined;
-  setSelectedChatId: Dispatch<SetStateAction<string | undefined>>;
-}) {
-  return (
-    <div
-      className={cn(
-        "capitalize text-sm rounded-md border p-2 cursor-pointer w-full transition-colors truncate space-y-2",
-        selectedChatId === chat.id
-          ? "bg-[#0d9c9a0b] border-l-[4px] border-[#0D9C99]"
-          : "bg-transparent",
-      )}
-      onClick={() => setSelectedChatId(chat.id)}
-    >
-      <div className="space-y-2">
-        <div className="truncate">{chat.title}</div>
-        <div className="text-xs">{formatDate(chat.created_at)}</div>
-      </div>
-    </div>
-  );
-}
+import ChatListItem from "@/components/copilot/ChatListItem";
 
 function TypingBubble() {
   return (
@@ -65,11 +39,10 @@ function AgentChat() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string>();
-  const [isFirstMount, setIsFirstMount] = useState(true);
   const [message, setMessage] = useState<string>("");
   const [msgLoading, setMsgLoading] = useState(false);
 
-  const getChats = async () => {
+  const getChats = async ({ shouldSetChat }: { shouldSetChat: boolean }) => {
     try {
       let res;
       if (agent === "finance") {
@@ -77,10 +50,9 @@ function AgentChat() {
       }
       if (res) {
         setChats(res.data.data);
-        setSelectedChatId(res.data.data[0].id);
-        if (isFirstMount) {
+        if (shouldSetChat) {
+          setSelectedChatId(res.data.data[0].id);
         }
-        setIsFirstMount(false);
       }
     } catch (error) {
       console.log(error);
@@ -102,7 +74,7 @@ function AgentChat() {
       const res = await copilotService.sendMessage(payload);
       setMessages((prev) => [...prev, res.data.data]);
       if (payload.title) {
-        getChats();
+        getChats({ shouldSetChat: true });
       }
       setMessage("");
     } catch (error: any) {
@@ -138,7 +110,7 @@ function AgentChat() {
   };
 
   useEffect(() => {
-    getChats();
+    getChats({ shouldSetChat: true });
   }, []);
 
   useEffect(() => {
@@ -188,6 +160,7 @@ function AgentChat() {
                   chat={chat}
                   selectedChatId={selectedChatId}
                   setSelectedChatId={setSelectedChatId}
+                  getChats={getChats}
                 />
               ))}
             </div>
