@@ -222,7 +222,7 @@ function ReceiptViewer({
   return (
     <>
       <div className="flex flex-col h-full">
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-white border-b border-[#EBEBEB] p-3 flex items-center justify-between">
           <div className="flex flex-wrap items-center gap-3">
             {[
               { key: "receipt", label: "Receipt" },
@@ -240,10 +240,10 @@ function ReceiptViewer({
                   type="button"
                   onClick={() => setActiveReceiptTab(tab.key)}
                   className={cn(
-                    "relative rounded-full px-3 py-2 text-sm font-medium transition-all flex items-center gap-2",
+                    "relative rounded-full px-3 py-2 text-sm font-semibold transition-all flex items-center gap-2",
                     isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-gray-500 hover:text-gray-900",
+                      ? "bg-[#0D9C99]/10 text-[#0D9C99]"
+                      : "text-[#64748B] hover:text-[#1A1A1A]",
 
                     hasErrors && !isActive && "bg-amber-50 text-amber-700"
                   )}
@@ -336,7 +336,12 @@ function ReceiptViewer({
                           Upload the receipt to see a preview here.
                         </p>
                       </div>
-                      <Button onClick={uploadReceipt}>Upload Receipt</Button>
+                      <Button 
+                        onClick={uploadReceipt}
+                        className="bg-[#0D9C99] hover:bg-[#0a7d7a] text-white font-semibold"
+                      >
+                        Upload Receipt
+                      </Button>
                     </div>
                   </div>
                 )}

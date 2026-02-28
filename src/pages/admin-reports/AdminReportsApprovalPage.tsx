@@ -44,7 +44,9 @@ const columns: GridColDef[] = [
     flex: 1,
     minWidth: 180,
     renderCell: (params) => (
-      <StatusPill status={params.value} />
+      <div className="flex items-center h-full">
+        <StatusPill status={params.value} />
+      </div>
     ),
   },
   {
