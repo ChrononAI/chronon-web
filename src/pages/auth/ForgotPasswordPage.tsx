@@ -56,10 +56,10 @@ function ForgotPasswordPage() {
     <AuthLayout>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">
             Forgot Password?
           </h2>
-          <p className="text-gray-600 text-base">
+          <p className="text-base font-medium text-[#64748B]">
             Enter your registered email address to get a password reset link.
           </p>
         </div>
@@ -67,7 +67,7 @@ function ForgotPasswordPage() {
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-semibold text-[#64748B] mb-2"
             >
               Email Address
             </label>
@@ -76,14 +76,14 @@ function ForgotPasswordPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 text-sm"
+              className="w-full px-3 py-2.5 border border-gray-200 focus:ring-2 focus:ring-[#0D9C99] focus:border-[#0D9C99] transition-colors text-[#1A1A1A] text-sm font-medium"
               style={{ backgroundColor: "#f8fafc" }}
               required
             />
             <div className="flex justify-end mt-2">
               <button
                 type="button"
-                className="underline text-blue-600 hover:text-blue-700 text-[12px]"
+                className="underline text-[#0D9C99] hover:text-[#0a7d7a] text-[12px] font-medium"
                 onClick={() => navigate("/login")}
               >
                 Sign In
@@ -93,12 +93,12 @@ function ForgotPasswordPage() {
           {error && (
             <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
               <AlertCircle className="w-4 h-4 text-red-500" />
-              <span className="text-sm text-red-700 capitalize">{error}</span>
+              <span className="text-sm font-medium text-red-700 capitalize">{error}</span>
             </div>
           )}
           <Button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium transition-colors text-sm"
+            className="w-full bg-[#0D9C99] hover:bg-[#0a7d7a] text-white py-2.5 px-4 rounded-lg font-semibold transition-colors text-sm"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -112,11 +112,11 @@ function ForgotPasswordPage() {
           </Button>
         </form>
         <div className="mt-4 text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm font-medium text-[#64748B]">
             Need help?{" "}
             <a
               href="#"
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-[#0D9C99] hover:text-[#0a7d7a] font-semibold"
             >
               Contact your administrator
             </a>
@@ -130,25 +130,25 @@ function ForgotPasswordPage() {
             >
               <CircleCheck
                 size={96}
-                className="text-green-600"
+                className="text-[#5DC364]"
                 strokeWidth={2.5}
               />
             </div>
             <div>
               <DialogTitle className="hidden">verify email</DialogTitle>
               <DialogHeader>
-                <div className="text-2xl text-center font-bold mb-2">
+                <div className="text-2xl text-center font-bold text-[#1A1A1A] mb-2">
                   Verification request sent to your email.
                 </div>
               </DialogHeader>
               <DialogDescription>
-                <div className="text-gray-700">
+                <div className="text-[#64748B] font-medium">
                   Please check your email
                 </div>
               </DialogDescription>
             </div>
             <Button
-              className="mt-2 w-40 mx-auto text-white bg-blue-600 hover:bg-blue-600 font-medium"
+              className="mt-2 w-40 mx-auto text-white bg-[#0D9C99] hover:bg-[#0a7d7a] font-semibold"
               onClick={() => {
                 setShowDialog(false);
                 navigate("/login");

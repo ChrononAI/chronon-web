@@ -475,11 +475,12 @@ export function Sidebar() {
             );
           }}
           style={{
-            width: sidebarCollapsed ? "36px" : "224px",
+            width: sidebarCollapsed ? "36px" : level > 0 ? "calc(224px - 16px)" : "224px",
             height: sidebarCollapsed ? "36px" : "41px",
             justifyContent: sidebarCollapsed ? "center" : "flex-start",
             borderRadius: sidebarCollapsed ? "6px" : "8px",
             padding: sidebarCollapsed ? "6px" : "12px",
+            marginLeft: level > 0 && !sidebarCollapsed ? "16px" : "0px",
           }}
         >
           <div 
