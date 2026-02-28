@@ -18,6 +18,7 @@ import {
   Store,
   TicketCheck,
   Receipt,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -151,6 +152,12 @@ const navigation: NavigationItem[] = [
     href: "/admin-settings/entities",
     isBold: false,
     icon: Building2,
+  },
+  {
+    name: "AI Copilot",
+    href: "/ai-copilot",
+    isBold: false,
+    icon: Bot,
   },
 ];
 
