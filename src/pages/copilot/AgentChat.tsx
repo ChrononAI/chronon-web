@@ -26,15 +26,17 @@ function ChatListItem({
   return (
     <div
       className={cn(
-        "capitalize text-sm hover:bg-[#0D9C99] hover:text-white rounded-md p-2 cursor-pointer transition-colors truncate space-y-2",
+        "capitalize text-sm rounded-md border p-2 cursor-pointer w-full transition-colors truncate space-y-2",
         selectedChatId === chat.id
-          ? "bg-[#0D9C99] text-white"
+          ? "bg-[#0d9c9a0b] border-l-[4px] border-[#0D9C99]"
           : "bg-transparent",
       )}
       onClick={() => setSelectedChatId(chat.id)}
     >
-      <div className="truncate">{chat.title}</div>
-      <div className="text-xs">{formatDate(chat.created_at)}</div>
+      <div className="space-y-2">
+        <div className="truncate">{chat.title}</div>
+        <div className="text-xs">{formatDate(chat.created_at)}</div>
+      </div>
     </div>
   );
 }
@@ -50,7 +52,6 @@ function TypingBubble() {
     </div>
   );
 }
-
 
 function AgentChat() {
   const { pathname } = useLocation();
@@ -180,14 +181,16 @@ function AgentChat() {
 
           <div className="flex-1 overflow-y-auto min-h-0 pb-2 pr-2">
             <div className="text-sm mb-2 text-gray-500 p-2">Your Chats</div>
-            {chats.map((chat) => (
-              <ChatListItem
-                key={chat.id}
-                chat={chat}
-                selectedChatId={selectedChatId}
-                setSelectedChatId={setSelectedChatId}
-              />
-            ))}
+            <div className="space-y-2">
+              {chats.map((chat) => (
+                <ChatListItem
+                  key={chat.id}
+                  chat={chat}
+                  selectedChatId={selectedChatId}
+                  setSelectedChatId={setSelectedChatId}
+                />
+              ))}
+            </div>
           </div>
         </div>
 

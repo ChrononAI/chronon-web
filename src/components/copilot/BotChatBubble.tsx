@@ -6,7 +6,7 @@ function BotChatBubble({ message }: { message: ChatMessage }) {
     <>
       <div className="flex items-start">
         {message.message && (
-          <div className="bg-gray-500 text-white p-2 rounded-xl max-w-[80%]">
+          <div className="bg-gray-500 text-white text-sm p-2 rounded-xl max-w-[80%]">
             {message.message}
           </div>
         )}
@@ -14,7 +14,7 @@ function BotChatBubble({ message }: { message: ChatMessage }) {
       {Object.keys(message.metadata).filter((key) => key !== "query_params")
         .length > 0 && (
         <div>
-          <div className="bg-gray-500 text-white p-2 rounded-xl max-w-[80%]">
+          <div className="bg-gray-500 text-white text-sm p-2 rounded-xl max-w-[80%]">
             <div className="font-semibold">
               {message?.metadata?.summary?.heading}
             </div>
