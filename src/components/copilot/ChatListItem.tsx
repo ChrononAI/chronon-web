@@ -19,6 +19,7 @@ function ChatListItem({
 }) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const open = Boolean(anchorEl);
 
@@ -38,14 +39,17 @@ function ChatListItem({
 
   const deleteChatAsync = async (chatId: string) => {
     try {
+        setDeleting(true);
         const payload = [{ id: chatId }]
         await copilotService.deleteChat(payload);
-        toast.success("Chat deleted successfully");
         const shouldSetChat = selectedChatId === chatId ? true : false;
         getChats({ shouldSetChat });
+        toast.success("Chat deleted successfully");
     } catch (error: any) {
         console.log(error);
         toast.error(error?.response?.data?.message || error?.message);
+    } finally {
+        setDeleting(false);
     }
   }
 
@@ -111,9 +115,10 @@ function ChatListItem({
 
             <AlertDialogAction
               onClick={handleDeleteChat}
+              disabled={deleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              Delete
+              {deleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
