@@ -11,15 +11,22 @@ function BotChatBubble({ message }: { message: ChatMessage }) {
           </div>
         )}
       </div>
-      {Object.keys(message.metadata).filter(key => key !== "query_params").length > 0 && (
+      {Object.keys(message.metadata).filter((key) => key !== "query_params")
+        .length > 0 && (
         <div>
           <div className="bg-gray-500 text-white p-2 rounded-xl max-w-[80%]">
-            <div className="font-semibold">{message?.metadata?.summary?.heading}</div>
+            <div className="font-semibold">
+              {message?.metadata?.summary?.heading}
+            </div>
             <div>
-              {message?.metadata?.summary?.content?.map((cont, idx) => <div key={idx}>{cont}</div>)}
+              {message?.metadata?.summary?.content?.map((cont, idx) => (
+                <div key={idx}>{cont}</div>
+              ))}
             </div>
           </div>
-          <CustomChart data={message.metadata} />
+          <div className="max-w-[80%]">
+            <CustomChart data={message.metadata} />
+          </div>
         </div>
       )}
     </>
