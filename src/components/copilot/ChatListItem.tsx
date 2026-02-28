@@ -91,7 +91,7 @@ function ChatListItem({
             className="w-36"
             sx={{ color: "red" }}
           >
-            <TrashIcon className="w-4 h-4 mr-2" /> Delete
+            <TrashIcon className="w-3 h-3 mr-2" /> <span className="text-sm">Delete</span>
           </MenuItem>
         </Menu>
       </div>
