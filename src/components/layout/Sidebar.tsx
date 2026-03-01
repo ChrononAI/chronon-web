@@ -272,6 +272,19 @@ export function Sidebar() {
           permissions: permission,
           children,
         };
+      } else if (item.name === "AI Copilot") {
+        const permission = {
+          enabled: orgSettings?.ai_copilot_settings?.enabled || false,
+          allowed: orgSettings?.ai_copilot_settings?.allowed || false,
+        };
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
       } else if (item.name === "Users") {
         const permission = {
           enabled: orgSettings?.store_settings?.enabled || false,

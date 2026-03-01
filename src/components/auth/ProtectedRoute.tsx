@@ -17,7 +17,6 @@ export function ProtectedRoute() {
       ]).then(([orgDataResponse, orgSettingsResponse]) => {
         const currentSettings = useAuthStore.getState().orgSettings;
         const orgSettings = { ...orgSettingsResponse?.data?.data };
-        // Merge settings, prioritizing currency from orgData (which has the currency field)
         const mergedSettings = {
           ...currentSettings,
           ...orgSettings,
@@ -64,9 +63,9 @@ export function ProtectedRoute() {
   } else if (location.pathname.includes("advances") || location.pathname.includes('/advance_accounts')) {
     enabled = orgSettings?.advance_settings?.enabled || false;
   } else if (location.pathname.includes("transactions")) {
-    enabled = orgSettings.mobile_payment_settings.enabled;
+    enabled = orgSettings?.mobile_payment_settings?.enabled;
   } else if (location.pathname.includes("admin-settings")) {
-    enabled = (orgSettings.admin_dashboard_settings?.enabled && user?.role === "SUPER_ADMIN");
+    enabled = (orgSettings?.admin_dashboard_settings?.enabled && user?.role === "SUPER_ADMIN");
   } else if (location.pathname.includes("/admin/")) {
     if (location.pathname.includes("admin-reports")) {
       enabled = orgSettings?.admin_approval_settings?.enabled && (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN");
@@ -76,7 +75,9 @@ export function ProtectedRoute() {
   } else if (location.pathname.includes('all-reports')) {
     enabled = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   } else if (location.pathname.includes("stores")) {
-    enabled = orgSettings.store_settings?.enabled || false;
+    enabled = orgSettings?.store_settings?.enabled || false;
+  } else if (location.pathname.includes("ai-copilot")) {
+    enabled = orgSettings?.ai_copilot_settings?.enabled || false;
   } else {
     enabled = true;
   }
