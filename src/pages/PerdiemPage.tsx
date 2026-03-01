@@ -41,6 +41,8 @@ import {
 } from "@/components/ui/form";
 import { trackEvent } from "@/mixpanel";
 import ExpenseLogs from "@/components/expenses/ExpenseLogs";
+import { useTemplateEntities } from "@/hooks/useTemplateEntities";
+import { TemplateEntityField } from "@/components/expenses/TemplateEntityField";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -153,6 +155,14 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const [fileIds, setFileIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachmentLoading, setAttachmentLoading] = useState(true);
+
+  const {
+    templateEntities,
+    entityOptions,
+    entityDropdownOpen,
+    setEntityDropdownOpen,
+    extractCustomAttributes,
+  } = useTemplateEntities(form, "per_diem", expenseData);
 
   const generateUploadUrl = async (file: File): Promise<{
     downloadUrl: string;
@@ -332,6 +342,8 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     }
     setLoading(true);
 
+    const customAttributes = await extractCustomAttributes();
+
     const submitData = {
       expense_policy_id: formData.policyId,
       category_id: values.categoryId,
@@ -344,6 +356,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         end_date: values.endDate,
         location: values.location,
       },
+      ...(Object.keys(customAttributes).length > 0 && { custom_attributes: customAttributes })
     };
 
     try {
@@ -832,6 +845,28 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         </FormItem>
                       )}
                     />
+
+                    {templateEntities?.map((entity) => {
+                      const entityId = entity?.entity_id || entity?.id || "";
+                      if (!entityId) return null;
+
+                      return (
+                        <TemplateEntityField
+                          key={entityId}
+                          control={form.control}
+                          entity={entity}
+                          entityOptions={entityOptions[entityId] || []}
+                          dropdownOpen={entityDropdownOpen[entityId] || false}
+                          onDropdownOpenChange={(open) =>
+                            setEntityDropdownOpen((prev) => ({
+                              ...prev,
+                              [entityId]: open,
+                            }))
+                          }
+                          disabled={mode === "view"}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               </div>

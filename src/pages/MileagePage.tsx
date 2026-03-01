@@ -63,6 +63,8 @@ import ExpenseLogs from "@/components/expenses/ExpenseLogs";
 import { Attachment } from "@/components/expenses/ExpenseDetailsStep2";
 import AttachmentViewer from "@/components/expenses/AttachmentViewer";
 import { FormActionFooter } from "@/components/layout/FormActionFooter";
+import { useTemplateEntities } from "@/hooks/useTemplateEntities";
+import { TemplateEntityField } from "@/components/expenses/TemplateEntityField";
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -186,6 +188,14 @@ const MileagePage = ({
   const [fileIds, setFileIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachmentLoading, setAttachmentLoading] = useState(true);
+
+  const {
+    templateEntities,
+    entityOptions,
+    entityDropdownOpen,
+    setEntityDropdownOpen,
+    extractCustomAttributes,
+  } = useTemplateEntities(form, "mileage", expenseData);
   
   const generateUploadUrl = async (file: File): Promise<{
     downloadUrl: string;
@@ -591,6 +601,8 @@ const MileagePage = ({
       mileage_meta.map_url = mapUrl;
     }
 
+    const customAttributes = await extractCustomAttributes();
+
     const submitData = {
       expense_policy_id: values.policyId,
       category_id: values.categoryId,
@@ -604,7 +616,8 @@ const MileagePage = ({
       is_round_trip: values.isRoundTrip.toString(),
       mileage_meta: mileage_meta,
       vendor: expenseData?.vendor || "Mileage Reimbursement",
-      ...(fileIds && { file_ids: fileIds })
+      ...(fileIds && { file_ids: fileIds }),
+      ...(Object.keys(customAttributes).length > 0 && { custom_attributes: customAttributes })
     };
 
     try {
@@ -1553,6 +1566,28 @@ const MileagePage = ({
                     </FormItem>
                   )}
                 />
+
+                {templateEntities?.map((entity) => {
+                  const entityId = entity?.entity_id || entity?.id || "";
+                  if (!entityId) return null;
+
+                  return (
+                    <TemplateEntityField
+                      key={entityId}
+                      control={form.control}
+                      entity={entity}
+                      entityOptions={entityOptions[entityId] || []}
+                      dropdownOpen={entityDropdownOpen[entityId] || false}
+                      onDropdownOpenChange={(open) =>
+                        setEntityDropdownOpen((prev) => ({
+                          ...prev,
+                          [entityId]: open,
+                        }))
+                      }
+                      disabled={mode === "view" && !editMode}
+                    />
+                  );
+                })}
               </div>
             </div>
 
