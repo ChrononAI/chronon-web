@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import { useReportsStore } from "@/store/reportsStore";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -404,8 +404,7 @@ export function MyReportsPage() {
         loading={loading}
         paginationModel={paginationModel}
         onPaginationModelChange={setPaginationModel}
-        onRowClick={(params, event) => {
-          event?.stopPropagation();
+        onRowClick={(params) => {
           const report = params.row;
           if (report.status === "DRAFT" || report.status === "SENT_BACK") {
             handleReportClick(report);

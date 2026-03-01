@@ -3,14 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
-interface ButtonConfig {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  loading?: boolean;
-  loadingText?: string;
-}
-
 interface FormActionFooterProps {
   primaryButton: {
     label: string;

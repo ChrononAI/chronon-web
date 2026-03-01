@@ -88,11 +88,9 @@ export function ApprovalsReportsPage() {
     orgSettings?.custom_report_id_settings?.enabled ?? false;
   const showDescription = orgSettings?.report_description_settings?.enabled ?? true;
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"processed" | "pending" | "all">(
     "all"
   );
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [allReportsPagination, setAllReportsPagination] =
     useState<PaginationInfo>();
@@ -330,13 +328,6 @@ export function ApprovalsReportsPage() {
       label: "Processed",
       count: processedReportsPagination?.total || 0,
     },
-  ];
-
-  const statusOptions = [
-    { value: "all", label: "All" },
-    { value: "pending", label: "Pending" },
-    { value: "approved", label: "Approved" },
-    { value: "rejected", label: "Rejected" },
   ];
 
   const fetchFilteredReports = useCallback(

@@ -14,7 +14,7 @@ interface DataTableProps {
   paginationModel?: GridPaginationModel;
   onPaginationModelChange?: (model: GridPaginationModel) => void;
   height?: string;
-  onRowClick?: (params: any) => void;
+  onRowClick?: (params: any, event?: any) => void;
   getRowClassName?: (params: any) => string;
   firstColumnField?: string;
   emptyStateComponent?: ReactNode;
@@ -283,7 +283,7 @@ export function DataTable({
         onPaginationModelChange={onPaginationModelChange}
         density="compact"
         disableRowSelectionOnClick
-        onRowClick={onRowClick}
+        onRowClick={onRowClick ? (params: any, event: any) => onRowClick(params, event) : undefined}
         showCellVerticalBorder={false}
         autoHeight={false}
         showToolbar={showToolbar}

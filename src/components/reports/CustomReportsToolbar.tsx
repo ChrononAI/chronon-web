@@ -180,13 +180,14 @@ function CustomReportsToolbar({
             }}
           />
 
-          <MultiSelectDropdown
-            allItems={allStatuses || []}
-            selectedItems={selectedStatuses}
-            toggleItem={toggleStatus}
-            deselectAll={deselectAllStatus}
-            className="w-[160px]"
-          />
+          <div className="w-[160px]">
+            <MultiSelectDropdown
+              allItems={allStatuses || []}
+              selectedItems={selectedStatuses}
+              toggleItem={toggleStatus}
+              deselectAll={deselectAllStatus}
+            />
+          </div>
 
           <DateRangePicker
             className="w-[200px]"
