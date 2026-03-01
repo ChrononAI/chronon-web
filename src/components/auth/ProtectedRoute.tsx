@@ -16,7 +16,7 @@ export function ProtectedRoute() {
         authService.getOrgSetting().catch(() => null),
       ]).then(([orgDataResponse, orgSettingsResponse]) => {
         const currentSettings = useAuthStore.getState().orgSettings;
-        const orgSettings = { ...orgSettingsResponse?.data?.data, ai_copilot_settings: { enabled: true, allowed: true } };
+        const orgSettings = { ...orgSettingsResponse?.data?.data };
         const mergedSettings = {
           ...currentSettings,
           ...orgSettings,
