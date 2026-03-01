@@ -88,6 +88,8 @@ import { FlowLayout } from "./components/layout/FlowLayout";
 import { BulkInvoiceUploadPage } from "./pages/BulkInvoiceUploadPage";
 import { useAuthStore } from "@/store/authStore";
 import { AdminReportsApprovalPage } from "./pages/admin-reports/AdminReportsApprovalPage";
+import AgentChat from "./pages/copilot/AgentChat";
+import CopilotHome from "./pages/copilot/CopilotHome";
 
 function VendorRedirect() {
   const { id } = useParams<{ id: string }>();
@@ -252,6 +254,13 @@ function App() {
                 <Route path="/admin-settings/product-config/bulk-uploads/column-mapping/:type/:fileid" element={<ColumnMapping />} />
                 <Route path="/admin-settings/product-config/bulk-uploads/validate-file/:type/:fileid" element={<ValidateFile />} />
               </Route>
+
+              {/* AI COPILOT */}
+              <Route path="/ai-copilot" element={<CopilotHome />} />
+              <Route path="/ai-copilot/finance-agent" element={<AgentChat />} />
+              <Route path="/ai-copilot/approver-agent" element={<AgentChat />} />
+              <Route path="/ai-copilot/spender-agent" element={<AgentChat />} />
+              <Route path="/ai-copilot/onboarding-agent" element={<AgentChat />} />
 
               {/* INVOICES - Redirect old routes to flow */}
               <Route path="/invoice" element={<Navigate to="/flow/invoice" replace />} />

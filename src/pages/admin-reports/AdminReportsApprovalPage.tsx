@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ReportTabs } from "@/components/reports/ReportTabs";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
 import { StatusPill } from "@/components/shared/StatusPill";
@@ -318,12 +316,6 @@ export function AdminReportsApprovalPage() {
       {/* Header Section */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Expense Reports</h1>
-        <Button asChild>
-          <Link to="/reports/create">
-            <Plus className="mr-2 h-4 w-4" />
-            Create New Report
-          </Link>
-        </Button>
       </div>
 
       {/* Tabs Section */}

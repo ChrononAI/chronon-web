@@ -18,6 +18,7 @@ import {
   Store,
   TicketCheck,
   Receipt,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -153,6 +154,12 @@ const navigation: NavigationItem[] = [
     isBold: false,
     icon: Building2,
   },
+  {
+    name: "AI Copilot",
+    href: "/ai-copilot",
+    isBold: false,
+    icon: Bot,
+  },
 ];
 
 const permissionMap: any = {
@@ -257,6 +264,19 @@ export function Sidebar() {
         const permission = {
           enabled: orgSettings?.store_settings?.enabled || false,
           allowed: orgSettings?.store_settings?.allowed || false,
+        };
+        const children = item.children
+          ? mergePermissions(item.children, permissions)
+          : undefined;
+        return {
+          ...item,
+          permissions: permission,
+          children,
+        };
+      } else if (item.name === "AI Copilot") {
+        const permission = {
+          enabled: orgSettings?.ai_copilot_settings?.enabled || false,
+          allowed: orgSettings?.ai_copilot_settings?.allowed || false,
         };
         const children = item.children
           ? mergePermissions(item.children, permissions)

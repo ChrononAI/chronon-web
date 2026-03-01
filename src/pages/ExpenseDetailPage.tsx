@@ -54,6 +54,8 @@ const filterFormData = (data: Record<string, any>): UpdateExpenseData => {
     "currency",
     "api_conversion_rate",
     "user_conversion_rate",
+    "start_date",
+    "end_date"
   ];
 
   const sanitized: any = {};
@@ -234,7 +236,6 @@ export function ExpenseDetailPage() {
           filteredData.foreign_currency = null;
         }
         filteredData.advance_account_id = formData.advance_account_id?.length > 0 ? formData.advance_account_id : null;
-        console.log(filteredData);
 
         if (isAdminUpdatingExpense) {
           setShowAdminEditConfirm(true);

@@ -89,28 +89,18 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
     setDuplicateIds([]);
   };
 
-  // const handleNext = () => {
-  //   if (uploadedFile && previewUrl) {
-  //     onNext({
-  //       uploadedFile,
-  //       parsedData,
-  //       previewUrl,
-  //     });
-  //   }
-  // };
-
-  // const handleAddManually = () => {
-  //   setParsedData(null);
-  //   setUploadedFile(null);
-  //   setPreviewUrl(null);
-  //   setShowPotentialDuplicateAlert(false);
-  //   setDuplicateIds([]);
-  //   onNext({
-  //     uploadedFile: null as any,
-  //     parsedData: null,
-  //     previewUrl: '',
-  //   });
-  // };
+  const handleAddManually = () => {
+    setParsedData(null);
+    setUploadedFile(null);
+    setPreviewUrl(null);
+    setShowPotentialDuplicateAlert(false);
+    setDuplicateIds([]);
+    onNext({
+      uploadedFile: null as any,
+      parsedData: null,
+      previewUrl: '',
+    });
+  };
 
   return (
     <div className="space-y-6 h-[50vh]">
@@ -232,10 +222,7 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
       </Card>
 
       {/* Navigation Buttons */}
-      {/* {type === "upload" && <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Back
-        </Button>
+      {<div className="flex justify-end">
         <div className="flex gap-3">
           <Button 
             variant="outline" 
@@ -244,16 +231,8 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
           >
             Add Manually
           </Button>
-          <Button 
-            onClick={handleNext} 
-            disabled={!uploadedFile || isProcessing}
-            className="bg-primary hover:bg-primary/90"
-          >
-            {isProcessing ? 'Processing...' : 'Next'}
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
         </div>
-      </div>} */}
+      </div>}
     </div>
   );
 }

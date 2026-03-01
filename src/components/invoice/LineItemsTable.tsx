@@ -1141,13 +1141,21 @@ export function LineItemsTable({
                     <div>
                       <Input
                         value={row.tdsAmount}
-                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 bg-gray-50 ${
+                        onChange={(e) => {
+                          onRowUpdate(row.id, "tdsAmount", e.target.value);
+                          if (onValidationErrorChange && e.target.value.trim() && parseFloat(e.target.value) >= 0) {
+                            onValidationErrorChange(row.id, "tdsAmount", false);
+                          }
+                        }}
+                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                           isFieldChanged(row.id, "tdsAmount", row.tdsAmount) ? "bg-yellow-100" : ""
-                        }`}
+                        } ${validationErrors[row.id]?.tdsAmount ? '!border-red-500 border' : ''}`}
                         placeholder="₹ 0.00"
-                        disabled={true}
-                        readOnly
+                        disabled={isApprovalMode}
                       />
+                      {validationErrors[row.id]?.tdsAmount && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-1 min-w-[160px]">
@@ -1303,52 +1311,84 @@ export function LineItemsTable({
                     <div>
                       <Input
                         value={row.igst}
-                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 bg-gray-50 ${
+                        onChange={(e) => {
+                          onRowUpdate(row.id, "igst", e.target.value);
+                          if (onValidationErrorChange && e.target.value.trim() && parseFloat(e.target.value) >= 0) {
+                            onValidationErrorChange(row.id, "igst", false);
+                          }
+                        }}
+                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                           isFieldChanged(row.id, "igst", row.igst) ? "bg-yellow-100" : ""
-                        }`}
+                        } ${validationErrors[row.id]?.igst ? '!border-red-500 border' : ''}`}
                         placeholder="₹ 0.00"
-                        disabled={true}
-                        readOnly
+                        disabled={isApprovalMode}
                       />
+                      {validationErrors[row.id]?.igst && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-1 min-w-[130px]">
                     <div>
                       <Input
                         value={row.cgst}
-                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 bg-gray-50 ${
+                        onChange={(e) => {
+                          onRowUpdate(row.id, "cgst", e.target.value);
+                          if (onValidationErrorChange && e.target.value.trim() && parseFloat(e.target.value) >= 0) {
+                            onValidationErrorChange(row.id, "cgst", false);
+                          }
+                        }}
+                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                           isFieldChanged(row.id, "cgst", row.cgst) ? "bg-yellow-100" : ""
-                        }`}
+                        } ${validationErrors[row.id]?.cgst ? '!border-red-500 border' : ''}`}
                         placeholder="₹ 0.00"
-                        disabled={true}
-                        readOnly
+                        disabled={isApprovalMode}
                       />
+                      {validationErrors[row.id]?.cgst && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-1 min-w-[130px]">
                     <div>
                       <Input
                         value={row.sgst}
-                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 bg-gray-50 ${
+                        onChange={(e) => {
+                          onRowUpdate(row.id, "sgst", e.target.value);
+                          if (onValidationErrorChange && e.target.value.trim() && parseFloat(e.target.value) >= 0) {
+                            onValidationErrorChange(row.id, "sgst", false);
+                          }
+                        }}
+                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                           isFieldChanged(row.id, "sgst", row.sgst) ? "bg-yellow-100" : ""
-                        }`}
+                        } ${validationErrors[row.id]?.sgst ? '!border-red-500 border' : ''}`}
                         placeholder="₹ 0.00"
-                        disabled={true}
-                        readOnly
+                        disabled={isApprovalMode}
                       />
+                      {validationErrors[row.id]?.sgst && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-1 min-w-[130px]">
                     <div>
                       <Input
                         value={row.utgst}
-                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 bg-gray-50 ${
+                        onChange={(e) => {
+                          onRowUpdate(row.id, "utgst", e.target.value);
+                          if (onValidationErrorChange && e.target.value.trim() && parseFloat(e.target.value) >= 0) {
+                            onValidationErrorChange(row.id, "utgst", false);
+                          }
+                        }}
+                        className={`h-8 w-full border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-1 ${
                           isFieldChanged(row.id, "utgst", row.utgst) ? "bg-yellow-100" : ""
-                        }`}
+                        } ${validationErrors[row.id]?.utgst ? '!border-red-500 border' : ''}`}
                         placeholder="₹ 0.00"
-                        disabled={true}
-                        readOnly
+                        disabled={isApprovalMode}
                       />
+                      {validationErrors[row.id]?.utgst && (
+                        <p className="text-red-500 text-xs mt-0.5">Required field</p>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="pl-4 pr-6 py-1">
@@ -1362,12 +1402,11 @@ export function LineItemsTable({
                               onValidationErrorChange(row.id, "netAmount", false);
                             }
                           }}
-                          className={`h-8 w-[140px] border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-0 bg-gray-50 text-right ${
+                          className={`h-8 w-[140px] border-0 shadow-none focus-visible:ring-1 focus-visible:ring-gray-300 focus-visible:ring-offset-0 rounded-none px-0 text-right ${
                             isFieldChanged(row.id, "netAmount", row.netAmount) ? "bg-yellow-100" : ""
                           } ${validationErrors[row.id]?.netAmount ? '!border-red-500 border' : ''}`}
                           placeholder="₹ 0.00"
-                          disabled={true}
-                          readOnly
+                          disabled={isApprovalMode}
                         />
                         {validationErrors[row.id]?.netAmount && (
                           <p className="text-red-500 text-xs mt-0.5 text-right">Required field</p>

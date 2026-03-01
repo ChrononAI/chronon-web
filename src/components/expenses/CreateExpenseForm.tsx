@@ -186,7 +186,6 @@ export function CreateExpenseForm() {
 
       let result;
       if (formData.invoice_number) {
-
         // Regular expense with invoice number
         const expensePayload: any = {
           expense_policy_id: formData.expense_policy_id,
@@ -219,6 +218,10 @@ export function CreateExpenseForm() {
           expensePayload.user_conversion_rate = parseFloat(
             formData.user_conversion_rate
           );
+        if (formData.start_date)
+          expensePayload.start_date = formData.start_date;
+        if (formData.end_date)
+          expensePayload.end_date = formData.end_date;
 
         if (Object.keys(customAttributes).length > 0) {
           expensePayload.custom_attributes = customAttributes;

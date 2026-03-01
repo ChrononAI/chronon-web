@@ -83,10 +83,13 @@ export type Attachment = {
 const expenseSchema = z.object({
   expense_policy_id: z.string().min(1, "Please select a policy"),
   category_id: z.string().min(1, "Please select a category"),
+  category_type: z.string(),
+  start_date: z.string().optional().nullable(),
+  end_date: z.string().optional().nullable(),
   invoice_number: z.string().min(1, "Invoice number is required"),
   vendor: z.string().min(1, "Vendor is required"),
   amount: z.string().min(1, "Amount is required"),
-  receipt_id: z.string().optional(),
+  receipt_id: z.string().optional().nullable(),
   expense_date: z
     .string()
     .min(1, "Date is required")
@@ -107,7 +110,38 @@ const expenseSchema = z.object({
   foreign_amount: z.string().optional().nullable(),
   user_conversion_rate: z.string().optional().nullable(),
   api_conversion_rate: z.string().optional().nullable(),
-});
+}).superRefine((data, ctx) => {
+    if (data.category_type === "MULTI_DAY") {
+      if (!data.start_date) {
+        ctx.addIssue({
+          path: ["start_date"],
+          code: z.ZodIssueCode.custom,
+          message: "Start date is required",
+        });
+      }
+
+      if (!data.end_date) {
+        ctx.addIssue({
+          path: ["end_date"],
+          code: z.ZodIssueCode.custom,
+          message: "End date is required",
+        });
+      }
+
+      if (data.start_date && data.end_date) {
+        const start = parseLocalDate(data.start_date);
+        const end = parseLocalDate(data.end_date);
+
+        if (end < start) {
+          ctx.addIssue({
+            path: ["end_date"],
+            code: z.ZodIssueCode.custom,
+            message: "End date cannot be before start date",
+          });
+        }
+      }
+    }
+  });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema> & Record<string, any>;
 
@@ -187,6 +221,7 @@ export function ExpenseDetailsStep2({
 
   const [fileIds, setFileIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isMultiDayExpense, setIsMultiDayExpense] = useState(false);
 
   const dupeCheckAcrossOrg =
     orgSettings?.org_level_duplicate_check_settings?.enabled || true;
@@ -207,6 +242,7 @@ export function ExpenseDetailsStep2({
       : {
         expense_policy_id: "",
         category_id: "",
+        category_type: "",
         invoiceNumber: "",
         merchant: "",
         amount: "",
@@ -260,6 +296,8 @@ export function ExpenseDetailsStep2({
         setSelectedPolicy(selectedPolicy);
         form.setValue("expense_policy_id", selectedPolicy.id);
         form.setValue("category_id", selectedCategory.id);
+        console.log(selectedCategory);
+        form.setValue("category_type", selectedCategory.category_type);
       }
     }
   };
@@ -545,10 +583,15 @@ export function ExpenseDetailsStep2({
             ? format(expense.expense_date, "yyyy-MM-dd")
             : format(parseLocalDate(String(expense.expense_date)), "yyyy-MM-dd")
         : undefined;
-      
-      form.reset({
+    
+        const startDate = expense.start_date ? format(parseLocalDate(expense.start_date), 'yyyy-MM-dd') : undefined;
+        const endDate = expense.end_date ? format(parseLocalDate(expense.end_date), 'yyyy-MM-dd') : undefined;
+
+        form.reset({
         ...expense,
         expense_date: normalizedDate,
+        start_date: startDate,
+        end_date: endDate
       });
       // Set selected policy and category based on form data
       if (expense.foreign_amount && expense.foreign_currency) {
@@ -572,6 +615,7 @@ export function ExpenseDetailsStep2({
             if (category) {
               setSelectedCategory(category);
               form.setValue("category_id", expense.category_id);
+              form.setValue("category_type", category.category_type);
             }
           }
         }
@@ -764,6 +808,7 @@ export function ExpenseDetailsStep2({
         setSelectedPolicy(selectedPolicy);
         form.setValue("expense_policy_id", selectedPolicy.id);
         form.setValue("category_id", selectedCategory.id);
+        form.setValue("category_type", selectedCategory.category_type);
       }
     }
   }, [parsedData, policies]);
@@ -821,7 +866,16 @@ useEffect(() => {
   };
 }, [fileIds]);
 
-
+  useEffect(() => {
+    // Check the appropriate key
+    if (selectedCategory?.category_type === "MULTI_DAY") {
+      setIsMultiDayExpense(true);
+    } else {
+      setIsMultiDayExpense(false);
+      form.setValue("start_date", null);
+      form.setValue("end_date", null);
+    }
+  }, [selectedCategory]);
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -923,6 +977,7 @@ useEffect(() => {
             <form
               onSubmit={form.handleSubmit((data) => {
                 const allFormValues = form.getValues();
+                console.log(allFormValues);
                 const mergedData = { ...allFormValues, ...data, file_ids: fileIds };
                 onSubmit(mergedData);
               })}
@@ -957,6 +1012,7 @@ useEffect(() => {
                                 setSelectedPolicy(policy || null);
                                 setSelectedCategory(null);
                                 form.setValue("category_id", "");
+                                form.setValue("category_type", "")
                                 getAccounts(value);
                                 setSelectedAdvanceAccount(null);
                                 form.setValue("advance_account_id", "");
@@ -1044,6 +1100,7 @@ useEffect(() => {
                                           value={category.name}
                                           onSelect={() => {
                                             field.onChange(category.id);
+                                            form.setValue("category_type", category.category_type);
                                             setSelectedCategory(category);
                                             setCategoryDropdownOpen(false);
                                           }}
@@ -1129,6 +1186,126 @@ useEffect(() => {
                           </FormItem>
                         )}
                       />
+                      
+                      {isMultiDayExpense && <div className="grid gap-3 sm:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="start_date"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>From</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "h-11 w-full justify-between pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                      disabled={
+                                        readOnly || expense?.transaction_id
+                                      }
+                                    >
+                                      {field.value ? (
+                                        format(
+                                          parseLocalDate(String(field.value)),
+                                          "PPP"
+                                        )
+                                      ) : (
+                                        <span>Pick a date</span>
+                                      )}
+                                      <Calendar className="h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  className="w-auto p-0"
+                                  align="start"
+                                >
+                                  <CalendarComponent
+                                    mode="single"
+                                    selected={
+                                      field.value
+                                        ? parseLocalDate(String(field.value))
+                                        : undefined
+                                    }
+                                    onSelect={(date) => {
+                                      if (!date) return;
+                                      field.onChange(format(date, "yyyy-MM-dd"));
+                                    }}
+                                    disabled={(date) =>
+                                      date > new Date() ||
+                                      date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      
+                        <FormField
+                          control={form.control}
+                          name="end_date"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>To</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "h-11 w-full justify-between pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                      disabled={
+                                        readOnly || expense?.transaction_id
+                                      }
+                                    >
+                                      {field.value ? (
+                                        format(
+                                          parseLocalDate(String(field.value)),
+                                          "PPP"
+                                        )
+                                      ) : (
+                                        <span>Pick a date</span>
+                                      )}
+                                      <Calendar className="h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  className="w-auto p-0"
+                                  align="start"
+                                >
+                                  <CalendarComponent
+                                    mode="single"
+                                    selected={
+                                      field.value
+                                        ? parseLocalDate(String(field.value))
+                                        : undefined
+                                    }
+                                    onSelect={(date) => {
+                                      if (!date) return;
+                                      field.onChange(format(date, "yyyy-MM-dd"));
+                                    }}
+                                    disabled={(date) =>
+                                      date > new Date() ||
+                                      date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>}
 
                       {orgSettings?.advance_settings?.enabled &&
                         advanceAccounts.length > 0 && (

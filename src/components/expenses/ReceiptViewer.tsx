@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { Attachment } from "./ExpenseDetailsStep2";
 import { AttachmentUploader } from "./AttachmentUploader";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { useLocation } from "react-router-dom";
 
 const isPdfUrl = (url: string | null | undefined) => {
   if (!url) return false;
@@ -59,6 +60,7 @@ function ReceiptViewer({
   setFileIds,
   generateUploadUrl,
 }: any) {
+  const { pathname } = useLocation();
   const [validations, setValidations] = useState<ValidationItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [validationLoading, setValidationLoading] = useState(false);
@@ -259,7 +261,7 @@ function ReceiptViewer({
               );
             })}
           </div>
-          {!readOnly && hasReceipt && activeReceiptTab === "receipt" && (
+          {!readOnly && hasReceipt && activeReceiptTab === "receipt" && !pathname.includes("admin-reports") && (
             <Button
               type="button"
               variant="outline"
