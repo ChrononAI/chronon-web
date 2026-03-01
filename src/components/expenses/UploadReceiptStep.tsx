@@ -6,7 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { fileParseService, ParsedInvoiceData } from '@/services/fileParseService';
 import { useExpenseStore } from '@/store/expenseStore';
+import { FileSizeDialog } from './FileSizeDialog';
 
+const MAX_FILE_SIZE_MB = 3;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 interface UploadReceiptStepProps {
   onNext: (data: {
@@ -24,13 +27,17 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   // const [parsedData, setParsedData] = useState<ParsedInvoiceData | null>(null);
-    const { parsedData, setParsedData } = useExpenseStore();
+  const { parsedData, setParsedData } = useExpenseStore();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showPotentialDuplicateAlert, setShowPotentialDuplicateAlert] = useState(false);
   const [duplicateIds, setDuplicateIds] = useState<number[]>([]);
-
+  const [showSizeDialog, setShowSizeDialog] = useState(false);
 
   const handleFileUpload = async (file: File) => {
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setShowSizeDialog(true);
+      return;
+    }
     try {
       setIsProcessing(true);
       setUploadedFile(file);
@@ -210,17 +217,16 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
                               className="w-full h-48 object-contain rounded-md border"
                             />
                           )}
-
                         </div>
                       </CardContent>
-                    </Card>
+                  </Card>
                 </>
               )}
             </div>
           )}
         </CardContent>
       </Card>
-
+          <FileSizeDialog open={showSizeDialog} onClose={() => setShowSizeDialog(false)} />
       {/* Navigation Buttons */}
       {<div className="flex justify-end">
         <div className="flex gap-3">
