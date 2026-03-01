@@ -22,7 +22,7 @@ const AGENTS: Agent[] = [
     name: "Finance Agent",
     description:
       "Streamline financial processes including expense management and report creation",
-    imageUrl: "public/avatar1.jpg",
+    imageUrl: "/public/avatar1.jpg",
     href: "/ai-copilot/finance-agent",
     is_active: true
   },
@@ -30,7 +30,7 @@ const AGENTS: Agent[] = [
     name: "Onboarding Agent",
     description:
       "Helps in user onboarding by guiding new users through setup, feature discovery with intelligence",
-    imageUrl: "public/avatar2.jpg",
+    imageUrl: "/public/avatar2.jpg",
     href: "/ai-copilot/onboarding-agent",
     is_active: false
   },
@@ -38,7 +38,7 @@ const AGENTS: Agent[] = [
     name: "Approver Agent",
     description:
       "Assists users in approving pending requests including reports, advances and trip requests",
-    imageUrl: "public/avatar3.jpg",
+    imageUrl: "/public/avatar3.jpg",
     href: "/ai-copilot/approver-agent",
     is_active: false
   },
@@ -46,7 +46,7 @@ const AGENTS: Agent[] = [
     name: "Spender Agent",
     description:
       "Tracks expense for spenders with smart capture, real-time insights, and automated categorization",
-    imageUrl: "public/avatar4.jpg",
+    imageUrl: "/public/avatar4.jpg",
     href: "/ai-copilot/spender-agent",
     is_active: false
   },
