@@ -35,6 +35,7 @@ import {
   formatCurrency,
   getStatusColor,
   getOrgCurrency,
+  generateIdWithPrefix,
 } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
@@ -53,6 +54,7 @@ import { trackEvent } from "@/mixpanel";
 import { FormFooter } from "@/components/layout/FormFooter";
 import ExpenseLogs from "@/components/expenses/ExpenseLogs";
 import { ExpenseComments } from "@/components/expenses/ExpenseComments";
+import { userService } from "@/services/admin/userService";
 
 const columns: GridColDef[] = [
   {
@@ -174,7 +176,8 @@ export function ReportDetailPage2() {
   const { user, orgSettings } = useAuthStore();
   const customIdEnabled =
     orgSettings?.custom_report_id_settings?.enabled ?? false;
-  const showDescription = orgSettings?.report_description_settings?.enabled ?? true;
+  const showDescription =
+    orgSettings?.report_description_settings?.enabled ?? true;
   const [report, setReport] = useState<ReportWithExpenses | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<ApprovalWorkflow | null>(null);
@@ -196,7 +199,10 @@ export function ReportDetailPage2() {
   const [newComment, setNewComment] = useState<string>();
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
-  const adminApprover = isAdmin && pathname.includes("admin-reports") && report?.status === "UNDER_REVIEW";
+  const adminApprover =
+    isAdmin &&
+    pathname.includes("admin-reports") &&
+    report?.status === "UNDER_REVIEW";
 
   const tabs = [
     { key: "expenses", label: "Expenses", count: 0 },
@@ -223,7 +229,7 @@ export function ReportDetailPage2() {
       } else {
         console.error(
           "Failed to fetch report details:",
-          reportResponse.message
+          reportResponse.message,
         );
         toast.error(reportResponse.message || "Failed to fetch report details");
       }
@@ -233,14 +239,50 @@ export function ReportDetailPage2() {
             .reverse()
             .flatMap((item: any) =>
               item.approval_steps.filter(
-                (step: any) => step.status !== "ABORTED"
-              )
+                (step: any) => step.status !== "ABORTED",
+              ),
             );
         };
-        const newSteps = getAllApprovalSteps(workflowResponse.data);
+        let userDetails;
+        if (reportResponse.data?.user_id) {
+          userDetails = await userService.getUserById(
+            reportResponse.data?.user_id,
+          );
+        }
+        const { id, first_name, last_name, username, email } =
+          userDetails?.data.data;
+        const createdAtStep = {
+          approved_at: reportResponse.data?.created_at,
+          approver_note: [],
+          approvers: [
+            {
+              approved_at: reportResponse.data?.created_at,
+              approver_note: [
+                {
+                  approver_id: 34,
+                  notes: null,
+                  status: "APPROVED",
+                  timestamp: "2025-12-08T08:12:54.088183",
+                },
+              ],
+              email: email,
+              first_name: first_name,
+              last_name: last_name,
+              user_id: id.toString(),
+              username: username,
+            },
+          ],
+          status: "CREATED",
+          step_id: generateIdWithPrefix("wes"),
+          step_name: "Creation",
+          step_order: 0,
+        };
+        console.log(createdAtStep);
+        const newSteps = [createdAtStep, ...getAllApprovalSteps(workflowResponse.data)];
         const currentStepIdx = newSteps.findIndex(
-          (step: any) => step.status === "IN_PROGRESS"
+          (step: any) => step.status === "IN_PROGRESS",
         );
+
         setApprovalWorkflow({
           report_id: reportResponse.data.id,
           approval_steps: newSteps,
@@ -250,7 +292,7 @@ export function ReportDetailPage2() {
       } else {
         console.warn(
           "Failed to fetch approval workflow:",
-          workflowResponse.message
+          workflowResponse.message,
         );
       }
     } catch (error) {
@@ -271,7 +313,7 @@ export function ReportDetailPage2() {
       await reportService.postReportComment(
         id,
         newComment.trim(),
-        false // notify: false
+        false, // notify: false
       );
 
       const fetchedComments = await reportService.getReportComments(id);
@@ -281,7 +323,7 @@ export function ReportDetailPage2() {
           const dateA = new Date(a.created_at).getTime();
           const dateB = new Date(b.created_at).getTime();
           return dateA - dateB;
-        }
+        },
       );
       setReportComments(sortedComments);
       setNewComment("");
@@ -323,7 +365,7 @@ export function ReportDetailPage2() {
       } catch (error: any) {
         console.error("Error fetching comments:", error);
         setCommentError(
-          error.response?.data?.message || "Failed to load comments"
+          error.response?.data?.message || "Failed to load comments",
         );
       } finally {
         setLoadingReportComments(false);
@@ -384,7 +426,7 @@ export function ReportDetailPage2() {
       let result = await approvalService.adminReportAction({
         reportId: report.id,
         reason: comments,
-        action: actionType
+        action: actionType,
       });
       toast.success(result.message);
       setShowActionDialog(false);
@@ -392,12 +434,12 @@ export function ReportDetailPage2() {
     } catch (error: any) {
       console.error(`Failed to ${actionType} report`, error);
       toast.error(
-        error?.response?.data?.message || `Failed to ${actionType} report`
+        error?.response?.data?.message || `Failed to ${actionType} report`,
       );
     } finally {
       setActionLoading(false);
     }
-  }
+  };
 
   const executeAction = async () => {
     if (!report || !actionType) return;
@@ -423,7 +465,7 @@ export function ReportDetailPage2() {
     } catch (error: any) {
       console.error(`Failed to ${actionType} report`, error);
       toast.error(
-        error?.response?.data?.message || `Failed to ${actionType} report`
+        error?.response?.data?.message || `Failed to ${actionType} report`,
       );
     } finally {
       setActionLoading(false);
@@ -441,7 +483,7 @@ export function ReportDetailPage2() {
 
     // Check if there are pending expenses
     const pendingExpenses = report.expenses.filter(
-      (exp) => exp.status === "PENDING" || exp.status === "PENDING_APPROVAL"
+      (exp) => exp.status === "PENDING" || exp.status === "PENDING_APPROVAL",
     ).length;
     const isUserInCurrentStep = approvalWorkflow?.approval_steps
       .find((step) => step.status === "IN_PROGRESS")
@@ -479,10 +521,10 @@ export function ReportDetailPage2() {
 
   const totalAmount = report.expenses.reduce(
     (sum, expense) => sum + parseFloat(expense.amount.toString()),
-    0
+    0,
   );
   const pendingExpenses = report.expenses.filter(
-    (exp) => exp.status === "PENDING" || exp.status === "PENDING_APPROVAL"
+    (exp) => exp.status === "PENDING" || exp.status === "PENDING_APPROVAL",
   ).length;
 
   const handleViewExpense = async (expense: Expense) => {
@@ -491,7 +533,7 @@ export function ReportDetailPage2() {
     } else if (pathname.includes("/admin/settlements")) {
       navigate(`/admin/settlements/${report.id}/${expense.id}`);
     } else if (pathname.includes("admin-reports")) {
-      navigate(`/admin/admin-reports/${report.id}/${expense.id}`)
+      navigate(`/admin/admin-reports/${report.id}/${expense.id}`);
     } else {
       navigate(`/reports/${report.id}/${expense.id}`);
     }
@@ -540,10 +582,12 @@ export function ReportDetailPage2() {
           </div>
 
           {/* Description */}
-          {showDescription && <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
-            <Input value={report.description} disabled />
-          </div>}
+          {showDescription && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Input value={report.description} disabled />
+            </div>
+          )}
           {customIdEnabled && report?.custom_report_id && (
             <div className="space-y-2">
               <label className="text-sm font-medium">Custom Report ID</label>
@@ -568,7 +612,7 @@ export function ReportDetailPage2() {
                       <Input value={value} disabled />
                       {/* </div> */}
                     </div>
-                  )
+                  ),
                 )}
               </div>
             </div>
@@ -578,7 +622,7 @@ export function ReportDetailPage2() {
             activeTab={activeTab}
             onTabChange={(tabId) =>
               setActiveTab(
-                tabId as "expenses" | "history" | "comments" | "logs"
+                tabId as "expenses" | "history" | "comments" | "logs",
               )
             }
             tabs={tabs}
@@ -618,9 +662,9 @@ export function ReportDetailPage2() {
                       border: "0.2px solid #f3f4f6",
                     },
                     "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                    {
-                      outline: "none",
-                    },
+                      {
+                        outline: "none",
+                      },
                     "& .MuiDataGrid-cell:focus-within": {
                       outline: "none",
                     },
@@ -720,19 +764,19 @@ export function ReportDetailPage2() {
 
           {report && (
             <div className="space-y-4">
-              {adminApprover && <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
-                <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0 text-amber-600" />
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">
-                      Administrator Action
-                  </p>
-                  <p className="text-sm text-amber-800">
-                      You are taking action on this report as an administrator. This action may
-                      override the configured approval workflow. Please provide comments to
-                      justify your decision.
-                  </p>
+              {adminApprover && (
+                <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                  <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0 text-amber-600" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Administrator Action</p>
+                    <p className="text-sm text-amber-800">
+                      You are taking action on this report as an administrator.
+                      This action may override the configured approval workflow.
+                      Please provide comments to justify your decision.
+                    </p>
+                  </div>
                 </div>
-              </div>}
+              )}
               <div className="bg-muted/30 rounded-lg space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
@@ -761,7 +805,10 @@ export function ReportDetailPage2() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="comments">
-                      Comments {actionType !== "approve" && <span className="text-red-500">*</span>}
+                      Comments{" "}
+                      {actionType !== "approve" && (
+                        <span className="text-red-500">*</span>
+                      )}
                     </Label>
                     <span className="text-xs text-muted-foreground">
                       {comments.length}/500 characters
@@ -796,13 +843,17 @@ export function ReportDetailPage2() {
                   </Button>
                   <Button
                     onClick={adminApprover ? executeAdminAction : executeAction}
-                    disabled={actionLoading || (actionType !== "approve" && !comments.trim())}
-                    className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-200 ${actionType === "approve"
-                      ? "bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md"
-                      : actionType === "reject"
-                        ? "bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md"
-                        : "bg-orange-600 hover:bg-orange-700 text-white shadow-sm hover:shadow-md"
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    disabled={
+                      actionLoading ||
+                      (actionType !== "approve" && !comments.trim())
+                    }
+                    className={`w-full sm:w-auto px-6 py-2.5 font-medium transition-all duration-200 ${
+                      actionType === "approve"
+                        ? "bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md"
+                        : actionType === "reject"
+                          ? "bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md"
+                          : "bg-orange-600 hover:bg-orange-700 text-white shadow-sm hover:shadow-md"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {actionLoading ? (
                       <>
