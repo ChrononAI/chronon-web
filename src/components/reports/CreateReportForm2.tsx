@@ -84,11 +84,13 @@ import { getTemplates, Template } from "@/services/admin/templates";
 
 const createReportSchema = (
   customAttributes: CustomAttribute[],
-  options?: { categoryRequired?: boolean; policyRequired?: boolean }
+  options?: { categoryRequired?: boolean; policyRequired?: boolean; descriptionRequired?: boolean }
 ) => {
   const baseSchema = {
     reportName: z.string().min(1, "Report name is required"),
-    description: z.string().optional(),
+    description: options?.descriptionRequired
+      ? z.string().min(1, "Description is required")
+      : z.string().optional(),
     category: options?.categoryRequired
       ? z.string().min(1, "Category is required")
       : z.string().optional(),
@@ -420,6 +422,8 @@ export function CreateReportForm2({
 
   const showDescription =
     orgSettings?.report_description_settings?.enabled ?? true;
+  const isDescriptionMandatory =
+    orgSettings?.report_description_settings?.is_mandatory ?? false;
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -431,7 +435,7 @@ export function CreateReportForm2({
   );
   const [expAttributes, setExpAttributes] = useState<any[]>();
   const [formSchema, setFormSchema] = useState(
-    createReportSchema([], { categoryRequired, policyRequired })
+    createReportSchema([], { categoryRequired, policyRequired, descriptionRequired: isDescriptionMandatory })
   );
   const [markedExpenses, setMarkedExpenses] = useState<Expense[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -910,6 +914,7 @@ export function CreateReportForm2({
       const newSchema = createReportSchema(customAttributes, {
         categoryRequired,
         policyRequired,
+        descriptionRequired: isDescriptionMandatory,
       });
       setFormSchema(newSchema);
 
@@ -917,7 +922,7 @@ export function CreateReportForm2({
       const newDefaultValues = createDefaultValues(customAttributes);
       form.reset(newDefaultValues);
     }
-  }, [customAttributes, form]);
+  }, [customAttributes, form, isDescriptionMandatory]);
 
   useEffect(() => {
     if (editMode && reportData && policies.length > 0 && categories.length > 0 && !isInitializing) {
@@ -1092,14 +1097,6 @@ export function CreateReportForm2({
         user?.organization?.id?.toString() || "5"
       );
       setCustomAttributes(customAttrs);
-
-      const newSchema = createReportSchema(customAttrs);
-      setFormSchema(newSchema);
-
-      if (editMode && reportData) {
-        const newDefaultValues = createDefaultValues(customAttrs);
-        form.reset(newDefaultValues);
-      }
       
       // Mark initialization as complete after data is loaded
       setIsInitializing(false);
@@ -1550,7 +1547,9 @@ export function CreateReportForm2({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>
+                      Description{isDescriptionMandatory && " *"}
+                    </FormLabel>
                     <FormControl>
                       <Input
                         {...field}

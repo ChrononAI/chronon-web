@@ -135,7 +135,8 @@ interface CustomField {
 }
 
 const ExpenseMasterPage = () => {
-  const [activeTab, setActiveTab] = useState<"core" | "custom">("core");
+  const [activeMainTab, setActiveMainTab] = useState<"expense" | "mileage" | "perdiem">("expense");
+  const [activeSubTab, setActiveSubTab] = useState<"core" | "custom">("core");
   const [fieldSettings, setFieldSettings] = useState<Record<string, string>>(
     {}
   );
@@ -163,7 +164,7 @@ const ExpenseMasterPage = () => {
   }, []);
 
   useEffect(() => {
-    if (activeTab !== "custom") return;
+    if (activeSubTab !== "custom") return;
     if (entities.length > 0) return;
     if (entitiesLoading) return;
     if (templates.length === 0) return;
@@ -182,21 +183,31 @@ const ExpenseMasterPage = () => {
       }
     };
     loadEntities();
-  }, [activeTab, templates.length]);
+  }, [activeSubTab, templates.length]);
 
-  const expenseTemplate = useMemo(() => {
-    return templates.find((t) => t.module_type === "expense");
-  }, [templates]);
+  const getModuleType = (tab: "expense" | "mileage" | "perdiem"): string => {
+    const moduleTypeMap = {
+      expense: "expense",
+      mileage: "mileage",
+      perdiem: "per_diem",
+    };
+    return moduleTypeMap[tab];
+  };
+
+  const currentTemplate = useMemo(() => {
+    const moduleType = getModuleType(activeMainTab);
+    return templates.find((t) => t.module_type === moduleType);
+  }, [templates, activeMainTab]);
 
   const assignedEntities = useMemo(() => {
     if (
-      !expenseTemplate?.entities ||
-      !Array.isArray(expenseTemplate.entities)
+      !currentTemplate?.entities ||
+      !Array.isArray(currentTemplate.entities)
     ) {
       return [];
     }
-    return expenseTemplate.entities;
-  }, [expenseTemplate]);
+    return currentTemplate.entities;
+  }, [currentTemplate]);
 
   const assignedEntityIds = useMemo(() => {
     return assignedEntities
@@ -258,9 +269,10 @@ const ExpenseMasterPage = () => {
       return;
     }
 
-    if (!expenseTemplate?.id) {
+    if (!currentTemplate?.id) {
+      const tabLabel = activeMainTab.charAt(0).toUpperCase() + activeMainTab.slice(1);
       toast.error(
-        "Expense template not found. Please ensure templates are loaded."
+        `${tabLabel} template not found. Please ensure templates are loaded.`
       );
       return;
     }
@@ -279,7 +291,7 @@ const ExpenseMasterPage = () => {
 
         try {
           await assignEntity({
-            module_template_id: expenseTemplate.id,
+            module_template_id: currentTemplate.id,
             entity_id: row.entityId,
             is_mandatory: row.mandatory === "MANDATORY",
           });
@@ -318,7 +330,7 @@ const ExpenseMasterPage = () => {
         );
         setCustomFields([]);
         await reloadData();
-        setActiveTab("core");
+        setActiveSubTab("core");
       }
     } catch (err: any) {
       console.error("Error assigning entities:", err);
@@ -345,9 +357,14 @@ const ExpenseMasterPage = () => {
     }
   };
 
+  useEffect(() => {
+    setCustomFields([]);
+    setActiveSubTab("core");
+  }, [activeMainTab]);
+
   const handleCancel = useCallback(() => {
     setCustomFields([]);
-    setActiveTab("core");
+    setActiveSubTab("core");
   }, []);
 
   const emptyStateMessage = getEmptyStateMessage(
@@ -356,6 +373,224 @@ const ExpenseMasterPage = () => {
     entities.length
   );
 
+  const renderCoreValues = () => {
+    const description = `Configure which core ${activeMainTab} fields are mandatory.`;
+
+    return (
+      <>
+        <Card className="p-6">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold">Core Values</h2>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </div>
+
+          {templates.length === 0 ? (
+            <p className="text-sm text-gray-600 py-4">
+              No templates found. Please refresh the page.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded text-sm font-medium text-gray-600">
+                <div>Field</div>
+                <div>Mandatory</div>
+              </div>
+
+              {CORE_FIELDS.map((label) => (
+                <div
+                  key={label}
+                  className="grid grid-cols-2 gap-4 items-center p-3 rounded bg-white"
+                >
+                  <div className="text-sm">{label}</div>
+                  <Select
+                    value={fieldSettings[label]}
+                    onValueChange={(v) => handleSelectChange(label, v)}
+                  >
+                    <SelectTrigger className="w-full h-10">
+                      <SelectValue placeholder="Select mandatory status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MANDATORY_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+        <FormFooter>
+          <Button onClick={handleSaveCoreConfig} disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Configuration"
+            )}
+          </Button>
+        </FormFooter>
+      </>
+    );
+  };
+
+  const renderCustomValues = () => {
+    const description = `Add or manage custom ${activeMainTab} fields here.`;
+
+    return (
+      <>
+        <Card className="p-6">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold">Custom Values</h2>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </div>
+
+          {templates.length === 0 ? (
+            <p className="text-sm text-gray-600 py-4">
+              No templates found. Please refresh the page.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="space-y-3">
+                {customFields.length === 0 && (
+                  <p className="text-sm text-gray-600">
+                    No custom values added.
+                  </p>
+                )}
+
+                {customFields.map((row, idx) => (
+                  <div
+                    key={idx}
+                    className="grid grid-cols-3 gap-4 items-center border-b pb-3 pt-3"
+                  >
+                    <div>
+                      {entitiesLoading ? (
+                        <div className="flex items-center gap-2 p-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm text-gray-500">
+                            Loading entities...
+                          </span>
+                        </div>
+                      ) : (
+                        <Select
+                          value={row.entityId}
+                          onValueChange={(v) =>
+                            updateCustomField(idx, { entityId: v })
+                          }
+                          disabled={entitiesLoading}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select entity" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableEntities.length > 0 ? (
+                              availableEntities.map((entity) => (
+                                <SelectItem key={entity.id} value={entity.id}>
+                                  {entity.display_name || entity.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="no-entities" disabled>
+                                {emptyStateMessage}
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+
+                    <div>
+                      <Select
+                        value={row.mandatory}
+                        onValueChange={(v) =>
+                          updateCustomField(idx, { mandatory: v })
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Mandatory" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MANDATORY_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-2 flex-wrap">
+                        {row.categories.length > 0 ? (
+                          row.categories.map((c, i) => (
+                            <div
+                              key={i}
+                              className="px-3 py-1 rounded bg-gray-200 text-sm"
+                            >
+                              {c}
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">
+                            Categories (read-only)
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        onClick={() => removeCustomField(idx)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4">
+                <Button
+                  variant="link"
+                  onClick={addCustomField}
+                  className="text-sm text-blue-600"
+                >
+                  Add
+                </Button>
+              </div>
+
+              <AssignedEntitiesList
+                assignedEntities={assignedEntities}
+                entities={entities}
+              />
+            </div>
+          )}
+        </Card>
+        <FormFooter>
+          <Button
+            variant="outline"
+            className="px-6 py-2"
+            onClick={handleCancel}
+            disabled={loading}
+          >
+            Back
+          </Button>
+          <Button onClick={handleSubmitCustom} disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit"
+            )}
+          </Button>
+        </FormFooter>
+      </>
+    );
+  };
+
   return (
     <>
       <div className="flex justify-between items-center mb-6">
@@ -363,8 +598,19 @@ const ExpenseMasterPage = () => {
       </div>
 
       <ReportTabs
-        activeTab={activeTab}
-        onTabChange={(t) => setActiveTab(t as any)}
+        activeTab={activeMainTab}
+        onTabChange={(t) => setActiveMainTab(t as any)}
+        tabs={[
+          { key: "expense", label: "Expense", count: 0 },
+          { key: "mileage", label: "Mileage", count: 0 },
+          { key: "perdiem", label: "Perdiem", count: 0 },
+        ]}
+        className="mb-6"
+      />
+
+      <ReportTabs
+        activeTab={activeSubTab}
+        onTabChange={(t) => setActiveSubTab(t as any)}
         tabs={[
           { key: "core", label: "Core Values", count: 0 },
           { key: "custom", label: "Custom Values", count: 0 },
@@ -372,217 +618,7 @@ const ExpenseMasterPage = () => {
         className="mb-6"
       />
 
-      {activeTab === "core" ? (
-        <>
-          <Card className="p-6">
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold">Core Values</h2>
-              <p className="text-sm text-muted-foreground">
-                Configure which core expense fields are mandatory.
-              </p>
-            </div>
-
-            {templates.length === 0 ? (
-              <p className="text-sm text-gray-600 py-4">
-                No templates found. Please refresh the page.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 gap-4">
-                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded text-sm font-medium text-gray-600">
-                  <div>Field</div>
-                  <div>Mandatory</div>
-                </div>
-
-                {CORE_FIELDS.map((label) => (
-                  <div
-                    key={label}
-                    className="grid grid-cols-2 gap-4 items-center p-3 rounded bg-white"
-                  >
-                    <div className="text-sm">{label}</div>
-                    <Select
-                      value={fieldSettings[label]}
-                      onValueChange={(v) => handleSelectChange(label, v)}
-                    >
-                      <SelectTrigger className="w-full h-10">
-                        <SelectValue placeholder="Select mandatory status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MANDATORY_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-          <FormFooter>
-            <Button onClick={handleSaveCoreConfig} disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Configuration"
-              )}
-            </Button>
-          </FormFooter>
-        </>
-      ) : (
-        <>
-          <Card className="p-6">
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold">Custom Values</h2>
-              <p className="text-sm text-muted-foreground">
-                Add or manage custom expense fields here.
-              </p>
-            </div>
-
-            {templates.length === 0 ? (
-              <p className="text-sm text-gray-600 py-4">
-                No templates found. Please refresh the page.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <div className="space-y-3">
-                  {customFields.length === 0 && (
-                    <p className="text-sm text-gray-600">
-                      No custom values added.
-                    </p>
-                  )}
-
-                  {customFields.map((row, idx) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-3 gap-4 items-center border-b pb-3 pt-3"
-                    >
-                      <div>
-                        {entitiesLoading ? (
-                          <div className="flex items-center gap-2 p-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="text-sm text-gray-500">
-                              Loading entities...
-                            </span>
-                          </div>
-                        ) : (
-                          <Select
-                            value={row.entityId}
-                            onValueChange={(v) =>
-                              updateCustomField(idx, { entityId: v })
-                            }
-                            disabled={entitiesLoading}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select entity" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableEntities.length > 0 ? (
-                                availableEntities.map((entity) => (
-                                  <SelectItem key={entity.id} value={entity.id}>
-                                    {entity.display_name || entity.name}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <SelectItem value="no-entities" disabled>
-                                  {emptyStateMessage}
-                                </SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </div>
-
-                      <div>
-                        <Select
-                          value={row.mandatory}
-                          onValueChange={(v) =>
-                            updateCustomField(idx, { mandatory: v })
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Mandatory" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {MANDATORY_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex gap-2 flex-wrap">
-                          {row.categories.length > 0 ? (
-                            row.categories.map((c, i) => (
-                              <div
-                                key={i}
-                                className="px-3 py-1 rounded bg-gray-200 text-sm"
-                              >
-                                {c}
-                              </div>
-                            ))
-                          ) : (
-                            <span className="text-xs text-gray-400 italic">
-                              Categories (read-only)
-                            </span>
-                          )}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          onClick={() => removeCustomField(idx)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4">
-                  <Button
-                    variant="link"
-                    onClick={addCustomField}
-                    className="text-sm text-blue-600"
-                  >
-                    Add
-                  </Button>
-                </div>
-
-                <AssignedEntitiesList
-                  assignedEntities={assignedEntities}
-                  entities={entities}
-                />
-              </div>
-            )}
-          </Card>
-          <FormFooter>
-            <Button
-              variant="outline"
-              className="px-6 py-2"
-              onClick={handleCancel}
-              disabled={loading}
-            >
-              Back
-            </Button>
-            <Button onClick={handleSubmitCustom} disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                "Submit"
-              )}
-            </Button>
-          </FormFooter>
-        </>
-      )}
+      {activeSubTab === "core" ? renderCoreValues() : renderCustomValues()}
     </>
   );
 };
