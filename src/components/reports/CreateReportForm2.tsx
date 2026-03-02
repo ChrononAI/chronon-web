@@ -1546,8 +1546,7 @@ export function CreateReportForm2({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold text-[#64748B]">Description</FormLabel>
-                    <FormLabel>
+                    <FormLabel className="text-sm font-semibold text-[#64748B]">
                       Description{isDescriptionMandatory && " *"}
                     </FormLabel>
                     <FormControl>
