@@ -119,8 +119,17 @@ export function ExpenseDetailPage() {
   const loadTemplateEntities = async () => {
     try {
       const templates = await getTemplates();
+      if (!expense) return;
+      
+      let moduleType = "expense";
+      if (isMileageExpense(expense)) {
+        moduleType = "mileage";
+      } else if (isPerDiemExpense(expense)) {
+        moduleType = "per_diem";
+      }
+      
       const expenseTemplate = Array.isArray(templates)
-        ? templates.find((t) => t.module_type === "expense")
+        ? templates.find((t) => t.module_type === moduleType)
         : null;
       if (expenseTemplate?.entities) {
         setTemplateEntities(expenseTemplate.entities);
@@ -169,8 +178,13 @@ export function ExpenseDetailPage() {
     };
 
     fetchData();
-    loadTemplateEntities();
   }, [expenseId]);
+
+  useEffect(() => {
+    if (expense) {
+      loadTemplateEntities();
+    }
+  }, [expense]);
 
   const fetchReceipt = async (receiptId: string, orgId: string) => {
     try {
@@ -194,12 +208,20 @@ export function ExpenseDetailPage() {
     if (!formData.custom_attributes) {
       formData.custom_attributes = {};
     }
+    
+    let moduleType = "expense";
+    if (isMileageExpense(expense)) {
+      moduleType = "mileage";
+    } else if (isPerDiemExpense(expense)) {
+      moduleType = "per_diem";
+    }
+    
     let entitiesToUse = templateEntities;
     if (!entitiesToUse || entitiesToUse.length === 0) {
       try {
         const templates = await getTemplates();
         const expenseTemplate = Array.isArray(templates)
-          ? templates.find((t) => t.module_type === "expense")
+          ? templates.find((t) => t.module_type === moduleType)
           : null;
         if (expenseTemplate?.entities) {
           entitiesToUse = expenseTemplate.entities;
@@ -265,7 +287,7 @@ export function ExpenseDetailPage() {
           mileage_rate_id: formData.mileage_rate_id,
           mileage_meta: formData.mileage_meta || null,
           is_round_trip: formData.is_round_trip === "true" ? true : false,
-          custom_attributes: {},
+          custom_attributes: formData.custom_attributes || {},
           currency: baseCurrency,
         };
         if (isAdminUpdatingExpense) {

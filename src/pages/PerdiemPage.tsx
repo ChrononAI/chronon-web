@@ -342,7 +342,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
     const customAttributes = await extractCustomAttributes();
 
-    const submitData = {
+    const submitData: any = {
       expense_policy_id: formData.policyId,
       category_id: values.categoryId,
       amount: formData.totalAmount,
@@ -354,8 +354,11 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         end_date: values.endDate,
         location: values.location,
       },
-      ...(Object.keys(customAttributes).length > 0 && { custom_attributes: customAttributes })
     };
+
+    if (Object.keys(customAttributes).length > 0) {
+      submitData.custom_attributes = customAttributes;
+    }
 
     try {
       if (mode === "create") {

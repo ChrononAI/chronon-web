@@ -602,7 +602,7 @@ const MileagePage = ({
 
     const customAttributes = await extractCustomAttributes();
 
-    const submitData = {
+    const submitData: any = {
       expense_policy_id: values.policyId,
       category_id: values.categoryId,
       amount: extractAmount(values.amount),
@@ -615,9 +615,15 @@ const MileagePage = ({
       is_round_trip: values.isRoundTrip.toString(),
       mileage_meta: mileage_meta,
       vendor: expenseData?.vendor || "Mileage Reimbursement",
-      ...(fileIds && { file_ids: fileIds }),
-      ...(Object.keys(customAttributes).length > 0 && { custom_attributes: customAttributes })
     };
+
+    if (fileIds && fileIds.length > 0) {
+      submitData.file_ids = fileIds;
+    }
+
+    if (Object.keys(customAttributes).length > 0) {
+      submitData.custom_attributes = customAttributes;
+    }
 
     try {
       if (mode === "create") {
