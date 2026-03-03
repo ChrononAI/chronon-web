@@ -10,6 +10,30 @@ const handleApiResponse = async (response: AxiosResponse) => {
 
 export const approvalService = {
 
+  async getFilteredReportsToApprove({
+    query,
+    limit,
+    offset,
+    signal,
+  }: {
+    query: string;
+    limit: number;
+    offset: number;
+    signal: AbortSignal;
+  }) {
+    try {
+      return await api.get(`/api/v1/reports/approvers/reports?${query}`, {
+        params: {
+          limit,
+          offset,
+        },
+        signal,
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async getAllReports(limit: number, offset: number) {
   try {
       const orgId = getOrgIdFromToken();
@@ -154,6 +178,31 @@ export const approvalService = {
         success: false,
         message: error instanceof Error ? error.message : 'Failed to reject expense'
       };
+    }
+  },
+
+  async exportReports(reportIds: string[], type: 'pdf' | 'xlsx' = 'pdf'): Promise<{ success: boolean; data: any }> {
+    try {
+      // Format report IDs for query params: id=in.(rptWPG3ivJV8I, rpttBHVeRVo9v)
+      const queryParams = `id=in.(${reportIds.join(', ')})`;
+      const includeReceipts = type === 'pdf';
+      
+      const response = await api.post('/api/v1/report_exports', {
+        query_params: queryParams,
+        config: {
+          type: type,
+          include_receipts: includeReceipts
+        }
+      });
+      
+      const result = await handleApiResponse(response);
+      return {
+        success: true,
+        data: result.data
+      };
+    } catch (error: unknown) {
+      console.error('Error exporting reports:', error);
+      throw error;
     }
   },
 };

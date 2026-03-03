@@ -111,7 +111,6 @@ function TransactionsPage() {
   };
 
   const handleRowClick = ({ id }: GridRowParams) => {
-    console.log(id);
     navigate(`/transactions/${id}`);
   };
 

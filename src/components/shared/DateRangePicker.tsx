@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+import { cn, parseLocalDate } from "@/lib/utils";
 import { CalendarDaysIcon, X } from "lucide-react";
 
 interface DateRangePickerProps {
@@ -17,7 +17,7 @@ interface DateRangePickerProps {
 
 function formatDate(date?: string) {
   if (!date) return "";
-  return format(new Date(date + "T00:00:00"), "MMM dd, yyyy");
+  return format(parseLocalDate(date), "MMM dd, yyyy");
 }
 
 /**
@@ -110,7 +110,7 @@ function DateRangePicker({ value, onChange, className }: DateRangePickerProps) {
               <CalendarComponent
                 mode="single"
                 selected={
-                  tempFrom ? new Date(tempFrom + "T00:00:00") : undefined
+                  tempFrom ? parseLocalDate(tempFrom) : undefined
                 }
                 onSelect={(date) => {
                   if (!date) return;
@@ -143,7 +143,7 @@ function DateRangePicker({ value, onChange, className }: DateRangePickerProps) {
             <PopoverContent side="top" align="start" className="p-0 w-auto">
               <CalendarComponent
                 mode="single"
-                selected={tempTo ? new Date(tempTo + "T00:00:00") : undefined}
+                selected={tempTo ? parseLocalDate(tempTo) : undefined}
                 onSelect={(date) => {
                   if (!date) return;
                   setTempTo(toLocalDateString(date));

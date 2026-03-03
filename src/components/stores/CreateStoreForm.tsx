@@ -34,6 +34,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Entity, getEntities } from "@/services/admin/entities";
 import { getTemplates, Template } from "@/services/admin/templates";
+import { useAuthStore } from "@/store/authStore";
 
 export interface Currency {
   code: string;
@@ -52,12 +53,18 @@ const getFieldName = (entity: TemplateEntity): string => {
 };
 
 const getEntityByName = (entityName: string, templateEntities: any[]) => {
-  return templateEntities.find(ent => ent.field_name === entityName);
+  return templateEntities.find((ent) => ent.field_name === entityName);
 };
 
 const FIELD_NAME_ARRAY = [
-  "Store ID", 'Cost Center', "Store Location", "Business Area", "Staff Count", "Advance Amount", "Region"
-]
+  "Store ID",
+  "Cost Center",
+  "Store Location",
+  "Business Area",
+  "Staff Count",
+  "Advance Amount",
+  "Region",
+];
 
 // Form schema
 const storeSchema = z
@@ -89,6 +96,7 @@ export function CreateStoreForm({
 }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { user } = useAuthStore();
   const { id } = useParams<{ id: string }>();
 
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
@@ -211,8 +219,8 @@ export function CreateStoreForm({
       } catch (error: any) {
         toast.error(
           error.response?.data?.message ||
-          error.message ||
-          "Failed to resubmit store"
+            error.message ||
+            "Failed to resubmit store"
         );
       } finally {
         setLoading(false);
@@ -282,7 +290,7 @@ export function CreateStoreForm({
     }
   };
 
-  const renderTemplateField = ((entity: TemplateEntity) => {
+  const renderTemplateField = (entity: TemplateEntity) => {
     const entityId = getEntityId(entity);
     const fieldName = getFieldName(entity);
     if (!entityId) return null;
@@ -320,8 +328,8 @@ export function CreateStoreForm({
                       <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
                         {field.value
                           ? entityOptions[entityId]?.find(
-                            (opt) => opt.id === field.value
-                          )?.label || `Select ${fieldName}`
+                              (opt) => opt.id === field.value
+                            )?.label || `Select ${fieldName}`
                           : `Select ${fieldName}`}
                       </span>
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -330,9 +338,7 @@ export function CreateStoreForm({
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                   <Command>
-                    <CommandInput
-                      placeholder={`Search ${fieldName}...`}
-                    />
+                    <CommandInput placeholder={`Search ${fieldName}...`} />
                     <CommandList className="max-h-[180px] overflow-y-auto">
                       <CommandEmpty>
                         No {fieldName.toLowerCase()} found.
@@ -372,7 +378,7 @@ export function CreateStoreForm({
         )}
       />
     );
-  });
+  };
 
   useEffect(() => {
     const loadTemplates = async () => {
@@ -434,6 +440,36 @@ export function CreateStoreForm({
 
     loadTemplates();
     getAllUsers();
+  }, []);
+
+  const getUserById = async (id: string) => {
+    try {
+      const res = await userService.getUserById(id);
+      return res.data.data;
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    const initAreaManager = async () => {
+      if (user && mode === "create") {
+        setSelectedUser(user);
+        form.setValue("area_manager_id", user.id.toString());
+        return;
+      }
+
+      if (mode !== "create" && selectedStore?.area_manager_id) {
+        const fetchedUser = await getUserById(selectedStore.area_manager_id);
+
+        if (fetchedUser) {
+          setSelectedUser(fetchedUser);
+          form.setValue("area_manager_id", fetchedUser.id.toString());
+        }
+      }
+    };
+
+    initAreaManager();
   }, []);
 
   return (
@@ -501,11 +537,17 @@ export function CreateStoreForm({
               )}
             />
 
-            {getEntityByName("Store ID", templateEntities) && renderTemplateField(getEntityByName("Store ID", templateEntities))}
+            {getEntityByName("Store ID", templateEntities) &&
+              renderTemplateField(
+                getEntityByName("Store ID", templateEntities)
+              )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {getEntityByName("Cost Center", templateEntities) && renderTemplateField(getEntityByName("Cost Center", templateEntities))}
+            {getEntityByName("Cost Center", templateEntities) &&
+              renderTemplateField(
+                getEntityByName("Cost Center", templateEntities)
+              )}
 
             <FormField
               control={form.control}
@@ -526,7 +568,10 @@ export function CreateStoreForm({
             />
           </div>
 
-          {getEntityByName("Store Location", templateEntities) && renderTemplateField(getEntityByName("Store Location", templateEntities))}
+          {getEntityByName("Store Location", templateEntities) &&
+            renderTemplateField(
+              getEntityByName("Store Location", templateEntities)
+            )}
 
           <FormField
             control={form.control}
@@ -546,8 +591,12 @@ export function CreateStoreForm({
             )}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {getEntityByName("Region", templateEntities) && renderTemplateField(getEntityByName("Region", templateEntities))}
-            {getEntityByName("Business Area", templateEntities) && renderTemplateField(getEntityByName("Business Area", templateEntities))}
+            {getEntityByName("Region", templateEntities) &&
+              renderTemplateField(getEntityByName("Region", templateEntities))}
+            {getEntityByName("Business Area", templateEntities) &&
+              renderTemplateField(
+                getEntityByName("Business Area", templateEntities)
+              )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
@@ -593,13 +642,18 @@ export function CreateStoreForm({
               )}
             />
 
-            {getEntityByName("Staff Count", templateEntities) && renderTemplateField(getEntityByName("Staff Count", templateEntities))}
+            {getEntityByName("Staff Count", templateEntities) &&
+              renderTemplateField(
+                getEntityByName("Staff Count", templateEntities)
+              )}
           </div>
 
-          {getEntityByName("Advance Amount", templateEntities) && renderTemplateField(getEntityByName("Advance Amount", templateEntities))}
+          {getEntityByName("Advance Amount", templateEntities) &&
+            renderTemplateField(
+              getEntityByName("Advance Amount", templateEntities)
+            )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {!(mode === "view" && !selectedStore?.store_manager_id) && (
               <FormField
@@ -650,7 +704,9 @@ export function CreateStoreForm({
                                 >
                                   <div>
                                     {`${user.username}`}
-                                    <div className="text-xs text-muted-foreground">{user.first_name} {user.last_name}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {user.first_name} {user.last_name}
+                                    </div>
                                   </div>
                                 </CommandItem>
                               ))}
@@ -668,9 +724,17 @@ export function CreateStoreForm({
               <FormLabel>Store Manager EMP Name</FormLabel>
               <FormControl>
                 <Input
-                  value={selectedStoreManager ? `${selectedStoreManager?.first_name} ${selectedStoreManager?.last_name}` : ""}
-                  placeholder={selectedStoreManager ? "Store Manager EMP Name" : "Select Store Manager"}
-                  disabled={mode === "view" || !selectedStoreManager}
+                  value={
+                    selectedStoreManager
+                      ? `${selectedStoreManager?.first_name} ${selectedStoreManager?.last_name}`
+                      : ""
+                  }
+                  placeholder={
+                    selectedStoreManager
+                      ? "Store Manager EMP Name"
+                      : "Select Store Manager"
+                  }
+                  disabled
                 />
               </FormControl>
               <FormMessage />
@@ -681,9 +745,17 @@ export function CreateStoreForm({
               <FormLabel>Store Manager Mobile No</FormLabel>
               <FormControl>
                 <Input
-                  value={selectedStoreManager ? `${selectedStoreManager?.phone_number}` : ""}
-                  placeholder={selectedStoreManager ? "Store Manager Mobile No" : "Select Store Manager"}
-                  disabled={mode === "view" || !selectedStoreManager}
+                  value={
+                    selectedStoreManager
+                      ? `${selectedStoreManager?.phone_number}`
+                      : ""
+                  }
+                  placeholder={
+                    selectedStoreManager
+                      ? "Store Manager Mobile No"
+                      : "Select Store Manager"
+                  }
+                  disabled
                 />
               </FormControl>
               <FormMessage />
@@ -692,9 +764,15 @@ export function CreateStoreForm({
               <FormLabel>Store Manager EMP Mail ID</FormLabel>
               <FormControl>
                 <Input
-                  value={selectedStoreManager ? `${selectedStoreManager?.email}` : ""}
-                  placeholder={selectedStoreManager ? "Store Manager Mail ID" : "Select Store Manager"}
-                  disabled={mode === "view" || !selectedStoreManager}
+                  value={
+                    selectedStoreManager ? `${selectedStoreManager?.email}` : ""
+                  }
+                  placeholder={
+                    selectedStoreManager
+                      ? "Store Manager Mail ID"
+                      : "Select Store Manager"
+                  }
+                  disabled
                 />
               </FormControl>
               <FormMessage />
@@ -719,7 +797,7 @@ export function CreateStoreForm({
                             role="combobox"
                             aria-expanded={areaManagerDropdown}
                             className="h-11 w-full justify-between"
-                            disabled={mode === "view"}
+                            disabled
                           >
                             <>
                               <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
@@ -750,7 +828,9 @@ export function CreateStoreForm({
                                 >
                                   <div>
                                     {`${user.username}`}
-                                    <div className="text-xs text-muted-foreground">{user.first_name} {user.last_name}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {user.first_name} {user.last_name}
+                                    </div>
                                   </div>
                                 </CommandItem>
                               ))}
@@ -764,13 +844,29 @@ export function CreateStoreForm({
                 )}
               />
             )}
-             <FormItem>
-              <FormLabel>Store Manager EMP Name</FormLabel>
+            <FormItem>
+              <FormLabel>Area Manager EMP Name</FormLabel>
               <FormControl>
                 <Input
-                  value={selectedUser ? `${selectedUser?.first_name} ${selectedUser?.last_name}` : ""}
-                  placeholder={selectedStoreManager ? "Store Manager EMP Name" : "Select Store Manager"}
-                  disabled={mode === "view" || !selectedStoreManager}
+                  value={
+                    selectedUser
+                      ? `${
+                          selectedUser?.firstName ||
+                          selectedUser?.first_name ||
+                          ""
+                        } ${
+                          selectedUser?.lastName ||
+                          selectedUser?.last_name ||
+                          ""
+                        }`
+                      : ""
+                  }
+                  placeholder={
+                    selectedStoreManager
+                      ? "Area Manager EMP Name"
+                      : "Select Area Manager"
+                  }
+                  disabled
                 />
               </FormControl>
               <FormMessage />

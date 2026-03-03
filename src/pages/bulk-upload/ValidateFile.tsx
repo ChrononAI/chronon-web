@@ -122,6 +122,7 @@ function ValidateFile() {
         error.message ||
         "Failed to validate file"
       );
+      throw error;
     }
   };
 
@@ -146,6 +147,7 @@ function ValidateFile() {
       setMappedRows(res.data.data);
     } catch (error) {
       console.log(error);
+      throw error;
     }
   };
 
@@ -155,6 +157,7 @@ function ValidateFile() {
       setIssueRows(res.data.data);
     } catch (error) {
       console.log(error);
+      throw error;
     }
   };
 
@@ -178,7 +181,6 @@ function ValidateFile() {
         },
       });
 
-      // 🔥 REMOVE issues for this row locally
       setIssueRows((prev: any[]) =>
         prev.filter(
           (issue) =>
@@ -214,11 +216,9 @@ function ValidateFile() {
   const loadData = async (fileid: string) => {
     try {
       setLoading(true);
-      await Promise.all([
-        validateFile(fileid),
-        getMappedRows(fileid),
-        getMappedRowIssues(fileid),
-      ]);
+      await validateFile(fileid);
+      await getMappedRows(fileid);
+      await getMappedRowIssues(fileid);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error?.message);
     } finally {
@@ -311,36 +311,36 @@ function ValidateFile() {
 
               return "";
             }}
-            onCellClick={(params, event) => {
-              const hasError = errorCellMap[params.id as string]?.has(
-                params.field
-              );
+            // onCellClick={(params, event) => {
+            //   const hasError = errorCellMap[params.id as string]?.has(
+            //     params.field
+            //   );
 
-              if (!hasError) {
-                event.stopPropagation();
-                event.preventDefault();
-              }
-            }}
-            onCellDoubleClick={(params, event) => {
-              const hasError = errorCellMap[params.id as string]?.has(
-                params.field
-              );
+            //   if (!hasError) {
+            //     event.stopPropagation();
+            //     event.preventDefault();
+            //   }
+            // }}
+            // onCellDoubleClick={(params, event) => {
+            //   const hasError = errorCellMap[params.id as string]?.has(
+            //     params.field
+            //   );
 
-              if (!hasError) {
-                event.stopPropagation();
-                event.preventDefault();
-              }
-            }}
-            onCellKeyDown={(params, event) => {
-              const hasError = errorCellMap[params.id as string]?.has(
-                params.field
-              );
+            //   if (!hasError) {
+            //     event.stopPropagation();
+            //     event.preventDefault();
+            //   }
+            // }}
+            // onCellKeyDown={(params, event) => {
+            //   const hasError = errorCellMap[params.id as string]?.has(
+            //     params.field
+            //   );
 
-              if (!hasError) {
-                event.stopPropagation();
-                event.preventDefault();
-              }
-            }}
+            //   if (!hasError) {
+            //     event.stopPropagation();
+            //     event.preventDefault();
+            //   }
+            // }}
             density="compact"
             disableRowSelectionOnClick
             processRowUpdate={processRowUpdate}

@@ -48,6 +48,7 @@ import {
   formatDistance,
   getDistanceUnit,
   usesMetricSystem,
+  parseLocalDate,
 } from "@/lib/utils";
 import {
   Form,
@@ -64,6 +65,8 @@ import { Attachment } from "@/components/expenses/ExpenseDetailsStep2";
 import AttachmentViewer from "@/components/expenses/AttachmentViewer";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { useTemplateEntities } from "@/hooks/useTemplateEntities";
+import { TemplateEntityField } from "@/components/expenses/TemplateEntityField";
 
 interface MileagePageProps {
   mode?: "create" | "view" | "edit";
@@ -190,6 +193,14 @@ const MileagePage = ({
 
   const [selectedCategory, setSelectedCategory] = useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+
+  const {
+    templateEntities,
+    entityOptions,
+    entityDropdownOpen,
+    setEntityDropdownOpen,
+    extractCustomAttributes,
+  } = useTemplateEntities(form, "mileage", expenseData);
 
   const generateUploadUrl = async (file: File): Promise<{
     downloadUrl: string;
@@ -595,7 +606,9 @@ const MileagePage = ({
       mileage_meta.map_url = mapUrl;
     }
 
-    const submitData = {
+    const customAttributes = await extractCustomAttributes();
+
+    const submitData: any = {
       expense_policy_id: values.policyId,
       category_id: values.categoryId,
       amount: extractAmount(values.amount),
@@ -608,8 +621,15 @@ const MileagePage = ({
       is_round_trip: values.isRoundTrip.toString(),
       mileage_meta: mileage_meta,
       vendor: expenseData?.vendor || "Mileage Reimbursement",
-      ...(fileIds && { file_ids: fileIds })
     };
+
+    if (fileIds && fileIds.length > 0) {
+      submitData.file_ids = fileIds;
+    }
+
+    if (Object.keys(customAttributes).length > 0) {
+      submitData.custom_attributes = customAttributes;
+    }
 
     try {
       if (mode === "create") {
@@ -800,7 +820,9 @@ const MileagePage = ({
         description: expenseData.description || "",
         vehiclesType: expenseData.mileage_rate_id,
         expenseDate:
-          format(new Date(expenseData.expense_date), "yyyy-MM-dd") || "",
+          expenseData.expense_date
+            ? format(parseLocalDate(expenseData.expense_date), "yyyy-MM-dd")
+            : "",
         isRoundTrip: expenseData.is_round_trip,
         policyId: expenseData.expense_policy_id || "",
         categoryId: expenseData.category_id || "",
@@ -1583,6 +1605,28 @@ const MileagePage = ({
                     </FormItem>
                   )}
                 />
+
+                {templateEntities?.map((entity) => {
+                  const entityId = entity?.entity_id || entity?.id || "";
+                  if (!entityId) return null;
+
+                  return (
+                    <TemplateEntityField
+                      key={entityId}
+                      control={form.control}
+                      entity={entity}
+                      entityOptions={entityOptions[entityId] || []}
+                      dropdownOpen={entityDropdownOpen[entityId] || false}
+                      onDropdownOpenChange={(open) =>
+                        setEntityDropdownOpen((prev) => ({
+                          ...prev,
+                          [entityId]: open,
+                        }))
+                      }
+                      disabled={mode === "view" && !editMode}
+                    />
+                  );
+                })}
               </div>
             </div>
 

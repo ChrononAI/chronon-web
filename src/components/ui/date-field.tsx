@@ -4,6 +4,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/utils";
 
 interface DateFieldProps {
   id?: string;
@@ -28,8 +29,7 @@ export function DateField({
 }: DateFieldProps) {
   const [open, setOpen] = useState(false);
 
-  // Parse & format safely
-  const selectedDate = value ? new Date(value) : undefined;
+  const selectedDate = value ? parseLocalDate(value) : undefined;
 
   const handleSelect = (date: Date | undefined) => {
     if (!date) return;
@@ -48,7 +48,7 @@ export function DateField({
           <Input
             id={id}
             type="text"
-            value={value ? format(new Date(value), "dd/MM/yyyy") : ""}
+            value={value ? format(parseLocalDate(value), "dd/MM/yyyy") : ""}
             onChange={() => {}}
             onClick={() => !disabled && setOpen(true)}
             placeholder={placeholder}
@@ -63,8 +63,8 @@ export function DateField({
           mode="single"
           selected={selectedDate}
           onSelect={handleSelect}
-          fromDate={minDate ? new Date(minDate) : undefined}
-          toDate={maxDate ? new Date(maxDate) : undefined}
+          fromDate={minDate ? parseLocalDate(minDate) : undefined}
+          toDate={maxDate ? parseLocalDate(maxDate) : undefined}
           initialFocus
         />
       </PopoverContent>

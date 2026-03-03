@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { expenseService } from "@/services/expenseService";
 import { ExpenseComments } from "@/components/expenses/ExpenseComments";
-import { cn } from "@/lib/utils";
+import { cn, parseLocalDate } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/form";
 import { trackEvent } from "@/mixpanel";
 import ExpenseLogs from "@/components/expenses/ExpenseLogs";
+import { useTemplateEntities } from "@/hooks/useTemplateEntities";
+import { TemplateEntityField } from "@/components/expenses/TemplateEntityField";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -150,6 +152,14 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const [selectedCategory, setSelectedCategory] = useState<PolicyCategory | null>(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
+  const {
+    templateEntities,
+    entityOptions,
+    entityDropdownOpen,
+    setEntityDropdownOpen,
+    extractCustomAttributes,
+  } = useTemplateEntities(form, "per_diem", expenseData);
+
   const generateUploadUrl = async (file: File): Promise<{
     downloadUrl: string;
     uploadUrl: string;
@@ -218,7 +228,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     if (expenseData) {
       const formatDate = (dateString: string) => {
         try {
-          return format(new Date(dateString), "yyyy-MM-dd");
+          return format(parseLocalDate(dateString), "yyyy-MM-dd");
         } catch {
           return format(new Date(), "yyyy-MM-dd");
         }
@@ -329,7 +339,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
     }
     setLoading(true);
 
-    const submitData = {
+    const customAttributes = await extractCustomAttributes();
+
+    const submitData: any = {
       expense_policy_id: formData.policyId,
       category_id: values.categoryId,
       amount: formData.totalAmount,
@@ -342,6 +354,10 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         location: values.location,
       },
     };
+
+    if (Object.keys(customAttributes).length > 0) {
+      submitData.custom_attributes = customAttributes;
+    }
 
     try {
       if (mode === "create") {
@@ -851,6 +867,28 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         </FormItem>
                       )}
                     />
+
+                    {templateEntities?.map((entity) => {
+                      const entityId = entity?.entity_id || entity?.id || "";
+                      if (!entityId) return null;
+
+                      return (
+                        <TemplateEntityField
+                          key={entityId}
+                          control={form.control}
+                          entity={entity}
+                          entityOptions={entityOptions[entityId] || []}
+                          dropdownOpen={entityDropdownOpen[entityId] || false}
+                          onDropdownOpenChange={(open) =>
+                            setEntityDropdownOpen((prev) => ({
+                              ...prev,
+                              [entityId]: open,
+                            }))
+                          }
+                          disabled={mode === "view"}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               </div>

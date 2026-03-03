@@ -6,7 +6,7 @@ import PerdiemPage from "@/pages/PerdiemPage";
 import { AlertCircle, Trash2, Loader2 } from "lucide-react";
 import { expenseService, UpdateExpenseData } from "@/services/expenseService";
 import { Expense } from "@/types/expense";
-import { getOrgCurrency, getStatusColor } from "@/lib/utils";
+import { getOrgCurrency, getStatusColor, parseLocalDate } from "@/lib/utils";
 import { useExpenseStore } from "@/store/expenseStore";
 import {
   AlertDialog,
@@ -54,6 +54,8 @@ const filterFormData = (data: Record<string, any>): UpdateExpenseData => {
     "currency",
     "api_conversion_rate",
     "user_conversion_rate",
+    "start_date",
+    "end_date"
   ];
 
   const sanitized: any = {};
@@ -117,8 +119,17 @@ export function ExpenseDetailPage() {
   const loadTemplateEntities = async () => {
     try {
       const templates = await getTemplates();
+      if (!expense) return;
+      
+      let moduleType = "expense";
+      if (isMileageExpense(expense)) {
+        moduleType = "mileage";
+      } else if (isPerDiemExpense(expense)) {
+        moduleType = "per_diem";
+      }
+      
       const expenseTemplate = Array.isArray(templates)
-        ? templates.find((t) => t.module_type === "expense")
+        ? templates.find((t) => t.module_type === moduleType)
         : null;
       if (expenseTemplate?.entities) {
         setTemplateEntities(expenseTemplate.entities);
@@ -132,8 +143,13 @@ export function ExpenseDetailPage() {
     const fetchData = async () => {
       if (!expenseId) return;
       try {
+        const isFromApprovalReport = isFromApprovals || 
+          location.pathname.includes("/approvals") ||
+          location.pathname.includes("/admin-reports") ||
+          location.pathname.includes("/settlements");
+        
         const [expenseData] = await Promise.all([
-          expenseService.getExpenseById(expenseId),
+          expenseService.getExpenseById(expenseId, isFromApprovalReport),
           expenseService.getAllPoliciesWithCategories(),
         ]);
         setExpense(expenseData);
@@ -162,8 +178,13 @@ export function ExpenseDetailPage() {
     };
 
     fetchData();
-    loadTemplateEntities();
   }, [expenseId]);
+
+  useEffect(() => {
+    if (expense) {
+      loadTemplateEntities();
+    }
+  }, [expense]);
 
   const fetchReceipt = async (receiptId: string, orgId: string) => {
     try {
@@ -187,12 +208,20 @@ export function ExpenseDetailPage() {
     if (!formData.custom_attributes) {
       formData.custom_attributes = {};
     }
+    
+    let moduleType = "expense";
+    if (isMileageExpense(expense)) {
+      moduleType = "mileage";
+    } else if (isPerDiemExpense(expense)) {
+      moduleType = "per_diem";
+    }
+    
     let entitiesToUse = templateEntities;
     if (!entitiesToUse || entitiesToUse.length === 0) {
       try {
         const templates = await getTemplates();
         const expenseTemplate = Array.isArray(templates)
-          ? templates.find((t) => t.module_type === "expense")
+          ? templates.find((t) => t.module_type === moduleType)
           : null;
         if (expenseTemplate?.entities) {
           entitiesToUse = expenseTemplate.entities;
@@ -221,7 +250,7 @@ export function ExpenseDetailPage() {
     try {
       if (filteredData.invoice_number) {
         filteredData.expense_date = format(
-          new Date(filteredData.expense_date),
+          parseLocalDate(filteredData.expense_date),
           "yyyy-MM-dd"
         );
         filteredData.currency = baseCurrency;
@@ -229,7 +258,6 @@ export function ExpenseDetailPage() {
           filteredData.foreign_currency = null;
         }
         filteredData.advance_account_id = formData.advance_account_id?.length > 0 ? formData.advance_account_id : null;
-        console.log(filteredData);
 
         if (isAdminUpdatingExpense) {
           setShowAdminEditConfirm(true);
@@ -259,7 +287,7 @@ export function ExpenseDetailPage() {
           mileage_rate_id: formData.mileage_rate_id,
           mileage_meta: formData.mileage_meta || null,
           is_round_trip: formData.is_round_trip === "true" ? true : false,
-          custom_attributes: {},
+          custom_attributes: formData.custom_attributes || {},
           currency: baseCurrency,
         };
         if (isAdminUpdatingExpense) {

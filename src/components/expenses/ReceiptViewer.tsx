@@ -5,6 +5,7 @@ import {
   FileText,
   Loader2,
   RotateCw,
+  Trash2,
   X,
   ZoomIn,
   ZoomOut,
@@ -21,6 +22,7 @@ import { toast } from "sonner";
 import { Attachment } from "./ExpenseDetailsStep2";
 import { AttachmentUploader } from "./AttachmentUploader";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { useLocation } from "react-router-dom";
 
 const isPdfUrl = (url: string | null | undefined) => {
   if (!url) return false;
@@ -56,8 +58,9 @@ function ReceiptViewer({
   setAttachments,
   fileIds,
   setFileIds,
-  generateUploadUrl
+  generateUploadUrl,
 }: any) {
+  const { pathname } = useLocation();
   const [validations, setValidations] = useState<ValidationItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [validationLoading, setValidationLoading] = useState(false);
@@ -96,14 +99,26 @@ function ReceiptViewer({
       ? "PDF"
       : "Image"
     : activeReceiptUrl
-      ? isPdfUrl(activeReceiptUrl)
-        ? "PDF"
-        : "Image"
-      : null;
+    ? isPdfUrl(activeReceiptUrl)
+      ? "PDF"
+      : "Image"
+    : null;
 
   const isPdfReceipt =
     (uploadedFile && uploadedFile.type.toLowerCase().includes("pdf")) ||
     isPdfUrl(currentReceiptUrl);
+
+    const handleDeleteAttachment = () => {
+    setFileIds((prev: any) => [
+      ...prev.slice(0, activeReceiptIndex - 1),
+      ...prev.slice(activeReceiptIndex + 1),
+    ]);
+    setAttachments((prev: any) => [
+      ...prev.slice(0, activeReceiptIndex - 1),
+      ...prev.slice(activeReceiptIndex + 1),
+    ]);
+    goPrev();
+  };
 
   const handlePostComment = async () => {
     if (!expense?.id || !newComment?.trim() || postingComment) return;
@@ -246,7 +261,7 @@ function ReceiptViewer({
               );
             })}
           </div>
-          {!readOnly && hasReceipt && activeReceiptTab === "receipt" && (
+          {!readOnly && hasReceipt && activeReceiptTab === "receipt" && !pathname.includes("admin-reports") && (
             <Button
               type="button"
               variant="outline"
@@ -260,8 +275,9 @@ function ReceiptViewer({
           )}
         </div>
         <div
-          className={`h-full flex-1 overflow-hidden ${activeReceiptTab !== "receipt" && "overflow-hidden"
-            }`}
+          className={`h-full flex-1 overflow-hidden ${
+            activeReceiptTab !== "receipt" && "overflow-hidden"
+          }`}
         >
           {activeReceiptTab === "receipt" ? (
             <div className="flex flex-col h-full">
@@ -311,7 +327,7 @@ function ReceiptViewer({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center gap-3 p-16 text-center">
+                  <div className="flex flex-col mx-auto items-center justify-center gap-3 p-16 text-center">
                     <FileText className="h-14 w-14 text-gray-300" />
                     <div className="space-y-6">
                       <div>
@@ -385,7 +401,26 @@ function ReceiptViewer({
                     fileIds={fileIds}
                     setFileIds={setFileIds}
                     generateUploadUrl={generateUploadUrl}
+                    disabled={!hasReceipt}
                   />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 w-9 p-0"
+                        onClick={handleDeleteAttachment}
+                        disabled={
+                          !hasMultipleReceipts || !Boolean(activeReceiptIndex)
+                        }
+                      >
+                        <Trash2 className="h-4 w-4 p-0" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-white text-black border border-[0.5]">
+                      <p>Delete Attachment</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button

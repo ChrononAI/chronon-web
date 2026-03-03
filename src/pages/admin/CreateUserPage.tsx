@@ -808,7 +808,7 @@ const CreateUserForm = ({
             type="submit"
             form="create-user-form"
             className="min-w-[140px]"
-            disabled={submitting}
+            disabled={submitting || !initialValues?.is_active}
           >
             {submitting ? (
               <>
@@ -1046,6 +1046,7 @@ export const CreateUserPage = () => {
         firstName: data.first_name || "",
         lastName: data.last_name || "",
         phoneNumber: data.phone_number || "",
+        is_active: data.is_active,
         role: data.role || "",
         employeeCode: data.employee_code || "",
         reportingManager: reportingManagerId,

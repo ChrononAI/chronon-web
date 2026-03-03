@@ -174,9 +174,13 @@ export const AdvanceService = {
     }
   },
 
-  getAccounts: async () => {
+  getAccounts: async (policyId?: string) => {
     try {
-      return await api.get("/api/v1/advances/advance_accounts");
+      let url = "/api/v1/advances/advance_accounts";
+      if (policyId) {
+        url = `${url}?or=(policy_id.eq.${policyId},policy_id.eq.null)`;
+      }
+      return await api.get(url);
     } catch (error) {
       throw error;
     }

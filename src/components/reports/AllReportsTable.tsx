@@ -10,6 +10,7 @@ import { GeneratedReport } from '@/services/reportService';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Download } from 'lucide-react';
+import { parseLocalDate } from '@/lib/utils';
 
 interface AllReportTableProps {
     reports: GeneratedReport[];
@@ -79,7 +80,7 @@ export function AllReportsTable({ reports, handleDownloadGeneratedReport }: AllR
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap">
-                                    {report.created_at ? new Date(report.created_at).toLocaleDateString() : 'N/A'}
+                                    {report.created_at ? parseLocalDate(report.created_at).toLocaleDateString() : 'N/A'}
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap">
                                     <Button

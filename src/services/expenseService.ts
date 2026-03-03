@@ -53,6 +53,8 @@ export interface UpdateExpenseData {
   currency?: string | null;
   api_conversion_rate?: number;
   user_conversion_rate?: number;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface CreateExpenseResponse {
@@ -116,9 +118,14 @@ export const expenseService = {
     }
   },
 
-  async getExpenseById(id: string | number): Promise<Expense> {
-    const response = await api.get(`/expenses/${id}`);
-    return response.data.data;
+  async getExpenseById(id: string | number, isFromApprovals?: boolean): Promise<Expense> {
+    if (isFromApprovals) {
+      const response = await api.get(`/api/v1/expenses/admin?id=eq.${id}`);
+      return response.data.data?.[0];
+    }
+    
+    const response = await api.get(`/api/v1/expenses/spender?id=eq.${id}`);
+    return  response.data.data?.[0];
   },
 
   async getFilteredExpenses({

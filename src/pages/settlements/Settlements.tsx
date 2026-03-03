@@ -28,6 +28,15 @@ import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 
 const columns: GridColDef[] = [
   {
+    field: "sequence_number",
+    headerName: "REPORT ID",
+    minWidth: 160,
+    flex: 1,
+    renderCell: (params: any) => (
+      <span className="whitespace-nowrap">{params.value || "-"}</span>
+    ),
+  },
+  {
     field: "title",
     headerName: "TITLE",
     minWidth: 200,

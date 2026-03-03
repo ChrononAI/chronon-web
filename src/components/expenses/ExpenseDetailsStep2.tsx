@@ -43,7 +43,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { cn, getOrgCurrency } from "@/lib/utils";
+import { cn, getOrgCurrency, parseLocalDate } from "@/lib/utils";
 import { format } from "date-fns";
 import { expenseService } from "@/services/expenseService";
 import { Policy, PolicyCategory } from "@/types/expense";
@@ -81,27 +81,26 @@ export type Attachment = {
 const expenseSchema = z.object({
   expense_policy_id: z.string().min(1, "Please select a policy"),
   category_id: z.string().min(1, "Please select a category"),
+  category_type: z.string(),
+  start_date: z.string().optional().nullable(),
+  end_date: z.string().optional().nullable(),
   invoice_number: z.string().min(1, "Invoice number is required"),
   vendor: z.string().min(1, "Vendor is required"),
   amount: z.string().min(1, "Amount is required"),
-  receipt_id: z.string().optional(),
-  expense_date: z.preprocess(
-    (v) => (v ? new Date(v as string) : v),
-    z.date({ required_error: "Date is required" }).refine(
-      (date) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const selectedDate = new Date(date);
-        selectedDate.setHours(0, 0, 0, 0);
-
-        return selectedDate <= today;
-      },
-      {
-        message: "Date cannot exceed today's date",
-      }
-    )
-  ),
+  receipt_id: z.string().optional().nullable(),
+  expense_date: z
+    .string()
+    .min(1, "Date is required")
+    .refine((v) => !isNaN(parseLocalDate(v).getTime()), {
+      message: "Invalid date",
+    })
+    .refine((v) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = parseLocalDate(v);
+      selected.setHours(0, 0, 0, 0);
+      return selected <= today;
+    }, { message: "Date cannot exceed today's date" }),
   advance_account_id: z.string().optional().nullable(),
   description: z.string().min(1, "Description is required"),
   foreign_currency: z.string().optional().nullable(),
@@ -109,7 +108,38 @@ const expenseSchema = z.object({
   foreign_amount: z.string().optional().nullable(),
   user_conversion_rate: z.string().optional().nullable(),
   api_conversion_rate: z.string().optional().nullable(),
-});
+}).superRefine((data, ctx) => {
+    if (data.category_type === "MULTI_DAY") {
+      if (!data.start_date) {
+        ctx.addIssue({
+          path: ["start_date"],
+          code: z.ZodIssueCode.custom,
+          message: "Start date is required",
+        });
+      }
+
+      if (!data.end_date) {
+        ctx.addIssue({
+          path: ["end_date"],
+          code: z.ZodIssueCode.custom,
+          message: "End date is required",
+        });
+      }
+
+      if (data.start_date && data.end_date) {
+        const start = parseLocalDate(data.start_date);
+        const end = parseLocalDate(data.end_date);
+
+        if (end < start) {
+          ctx.addIssue({
+            path: ["end_date"],
+            code: z.ZodIssueCode.custom,
+            message: "End date cannot be before start date",
+          });
+        }
+      }
+    }
+  });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema> & Record<string, any>;
 
@@ -160,6 +190,7 @@ export function ExpenseDetailsStep2({
     null
   );
   const readOnly = mode === "view";
+  const isCategoryPolicyDisabled = expense?.transaction_id && expense?.transactions?.transaction_source !== "PINE";
   const [duplicateReceiptLoading, setDuplicateReceiptLoading] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [selectedCategory, setSelectedCategory] =
@@ -188,6 +219,7 @@ export function ExpenseDetailsStep2({
 
   const [fileIds, setFileIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isMultiDayExpense, setIsMultiDayExpense] = useState(false);
 
   const dupeCheckAcrossOrg =
     orgSettings?.org_level_duplicate_check_settings?.enabled || true;
@@ -195,10 +227,20 @@ export function ExpenseDetailsStep2({
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: expense
-      ? expense
+      ? {
+          ...expense,
+          expense_date: expense.expense_date
+            ? typeof expense.expense_date === "string"
+              ? format(parseLocalDate(expense.expense_date), "yyyy-MM-dd")
+              : expense.expense_date instanceof Date
+                ? format(expense.expense_date, "yyyy-MM-dd")
+                : format(parseLocalDate(String(expense.expense_date)), "yyyy-MM-dd")
+            : undefined,
+        }
       : {
         expense_policy_id: "",
         category_id: "",
+        category_type: "",
         invoiceNumber: "",
         merchant: "",
         amount: "",
@@ -251,6 +293,8 @@ export function ExpenseDetailsStep2({
         setSelectedPolicy(selectedPolicy);
         form.setValue("expense_policy_id", selectedPolicy.id);
         form.setValue("category_id", selectedCategory.id);
+        console.log(selectedCategory);
+        form.setValue("category_type", selectedCategory.category_type);
       }
     }
   };
@@ -381,9 +425,9 @@ export function ExpenseDetailsStep2({
     }
   };
 
-  const getAccounts = async () => {
+  const getAccounts = async (policyId?: string) => {
     try {
-      const res = await AdvanceService.getAccounts();
+      const res = await AdvanceService.getAccounts(policyId);
       setAdvanceAccounts(res.data.data);
     } catch (error) {
       console.log(error);
@@ -457,6 +501,13 @@ export function ExpenseDetailsStep2({
   }, [expense, advanceAccounts]);
 
   useEffect(() => {
+    const policyId = form.getValues("expense_policy_id");
+    if (policyId) {
+      getAccounts(policyId);
+    }
+  }, [selectedPolicy?.id]);
+
+  useEffect(() => {
     loadPoliciesWithCategories();
     getAccounts();
   }, []);
@@ -522,7 +573,23 @@ export function ExpenseDetailsStep2({
 
   useEffect(() => {
     if (expense && !isReceiptReplaced) {
-      form.reset(expense);
+      const normalizedDate = expense.expense_date
+        ? typeof expense.expense_date === "string"
+          ? format(parseLocalDate(expense.expense_date), "yyyy-MM-dd")
+          : expense.expense_date instanceof Date
+            ? format(expense.expense_date, "yyyy-MM-dd")
+            : format(parseLocalDate(String(expense.expense_date)), "yyyy-MM-dd")
+        : undefined;
+    
+        const startDate = expense.start_date ? format(parseLocalDate(expense.start_date), 'yyyy-MM-dd') : undefined;
+        const endDate = expense.end_date ? format(parseLocalDate(expense.end_date), 'yyyy-MM-dd') : undefined;
+
+        form.reset({
+        ...expense,
+        expense_date: normalizedDate,
+        start_date: startDate,
+        end_date: endDate
+      });
       // Set selected policy and category based on form data
       if (expense.foreign_amount && expense.foreign_currency) {
         setShowConversion(true);
@@ -536,6 +603,7 @@ export function ExpenseDetailsStep2({
         if (policy) {
           setSelectedPolicy(policy);
           form.setValue("expense_policy_id", expense.expense_policy_id);
+          getAccounts(expense.expense_policy_id);
 
           if (expense.category_id) {
             const category = policy.categories.find(
@@ -544,6 +612,7 @@ export function ExpenseDetailsStep2({
             if (category) {
               setSelectedCategory(category);
               form.setValue("category_id", expense.category_id);
+              form.setValue("category_type", category.category_type);
             }
           }
         }
@@ -619,13 +688,13 @@ export function ExpenseDetailsStep2({
       }
 
       if (ocrData.date) {
-        const parsedDate = new Date(parsedData.extracted_date ?? "");
+        const parsedDate = parseLocalDate(parsedData.extracted_date ?? "");
         if (!isNaN(parsedDate.getTime())) {
           const today = new Date();
           parsedDate.setHours(0, 0, 0, 0);
           today.setHours(0, 0, 0, 0);
           if (parsedDate <= today) {
-            form.setValue("expense_date", parsedDate);
+            form.setValue("expense_date", format(parsedDate, "yyyy-MM-dd"));
           }
         }
       }
@@ -736,6 +805,7 @@ export function ExpenseDetailsStep2({
         setSelectedPolicy(selectedPolicy);
         form.setValue("expense_policy_id", selectedPolicy.id);
         form.setValue("category_id", selectedCategory.id);
+        form.setValue("category_type", selectedCategory.category_type);
       }
     }
   }, [parsedData, policies]);
@@ -793,7 +863,16 @@ useEffect(() => {
   };
 }, [fileIds]);
 
-
+  useEffect(() => {
+    // Check the appropriate key
+    if (selectedCategory?.category_type === "MULTI_DAY") {
+      setIsMultiDayExpense(true);
+    } else {
+      setIsMultiDayExpense(false);
+      form.setValue("start_date", null);
+      form.setValue("end_date", null);
+    }
+  }, [selectedCategory]);
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -895,6 +974,7 @@ useEffect(() => {
             <form
               onSubmit={form.handleSubmit((data) => {
                 const allFormValues = form.getValues();
+                console.log(allFormValues);
                 const mergedData = { ...allFormValues, ...data, file_ids: fileIds };
                 onSubmit(mergedData);
               })}
@@ -929,8 +1009,12 @@ useEffect(() => {
                                 setSelectedPolicy(policy || null);
                                 setSelectedCategory(null);
                                 form.setValue("category_id", "");
+                                form.setValue("category_type", "")
+                                getAccounts(value);
+                                setSelectedAdvanceAccount(null);
+                                form.setValue("advance_account_id", "");
                               }}
-                              disabled={readOnly || expense?.transaction_id}
+                              disabled={readOnly || isCategoryPolicyDisabled}
                             >
                               <FormControl>
                                 <SelectTrigger className={selectTriggerClass}>
@@ -983,7 +1067,7 @@ useEffect(() => {
                                     disabled={
                                       !selectedPolicy ||
                                       readOnly ||
-                                      expense?.transaction_id
+                                      isCategoryPolicyDisabled
                                     }
                                   >
                                     <>
@@ -1013,6 +1097,7 @@ useEffect(() => {
                                           value={category.name}
                                           onSelect={() => {
                                             field.onChange(category.id);
+                                            form.setValue("category_type", category.category_type);
                                             setSelectedCategory(category);
                                             setCategoryDropdownOpen(false);
                                           }}
@@ -1060,7 +1145,10 @@ useEffect(() => {
                                     }
                                   >
                                     {field.value ? (
-                                      format(new Date(field.value), "PPP")
+                                      format(
+                                        parseLocalDate(String(field.value)),
+                                        "PPP"
+                                      )
                                     ) : (
                                       <span>Pick a date</span>
                                     )}
@@ -1074,8 +1162,15 @@ useEffect(() => {
                               >
                                 <CalendarComponent
                                   mode="single"
-                                  selected={new Date(field.value)}
-                                  onSelect={(date) => field.onChange(date)}
+                                  selected={
+                                    field.value
+                                      ? parseLocalDate(String(field.value))
+                                      : undefined
+                                  }
+                                  onSelect={(date) => {
+                                    if (!date) return;
+                                    field.onChange(format(date, "yyyy-MM-dd"));
+                                  }}
                                   disabled={(date) =>
                                     date > new Date() ||
                                     date < new Date("1900-01-01")
@@ -1088,6 +1183,188 @@ useEffect(() => {
                           </FormItem>
                         )}
                       />
+                      
+                      {isMultiDayExpense && <div className="grid gap-3 sm:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="start_date"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>From</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "h-11 w-full justify-between pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                      disabled={
+                                        readOnly || expense?.transaction_id
+                                      }
+                                    >
+                                      {field.value ? (
+                                        format(
+                                          parseLocalDate(String(field.value)),
+                                          "PPP"
+                                        )
+                                      ) : (
+                                        <span>Pick a date</span>
+                                      )}
+                                      <Calendar className="h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  className="w-auto p-0"
+                                  align="start"
+                                >
+                                  <CalendarComponent
+                                    mode="single"
+                                    selected={
+                                      field.value
+                                        ? parseLocalDate(String(field.value))
+                                        : undefined
+                                    }
+                                    onSelect={(date) => {
+                                      if (!date) return;
+                                      field.onChange(format(date, "yyyy-MM-dd"));
+                                    }}
+                                    disabled={(date) =>
+                                      date > new Date() ||
+                                      date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      
+                        <FormField
+                          control={form.control}
+                          name="end_date"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>To</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "h-11 w-full justify-between pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                      disabled={
+                                        readOnly || expense?.transaction_id
+                                      }
+                                    >
+                                      {field.value ? (
+                                        format(
+                                          parseLocalDate(String(field.value)),
+                                          "PPP"
+                                        )
+                                      ) : (
+                                        <span>Pick a date</span>
+                                      )}
+                                      <Calendar className="h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  className="w-auto p-0"
+                                  align="start"
+                                >
+                                  <CalendarComponent
+                                    mode="single"
+                                    selected={
+                                      field.value
+                                        ? parseLocalDate(String(field.value))
+                                        : undefined
+                                    }
+                                    onSelect={(date) => {
+                                      if (!date) return;
+                                      field.onChange(format(date, "yyyy-MM-dd"));
+                                    }}
+                                    disabled={(date) =>
+                                      date > new Date() ||
+                                      date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>}
+
+                      {orgSettings?.advance_settings?.enabled &&
+                        advanceAccounts.length > 0 && (
+                          <FormField
+                            control={form.control}
+                            name="advance_account_id"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Advance Account</FormLabel>
+                                <Select
+                                  value={field.value || ""}
+                                  onValueChange={(value) => {
+                                    field.onChange(value);
+                                    const acc = advanceAccounts.find(
+                                      (p: any) => p.id === value
+                                    );
+                                    setSelectedAdvanceAccount(acc || null);
+                                    hasResolvedAdvanceRef.current = true;
+                                  }}
+                                  disabled={readOnly}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger
+                                      className={`${selectTriggerClass} relative`}
+                                    >
+                                      <SelectValue placeholder="Select an advance">
+                                        {field.value && selectedAdvanceAccount
+                                          ? selectedAdvanceAccount.account_name
+                                          : "Select an advance"}
+                                      </SelectValue>
+
+                                      {field.value && !readOnly && (
+                                        <button
+                                          type="button"
+                                          onPointerDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            field.onChange("");
+                                            setSelectedAdvanceAccount(null);
+                                            hasResolvedAdvanceRef.current =
+                                              true;
+                                          }}
+                                          className="absolute right-8 top-1/2 mr-2 -translate-y-1/2 text-muted-foreground hover:text-foreground pointer-events-auto"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </button>
+                                      )}
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {advanceAccounts.map((adv: any) => (
+                                      <SelectItem key={adv.id} value={adv.id}>
+                                        <div>{adv.account_name}</div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
 
                       <div className="grid gap-3 sm:grid-cols-2">
                         <FormField
@@ -1337,68 +1614,6 @@ useEffect(() => {
                         )}
                       />
 
-                      {orgSettings?.advance_settings?.enabled &&
-                        advanceAccounts.length > 0 && (
-                          <FormField
-                            control={form.control}
-                            name="advance_account_id"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Advance Account</FormLabel>
-                                <Select
-                                  value={field.value || ""}
-                                  onValueChange={(value) => {
-                                    field.onChange(value);
-                                    const acc = advanceAccounts.find(
-                                      (p: any) => p.id === value
-                                    );
-                                    setSelectedAdvanceAccount(acc || null);
-                                    hasResolvedAdvanceRef.current = true;
-                                  }}
-                                  disabled={readOnly}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger
-                                      className={`${selectTriggerClass} relative`}
-                                    >
-                                      <SelectValue placeholder="Select an advance">
-                                        {field.value && selectedAdvanceAccount
-                                          ? selectedAdvanceAccount.account_name
-                                          : "Select an advance"}
-                                      </SelectValue>
-
-                                      {field.value && !readOnly && (
-                                        <button
-                                          type="button"
-                                          onPointerDown={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            field.onChange("");
-                                            setSelectedAdvanceAccount(null);
-                                            hasResolvedAdvanceRef.current =
-                                              true;
-                                          }}
-                                          className="absolute right-8 top-1/2 mr-2 -translate-y-1/2 text-muted-foreground hover:text-foreground pointer-events-auto"
-                                        >
-                                          <X className="h-4 w-4" />
-                                        </button>
-                                      )}
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {advanceAccounts.map((adv: any) => (
-                                      <SelectItem key={adv.id} value={adv.id}>
-                                        <div>{adv.account_name}</div>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-
                       {templateEntities?.map((entity) => {
                         const entityId = getEntityId(entity);
                         const fieldName = getFieldName(entity);
@@ -1597,9 +1812,7 @@ useEffect(() => {
                     </div>
                     <div className="text-sm text-gray-600">
                       {semiParsedData?.extracted_date
-                        ? new Date(
-                          semiParsedData.extracted_date
-                        ).toLocaleDateString("en-GB", {
+                        ? parseLocalDate(semiParsedData.extracted_date).toLocaleDateString("en-GB", {
                           weekday: "short",
                           day: "2-digit",
                           month: "short",

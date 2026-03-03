@@ -2,13 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Send } from "lucide-react";
 import { ExpenseComment } from "@/types/expense";
 import { useAuthStore } from "@/store/authStore";
-import { cn } from "@/lib/utils";
+import { cn, parseLocalDate } from "@/lib/utils";
 
 const formatDateOnly = (dateString: string | undefined | null): string => {
   if (!dateString) return "Invalid date";
   const datePart = dateString.split("T")[0];
   if (!datePart) return "Invalid date";
-  const date = new Date(datePart);
+  const date = parseLocalDate(datePart);
   if (isNaN(date.getTime())) {
     return "Invalid date";
   }

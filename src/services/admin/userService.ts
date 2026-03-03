@@ -19,5 +19,12 @@ export const userService = {
     } catch (error) {
       throw error;
     }
+  },
+  disableUsers: async (payload: any) => {
+    try {
+      return await api.post('/auth/em/users/bulk', payload);
+    } catch (error) {
+      throw error;
+    }
   }
 };

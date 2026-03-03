@@ -62,6 +62,15 @@ const columns: GridColDef[] = [
     },
   },
   {
+    field: "updated_at",
+    headerName: "APPROVED AT",
+    minWidth: 150,
+    flex: 1,
+    renderCell: ({ value }) => {
+      return formatDate(value);
+    },
+  },
+  {
     field: "description",
     headerName: "PURPOSE",
     flex: 1,

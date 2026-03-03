@@ -77,6 +77,7 @@ export interface Expense {
   api_conversion_rate: string | number;
   user_conversion_rate: string | number;
   comments?: ExpenseComment[];
+  custom_attributes?: Record<string, string>; // Custom attributes from API
 }
 
 export interface ExpenseComment {
@@ -145,6 +146,7 @@ export interface Report {
   created_at: string;
   updated_at: string;
   custom_report_id?: string | null;
+  sequence_number?: string | null;
   submitted_at: string | null;
   created_by: {
     email: string;

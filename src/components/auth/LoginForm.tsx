@@ -26,11 +26,26 @@ export function LoginForm() {
     setError("");
 
     try {
-      const { user, token } = await authService.login({ email, password });
-      login(user, token);
+      const { user, token, products } = await authService.login({ email, password });
+      login(user, token, products);
       identifyUser(user.id.toString());
       setUserProfile(user);  
       toast.success("Login successful!");
+      
+      if (products.length === 0) {
+        navigate("/expenses");
+      } else if (products.length === 1) {
+        const product = products[0];
+        if (product === "Expense Management") {
+          navigate("/expenses");
+        } else if (product === "Invoice Payments") {
+          navigate("/flow/invoice");
+        } else {
+          navigate("/expenses");
+        }
+      } else {
+        navigate("/select-product");
+      }
     } catch (error: any) {
       setError(
         error?.response?.data?.message ||
