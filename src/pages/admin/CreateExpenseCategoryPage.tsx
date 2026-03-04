@@ -31,7 +31,6 @@ function CreateExpenseCategoryPage() {
 
   useEffect(() => {
     if (row) {
-      console.log(row);
       setItems([row]);
     }
   }, []);

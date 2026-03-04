@@ -1,13 +1,12 @@
+import CreatePolicyDialog from "@/components/admin/policies/CreatePolicyDialog";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
-import { Button } from "@/components/ui/button";
 import { policyService } from "@/services/admin/policyService";
 import { PaginationInfo } from "@/store/expenseStore";
 import { PolicyCategory } from "@/types/expense";
 import { Box } from "@mui/material";
 import { GridRowSelectionModel } from "@mui/x-data-grid";
 import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
-import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -45,22 +44,21 @@ function AdminExpensePolicies() {
     type: "include",
     ids: new Set(),
   });
+  const [createPolicyDialogOpen, setCreatePolicyDialogOpen] = useState(false);
 
   const GRID_OFFSET = 190;
   const ROW_HEIGHT = 38;
   const HEADER_HEIGHT = 0;
 
   const calculatePageSize = () => {
-    const availableHeight =
-      window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
+    const availableHeight = window.innerHeight - GRID_OFFSET - HEADER_HEIGHT;
     return Math.max(1, Math.floor(availableHeight / ROW_HEIGHT));
   };
 
-  const [paginationModel, setPaginationModel] =
-    useState<GridPaginationModel>({
-      page: 0,
-      pageSize: calculatePageSize(),
-    });
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: calculatePageSize(),
+  });
 
   const [paginationInfo, setPaginationInfo] = useState<PaginationInfo>();
 
@@ -69,28 +67,25 @@ function AdminExpensePolicies() {
   const handleRowClick = ({ row }: any) => {
     navigate(
       `/admin-settings/product-config/expense-policies/create/${row.id}`,
-      { state: row }
+      { state: row },
     );
   };
 
-  const getPolicies = async ({
-    page,
-    perPage,
-  }: {
-    page: number;
-    perPage: number;
-  }) => {
+  const getPolicies = async () => {
     try {
       setLoading(true);
-      const res = await policyService.getPolicies({ page, perPage });
+      const res = await policyService.getPolicies({
+        page: (paginationModel?.page || 0) + 1,
+        perPage: paginationModel?.pageSize || 0,
+      });
       setRows(res.data.data);
       setPaginationInfo(res.data.pagination);
     } catch (error: any) {
       console.log(error);
       toast.error(
         error?.response?.data?.message ||
-        error.message ||
-        "Failed to get policies"
+          error.message ||
+          "Failed to get policies",
       );
     } finally {
       setLoading(false);
@@ -98,25 +93,19 @@ function AdminExpensePolicies() {
   };
 
   useEffect(() => {
-    getPolicies({
-      page: (paginationModel?.page || 0) + 1,
-      perPage: paginationModel?.pageSize || 0,
-    });
+    getPolicies();
     setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
   return (
     <div>
-      {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Policies</h1>
-        <Button
-          onClick={() =>
-            navigate("/admin-settings/product-config/expense-policies/create")
-          }
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Policy
-        </Button>
+        <CreatePolicyDialog
+          open={createPolicyDialogOpen}
+          setOpen={setCreatePolicyDialogOpen}
+          onSubmitSuccessful={getPolicies}
+          mode="create"
+        />
       </div>
       <Box sx={{ height: "calc(100vh - 100px)", width: "100%" }}>
         <DataGrid
@@ -125,8 +114,15 @@ function AdminExpensePolicies() {
           rows={loading ? [] : rows}
           loading={loading}
           slots={{
-            noRowsOverlay: () => <CustomNoRows title="No policies found" description="There are currently no policies" />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+            noRowsOverlay: () => (
+              <CustomNoRows
+                title="No policies found"
+                description="There are currently no policies"
+              />
+            ),
+            loadingOverlay: () => (
+              <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+            ),
           }}
           sx={{
             border: 0,
