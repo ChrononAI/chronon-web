@@ -55,7 +55,6 @@ export interface Currency {
 const currencies: Currency[] = [
   { code: "INR", name: "Indian Rupee", symbol: "₹" },
   { code: "USD", name: "United States Dollar", symbol: "$" },
-  { code: "EUR", name: "European Euro", symbol: "€" },
 ];
 
 // Form schema
