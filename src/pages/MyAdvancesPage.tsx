@@ -9,13 +9,22 @@ import {
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { formatDate, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { AdvanceService } from "@/services/advanceService";
 import { useAdvanceStore } from "@/store/advanceStore";
 import { PaginationInfo } from "@/store/expenseStore";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+
+const formatAmount = (value: any) => {
+  if (!value) return "-";
+  const num = parseFloat(value);
+  return num.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
 
 const columns: GridColDef[] = [
   {
@@ -59,8 +68,15 @@ const columns: GridColDef[] = [
     flex: 1,
     align: "right",
     headerAlign: "right",
-    renderCell: ({ value }) => {
-      return value ? formatCurrency(value) : "-";
+    renderCell: ({ value }) => formatAmount(value),
+  },
+  {
+    field: "currency",
+    headerName: "CURRENCY",
+    minWidth: 100,
+    flex: 1,
+    renderCell: ({ row }) => {
+      return row.currency || "-";
     },
   },
   {
@@ -70,9 +86,7 @@ const columns: GridColDef[] = [
     flex: 1,
     align: "right",
     headerAlign: "right",
-    renderCell: ({ value }) => {
-      return value ? formatCurrency(value) : "-";
-    },
+    renderCell: ({ value }) => formatAmount(value),
   },
   {
     field: "created_at",
