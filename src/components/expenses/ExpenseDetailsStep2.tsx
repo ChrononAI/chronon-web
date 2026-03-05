@@ -70,7 +70,6 @@ import { getEntities, type Entity } from "@/services/admin/entities";
 import { FormFooter } from "../layout/FormFooter";
 import ReceiptViewer from "./ReceiptViewer";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
-import { FormHelperText } from "@mui/material";
 
 export type Attachment = {
   fileId: string;
