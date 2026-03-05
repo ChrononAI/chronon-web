@@ -59,7 +59,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Copy, ExternalLink } from "lucide-react";
 import { getYesterday } from "./CreateExpenseForm";
@@ -70,6 +70,7 @@ import { getEntities, type Entity } from "@/services/admin/entities";
 import { FormFooter } from "../layout/FormFooter";
 import ReceiptViewer from "./ReceiptViewer";
 import { AdvanceService, AdvanceType } from "@/services/advanceService";
+import { FormHelperText } from "@mui/material";
 
 export type Attachment = {
   fileId: string;
@@ -181,6 +182,8 @@ export function ExpenseDetailsStep2({
   expense,
 }: ExpenseDetailsStepProps) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const iasAdminUpdating = pathname.includes("admin-reports");
   const { orgSettings } = useAuthStore();
   const baseCurrency = getOrgCurrency();
   const orgId = getOrgIdFromToken();
@@ -974,7 +977,6 @@ useEffect(() => {
             <form
               onSubmit={form.handleSubmit((data) => {
                 const allFormValues = form.getValues();
-                console.log(allFormValues);
                 const mergedData = { ...allFormValues, ...data, file_ids: fileIds };
                 onSubmit(mergedData);
               })}
@@ -1389,7 +1391,7 @@ useEffect(() => {
                                     }
                                   }}
                                   disabled={
-                                    readOnly ||
+                                    iasAdminUpdating || readOnly ||
                                     !orgSettings?.currency_conversion_settings
                                       ?.enabled
                                   }
@@ -1431,6 +1433,7 @@ useEffect(() => {
                                   />
                                 </FormControl>
                                 <FormMessage />
+                                {expense && expense.admin_amount && <FormHelperText>An admin capped at {expense.admin_amount}</FormHelperText>}
                               </FormItem>
                             )}
                           />
@@ -1456,6 +1459,7 @@ useEffect(() => {
                                   />
                                 </FormControl>
                                 <FormMessage />
+                                {expense && expense.admin_amount && <FormHelperText>An admin capped at {expense.admin_amount}</FormHelperText>}
                               </FormItem>
                             )}
                           />
