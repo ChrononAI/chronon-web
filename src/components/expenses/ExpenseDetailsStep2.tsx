@@ -1433,7 +1433,7 @@ useEffect(() => {
                                   />
                                 </FormControl>
                                 <FormMessage />
-                                {expense && expense.admin_amount && <FormHelperText>An admin capped at {expense.admin_amount}</FormHelperText>}
+                                {expense && expense.admin_amount && <FormMessage>An admin capped at {expense.admin_amount}</FormMessage>}
                               </FormItem>
                             )}
                           />
@@ -1459,7 +1459,7 @@ useEffect(() => {
                                   />
                                 </FormControl>
                                 <FormMessage />
-                                {expense && expense.admin_amount && <FormHelperText>An admin capped at {expense.admin_amount}</FormHelperText>}
+                                {expense && expense.admin_amount && <FormMessage>An admin capped at {expense.admin_amount}</FormMessage>}
                               </FormItem>
                             )}
                           />
