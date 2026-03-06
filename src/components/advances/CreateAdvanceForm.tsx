@@ -96,6 +96,14 @@ const getFieldName = (entity: TemplateEntity): string => {
   return entity?.display_name || entity?.field_name || getEntityId(entity);
 };
 
+const getEntityName = (entity: TemplateEntity, nameMap: Record<string, string>): string => {
+  return entity.display_name || entity.field_name || nameMap[getEntityId(entity)] || getEntityId(entity);
+};
+
+const getAttributeName = (attributeId: string, nameMap: Record<string, string>): string => {
+  return nameMap[attributeId] || attributeId;
+};
+
 export function CreateAdvanceForm({
   mode = "create",
   showHeader = true,
@@ -130,6 +138,12 @@ export function CreateAdvanceForm({
   >({});
   const [entityDropdownOpen, setEntityDropdownOpen] = useState<
     Record<string, boolean>
+  >({});
+  const [entityNameMap, setEntityNameMap] = useState<
+    Record<string, string>
+  >({});
+  const [attributeNameMap, setAttributeNameMap] = useState<
+    Record<string, string>
   >({});
 
   const loadPoliciesWithCategories = async () => {
@@ -187,11 +201,12 @@ export function CreateAdvanceForm({
 
         templateEntities.forEach((entity) => {
           const entityId = getEntityId(entity);
-          if (entityId && allFormValues[entityId]) {
-            const value = String(allFormValues[entityId]).trim();
-            if (value) {
-              customAttributes[entityId] = value;
-            }
+          const attributeId = allFormValues[entityId] ? String(allFormValues[entityId]).trim() : "";
+          
+          if (entityId && attributeId) {
+            const entityName = getEntityName(entity, entityNameMap);
+            const attributeName = getAttributeName(attributeId, attributeNameMap);
+            customAttributes[entityName] = attributeName;
           }
         });
 
@@ -255,22 +270,38 @@ export function CreateAdvanceForm({
   }, [id, policies]);
 
   useEffect(() => {
-    if (selectedAdvance?.custom_attributes && templateEntities.length > 0) {
-      // const newTempEntities: any[] = [];
-      Object.entries(selectedAdvance.custom_attributes).forEach(
-        ([entityId, attributeId]) => {
-          form.setValue(entityId as any, String(attributeId));
-          // const ent = templateEntities.find(temp => {
-          //   return temp.entity_id === entityId
-          // })
-          // if (ent) {
-          //   newTempEntities.push(ent);
-          // }
-        }
+    if (!selectedAdvance?.custom_attributes || templateEntities.length === 0) return;
+
+    const entityNameToIdMap: Record<string, string> = {};
+    templateEntities.forEach((entity) => {
+      const entityId = getEntityId(entity);
+      if (entityId) {
+        const entityName = getEntityName(entity, entityNameMap);
+        entityNameToIdMap[entityName] = entityId;
+        entityNameToIdMap[entityId] = entityId;
+      }
+    });
+
+    const attributeNameToIdMap: Record<string, string> = {};
+    Object.entries(attributeNameMap).forEach(([attrId, attrName]) => {
+      attributeNameToIdMap[attrName] = attrId;
+      attributeNameToIdMap[attrId] = attrId;
+    });
+
+    Object.entries(selectedAdvance.custom_attributes).forEach(([key, value]) => {
+      const entityId = entityNameToIdMap[key] || key;
+      const attributeValue = String(value);
+      const attributeId = attributeNameToIdMap[attributeValue] || attributeValue;
+      
+      const matchingEntity = templateEntities.find(
+        (entity) => getEntityId(entity) === entityId
       );
-      // setTemplateEntities(newTempEntities)
-    }
-  }, [selectedAdvance, templateEntities]);
+      
+      if (matchingEntity) {
+        form.setValue(entityId as any, attributeId);
+      }
+    });
+  }, [selectedAdvance, templateEntities, entityNameMap, attributeNameMap]);
 
   useEffect(() => {
     loadPoliciesWithCategories();
@@ -299,23 +330,27 @@ export function CreateAdvanceForm({
           });
         }
 
-        const entityMap: Record<
-          string,
-          Array<{ id: string; label: string }>
-        > = {};
+        const entityMap: Record<string, Array<{ id: string; label: string }>> = {};
+        const entityNameMapping: Record<string, string> = {};
+        const attributeNameMapping: Record<string, string> = {};
+        
         entitiesRes.forEach((ent: Entity) => {
-          if (ent.id && Array.isArray(ent.attributes)) {
-            entityMap[ent.id] = ent.attributes.map((attr) => ({
-              id: attr.id,
-              label: attr.display_value ?? attr.value ?? "—",
-            }));
+          if (!ent.id) return;
+          
+          entityNameMapping[ent.id] = ent.display_name || ent.name || ent.id;
+          
+          if (Array.isArray(ent.attributes)) {
+            entityMap[ent.id] = ent.attributes.map((attr) => {
+              attributeNameMapping[attr.id] = attr.display_value || attr.value || attr.id;
+              return {
+                id: attr.id,
+                label: attr.display_value ?? attr.value ?? "—",
+              };
+            });
           }
         });
 
-        const mappedOptions: Record<
-          string,
-          Array<{ id: string; label: string }>
-        > = {};
+        const mappedOptions: Record<string, Array<{ id: string; label: string }>> = {};
         advanceTemplate?.entities?.forEach((entity) => {
           const entityId = getEntityId(entity);
           if (entityId) {
@@ -324,6 +359,8 @@ export function CreateAdvanceForm({
         });
 
         setEntityOptions(mappedOptions);
+        setEntityNameMap(entityNameMapping);
+        setAttributeNameMap(attributeNameMapping);
       } catch (error) {
         console.error("Failed to load templates:", error);
       }
