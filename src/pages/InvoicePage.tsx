@@ -31,7 +31,7 @@ import { LineItemsTable, type InvoiceLineRow } from "@/components/invoice/LineIt
 import { InvoiceComment } from "@/components/invoice/InvoiceComment";
 import { InvoiceValidation } from "@/components/invoice/InvoiceValidation";
 import { InvoiceActivity } from "@/components/invoice/InvoiceActivity";
-import { getInvoiceById, getApprovalInvoiceById, getFileDownloadUrl, approveOrRejectInvoice, submitInvoice, updateInvoice, type UpdateInvoiceData } from "@/services/invoice/invoice";
+import { getInvoiceById, getApprovalInvoiceById, getFileDownloadUrl, approveOrRejectInvoice, submitInvoice, updateInvoice, deleteInvoiceLineItems, type UpdateInvoiceData } from "@/services/invoice/invoice";
 import { invoiceActivityService } from "@/services/invoice/invoiceActivityService";
 import { DateField } from "@/components/ui/date-field";
 import { formatCurrency } from "@/lib/utils";
@@ -542,6 +542,32 @@ export function InvoicePage() {
     setTableRows((prev) => [...prev, newRow]);
   }, []);
 
+  const handleDeleteRows = useCallback(async (rowIds: number[]) => {
+    try {
+      const rowsToDelete = tableRows.filter((row) => rowIds.includes(row.id));
+      const rowsWithApiIds = rowsToDelete.filter((row) => row.invoiceLineItemId);
+      
+      if (rowsWithApiIds.length > 0) {
+        const deletePayload = {
+          invoice_lineitem_ids: rowsWithApiIds.map((row) => ({
+            id: row.invoiceLineItemId!,
+          })),
+        };
+        
+        await deleteInvoiceLineItems(deletePayload);
+      }
+      
+      setTableRows((prev) => prev.filter((row) => !rowIds.includes(row.id)));
+      
+      if (rowsWithApiIds.length > 0) {
+        toast.success("Line items deleted successfully");
+      }
+    } catch (error: any) {
+      console.error("Error deleting line items:", error);
+      toast.error(error?.response?.data?.message || "Failed to delete line items");
+    }
+  }, [tableRows]);
+
   const isFieldChanged = useCallback(
     (rowId: number, field: keyof Omit<InvoiceLineRow, "id">, currentValue: string): boolean => {
       const currentRow = tableRows.find(r => r.id === rowId);
@@ -807,7 +833,8 @@ export function InvoicePage() {
               const tdsData = tdsDataCache[row.tdsCode];
               const tdsPercentage = parseFloat(tdsData.tds_percentage) || 0;
               row.tdsAmount = ((baseAmount * tdsPercentage) / 100).toFixed(2);
-            }
+            }         
+            row.netAmount = baseAmount.toFixed(2);
           }
         }
         
@@ -931,14 +958,8 @@ export function InvoicePage() {
           const rate = parseFloat(row.rate) || 0;
           const subtotal = quantity * rate;
 
-          const cgst = parseFloat(row.cgst) || 0;
-          const sgst = parseFloat(row.sgst) || 0;
-          const igst = parseFloat(row.igst) || 0;
-          const utgst = parseFloat(row.utgst) || 0;
-          const calculatedTotal = subtotal + cgst + sgst + igst + utgst;
-
           lineItem.subtotal = subtotal.toFixed(2);
-          lineItem.total = row.netAmount || calculatedTotal.toFixed(2);
+          lineItem.total = row.netAmount || subtotal.toFixed(2);
 
           if (row.invoiceLineItemId) {
             lineItem.id = row.invoiceLineItemId;
@@ -1000,14 +1021,8 @@ export function InvoicePage() {
           const rate = parseFloat(row.rate) || 0;
           const subtotal = quantity * rate;
 
-          const cgst = parseFloat(row.cgst) || 0;
-          const sgst = parseFloat(row.sgst) || 0;
-          const igst = parseFloat(row.igst) || 0;
-          const utgst = parseFloat(row.utgst) || 0;
-          const calculatedTotal = subtotal + cgst + sgst + igst + utgst;
-
           lineItem.subtotal = subtotal.toFixed(2);
-          lineItem.total = row.netAmount || calculatedTotal.toFixed(2);
+          lineItem.total = row.netAmount || subtotal.toFixed(2);
 
           if (row.invoiceLineItemId) {
             lineItem.id = row.invoiceLineItemId;
@@ -1514,6 +1529,7 @@ export function InvoicePage() {
               return newErrors;
             });
           }}
+          onDeleteRows={handleDeleteRows}
         />
 
         {/* Summary Section */}
