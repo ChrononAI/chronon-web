@@ -8,7 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Autocomplete, TextField } from "@mui/material";
 import { tdsService, TDSData } from "@/services/tdsService";
 import { taxService, TaxData } from "@/services/taxService";
@@ -42,6 +44,7 @@ interface LineItemsTableProps {
   validationErrors?: Record<number, Record<string, boolean>>;
   unmatchedHsnRows?: Set<number>;
   onValidationErrorChange?: (rowId: number, field: string, hasError: boolean) => void;
+  onDeleteRows?: (rowIds: number[]) => void;
 }
 
 export function LineItemsTable({
@@ -55,7 +58,9 @@ export function LineItemsTable({
   validationErrors = {},
   unmatchedHsnRows = new Set(),
   onValidationErrorChange,
+  onDeleteRows,
 }: LineItemsTableProps) {
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [tdsSearchResults, setTdsSearchResults] = useState<TDSData[]>([]);
   const [tdsSearchLoading, setTdsSearchLoading] = useState(false);
   const tdsSearchTimeoutRef = useRef<Record<number, NodeJS.Timeout>>({});
@@ -588,8 +593,36 @@ export function LineItemsTable({
         }
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows.map(r => `${r.id}-${r.quantity}-${r.rate}-${r.gstCode}`).join(',')]); // Re-run when quantity, rate, or GST codes change
+
+  const handleSelectRow = (rowId: number, checked: boolean) => {
+    setSelectedRows((prev) => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(rowId);
+      } else {
+        newSet.delete(rowId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(new Set(rows.map((row) => row.id)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (onDeleteRows && selectedRows.size > 0) {
+      onDeleteRows(Array.from(selectedRows));
+      setSelectedRows(new Set());
+    }
+  };
+
+  const isAllSelected = rows.length > 0 && selectedRows.size === rows.length;
 
   const tableHeaderStyle: React.CSSProperties = {
     fontFamily: "Inter",
@@ -604,9 +637,29 @@ export function LineItemsTable({
   return (
     <div className="border-t bg-white">
       <div className="py-6 pr-6 pl-0">
+        {selectedRows.size > 0 && !isApprovalMode && (
+          <div className="flex items-center justify-end gap-2 mb-4 px-4">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteSelected}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete ({selectedRows.size})
+            </Button>
+          </div>
+        )}
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="px-4 w-12 py-2">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={handleSelectAll}
+                  disabled={isApprovalMode || rows.length === 0}
+                />
+              </TableHead>
               <TableHead 
                 className="px-4 min-w-[350px] py-2"
                 style={tableHeaderStyle}
@@ -684,7 +737,7 @@ export function LineItemsTable({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={12} className="px-4 py-10">
+                <TableCell colSpan={13} className="px-4 py-10">
                   <div className="flex items-center justify-center gap-2 text-gray-500">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="text-sm">Processing invoice…</span>
@@ -693,7 +746,7 @@ export function LineItemsTable({
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} className="px-4 py-10">
+                <TableCell colSpan={13} className="px-4 py-10">
                   <div className="text-center text-sm text-gray-500">
                     No line items yet. Upload an invoice or click "Add Row".
                   </div>
@@ -702,6 +755,13 @@ export function LineItemsTable({
             ) : (
               rows.map((row) => (
                 <TableRow key={row.id}>
+                  <TableCell className="px-4 py-1 w-12">
+                    <Checkbox
+                      checked={selectedRows.has(row.id)}
+                      onCheckedChange={(checked) => handleSelectRow(row.id, checked as boolean)}
+                      disabled={isApprovalMode}
+                    />
+                  </TableCell>
                   <TableCell className="px-4 py-1 min-w-[350px]">
                     <div>
                       <Autocomplete
