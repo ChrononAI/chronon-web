@@ -251,7 +251,22 @@ export function CreateAdvanceForm({
   const getAdvancebyId = async (id: string) => {
     try {
       const res: any = await AdvanceService.getAdvanceById(id);
-      const advanceData = res.data.data[0];
+      const advanceData = res.data.data[0];   
+      if (advanceData?.custom_attributes) {
+        if (advanceData.custom_attributes.from_date) {
+          const fromDate = new Date(advanceData.custom_attributes.from_date);
+          if (!isNaN(fromDate.getTime())) {
+            advanceData.from_date = fromDate;
+          }
+        }
+        if (advanceData.custom_attributes.to_date) {
+          const toDate = new Date(advanceData.custom_attributes.to_date);
+          if (!isNaN(toDate.getTime())) {
+            advanceData.to_date = toDate;
+          }
+        }
+      }
+      
       form.reset(advanceData);
       setSelectedAdvance(advanceData);
       const selectedPol = policies.find(
@@ -289,19 +304,42 @@ export function CreateAdvanceForm({
     });
 
     Object.entries(selectedAdvance.custom_attributes).forEach(([key, value]) => {
-      const entityId = entityNameToIdMap[key] || key;
+      const trimmedKey = key.trim();
+      
+      if (trimmedKey === "from_date" || trimmedKey === "to_date") {
+        const dateValue = new Date(String(value));
+        if (!isNaN(dateValue.getTime())) {
+          form.setValue(trimmedKey as any, dateValue);
+        }
+        return;
+      }
+      
+      const entityId = entityNameToIdMap[trimmedKey] || entityNameToIdMap[key] || key;
       const attributeValue = String(value);
-      const attributeId = attributeNameToIdMap[attributeValue] || attributeValue;
       
       const matchingEntity = templateEntities.find(
-        (entity) => getEntityId(entity) === entityId
+        (entity) => {
+          const eId = getEntityId(entity);
+          const eName = getEntityName(entity, entityNameMap);
+          return eId === entityId || eName === trimmedKey || eName === key || eId === key;
+        }
       );
       
       if (matchingEntity) {
-        form.setValue(entityId as any, attributeId);
+        const finalEntityId = getEntityId(matchingEntity);
+        
+        if (matchingEntity.field_type === "DATE" || matchingEntity.field_type === "DATETIME") {
+          const dateValue = new Date(attributeValue);
+          if (!isNaN(dateValue.getTime())) {
+            form.setValue(finalEntityId as any, dateValue);
+          }
+        } else {
+          const attributeId = attributeNameToIdMap[attributeValue] || attributeValue;
+          form.setValue(finalEntityId as any, attributeId);
+        }
       }
     });
-  }, [selectedAdvance, templateEntities, entityNameMap, attributeNameMap]);
+  }, [selectedAdvance, templateEntities, entityNameMap, attributeNameMap, form]);
 
   useEffect(() => {
     loadPoliciesWithCategories();
@@ -633,7 +671,15 @@ export function CreateAdvanceForm({
           {templateEntities?.map((entity) => {
             const entityId = getEntityId(entity);
             const fieldName = getFieldName(entity);
-            if (!entityId || (mode === "view" && !selectedAdvance?.custom_attributes?.[entityId])) return null;
+            if (!entityId) return null;
+            
+            if (mode === "view") {
+              const entityName = getEntityName(entity, entityNameMap);
+              const hasValue = selectedAdvance?.custom_attributes?.[entityId] || 
+                              selectedAdvance?.custom_attributes?.[entityName] ||
+                              form.getValues(entityId as any);
+              if (!hasValue) return null;
+            }
 
             return (
               <FormField
