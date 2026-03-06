@@ -1,6 +1,6 @@
 import { Badge, Box } from "@mui/material";
 import { Button } from "../ui/button";
-import { Filter, Search, Download } from "lucide-react";
+import { Filter, Search, Download, ChevronDown } from "lucide-react";
 import MultiSelectDropdown from "../shared/MultiSelectDropdown";
 import { Input } from "../ui/input";
 import { useState } from "react";
@@ -14,6 +14,12 @@ import { FilterMap, getFilterValue } from "@/pages/MyExpensesPage";
 import DateRangePicker from "../shared/DateRangePicker";
 import FilterModal, { AllowedFilter } from "../expenses/FilterModal";
 import { useReportsStore } from "@/store/reportsStore";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 export interface CustomExpenseToolbarProps {
   allStatuses: string[];
@@ -28,7 +34,7 @@ type Props = GridToolbarProps &
   ToolbarPropsOverrides &
   Partial<CustomExpenseToolbarProps> & {
     rowSelection?: GridRowSelectionModel;
-    onDownloadMultiple?: () => void;
+    onDownloadMultiple?: (type: 'pdf' | 'xlsx') => void;
   };
 
 function CustomReportsApprovalToolbar({
@@ -184,13 +190,29 @@ function CustomReportsApprovalToolbar({
         </div>
 
         {selectedCount > 0 && onDownloadMultiple && (
-          <Button
-            onClick={onDownloadMultiple}
-            className="flex items-center gap-2 h-11"
-          >
-            <Download className="h-4 w-4" />
-            Download {selectedCount} {selectedCount === 1 ? 'Report' : 'Reports'}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="flex items-center gap-2 h-11">
+                <Download className="h-4 w-4" />
+                Download {selectedCount} {selectedCount === 1 ? 'Report' : 'Reports'}
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => onDownloadMultiple('pdf')}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onDownloadMultiple('xlsx')}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </Toolbar>
 

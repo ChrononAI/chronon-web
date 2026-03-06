@@ -154,7 +154,7 @@ export function ApprovalsReportsPage() {
 
   const selectedCount = rowSelection.ids instanceof Set ? rowSelection.ids.size : 0;
 
-  const handleDownloadMultiple = useCallback(async () => {
+  const handleDownloadMultiple = useCallback(async (type: 'pdf' | 'xlsx') => {
     const selectedIds = Array.from(rowSelection.ids instanceof Set ? rowSelection.ids : []);
     
     if (selectedIds.length === 0) {
@@ -163,11 +163,11 @@ export function ApprovalsReportsPage() {
     }
 
     try {
-      const response = await approvalService.exportReports(selectedIds as string[], 'pdf');
+      const response = await approvalService.exportReports(selectedIds as string[], type);
       if (response.success) {
         const reportText = selectedCount === 1 ? 'report' : 'reports';
         toast.success(
-          `Export initiated for ${selectedCount} ${reportText}. You will receive an email when the PDF file is ready.`
+          `Export initiated for ${selectedCount} ${reportText}. You will receive an email when the ${type.toUpperCase()} file is ready.`
         );
       }
     } catch (error: any) {
