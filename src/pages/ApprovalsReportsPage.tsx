@@ -152,6 +152,33 @@ export function ApprovalsReportsPage() {
     }
   }, []);
 
+  const selectedCount = rowSelection.ids instanceof Set ? rowSelection.ids.size : 0;
+
+  const handleDownloadMultiple = useCallback(async () => {
+    const selectedIds = Array.from(rowSelection.ids instanceof Set ? rowSelection.ids : []);
+    
+    if (selectedIds.length === 0) {
+      toast.error("No reports selected");
+      return;
+    }
+
+    try {
+      const response = await approvalService.exportReports(selectedIds as string[], 'pdf');
+      if (response.success) {
+        const reportText = selectedCount === 1 ? 'report' : 'reports';
+        toast.success(
+          `Export initiated for ${selectedCount} ${reportText}. You will receive an email when the PDF file is ready.`
+        );
+      }
+    } catch (error: any) {
+      console.error("Export failed:", error);
+      toast.error(
+        error?.response?.data?.message ||
+          "Failed to export reports. Please try again."
+      );
+    }
+  }, [selectedCount, rowSelection.ids]);
+
   const newCols = useMemo<GridColDef[]>(() => {
     return [
       {
@@ -489,6 +516,8 @@ export function ApprovalsReportsPage() {
             slotProps={{
               toolbar: {
                 allStatuses: allowedStatus,
+                rowSelection: rowSelection,
+                onDownloadMultiple: handleDownloadMultiple,
               } as any,
             }}
             sx={{
