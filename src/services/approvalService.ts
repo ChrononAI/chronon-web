@@ -183,8 +183,7 @@ export const approvalService = {
 
   async exportReports(reportIds: string[], type: 'pdf' | 'xlsx' = 'pdf'): Promise<{ success: boolean; data: any }> {
     try {
-      // Format report IDs for query params: id=in.(rptWPG3ivJV8I, rpttBHVeRVo9v)
-      const queryParams = `id=in.(${reportIds.join(', ')})`;
+      const queryParams = `id=in.(${reportIds.join(',')})`;
       const includeReceipts = type === 'pdf';
       
       const response = await api.post('/api/v1/report_exports', {
