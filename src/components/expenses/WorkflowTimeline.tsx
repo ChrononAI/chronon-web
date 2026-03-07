@@ -10,7 +10,7 @@ import {
   FilePlus,
 } from "lucide-react";
 import { ApprovalWorkflow } from "@/types/expense";
-import { formatDate } from "@/lib/utils";
+import { formatDate, generateIdWithPrefix } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -25,11 +25,30 @@ interface WorkflowTimelineProps {
 
 export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
   const { user } = useAuthStore();
+  const updatedSteps = approvalWorkflow.approval_steps.flatMap(
+    (step, index, arr) => {
+      if (step.status === "SENT_BACK" && index < arr.length - 1) {
+        const resubmittedStep = {
+          ...approvalWorkflow.approval_steps[0],
+          status: "RESUBMITTED",
+          step_id: generateIdWithPrefix("wes"),
+          step_name: "Resubmission",
+          approved_at: null,
+        };
+
+        return [step, resubmittedStep];
+      }
+
+      return [step];
+    },
+  );
 
   const getStatusIcon = (status: string) => {
     switch (status.toUpperCase()) {
       case "CREATED":
-        return <FilePlus className="h-5 w-5 text-green-600" />
+      case "SUBMITTED":
+      case "RESUBMITTED":
+        return <FilePlus className="h-5 w-5 text-green-600" />;
       case "APPROVED":
         return <FileCheck className="h-5 w-5 text-green-600" />;
       case "PENDING":
@@ -56,7 +75,10 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
   }) => {
     switch (status) {
       case "CREATED":
-        return `Created by ${firstName} ${lastName}`;
+      case "SUBMITTED":
+        return `Submitted by ${firstName} ${lastName}`;
+      case "RESUBMITTED":
+        return `Resubmitted by ${firstName} ${lastName}`;
       case "PENDING":
         return `To be reviewed by ${firstName} ${lastName}`;
       case "IN_PROGRESS":
@@ -74,10 +96,13 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
 
   return (
     <div className="space-y-4">
-      {approvalWorkflow?.approval_steps?.length > 0 ? (
-        approvalWorkflow.approval_steps.map((step, index) => {
+      {updatedSteps?.length > 0 ? (
+        updatedSteps?.map((step, index) => {
           const approvers = step.approvers || [];
-          const primaryApprover = approvers.find((u) => +u.user_id === user?.id) || approvers[0] || {};
+          const primaryApprover =
+            approvers.find((u) => +u.user_id === user?.id) ||
+            approvers[0] ||
+            {};
 
           const approvedAt = step.approved_at || step.approved_at || null;
 
@@ -101,7 +126,7 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
               {/* Step Content */}
               <div className="flex-1">
                 {/* ----------- SINGLE APPROVER UI (same as original) ----------- */}
-                {(!isMulti) && (
+                {!isMulti && (
                   <>
                     <div className="flex items-center gap-2 justify-between">
                       <div className="flex items-center justify-between text-sm">
@@ -151,7 +176,9 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                   <div className="space-y-2">
                     <div className="text-sm flex items-center gap-2 justify-between">
                       <div className="text-sm flex items-center gap-2">
-                        <span className="capitalize">{step.status.replace("_", " ").toLowerCase()}</span>
+                        <span className="capitalize">
+                          {step.status.replace("_", " ").toLowerCase()}
+                        </span>
                       </div>
                       {approvedAt && (
                         <div className="text-[12px]">
@@ -164,13 +191,17 @@ export function WorkflowTimeline({ approvalWorkflow }: WorkflowTimelineProps) {
                         // Find the approver note for this specific user
                         const approverNote = step.approver_note?.find(
                           (note) =>
-                            note.approver_id?.toString() === a.user_id?.toString()
+                            note.approver_id?.toString() ===
+                            a.user_id?.toString(),
                         );
-                        
+
                         const status = approverNote?.status?.toUpperCase();
-                        
+
                         return (
-                          <div key={a.user_id} className="flex items-center gap-2">
+                          <div
+                            key={a.user_id}
+                            className="flex items-center gap-2"
+                          >
                             <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center">
                               {status === "APPROVED" && (
                                 <CheckCircle className="h-4 w-4 text-green-600" />

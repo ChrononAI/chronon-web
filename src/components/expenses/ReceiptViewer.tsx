@@ -224,7 +224,7 @@ function ReceiptViewer({
   return (
     <>
       <div className="flex flex-col h-full">
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-3 flex items-start justify-between">
           <div className="flex flex-wrap items-center gap-3">
             {[
               { key: "receipt", label: "Receipt" },
@@ -261,7 +261,7 @@ function ReceiptViewer({
               );
             })}
           </div>
-          {!readOnly && hasReceipt && activeReceiptTab === "receipt" && !pathname.includes("admin-reports") && (
+          {!readOnly && hasReceipt && activeReceiptTab === "receipt" && (expense.status === "INCOMPLETE" || expense.status === "COMPLETE") && !pathname.includes("admin-reports") && (
             <Button
               type="button"
               variant="outline"

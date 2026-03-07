@@ -272,12 +272,11 @@ export function ReportDetailPage2() {
               username: username,
             },
           ],
-          status: "CREATED",
+          status: "SUBMITTED",
           step_id: generateIdWithPrefix("wes"),
           step_name: "Creation",
           step_order: 0,
         };
-        console.log(createdAtStep);
         const newSteps = [createdAtStep, ...getAllApprovalSteps(workflowResponse.data)];
         const currentStepIdx = newSteps.findIndex(
           (step: any) => step.status === "IN_PROGRESS",
