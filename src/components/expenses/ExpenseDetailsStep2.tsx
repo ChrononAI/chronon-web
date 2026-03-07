@@ -4,12 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import api from "@/lib/api";
-import {
-  Calendar,
-  Loader2,
-  X,
-  ChevronDown,
-} from "lucide-react";
+import { Calendar, Loader2, X, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -76,39 +71,43 @@ export type Attachment = {
   url: string;
 };
 
-
 // Form schema
-const expenseSchema = z.object({
-  expense_policy_id: z.string().min(1, "Please select a policy"),
-  category_id: z.string().min(1, "Please select a category"),
-  category_type: z.string(),
-  start_date: z.string().optional().nullable(),
-  end_date: z.string().optional().nullable(),
-  invoice_number: z.string().min(1, "Invoice number is required"),
-  vendor: z.string().min(1, "Vendor is required"),
-  amount: z.string().min(1, "Amount is required"),
-  receipt_id: z.string().optional().nullable(),
-  expense_date: z
-    .string()
-    .min(1, "Date is required")
-    .refine((v) => !isNaN(parseLocalDate(v).getTime()), {
-      message: "Invalid date",
-    })
-    .refine((v) => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const selected = parseLocalDate(v);
-      selected.setHours(0, 0, 0, 0);
-      return selected <= today;
-    }, { message: "Date cannot exceed today's date" }),
-  advance_account_id: z.string().optional().nullable(),
-  description: z.string().min(1, "Description is required"),
-  foreign_currency: z.string().optional().nullable(),
-  currency: z.string().optional().default("INR"),
-  foreign_amount: z.string().optional().nullable(),
-  user_conversion_rate: z.string().optional().nullable(),
-  api_conversion_rate: z.string().optional().nullable(),
-}).superRefine((data, ctx) => {
+const expenseSchema = z
+  .object({
+    expense_policy_id: z.string().min(1, "Please select a policy"),
+    category_id: z.string().min(1, "Please select a category"),
+    category_type: z.string(),
+    start_date: z.string().optional().nullable(),
+    end_date: z.string().optional().nullable(),
+    invoice_number: z.string().min(1, "Invoice number is required"),
+    vendor: z.string().min(1, "Vendor is required"),
+    amount: z.string().min(1, "Amount is required"),
+    receipt_id: z.string().optional().nullable(),
+    expense_date: z
+      .string()
+      .min(1, "Date is required")
+      .refine((v) => !isNaN(parseLocalDate(v).getTime()), {
+        message: "Invalid date",
+      })
+      .refine(
+        (v) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const selected = parseLocalDate(v);
+          selected.setHours(0, 0, 0, 0);
+          return selected <= today;
+        },
+        { message: "Date cannot exceed today's date" },
+      ),
+    advance_account_id: z.string().optional().nullable(),
+    description: z.string().min(1, "Description is required"),
+    foreign_currency: z.string().optional().nullable(),
+    currency: z.string().optional().default("INR"),
+    foreign_amount: z.string().optional().nullable(),
+    user_conversion_rate: z.string().optional().nullable(),
+    api_conversion_rate: z.string().optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
     if (data.category_type === "MULTI_DAY") {
       if (!data.start_date) {
         ctx.addIssue({
@@ -182,17 +181,20 @@ export function ExpenseDetailsStep2({
 }: ExpenseDetailsStepProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const iasAdminUpdating = pathname.includes("admin-reports");
-  const { orgSettings } = useAuthStore();
+  const { orgSettings, user } = useAuthStore();
+  const isUserAdmin = user?.role === "ADMIN";
+  const isAdminUpdating = pathname.includes("admin-reports") || (pathname.includes("approvals/reports/") && isUserAdmin);
   const baseCurrency = getOrgCurrency();
   const orgId = getOrgIdFromToken();
   const { parsedData, setParsedData } = useExpenseStore();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [duplicateReceiptUrl, setDuplicateReceiptUrl] = useState<string | null>(
-    null
+    null,
   );
   const readOnly = mode === "view";
-  const isCategoryPolicyDisabled = expense?.transaction_id && expense?.transactions?.transaction_source !== "PINE";
+  const isCategoryPolicyDisabled =
+    expense?.transaction_id &&
+    expense?.transactions?.transaction_source !== "PINE";
   const [duplicateReceiptLoading, setDuplicateReceiptLoading] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [selectedCategory, setSelectedCategory] =
@@ -209,7 +211,7 @@ export function ExpenseDetailsStep2({
   const [receiptSignedUrl, setReceiptSignedUrl] = useState<string[]>([]);
   const [showConversion, setShowConversion] = useState(false);
   const [templateEntities, setTemplateEntities] = useState<TemplateEntity[]>(
-    []
+    [],
   );
   const [entityOptions, setEntityOptions] = useState<
     Record<string, Array<{ id: string; label: string }>>
@@ -236,27 +238,37 @@ export function ExpenseDetailsStep2({
               ? format(parseLocalDate(expense.expense_date), "yyyy-MM-dd")
               : expense.expense_date instanceof Date
                 ? format(expense.expense_date, "yyyy-MM-dd")
-                : format(parseLocalDate(String(expense.expense_date)), "yyyy-MM-dd")
+                : format(
+                    parseLocalDate(String(expense.expense_date)),
+                    "yyyy-MM-dd",
+                  )
             : undefined,
         }
       : {
-        expense_policy_id: "",
-        category_id: "",
-        category_type: "",
-        invoiceNumber: "",
-        merchant: "",
-        amount: "",
-        expense_date: undefined,
-        comments: "",
-        city: "",
-        source: "",
-        destination: "",
-        pre_approval_id: "",
-        advance_id: "",
-        foreign_currency: getOrgCurrency(),
-        currency: getOrgCurrency(),
-      },
+          expense_policy_id: "",
+          category_id: "",
+          category_type: "",
+          invoiceNumber: "",
+          merchant: "",
+          amount: "",
+          expense_date: undefined,
+          comments: "",
+          city: "",
+          source: "",
+          destination: "",
+          pre_approval_id: "",
+          advance_id: "",
+          foreign_currency: getOrgCurrency(),
+          currency: getOrgCurrency(),
+        },
   });
+
+  const adminAmountError =
+    isAdminUpdating &&
+    ((showConversion
+      ? +(form.getValues("foreign_amount") || "0")
+      : +form.getValues("amount")) >
+      (showConversion ? +expense.foreign_amount : +expense.amount));
 
   const userRate = form.watch("user_conversion_rate");
   const apiRate = form.watch("api_conversion_rate");
@@ -269,7 +281,7 @@ export function ExpenseDetailsStep2({
     try {
       const response: any = await expenseService.fetchReceiptPreview(
         receiptId,
-        orgId
+        orgId,
       );
       setReceiptSignedUrl([response.data.data.signed_url]);
     } catch (error) {
@@ -285,10 +297,10 @@ export function ExpenseDetailsStep2({
     }
     if (data.recommended_policy_id && data.recommended_category) {
       const selectedPolicy = policies.find(
-        (policy) => policy.id === data.recommended_policy_id
+        (policy) => policy.id === data.recommended_policy_id,
       );
       const selectedCategory = selectedPolicy?.categories.find(
-        (category) => category.id === data.recommended_category.category_id
+        (category) => category.id === data.recommended_category.category_id,
       );
       if (selectedPolicy && selectedCategory) {
         setSelectedCategory(selectedCategory);
@@ -342,7 +354,7 @@ export function ExpenseDetailsStep2({
       if (!orgId) return;
 
       const response = await api.get(
-        `/receipts/${receiptId}/signed-url?org_id=${orgId}`
+        `/receipts/${receiptId}/signed-url?org_id=${orgId}`,
       );
       if (response.data.status === "success" && response.data.data.signed_url) {
         setDuplicateReceiptUrl(response.data.data.signed_url);
@@ -354,14 +366,23 @@ export function ExpenseDetailsStep2({
     }
   };
 
-  const generateUploadUrl = async (file: File): Promise<{
+  const generateUploadUrl = async (
+    file: File,
+  ): Promise<{
     downloadUrl: string;
     uploadUrl: string;
     fileId: string;
   }> => {
     try {
-      const res = await expenseService.getUploadUrl({ type: "RECEIPT", name: file.name });
-      return { uploadUrl: res.data.data.upload_url, downloadUrl: res.data.data.download_url, fileId: res.data.data.id };
+      const res = await expenseService.getUploadUrl({
+        type: "RECEIPT",
+        name: file.name,
+      });
+      return {
+        uploadUrl: res.data.data.upload_url,
+        downloadUrl: res.data.data.download_url,
+        fileId: res.data.data.id,
+      };
     } catch (error) {
       console.log(error);
       throw error;
@@ -414,10 +435,16 @@ export function ExpenseDetailsStep2({
       const conversion = res.data.data.exchange_rate;
       form.setValue(
         "amount",
-        `${(+conversion * +form.getValues("amount")).toFixed(3)}`
+        `${(+conversion * +form.getValues("amount")).toFixed(3)}`,
       );
-      form.setValue("user_conversion_rate", Number(conversion).toFixed(4).toString());
-      form.setValue("api_conversion_rate", Number(conversion).toFixed(4).toString());
+      form.setValue(
+        "user_conversion_rate",
+        Number(conversion).toFixed(4).toString(),
+      );
+      form.setValue(
+        "api_conversion_rate",
+        Number(conversion).toFixed(4).toString(),
+      );
       setShowConversion(true);
     } catch (error: any) {
       console.log(error);
@@ -467,7 +494,7 @@ export function ExpenseDetailsStep2({
     }
 
     const accountRate = selectedAdvanceAccount?.currency_conversion_rates?.find(
-      (item: any) => item.currency === currency
+      (item: any) => item.currency === currency,
     )?.rate;
 
     if (accountRate !== undefined) {
@@ -496,7 +523,7 @@ export function ExpenseDetailsStep2({
   useEffect(() => {
     if (expense && advanceAccounts.length > 0 && expense?.advance_account_id) {
       const adv = advanceAccounts.find(
-        (adv: AdvanceType) => adv.id === expense.advance_account_id
+        (adv: AdvanceType) => adv.id === expense.advance_account_id,
       );
       setSelectedAdvanceAccount(adv);
     }
@@ -582,15 +609,19 @@ export function ExpenseDetailsStep2({
             ? format(expense.expense_date, "yyyy-MM-dd")
             : format(parseLocalDate(String(expense.expense_date)), "yyyy-MM-dd")
         : undefined;
-    
-        const startDate = expense.start_date ? format(parseLocalDate(expense.start_date), 'yyyy-MM-dd') : undefined;
-        const endDate = expense.end_date ? format(parseLocalDate(expense.end_date), 'yyyy-MM-dd') : undefined;
 
-        form.reset({
+      const startDate = expense.start_date
+        ? format(parseLocalDate(expense.start_date), "yyyy-MM-dd")
+        : undefined;
+      const endDate = expense.end_date
+        ? format(parseLocalDate(expense.end_date), "yyyy-MM-dd")
+        : undefined;
+
+      form.reset({
         ...expense,
         expense_date: normalizedDate,
         start_date: startDate,
-        end_date: endDate
+        end_date: endDate,
       });
       // Set selected policy and category based on form data
       if (expense.foreign_amount && expense.foreign_currency) {
@@ -609,7 +640,7 @@ export function ExpenseDetailsStep2({
 
           if (expense.category_id) {
             const category = policy.categories.find(
-              (c) => c.id === expense.category_id
+              (c) => c.id === expense.category_id,
             );
             if (category) {
               setSelectedCategory(category);
@@ -638,7 +669,7 @@ export function ExpenseDetailsStep2({
             ) {
               form.setValue(entityId as any, String(value));
             }
-          }
+          },
         );
       }
     }
@@ -654,7 +685,7 @@ export function ExpenseDetailsStep2({
       Object.entries(expense.custom_attributes).forEach(([entityId, value]) => {
         if (entityId && value !== null && value !== undefined && value !== "") {
           const entityExists = templateEntities.some(
-            (entity) => (entity?.entity_id || entity?.id) === entityId
+            (entity) => (entity?.entity_id || entity?.id) === entityId,
           );
           if (entityExists) {
             form.setValue(entityId as any, String(value));
@@ -796,11 +827,11 @@ export function ExpenseDetailsStep2({
       (!expense || !("transaction_id" in expense))
     ) {
       const selectedPolicy = policies.find(
-        (policy) => policy.id === parsedData.recommended_policy_id
+        (policy) => policy.id === parsedData.recommended_policy_id,
       );
       const selectedCategory = selectedPolicy?.categories.find(
         (category) =>
-          category.id === parsedData.recommended_category.category_id
+          category.id === parsedData.recommended_category.category_id,
       );
       if (selectedPolicy && selectedCategory) {
         setSelectedCategory(selectedCategory);
@@ -812,58 +843,56 @@ export function ExpenseDetailsStep2({
     }
   }, [parsedData, policies]);
 
-type Attachment = {
-  fileId: string;
-  url: string;
-};
+  type Attachment = {
+    fileId: string;
+    url: string;
+  };
 
-useEffect(() => {
-  if (!fileIds.length) return;
+  useEffect(() => {
+    if (!fileIds.length) return;
 
-  const existingMap = new Map(
-    attachments.map((a) => [a.fileId, a.url])
-  );
+    const existingMap = new Map(attachments.map((a) => [a.fileId, a.url]));
 
-  const fileIdsToFetch = fileIds.filter(
-    (id) => !existingMap.has(id) || !existingMap.get(id)
-  );
+    const fileIdsToFetch = fileIds.filter(
+      (id) => !existingMap.has(id) || !existingMap.get(id),
+    );
 
-  if (!fileIdsToFetch.length) return;
+    if (!fileIdsToFetch.length) return;
 
-  let cancelled = false;
+    let cancelled = false;
 
-  const fetchUrls = async () => {
-    try {
-      const fetched = await Promise.all(
-        fileIdsToFetch.map(async (fileId) => {
-          const res = await expenseService.generatePreviewUrl(fileId);
-          console.log(res);
-          return { fileId, url: res.data.data.download_url };
-        })
-      );
+    const fetchUrls = async () => {
+      try {
+        const fetched = await Promise.all(
+          fileIdsToFetch.map(async (fileId) => {
+            const res = await expenseService.generatePreviewUrl(fileId);
+            console.log(res);
+            return { fileId, url: res.data.data.download_url };
+          }),
+        );
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      setAttachments((prev) => {
-        const map = new Map(prev.map((a) => [a.fileId, a]));
+        setAttachments((prev) => {
+          const map = new Map(prev.map((a) => [a.fileId, a]));
 
-        fetched.forEach((a) => {
-          map.set(a.fileId, a);
+          fetched.forEach((a) => {
+            map.set(a.fileId, a);
+          });
+
+          return Array.from(map.values());
         });
+      } catch (err) {
+        console.error("Failed to fetch attachment URLs", err);
+      }
+    };
 
-        return Array.from(map.values());
-      });
-    } catch (err) {
-      console.error("Failed to fetch attachment URLs", err);
-    }
-  };
+    fetchUrls();
 
-  fetchUrls();
-
-  return () => {
-    cancelled = true;
-  };
-}, [fileIds]);
+    return () => {
+      cancelled = true;
+    };
+  }, [fileIds]);
 
   useEffect(() => {
     // Check the appropriate key
@@ -939,10 +968,11 @@ useEffect(() => {
 
         <div className="grid gap-6 md:grid-cols-2">
           <div
-            className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${expense?.original_expense_id
-              ? "md:h-[calc(100vh-18rem)]"
-              : "md:h-[calc(100vh-13rem)]"
-              } md:overflow-y-auto`}
+            className={`rounded-2xl border border-gray-200 bg-white shadow-sm min-h-full ${
+              expense?.original_expense_id
+                ? "md:h-[calc(100vh-18rem)]"
+                : "md:h-[calc(100vh-13rem)]"
+            } md:overflow-y-auto`}
           >
             <ReceiptViewer
               activeReceiptTab={activeReceiptTab}
@@ -976,13 +1006,18 @@ useEffect(() => {
             <form
               onSubmit={form.handleSubmit((data) => {
                 const allFormValues = form.getValues();
-                const mergedData = { ...allFormValues, ...data, file_ids: fileIds };
+                const mergedData = {
+                  ...allFormValues,
+                  ...data,
+                  file_ids: fileIds,
+                };
                 onSubmit(mergedData);
               })}
-              className={`rounded-2xl border border-gray-200 bg-white shadow-sm p-2 ${expense?.original_expense_id
-                ? "md:h-[calc(100vh-18rem)]"
-                : "md:h-[calc(100vh-13rem)]"
-                } md:overflow-y-auto`}
+              className={`rounded-2xl border border-gray-200 bg-white shadow-sm p-2 ${
+                expense?.original_expense_id
+                  ? "md:h-[calc(100vh-18rem)]"
+                  : "md:h-[calc(100vh-13rem)]"
+              } md:overflow-y-auto`}
             >
               <div className="md:min-h-full">
                 <div className="divide-y divide-gray-100">
@@ -1005,12 +1040,12 @@ useEffect(() => {
                               onValueChange={(value) => {
                                 field.onChange(value);
                                 const policy = policies.find(
-                                  (p) => p.id === value
+                                  (p) => p.id === value,
                                 );
                                 setSelectedPolicy(policy || null);
                                 setSelectedCategory(null);
                                 form.setValue("category_id", "");
-                                form.setValue("category_type", "")
+                                form.setValue("category_type", "");
                                 getAccounts(value);
                                 setSelectedAdvanceAccount(null);
                                 form.setValue("advance_account_id", "");
@@ -1098,7 +1133,10 @@ useEffect(() => {
                                           value={category.name}
                                           onSelect={() => {
                                             field.onChange(category.id);
-                                            form.setValue("category_type", category.category_type);
+                                            form.setValue(
+                                              "category_type",
+                                              category.category_type,
+                                            );
                                             setSelectedCategory(category);
                                             setCategoryDropdownOpen(false);
                                           }}
@@ -1139,7 +1177,7 @@ useEffect(() => {
                                     variant="outline"
                                     className={cn(
                                       "h-11 w-full justify-between pl-3 text-left font-normal",
-                                      !field.value && "text-muted-foreground"
+                                      !field.value && "text-muted-foreground",
                                     )}
                                     disabled={
                                       readOnly || expense?.transaction_id
@@ -1148,7 +1186,7 @@ useEffect(() => {
                                     {field.value ? (
                                       format(
                                         parseLocalDate(String(field.value)),
-                                        "PPP"
+                                        "PPP",
                                       )
                                     ) : (
                                       <span>Pick a date</span>
@@ -1184,126 +1222,134 @@ useEffect(() => {
                           </FormItem>
                         )}
                       />
-                      
-                      {isMultiDayExpense && <div className="grid gap-3 sm:grid-cols-2">
-                        <FormField
-                          control={form.control}
-                          name="start_date"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>From</FormLabel>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button
-                                      variant="outline"
-                                      className={cn(
-                                        "h-11 w-full justify-between pl-3 text-left font-normal",
-                                        !field.value && "text-muted-foreground"
-                                      )}
-                                      disabled={
-                                        readOnly || expense?.transaction_id
+
+                      {isMultiDayExpense && (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <FormField
+                            control={form.control}
+                            name="start_date"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>From</FormLabel>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <FormControl>
+                                      <Button
+                                        variant="outline"
+                                        className={cn(
+                                          "h-11 w-full justify-between pl-3 text-left font-normal",
+                                          !field.value &&
+                                            "text-muted-foreground",
+                                        )}
+                                        disabled={
+                                          readOnly || expense?.transaction_id
+                                        }
+                                      >
+                                        {field.value ? (
+                                          format(
+                                            parseLocalDate(String(field.value)),
+                                            "PPP",
+                                          )
+                                        ) : (
+                                          <span>Pick a date</span>
+                                        )}
+                                        <Calendar className="h-4 w-4 opacity-50" />
+                                      </Button>
+                                    </FormControl>
+                                  </PopoverTrigger>
+                                  <PopoverContent
+                                    className="w-auto p-0"
+                                    align="start"
+                                  >
+                                    <CalendarComponent
+                                      mode="single"
+                                      selected={
+                                        field.value
+                                          ? parseLocalDate(String(field.value))
+                                          : undefined
                                       }
-                                    >
-                                      {field.value ? (
-                                        format(
-                                          parseLocalDate(String(field.value)),
-                                          "PPP"
-                                        )
-                                      ) : (
-                                        <span>Pick a date</span>
-                                      )}
-                                      <Calendar className="h-4 w-4 opacity-50" />
-                                    </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent
-                                  className="w-auto p-0"
-                                  align="start"
-                                >
-                                  <CalendarComponent
-                                    mode="single"
-                                    selected={
-                                      field.value
-                                        ? parseLocalDate(String(field.value))
-                                        : undefined
-                                    }
-                                    onSelect={(date) => {
-                                      if (!date) return;
-                                      field.onChange(format(date, "yyyy-MM-dd"));
-                                    }}
-                                    disabled={(date) =>
-                                      date > new Date() ||
-                                      date < new Date("1900-01-01")
-                                    }
-                                    initialFocus
-                                  />
-                                </PopoverContent>
-                              </Popover>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      
-                        <FormField
-                          control={form.control}
-                          name="end_date"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>To</FormLabel>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button
-                                      variant="outline"
-                                      className={cn(
-                                        "h-11 w-full justify-between pl-3 text-left font-normal",
-                                        !field.value && "text-muted-foreground"
-                                      )}
-                                      disabled={
-                                        readOnly || expense?.transaction_id
+                                      onSelect={(date) => {
+                                        if (!date) return;
+                                        field.onChange(
+                                          format(date, "yyyy-MM-dd"),
+                                        );
+                                      }}
+                                      disabled={(date) =>
+                                        date > new Date() ||
+                                        date < new Date("1900-01-01")
                                       }
-                                    >
-                                      {field.value ? (
-                                        format(
-                                          parseLocalDate(String(field.value)),
-                                          "PPP"
-                                        )
-                                      ) : (
-                                        <span>Pick a date</span>
-                                      )}
-                                      <Calendar className="h-4 w-4 opacity-50" />
-                                    </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent
-                                  className="w-auto p-0"
-                                  align="start"
-                                >
-                                  <CalendarComponent
-                                    mode="single"
-                                    selected={
-                                      field.value
-                                        ? parseLocalDate(String(field.value))
-                                        : undefined
-                                    }
-                                    onSelect={(date) => {
-                                      if (!date) return;
-                                      field.onChange(format(date, "yyyy-MM-dd"));
-                                    }}
-                                    disabled={(date) =>
-                                      date > new Date() ||
-                                      date < new Date("1900-01-01")
-                                    }
-                                    initialFocus
-                                  />
-                                </PopoverContent>
-                              </Popover>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="end_date"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>To</FormLabel>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <FormControl>
+                                      <Button
+                                        variant="outline"
+                                        className={cn(
+                                          "h-11 w-full justify-between pl-3 text-left font-normal",
+                                          !field.value &&
+                                            "text-muted-foreground",
+                                        )}
+                                        disabled={
+                                          readOnly || expense?.transaction_id
+                                        }
+                                      >
+                                        {field.value ? (
+                                          format(
+                                            parseLocalDate(String(field.value)),
+                                            "PPP",
+                                          )
+                                        ) : (
+                                          <span>Pick a date</span>
+                                        )}
+                                        <Calendar className="h-4 w-4 opacity-50" />
+                                      </Button>
+                                    </FormControl>
+                                  </PopoverTrigger>
+                                  <PopoverContent
+                                    className="w-auto p-0"
+                                    align="start"
+                                  >
+                                    <CalendarComponent
+                                      mode="single"
+                                      selected={
+                                        field.value
+                                          ? parseLocalDate(String(field.value))
+                                          : undefined
+                                      }
+                                      onSelect={(date) => {
+                                        if (!date) return;
+                                        field.onChange(
+                                          format(date, "yyyy-MM-dd"),
+                                        );
+                                      }}
+                                      disabled={(date) =>
+                                        date > new Date() ||
+                                        date < new Date("1900-01-01")
+                                      }
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
 
                       {orgSettings?.advance_settings?.enabled &&
                         advanceAccounts.length > 0 && (
@@ -1318,7 +1364,7 @@ useEffect(() => {
                                   onValueChange={(value) => {
                                     field.onChange(value);
                                     const acc = advanceAccounts.find(
-                                      (p: any) => p.id === value
+                                      (p: any) => p.id === value,
                                     );
                                     setSelectedAdvanceAccount(acc || null);
                                     hasResolvedAdvanceRef.current = true;
@@ -1343,8 +1389,7 @@ useEffect(() => {
                                             e.stopPropagation();
                                             field.onChange("");
                                             setSelectedAdvanceAccount(null);
-                                            hasResolvedAdvanceRef.current =
-                                              true;
+                                            hasResolvedAdvanceRef.current = true;
                                           }}
                                           className="absolute right-8 top-1/2 mr-2 -translate-y-1/2 text-muted-foreground hover:text-foreground pointer-events-auto"
                                         >
@@ -1390,7 +1435,8 @@ useEffect(() => {
                                     }
                                   }}
                                   disabled={
-                                    iasAdminUpdating || readOnly ||
+                                    isAdminUpdating ||
+                                    readOnly ||
                                     !orgSettings?.currency_conversion_settings
                                       ?.enabled
                                   }
@@ -1432,7 +1478,18 @@ useEffect(() => {
                                   />
                                 </FormControl>
                                 <FormMessage />
-                                {expense && expense.admin_amount && <FormMessage>An admin capped at {expense.admin_amount}</FormMessage>}
+                                {adminAmountError && (
+                                  <FormMessage>
+                                    Amount cannot exceed {expense.amount}
+                                  </FormMessage>
+                                )}
+                                {!adminAmountError &&
+                                  expense &&
+                                  expense.admin_amount && (
+                                    <FormMessage>
+                                      An admin capped at {expense.admin_amount}
+                                    </FormMessage>
+                                  )}
                               </FormItem>
                             )}
                           />
@@ -1458,7 +1515,19 @@ useEffect(() => {
                                   />
                                 </FormControl>
                                 <FormMessage />
-                                {expense && expense.admin_amount && <FormMessage>An admin capped at {expense.admin_amount}</FormMessage>}
+                                {adminAmountError && (
+                                  <FormMessage>
+                                    Amount cannot exceed{" "}
+                                    {expense.foreign_amount}
+                                  </FormMessage>
+                                )}
+                                {!adminAmountError &&
+                                  expense &&
+                                  expense.admin_amount && (
+                                    <FormMessage>
+                                      An admin capped at {expense.admin_amount}
+                                    </FormMessage>
+                                  )}
                               </FormItem>
                             )}
                           />
@@ -1488,17 +1557,17 @@ useEffect(() => {
                                           ""
                                         )?.toString() !== ""
                                           ? Number(
-                                            userRate ??
-                                            expense?.user_conversion_rate ??
-                                            apiRate ??
-                                            0
-                                          )
+                                              userRate ??
+                                                expense?.user_conversion_rate ??
+                                                apiRate ??
+                                                0,
+                                            )
                                           : ""
                                       }
                                       onChange={(e) => {
                                         form.setValue(
                                           "user_conversion_rate",
-                                          e.target.value
+                                          e.target.value,
                                         );
                                       }}
                                     />
@@ -1657,10 +1726,10 @@ useEffect(() => {
                                           <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
                                             {field.value
                                               ? entityOptions[entityId]?.find(
-                                                (opt) =>
-                                                  opt.id === field.value
-                                              )?.label ||
-                                              `Select ${fieldName}`
+                                                  (opt) =>
+                                                    opt.id === field.value,
+                                                )?.label ||
+                                                `Select ${fieldName}`
                                               : `Select ${fieldName}`}
                                           </span>
                                           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -1688,13 +1757,13 @@ useEffect(() => {
                                                       (prev) => ({
                                                         ...prev,
                                                         [entityId]: false,
-                                                      })
+                                                      }),
                                                     );
                                                   }}
                                                 >
                                                   {opt.label}
                                                 </CommandItem>
-                                              )
+                                              ),
                                             )}
                                           </CommandGroup>
                                         </CommandList>
@@ -1753,7 +1822,9 @@ useEffect(() => {
                   {!readOnly && (
                     <Button
                       type="submit"
-                      disabled={loading || fetchingConversion}
+                      disabled={
+                        loading || fetchingConversion || adminAmountError
+                      }
                       className="min-w-[200px]"
                     >
                       {loading ? (
@@ -1815,12 +1886,14 @@ useEffect(() => {
                     </div>
                     <div className="text-sm text-gray-600">
                       {semiParsedData?.extracted_date
-                        ? parseLocalDate(semiParsedData.extracted_date).toLocaleDateString("en-GB", {
-                          weekday: "short",
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
+                        ? parseLocalDate(
+                            semiParsedData.extracted_date,
+                          ).toLocaleDateString("en-GB", {
+                            weekday: "short",
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
                         : semiParsedData?.ocr_result?.date}
                     </div>
                   </div>
@@ -1838,28 +1911,28 @@ useEffect(() => {
                       localStorage.setItem("showDuplicateDialog", "true");
                       localStorage.setItem(
                         "duplicateParsedData",
-                        JSON.stringify(semiParsedData)
+                        JSON.stringify(semiParsedData),
                       );
                       localStorage.setItem(
                         "duplicatePreviewUrl",
-                        base64Url || ""
+                        base64Url || "",
                       );
                       navigate(
-                        `/expenses/${semiParsedData.original_expense_id}?returnTo=create`
+                        `/expenses/${semiParsedData.original_expense_id}?returnTo=create`,
                       );
                     } catch (error) {
                       console.error("Error converting file to base64:", error);
                       localStorage.setItem("showDuplicateDialog", "true");
                       localStorage.setItem(
                         "duplicateParsedData",
-                        JSON.stringify(semiParsedData)
+                        JSON.stringify(semiParsedData),
                       );
                       localStorage.setItem(
                         "duplicatePreviewUrl",
-                        previewUrl || ""
+                        previewUrl || "",
                       );
                       navigate(
-                        `/expenses/${semiParsedData.original_expense_id}?returnTo=create`
+                        `/expenses/${semiParsedData.original_expense_id}?returnTo=create`,
                       );
                     }
                   }}
