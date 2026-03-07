@@ -1,4 +1,4 @@
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { Box } from "@mui/material";
 import {
   DataGrid,
@@ -9,7 +9,7 @@ import {
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/shared/StatusPill";
 import { toast } from "sonner";
 import { settlementsService } from "@/services/settlementsService";
 import { ReportTabs } from "@/components/reports/ReportTabs";
@@ -62,9 +62,7 @@ const columns: GridColDef[] = [
     flex: 1,
     minWidth: 180,
     renderCell: (params) => (
-      <Badge className={getStatusColor(params.value)}>
-        {params.value || "N/A"}
-      </Badge>
+      <StatusPill status={params.value || "N/A"} />
     ),
   },
   {

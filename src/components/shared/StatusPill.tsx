@@ -89,9 +89,6 @@ export function StatusPill({ status, className }: StatusPillProps) {
     
     // Replace underscores with spaces
     formattedStatus = formattedStatus.replace(/_/g, " ");
-    
-    // Convert to proper case (first letter uppercase, rest lowercase)
-    // Handle multiple words (e.g., "Pending Approval")
     return formattedStatus
       .split(" ")
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -101,7 +98,7 @@ export function StatusPill({ status, className }: StatusPillProps) {
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-[10px] rounded-lg",
+        "inline-flex items-center justify-center gap-[10px] rounded-lg",
         getStatusBackgroundColor(),
         className
       )}
@@ -112,9 +109,10 @@ export function StatusPill({ status, className }: StatusPillProps) {
         paddingRight: "8px",
         paddingBottom: "4px",
         paddingLeft: "8px",
+        lineHeight: "1",
       }}
     >
-      <span className={cn("text-sm font-medium", getStatusTextColor())}>
+      <span className={cn("text-sm font-medium leading-none", getStatusTextColor())}>
         {formatStatusText()}
       </span>
     </div>

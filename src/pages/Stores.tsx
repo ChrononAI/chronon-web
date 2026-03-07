@@ -1,20 +1,21 @@
 import { useEffect, useState } from "react";
-import { ReportsPageWrapper } from "@/components/reports/ReportsPageWrapper";
-import { Box } from "@mui/material";
+import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
+import { useLayoutStore } from "@/store/layoutStore";
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
   GridRowSelectionModel,
+  GridRowModel,
 } from "@mui/x-data-grid";
-import { Badge } from "@/components/ui/badge";
-import { formatDate, getStatusColor } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { storesService } from "@/services/storeService";
 import { useStoreStore } from "@/store/storeStore";
-import { GridRowModel } from "@mui/x-data-grid";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import { DataTable } from "@/components/shared/DataTable";
+import CustomInvoiceToolbar from "@/components/invoice/CustomInvoiceToolbar";
+import { StatusPill } from "@/components/shared/StatusPill";
 
 const columns: GridColDef[] = [
   {
@@ -47,9 +48,7 @@ const columns: GridColDef[] = [
     flex: 1,
     minWidth: 180,
     renderCell: (params) => (
-      <Badge className={getStatusColor(params.value)}>
-        {params.value.replace("_", " ")}
-      </Badge>
+      <StatusPill status={params.value} />
     ),
   },
   {
@@ -66,6 +65,7 @@ const columns: GridColDef[] = [
 export default function Stores() {
   const navigate = useNavigate();
   const { setSelectedStore } = useStoreStore();
+  const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const [loading, setLoading] = useState(true);
 
   // Tab and filter states
@@ -106,6 +106,13 @@ export default function Stores() {
       page: 0,
       pageSize: calculatePageSize(),
     });
+
+  useEffect(() => {
+    setNoPadding(true);
+    return () => {
+      setNoPadding(false);
+    };
+  }, [setNoPadding]);
 
   const fetchAllStores = async () => {
     setLoading(true);
@@ -201,98 +208,57 @@ export default function Stores() {
     }));
   }, [activeTab]);
 
+  const rowCount =
+    activeTab === "all"
+      ? allCount
+      : activeTab === "pending"
+        ? pendingCount
+        : processedCount || 0;
+
   return (
-    <ReportsPageWrapper
+    <InvoicePageWrapper
       title="Stores"
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId) => setActiveTab(tabId as "all")}
+      onTabChange={(tabId) => setActiveTab(tabId as "all" | "pending" | "processed")}
       showFilters={false}
       showDateFilter={false}
-      showCreateButton={true}
-      createButtonText="Create New Store"
-      createButtonLink="/requests/stores/create"
+      showCreateButton={false}
+      marginBottom="mb-0"
     >
-      <Box
-        sx={{
-          height: "calc(100vh - 160px)",
-          width: "100%",
-          marginTop: "-30px",
+      <DataTable
+        rows={loading ? [] : rows}
+        columns={columns}
+        loading={loading}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={handleRowClick}
+        rowCount={rowCount}
+        paginationMode="server"
+        firstColumnField="name"
+        emptyStateComponent={
+          <CustomNoRows
+            title="No stores found"
+            description="There are currently no stores."
+          />
+        }
+        slots={{
+          toolbar: CustomInvoiceToolbar,
+          loadingOverlay: () => (
+            <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          ),
         }}
-      >
-        <DataGrid
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          rows={loading ? [] : rows}
-          columns={columns}
-          loading={loading}
-          slots={{
-            noRowsOverlay: () => <CustomNoRows title="No stores found" description="There are currently no stores." />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
-          }}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-panel .MuiSelect-select": {
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          density="compact"
-          getRowClassName={(params) =>
-            params.row.original_expense_id ? "bg-yellow-50" : ""
-          }
-          checkboxSelection
-          disableRowSelectionOnClick
-          showCellVerticalBorder
-          onRowClick={handleRowClick}
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
-          pagination
-          paginationMode="server"
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          rowCount={
-            (activeTab === "all"
-              ? allCount
-              : activeTab === "pending"
-                ? pendingCount
-                : processedCount) || 0
-          }
-        />
-      </Box>
-    </ReportsPageWrapper>
+        slotProps={{
+          toolbar: {
+            onCreateClick: () => navigate("/requests/stores/create"),
+            createButtonText: "Create New Store",
+          } as any,
+        }}
+        showToolbar
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={setRowSelection}
+      />
+    </InvoicePageWrapper>
   );
 }

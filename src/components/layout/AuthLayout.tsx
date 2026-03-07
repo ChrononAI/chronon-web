@@ -1,4 +1,4 @@
-import logoIcon from "@/assets/icon-ios-1024x1024.png";
+import logoIcon from "@/assets/newicon.jpg";
 
 function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -19,38 +19,38 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
                 className="object-cover w-full h-full"
               />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 leading-tight mb-0">
+            <h1 className="text-3xl font-bold text-[#1A1A1A] leading-tight mb-0">
               Chronon
             </h1>
-            <h2 className="text-3xl font-bold text-blue-600 mb-2 leading-tight">
+            <h2 className="text-3xl font-bold text-[#0D9C99] mb-2 leading-tight">
               Expense
             </h2>
-            <p className="text-base text-gray-600 mb-6 leading-relaxed max-w-md">
+            <p className="text-base font-medium text-[#64748B] mb-6 leading-relaxed max-w-md">
               Streamline your business expenses with intelligent automation and
               real-time insights
             </p>
             <div className="grid grid-cols-2 gap-y-4 gap-x-8">
               <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>
-                <span className="text-gray-700 text-sm">
+                <div className="w-2.5 h-2.5 bg-[#0D9C99] rounded-full"></div>
+                <span className="text-[#1A1A1A] text-sm font-medium">
                   Smart Receipt Processing
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>
-                <span className="text-gray-700 text-sm">
+                <div className="w-2.5 h-2.5 bg-[#0D9C99] rounded-full"></div>
+                <span className="text-[#1A1A1A] text-sm font-medium">
                   Real-time Approvals
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>
-                <span className="text-gray-700 text-sm">
+                <div className="w-2.5 h-2.5 bg-[#0D9C99] rounded-full"></div>
+                <span className="text-[#1A1A1A] text-sm font-medium">
                   Compliance Tracking
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>
-                <span className="text-gray-700 text-sm">
+                <div className="w-2.5 h-2.5 bg-[#0D9C99] rounded-full"></div>
+                <span className="text-[#1A1A1A] text-sm font-medium">
                   Financial Insights
                 </span>
               </div>

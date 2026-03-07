@@ -1,19 +1,17 @@
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { StatusPill } from "@/components/shared/StatusPill";
 import { transactionService } from "@/services/transactionService";
-import { Box } from "@mui/material";
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
-  GridRowParams,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { DataTable } from "@/components/shared/DataTable";
 
 const columns: GridColDef[] = [
   {
@@ -44,9 +42,9 @@ const columns: GridColDef[] = [
     minWidth: 120,
     flex: 1,
     renderCell: (params) => (
-      <Badge className={getStatusColor(params.value)}>
-        {params.value.replace("_", " ")}
-      </Badge>
+      <div className="flex items-center h-full">
+        <StatusPill status={params.value} />
+      </div>
     ),
   },
   {
@@ -110,8 +108,8 @@ function TransactionsPage() {
     }
   };
 
-  const handleRowClick = ({ id }: GridRowParams) => {
-    navigate(`/transactions/${id}`);
+  const handleRowClick = (params: any) => {
+    navigate(`/transactions/${params.id}`);
   };
 
   useEffect(() => {
@@ -123,80 +121,34 @@ function TransactionsPage() {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Transactions</h1>
+        <h1 className="text-2xl font-bold text-[#1A1A1A]">Transactions</h1>
       </div>
-      <Box
-        sx={{
-          height: "calc(100vh - 120px)",
-          width: "100%",
+      <DataTable
+        rows={loading ? [] : rows}
+        columns={columns}
+        loading={loading}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={handleRowClick}
+        rowCount={rowCount}
+        paginationMode="server"
+        firstColumnField="transaction_id"
+        emptyStateComponent={
+          <CustomNoRows
+            title="No transactions found"
+            description="There are currently no transactions."
+          />
+        }
+        slots={{
+          loadingOverlay: () => (
+            <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          ),
         }}
-      >
-        <DataGrid
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          columns={columns}
-          rows={loading ? [] : rows}
-          loading={loading}
-          slots={{
-            noRowsOverlay: () => <CustomNoRows title="No transactions found" description="There are currently no transactions." />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
-          }}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiToolbar-root": {
-              paddingX: 0,
-            },
-            "& .MuiDataGrid-panel .MuiSelect-select": {
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
-          paginationMode="server"
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          rowCount={rowCount}
-          density="compact"
-          checkboxSelection
-          disableRowSelectionOnClick
-          onRowClick={handleRowClick}
-          showCellVerticalBorder
-        />
-      </Box>
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={setRowSelection}
+        showCellVerticalBorder
+      />
     </>
   );
 }
