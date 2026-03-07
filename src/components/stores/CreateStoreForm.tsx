@@ -29,7 +29,7 @@ import { userService } from "@/services/admin/userService";
 import { storesService } from "@/services/storeService";
 import { toast } from "sonner";
 import { trackEvent } from "@/mixpanel";
-import { FormFooter } from "../layout/FormFooter";
+import { FormActionFooter } from "../layout/FormActionFooter";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Entity, getEntities } from "@/services/admin/entities";
@@ -478,7 +478,7 @@ export function CreateStoreForm({
       {showHeader && <h1 className="text-2xl font-bold">Create Store</h1>}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-20">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
@@ -879,37 +879,25 @@ export function CreateStoreForm({
               )
               .map((entity) => renderTemplateField(entity))}
           </div>
-          <FormFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={loading}
-              className="px-6 py-2"
-            >
-              Back
-            </Button>
-            {(selectedStore?.status === "COMPLETE" || mode !== "view") && (
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {selectedStore?.status === "COMPLETE" || mode !== "view"
-                      ? "Submitting..."
-                      : "Creating..."}
-                  </>
-                ) : selectedStore?.status === "COMPLETE" ? (
-                  "Resubmit Store"
-                ) : (
-                  "Create Store"
-                )}
-              </Button>
-            )}
-          </FormFooter>
+          {(selectedStore?.status === "COMPLETE" || mode !== "view") && (
+            <FormActionFooter
+              secondaryButton={{
+                label: "Back",
+                onClick: handleCancel,
+                disabled: loading,
+              }}
+              primaryButton={{
+                label: selectedStore?.status === "COMPLETE" ? "Resubmit Store" : "Create Store",
+                onClick: () => form.handleSubmit(onSubmit)(),
+                type: "button",
+                disabled: loading,
+                loading: loading,
+                loadingText: selectedStore?.status === "COMPLETE" || mode !== "view"
+                  ? "Submitting..."
+                  : "Creating...",
+              }}
+            />
+          )}
         </form>
       </Form>
     </div>

@@ -1,18 +1,14 @@
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Box } from "@mui/material";
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
   GridRowId,
-  GridRowParams,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { toast } from "sonner";
 import { settlementsService } from "@/services/settlementsService";
-import { ReportTabs } from "@/components/reports/ReportTabs";
 import { useNavigate } from "react-router-dom";
 import CustomSettlementsToolbar from "@/components/settlements/CustomSettlementsToolbar";
 import {
@@ -25,6 +21,9 @@ import {
 import { useSettlementStore } from "@/store/settlementsStore";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
+import { DataTable } from "@/components/shared/DataTable";
+import { useLayoutStore } from "@/store/layoutStore";
 
 const columns: GridColDef[] = [
   {
@@ -95,6 +94,7 @@ const columns: GridColDef[] = [
 function Settlements() {
   const navigate = useNavigate();
   const { query, setQuery } = useSettlementStore();
+  const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const [activeTab, setActiveTab] = useState<"paid" | "unpaid">("unpaid");
   const [paidExpenseCount, setPaidExpenseCount] = useState(0);
   const [unpaidExpenseCount, setUnpaidExpenseCount] = useState(0);
@@ -133,6 +133,13 @@ function Settlements() {
       page: 0,
       pageSize: calculatePageSize(),
     });
+
+  useEffect(() => {
+    setNoPadding(true);
+    return () => {
+      setNoPadding(false);
+    };
+  }, [setNoPadding]);
 
   const rows: any = activeTab === "paid" ? paidRows : unpaidRows;
 
@@ -179,8 +186,8 @@ function Settlements() {
     });
   }
 
-  const handleRowClick = ({ id }: GridRowParams) => {
-    navigate(`/admin/settlements/${id}`);
+  const handleRowClick = (params: any) => {
+    navigate(`/admin/settlements/${params.row.id}`);
   };
 
   const fetchFilteredReports = useCallback(
@@ -270,8 +277,8 @@ function Settlements() {
     markAspaid(expense_ids as string[]);
   };
 
-  const handleTabChange = (tab: any) => {
-    setActiveTab(tab);
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab as "paid" | "unpaid");
     setLoading(true);
     setRowSelection({ type: "include", ids: new Set() });
     setPaginationModel((prev) => ({
@@ -345,114 +352,57 @@ function Settlements() {
     });
   }, []);
 
+  const rowCount = (activeTab === "paid" ? paidExpenseCount : unpaidExpenseCount) || 0;
+
   return (
-    <div>
-      <div className="flex gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Settlements</h1>
-        </div>
-      </div>
-      <ReportTabs
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        tabs={tabs}
-        className="mb-8"
-      />
-      <Box
-        sx={{
-          height: "calc(100vh - 160px)",
-          width: "100%",
-          marginTop: "-32px",
+    <InvoicePageWrapper
+      title="Settlements"
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={handleTabChange}
+      showFilters={false}
+      showDateFilter={false}
+      showCreateButton={false}
+      marginBottom="mb-0"
+    >
+      <DataTable
+        rows={loading ? [] : rows}
+        columns={columns}
+        loading={loading}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={handleRowClick}
+        rowCount={rowCount}
+        paginationMode="server"
+        firstColumnField="sequence_number"
+        emptyStateComponent={
+          <CustomNoRows title="No reports Found" description="There are currently no reports." />
+        }
+        slots={{
+          toolbar: CustomSettlementsToolbar,
+          loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
         }}
-      >
-        <DataGrid
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          rows={loading ? [] : rows}
-          columns={columns}
-          loading={loading}
-          slots={{
-            noRowsOverlay: () => <CustomNoRows title="No reports Found" description="There are currently no reports." />,
-            toolbar: CustomSettlementsToolbar,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
-          }}
-          slotProps={{
-            toolbar: {
-              allStatuses: allowedStatus,
-              query,
-              updateQuery,
-              onCustomClick,
-              rowSelection,
-              activeTab,
-              marking,
-              rowCount: rows.length,
-            } as any,
-          }}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiToolbar-root": {
-              paddingX: 0,
-              minHeight: "52px",
-            },
-            "& .MuiDataGrid-panel .MuiSelect-select": {
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          showToolbar
-          density="compact"
-          getRowClassName={(params: any) =>
-            params.row.original_expense_id ? "bg-yellow-50" : ""
-          }
-          checkboxSelection
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
-          disableRowSelectionOnClick
-          showCellVerticalBorder
-          onRowClick={handleRowClick}
-          pagination
-          paginationMode="server"
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          rowCount={
-            (activeTab === "paid" ? paidExpenseCount : unpaidExpenseCount) || 0
-          }
-        />
-      </Box>
-    </div>
+        slotProps={{
+          toolbar: {
+            allStatuses: allowedStatus,
+            query,
+            updateQuery,
+            onCustomClick,
+            rowSelection,
+            activeTab,
+            marking,
+            rowCount: rows.length,
+          } as any,
+        }}
+        showToolbar
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={setRowSelection}
+        getRowClassName={(params: any) =>
+          params.row.original_expense_id ? "bg-yellow-50" : ""
+        }
+      />
+    </InvoicePageWrapper>
   );
 }
 

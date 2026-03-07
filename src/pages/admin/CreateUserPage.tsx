@@ -49,7 +49,7 @@ import { toast } from "sonner";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { bulkUploadService } from "@/services/admin/bulkUploadService";
-import { FormFooter } from "@/components/layout/FormFooter";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 
 const MODULE_TYPE_USER = "user";
 const FIELD_TYPE_SELECT = "SELECT";
@@ -428,7 +428,7 @@ const CreateUserForm = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} id="create-user-form">
+      <form onSubmit={form.handleSubmit(onSubmit)} id="create-user-form" className="pb-20">
         <fieldset
           disabled={loadingEntityFields || submitting || loadingUser}
           className="space-y-6"
@@ -794,34 +794,21 @@ const CreateUserForm = ({
           </div>
         </fieldset>
 
-        <FormFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate(basePath)}
-            className="px-6 py-2"
-            disabled={submitting}
-          >
-            Back
-          </Button>
-          <Button
-            type="submit"
-            form="create-user-form"
-            className="min-w-[140px]"
-            disabled={submitting || !initialValues?.is_active}
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isEditMode ? "Updating..." : "Creating..."}
-              </>
-            ) : isEditMode ? (
-              "Update"
-            ) : (
-              "Create"
-            )}
-          </Button>
-        </FormFooter>
+        <FormActionFooter
+          secondaryButton={{
+            label: "Back",
+            onClick: () => navigate(basePath),
+            disabled: submitting,
+          }}
+          primaryButton={{
+            label: isEditMode ? "Update" : "Create",
+            onClick: () => form.handleSubmit(onSubmit)(),
+            type: "button",
+            disabled: submitting || !initialValues?.is_active,
+            loading: submitting,
+            loadingText: isEditMode ? "Updating..." : "Creating...",
+          }}
+        />
       </form>
     </Form>
   );
@@ -1140,8 +1127,32 @@ export const CreateUserPage = () => {
           {isAdminSettings && !isEditMode && (
             <Button
               type="button"
-              className="self-start sm:self-auto bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 text-sm"
+              className="self-start sm:self-auto"
               onClick={() => handleBulkDialogChange(true)}
+              style={{
+                width: "auto",
+                height: "31px",
+                paddingTop: "8px",
+                paddingRight: "12px",
+                paddingBottom: "8px",
+                paddingLeft: "12px",
+                gap: "8px",
+                borderRadius: "4px",
+                border: "1px solid #161B53",
+                fontFamily: "Inter",
+                fontWeight: 600,
+                fontSize: "12px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                color: "#FFFFFF",
+                backgroundColor: "#161B53",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#0f1340";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#161B53";
+              }}
             >
               Bulk Upload
             </Button>

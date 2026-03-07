@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, ChevronDown, Calendar } from "lucide-react";
+import { ChevronDown, Calendar } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +43,7 @@ import { AdvanceService, AdvanceType } from "@/services/advanceService";
 import { getTemplates, type Template } from "@/services/admin/templates";
 import { getEntities, type Entity } from "@/services/admin/entities";
 import { trackEvent } from "@/mixpanel";
-import { FormFooter } from "../layout/FormFooter";
+import { FormActionFooter } from "../layout/FormActionFooter";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 export interface Currency {
@@ -416,7 +416,7 @@ export function CreateAdvanceForm({
         <form
           id="advance-submission-form"
           onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-6"
+          className="space-y-6 pb-20"
         >
           <FormField
             control={form.control}
@@ -769,36 +769,23 @@ export function CreateAdvanceForm({
               />
             );
           })}
-          <FormFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={loading}
-              className="px-6 py-2"
-            >
-              Back
-            </Button>
-            {(selectedAdvance?.status === "COMPLETE" || mode !== "view") && (
-              <Button
-                type="submit"
-                form="advance-submission-form"
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {mode === "view" ? "Submitting..." : "Creating..."}
-                  </>
-                ) : selectedAdvance?.status === "COMPLETE" ? (
-                  "Resubmit Advance"
-                ) : (
-                  "Create Advance"
-                )}
-              </Button>
-            )}
-          </FormFooter>
+          {(selectedAdvance?.status === "COMPLETE" || mode !== "view") && (
+            <FormActionFooter
+              secondaryButton={{
+                label: "Back",
+                onClick: handleCancel,
+                disabled: loading,
+              }}
+              primaryButton={{
+                label: selectedAdvance?.status === "COMPLETE" ? "Resubmit Advance" : "Create Advance",
+                onClick: () => form.handleSubmit(onSubmit)(),
+                type: "button",
+                disabled: loading,
+                loading: loading,
+                loadingText: mode === "view" ? "Submitting..." : "Creating...",
+              }}
+            />
+          )}
         </form>
       </Form>
     </div>

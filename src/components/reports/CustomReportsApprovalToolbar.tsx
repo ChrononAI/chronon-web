@@ -192,7 +192,9 @@ function CustomReportsApprovalToolbar({
         {selectedCount > 0 && onDownloadMultiple && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="flex items-center gap-2 h-11">
+              <Button 
+                className="flex items-center gap-2 h-10 px-4 bg-[#0D9C99] hover:bg-[#0b8a87] text-white font-semibold text-sm"
+              >
                 <Download className="h-4 w-4" />
                 Download {selectedCount} {selectedCount === 1 ? 'Report' : 'Reports'}
                 <ChevronDown className="h-4 w-4" />

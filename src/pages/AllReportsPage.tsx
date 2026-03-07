@@ -31,15 +31,14 @@ import {
 } from "@/services/reportService";
 import { trackEvent } from "@/mixpanel";
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
-import { Box } from "@mui/material";
-import { Badge } from "@/components/ui/badge";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import { DataTable } from "@/components/shared/DataTable";
+import { StatusPill } from "@/components/shared/StatusPill";
 
 const parseCriteria = (criteria: string) => {
   try {
@@ -97,19 +96,11 @@ const columns = (
       headerName: "STATUS",
       flex: 1,
       minWidth: 130,
-      renderCell: ({ value }) => {
-        return (
-          <Badge
-            className={
-              value === "GENERATED"
-                ? "bg-green-100 text-green-800 hover:bg-green-100"
-                : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-            }
-          >
-            {value}
-          </Badge>
-        );
-      },
+      renderCell: (params) => (
+        <div className="flex items-center h-full">
+          <StatusPill status={params.value} />
+        </div>
+      ),
     },
     {
       field: "created_at",
@@ -484,75 +475,23 @@ export function AllReportsPage() {
         </Card>
 
         {templates.length > 0 && (
-          <Box
-            sx={{
-              height: "calc(100vh - 272px)",
-              width: "100%",
-              marginTop: "-30px",
+          <DataTable
+            rows={generatedReportsLoading ? [] : generatedReports}
+            columns={columns(handleDownloadGeneratedReport)}
+            loading={generatedReportsLoading}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            firstColumnField="report_name"
+            emptyStateComponent={
+              <CustomNoRows title="No reports found" description="There are currently no reports" />
+            }
+            slots={{
+              loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
             }}
-          >
-            <DataGrid
-              className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-              rows={generatedReportsLoading ? [] : generatedReports}
-              columns={columns(handleDownloadGeneratedReport)}
-              loading={generatedReportsLoading}
-              slots={{
-                noRowsOverlay: () => <CustomNoRows title="No reports found" description="There are currently no reports" />,
-                loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
-              }}
-              sx={{
-                border: 0,
-                "& .MuiDataGrid-columnHeaderTitle": {
-                  color: "#9AA0A6",
-                  fontWeight: "bold",
-                  fontSize: "12px",
-                },
-                "& .MuiDataGrid-panel .MuiSelect-select": {
-                  fontSize: "12px",
-                },
-                "& .MuiDataGrid-main": {
-                  border: "0.2px solid #f3f4f6",
-                },
-                "& .MuiDataGrid-virtualScroller": {
-                  overflow: generatedReportsLoading ? "hidden" : "auto",
-                },
-                "& .MuiDataGrid-columnHeader": {
-                  backgroundColor: "#f3f4f6",
-                  border: "none",
-                },
-                "& .MuiDataGrid-columnHeaders": {
-                  border: "none",
-                },
-                "& .MuiDataGrid-row:hover": {
-                  cursor: "pointer",
-                  backgroundColor: "#f5f5f5",
-                },
-                "& .MuiDataGrid-cell": {
-                  color: "#2E2E2E",
-                  border: "0.2px solid #f3f4f6",
-                },
-                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                {
-                  outline: "none",
-                },
-                "& .MuiDataGrid-cell:focus-within": {
-                  outline: "none",
-                },
-                "& .MuiDataGrid-columnSeparator": {
-                  color: "#f3f4f6",
-                },
-              }}
-              density="compact"
-              rowSelectionModel={rowSelection}
-              onRowSelectionModelChange={setRowSelection}
-              checkboxSelection
-              disableRowSelectionOnClick
-              showCellVerticalBorder
-              pagination
-              paginationModel={paginationModel}
-              onPaginationModelChange={setPaginationModel}
-            />
-          </Box>
+            checkboxSelection
+            rowSelectionModel={rowSelection}
+            onRowSelectionModelChange={setRowSelection}
+          />
         )}
       </div>
     </>

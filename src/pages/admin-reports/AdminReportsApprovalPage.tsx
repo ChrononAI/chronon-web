@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ReportTabs } from "@/components/reports/ReportTabs";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
+import { GridColDef, GridRowSelectionModel, GridPaginationModel } from "@mui/x-data-grid";
 import { StatusPill } from "@/components/shared/StatusPill";
-import { GridPaginationModel } from "@mui/x-data-grid";
-import { Box } from "@mui/material";
 import { useAuthStore } from "@/store/authStore";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import { toast } from "sonner";
@@ -14,6 +11,9 @@ import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { buildBackendQuery, FieldFilter, FilterMap, FilterValue, Operator } from "../MyExpensesPage";
 import { useAdminReportsStore } from "@/store/adminReportsStore";
 import CustomAdminReportsToolbar from "@/components/admin-reports/CustomAdminReportsToolbar";
+import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
+import { DataTable } from "@/components/shared/DataTable";
+import { useLayoutStore } from "@/store/layoutStore";
 
 const columns: GridColDef[] = [
   {
@@ -93,6 +93,7 @@ export function AdminReportsApprovalPage() {
   } = useAdminReportsStore();
   const navigate = useNavigate();
   const { orgSettings } = useAuthStore();
+  const setNoPadding = useLayoutStore((s) => s.setNoPadding);
   const customIdEnabled =
     orgSettings?.custom_report_id_settings?.enabled ?? false;
   const [loading, setLoading] = useState(true);
@@ -311,115 +312,68 @@ export function AdminReportsApprovalPage() {
     });
   }, []);
 
-  return (
-    <>
-      {/* Header Section */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Expense Reports</h1>
-      </div>
+  useEffect(() => {
+    setNoPadding(true);
+    return () => {
+      setNoPadding(false);
+    };
+  }, [setNoPadding]);
 
-      {/* Tabs Section */}
-      <ReportTabs
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        tabs={[
-          { key: "pending", label: "Pending", count: pendingReportsPagination.count },
-          {
-            key: "processed",
-            label: "Processed",
-            count: processedReportsPagination.count,
-          },
-        ]}
-        className="mb-8"
-      />
-      <Box
-        sx={{
-          height: "calc(100vh - 160px)",
-          width: "100%",
-          marginTop: "-30px",
+  const rowCount = activeTab === "pending"
+    ? pendingReportsPagination.count
+    : processedReportsPagination.count;
+
+  return (
+    <InvoicePageWrapper
+      title="Expense Reports"
+      tabs={[
+        { key: "pending", label: "Pending", count: pendingReportsPagination.count },
+        {
+          key: "processed",
+          label: "Processed",
+          count: processedReportsPagination.count,
+        },
+      ]}
+      activeTab={activeTab}
+      onTabChange={handleTabChange}
+      showFilters={false}
+      showDateFilter={false}
+      showCreateButton={false}
+      marginBottom="mb-0"
+    >
+      <DataTable
+        rows={loading ? [] : reportsArr}
+        columns={newCols}
+        loading={loading}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={(params) => {
+          const report = params.row;
+          navigate(`/admin/admin-reports/${report.id}`);
         }}
-      >
-        <DataGrid
-          rows={loading ? [] : reportsArr}
-          columns={newCols}
-          loading={loading}
-          onRowClick={(params, event) => {
-            event.stopPropagation();
-            const report = params.row;
-            navigate(`/admin/admin-reports/${report.id}`);
-          }}
-          slots={{
-            toolbar: CustomAdminReportsToolbar,
-            noRowsOverlay: () => (
-              <CustomNoRows
-                title="No reports found"
-                description="There are currently no reports"
-              />
-            ),
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />,
-          }}
-          slotProps={{
-            toolbar: {
-              allStatuses: allowedStatus,
-            } as any,
-          }}
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          showToolbar
-          checkboxSelection
-          rowCount={
-            activeTab === "pending"
-              ? pendingReportsPagination.count
-                : processedReportsPagination.count
-          }
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
-          pagination
-          paginationMode="server"
-          disableRowSelectionOnClick
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          density="compact"
-          showCellVerticalBorder
-        />
-      </Box>
-    </>
+        rowCount={rowCount}
+        paginationMode="server"
+        firstColumnField="title"
+        emptyStateComponent={
+          <CustomNoRows
+            title="No reports found"
+            description="There are currently no reports"
+          />
+        }
+        slots={{
+          toolbar: CustomAdminReportsToolbar,
+          loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />,
+        }}
+        slotProps={{
+          toolbar: {
+            allStatuses: allowedStatus,
+          } as any,
+        }}
+        showToolbar
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={setRowSelection}
+      />
+    </InvoicePageWrapper>
   );
 }

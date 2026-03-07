@@ -8,7 +8,7 @@ interface FormFooterProps {
 
 export const FormFooter: React.FC<FormFooterProps> = ({
   children,
-  height = "h-20",
+  height = "h-[59px]",
 }) => {
   const { sidebarCollapsed } = useAuthStore();
   const { pathname } = useLocation();
@@ -35,7 +35,7 @@ export const FormFooter: React.FC<FormFooterProps> = ({
       <div
         className={`pointer-events-none fixed bottom-0 right-0 left-0 ${getWidth()} z-30`}
       >
-        <div className="pointer-events-auto flex w-full justify-end gap-4 border-t border-gray-200 bg-white px-6 py-5">
+        <div className="pointer-events-auto flex w-full justify-end gap-3 border-t border-[#EBEBEB] bg-white px-5" style={{ height: "59px", paddingTop: "14px", paddingBottom: "14px", alignItems: "center" }}>
           {children}
         </div>
       </div>

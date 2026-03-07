@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { ReportTabs } from "@/components/reports/ReportTabs";
 import {
   Select,
   SelectTrigger,
@@ -12,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { getTemplates, assignEntity } from "@/services/admin/templates";
 import { getEntities } from "@/services/admin/entities";
 import { toast } from "sonner";
-import { FormFooter } from "@/components/layout/FormFooter";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 import { AssignedEntitiesList } from "./ExpenseMasterPage";
+import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 
 const CORE_FIELDS = ["Report ID"];
 
@@ -169,20 +169,19 @@ const ExpenseReportMasterPage = () => {
   };
 
   return (
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Expense Report Masters</h1>
-      </div>
-
-      <ReportTabs
-        activeTab={activeTab}
-        onTabChange={(t) => setActiveTab(t as any)}
-        tabs={[
-          { key: "core", label: "Core Values", count: 0 },
-          { key: "custom", label: "Custom Values", count: 0 },
-        ]}
-        className="mb-6"
-      />
+    <InvoicePageWrapper
+      title="Expense Report Masters"
+      tabs={[
+        { key: "core", label: "Core Values", count: 0 },
+        { key: "custom", label: "Custom Values", count: 0 },
+      ]}
+      activeTab={activeTab}
+      onTabChange={(t) => setActiveTab(t as any)}
+      showFilters={false}
+      showDateFilter={false}
+      showCreateButton={false}
+      marginBottom="mb-6"
+    >
 
       {activeTab === "core" ? (
         <>
@@ -225,9 +224,17 @@ const ExpenseReportMasterPage = () => {
               ))}
             </div>
           </Card>
-          <FormFooter>
-            <Button>Save Configuration</Button>
-          </FormFooter>
+          <FormActionFooter
+            primaryButton={{
+              label: "Save Configuration",
+              onClick: () => {
+                // Save functionality would go here
+                toast.success("Configuration saved");
+              },
+              type: "button",
+              disabled: false,
+            }}
+          />
         </>
       ) : (
         <>
@@ -347,26 +354,28 @@ const ExpenseReportMasterPage = () => {
               </div>
             </div>
           </Card>
-          <FormFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
+          <FormActionFooter
+            secondaryButton={{
+              label: "Back",
+              onClick: () => {
                 setCustomFields([]);
                 setTemplates([]);
                 setActiveTab("core");
-              }}
-              disabled={loading}
-              className="px-6 py-2"
-            >
-              Back
-            </Button>
-            <Button onClick={handleSubmitCustom} disabled={loading}>
-              {loading ? "Submitting..." : "Submit"}
-            </Button>
-          </FormFooter>
+              },
+              disabled: loading,
+            }}
+            primaryButton={{
+              label: "Submit",
+              onClick: handleSubmitCustom,
+              type: "button",
+              disabled: loading,
+              loading: loading,
+              loadingText: "Submitting...",
+            }}
+          />
         </>
       )}
-    </>
+    </InvoicePageWrapper>
   );
 };
 

@@ -566,8 +566,8 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        "bg-card border-r h-full flex flex-col transition-all duration-300 ease-in-out",
-        sidebarCollapsed ? "w-12 overflow-hidden" : "w-[240px] overflow-y-auto"
+        "bg-card border-r h-full flex flex-col transition-all duration-300 ease-in-out overflow-x-hidden",
+        sidebarCollapsed ? "w-12 overflow-hidden" : "w-[240px]"
       )}
     >
       <div 
@@ -611,7 +611,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav
-        className="flex-1"
+        className="flex-1 overflow-y-auto overflow-x-hidden"
         style={{
           width: sidebarCollapsed ? "48px" : "224px",
           marginTop: "10px",
@@ -632,7 +632,7 @@ export function Sidebar() {
       </nav>
 
       {/* Footer (User Menu) */}
-      <div className="p-4 mt-auto">
+      <div className="p-4 mt-auto flex-shrink-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="flex items-center justify-between cursor-pointer">
