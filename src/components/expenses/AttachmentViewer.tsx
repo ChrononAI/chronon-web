@@ -1,7 +1,7 @@
 import {
     ChevronLeft,
     ChevronRight,
-    Download,
+    Eye,
     FileText,
     Loader2,
     RotateCw,
@@ -299,11 +299,11 @@ function AttachmentViewer({
                                             onClick={handleReceiptDownload}
                                             disabled={!hasAttachment}
                                         >
-                                            <Download className="mr-2 h-4 w-4" />
+                                            <Eye className="mr-2 h-4 w-4" />
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent className="bg-white text-black border border-[0.5]">
-                                        <p>Download</p>
+                                        <p>View</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
@@ -362,7 +362,8 @@ function AttachmentViewer({
                                     onClick={handleReceiptDownload}
                                     className="h-8 px-3 text-xs"
                                 >
-                                    <Download className="h-4 w-4 mr-1" />
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    View
                                 </Button>
                             </div>
                             <Button
