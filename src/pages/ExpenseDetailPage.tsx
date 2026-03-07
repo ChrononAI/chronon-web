@@ -55,7 +55,7 @@ const filterFormData = (data: Record<string, any>): UpdateExpenseData => {
     "api_conversion_rate",
     "user_conversion_rate",
     "start_date",
-    "end_date"
+    "end_date",
   ];
 
   const sanitized: any = {};
@@ -112,15 +112,25 @@ export function ExpenseDetailPage() {
 
   const isAdminUpdatingExpense =
     isAdmin &&
-    (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
+    (location.pathname.includes("/approvals") ||
+      location.pathname.includes("/admin-reports")) &&
     expense?.status !== "APPROVED" &&
     expense?.status !== "REJECTED";
 
   const loadTemplateEntities = async () => {
     try {
       const templates = await getTemplates();
+      if (!expense) return;
+
+      let moduleType = "expense";
+      if (isMileageExpense(expense)) {
+        moduleType = "mileage";
+      } else if (isPerDiemExpense(expense)) {
+        moduleType = "per_diem";
+      }
+
       const expenseTemplate = Array.isArray(templates)
-        ? templates.find((t) => t.module_type === "expense")
+        ? templates.find((t) => t.module_type === moduleType)
         : null;
       if (expenseTemplate?.entities) {
         setTemplateEntities(expenseTemplate.entities);
@@ -134,11 +144,12 @@ export function ExpenseDetailPage() {
     const fetchData = async () => {
       if (!expenseId) return;
       try {
-        const isFromApprovalReport = isFromApprovals || 
+        const isFromApprovalReport =
+          isFromApprovals ||
           location.pathname.includes("/approvals") ||
           location.pathname.includes("/admin-reports") ||
           location.pathname.includes("/settlements");
-        
+
         const [expenseData] = await Promise.all([
           expenseService.getExpenseById(expenseId, isFromApprovalReport),
           expenseService.getAllPoliciesWithCategories(),
@@ -169,15 +180,20 @@ export function ExpenseDetailPage() {
     };
 
     fetchData();
-    loadTemplateEntities();
   }, [expenseId]);
+
+  useEffect(() => {
+    if (expense) {
+      loadTemplateEntities();
+    }
+  }, [expense]);
 
   const fetchReceipt = async (receiptId: string, orgId: string) => {
     try {
       setReceiptLoading(true);
       const response: any = await expenseService.fetchReceiptPreview(
         receiptId,
-        orgId
+        orgId,
       );
       setReceiptSignedUrl(response.data.data.signed_url);
     } catch (error) {
@@ -194,12 +210,20 @@ export function ExpenseDetailPage() {
     if (!formData.custom_attributes) {
       formData.custom_attributes = {};
     }
+
+    let moduleType = "expense";
+    if (isMileageExpense(expense)) {
+      moduleType = "mileage";
+    } else if (isPerDiemExpense(expense)) {
+      moduleType = "per_diem";
+    }
+
     let entitiesToUse = templateEntities;
     if (!entitiesToUse || entitiesToUse.length === 0) {
       try {
         const templates = await getTemplates();
         const expenseTemplate = Array.isArray(templates)
-          ? templates.find((t) => t.module_type === "expense")
+          ? templates.find((t) => t.module_type === moduleType)
           : null;
         if (expenseTemplate?.entities) {
           entitiesToUse = expenseTemplate.entities;
@@ -212,7 +236,7 @@ export function ExpenseDetailPage() {
       const entityIdSet = new Set(
         entitiesToUse
           .map((entity) => entity?.entity_id || entity?.id)
-          .filter(Boolean)
+          .filter(Boolean),
       );
 
       Object.keys(formData).forEach((key) => {
@@ -229,13 +253,16 @@ export function ExpenseDetailPage() {
       if (filteredData.invoice_number) {
         filteredData.expense_date = format(
           parseLocalDate(filteredData.expense_date),
-          "yyyy-MM-dd"
+          "yyyy-MM-dd",
         );
         filteredData.currency = baseCurrency;
         if (!filteredData.foreign_amount) {
           filteredData.foreign_currency = null;
         }
-        filteredData.advance_account_id = formData.advance_account_id?.length > 0 ? formData.advance_account_id : null;
+        filteredData.advance_account_id =
+          formData.advance_account_id?.length > 0
+            ? formData.advance_account_id
+            : null;
 
         if (isAdminUpdatingExpense) {
           setShowAdminEditConfirm(true);
@@ -255,8 +282,8 @@ export function ExpenseDetailPage() {
           file_ids: formData.file_ids,
           vendor: formData.merchant,
           receipt_id: isReceiptReplaced
-            ? parsedData?.id ?? null
-            : expense?.receipt_id ?? null,
+            ? (parsedData?.id ?? null)
+            : (expense?.receipt_id ?? null),
           invoice_number: formData.invoiceNumber || null,
           distance: formData.distance || null,
           distance_unit: formData.distance_unit || null,
@@ -265,7 +292,7 @@ export function ExpenseDetailPage() {
           mileage_rate_id: formData.mileage_rate_id,
           mileage_meta: formData.mileage_meta || null,
           is_round_trip: formData.is_round_trip === "true" ? true : false,
-          custom_attributes: {},
+          custom_attributes: formData.custom_attributes || {},
           currency: baseCurrency,
         };
         if (isAdminUpdatingExpense) {
@@ -289,8 +316,21 @@ export function ExpenseDetailPage() {
 
   const handleEditExpenseAsAdmin = async () => {
     try {
-      if (expenseId) {
-        const newPayload = { ...pendingFormData, reason: adminEditReason };
+      if (expenseId && expense) {
+        const newPayload = {
+          ...pendingFormData,
+          amount: pendingFormData.foreign_amount
+            ? pendingFormData.amount
+            : undefined,
+          admin_amount:
+            +expense.amount !== +pendingFormData.amount &&
+            !pendingFormData.foreign_amount
+              ? pendingFormData.amount
+              : pendingFormData.foreign_amount
+                ? pendingFormData.foreign_amount
+                : undefined,
+          reason: adminEditReason,
+        };
         await expenseService.adminUpdateExpense({
           id: expenseId,
           payload: newPayload,
@@ -361,7 +401,7 @@ export function ExpenseDetailPage() {
             <div className="flex items-center gap-2 mt-2">
               <Badge
                 className={`${getStatusColor(
-                  expense.status
+                  expense.status,
                 )} text-xs px-2 py-0.5`}
               >
                 {expense.status.replace("_", " ")}
@@ -434,7 +474,8 @@ export function ExpenseDetailPage() {
               expense.status === "INCOMPLETE" ||
               expense.status === "SENT_BACK" ||
               (isAdmin &&
-                (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
+                (location.pathname.includes("/approvals") ||
+                  location.pathname.includes("/admin-reports")) &&
                 expense.status !== "APPROVED" &&
                 expense.status !== "REJECTED")
                 ? "edit"
@@ -442,7 +483,7 @@ export function ExpenseDetailPage() {
             }
             expenseData={expense}
             isEditable={EDITABLE_STATUSES.includes(
-              expense.status.toUpperCase()
+              expense.status.toUpperCase(),
             )}
             onCancel={() => {
               navigate(-1);
@@ -458,7 +499,8 @@ export function ExpenseDetailPage() {
               expense.status === "INCOMPLETE" ||
               expense.status === "SENT_BACK" ||
               (isAdmin &&
-                (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
+                (location.pathname.includes("/approvals") ||
+                  location.pathname.includes("/admin-reports")) &&
                 expense.status !== "APPROVED" &&
                 expense.status !== "REJECTED")
                 ? "edit"
@@ -478,7 +520,8 @@ export function ExpenseDetailPage() {
               expense.status === "INCOMPLETE" ||
               expense.status === "SENT_BACK" ||
               (isAdmin &&
-                (location.pathname.includes("/approvals") || location.pathname.includes("/admin-reports")) &&
+                (location.pathname.includes("/approvals") ||
+                  location.pathname.includes("/admin-reports")) &&
                 expense.status !== "APPROVED" &&
                 expense.status !== "REJECTED")
                 ? "edit"

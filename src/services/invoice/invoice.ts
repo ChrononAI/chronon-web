@@ -278,3 +278,18 @@ export const updateInvoice = async (
   const response = await baseAPI.put(`/v1/invoices/${invoiceId}`, data);
   return response.data;
 };
+
+export interface DeleteInvoiceLineItemsRequest {
+  invoice_lineitem_ids: Array<{ id: string }>;
+}
+
+export interface DeleteInvoiceLineItemsResponse {
+  message: string;
+}
+
+export const deleteInvoiceLineItems = async (
+  data: DeleteInvoiceLineItemsRequest
+): Promise<DeleteInvoiceLineItemsResponse> => {
+  const response = await baseAPI.post("/v1/invoices_lineitems/delete", data);
+  return response.data;
+};

@@ -601,7 +601,7 @@ export function CreateReportForm2({
         status: [
           {
             operator: "in",
-            value: ["COMPLETE"],
+            value: ["COMPLETE", "SENT_BACK"],
           },
         ],
       };
@@ -627,8 +627,8 @@ export function CreateReportForm2({
     async (categoryName: string, { signal }: { signal: AbortSignal }) => {
       try {
         const query = reportData
-          ? `category=in.(${categoryName})&status=in.(COMPLETE)&or=(report_id.eq.null,report_id.eq.${reportData.id})`
-          : `category=in.(${categoryName})&status=in.(COMPLETE)&or=(report_id.eq.null)`;
+          ? `category=in.(${categoryName})&status=in.(COMPLETE,SENT_BACK)&or=(report_id.eq.null,report_id.eq.${reportData.id})`
+          : `category=in.(${categoryName})&status=in.(COMPLETE,SENT_BACK)&or=(report_id.eq.null)`;
         const response = await expenseService.getFilteredExpenses({
           query: query,
           limit: 200,
@@ -650,8 +650,8 @@ export function CreateReportForm2({
     async (policyName: string, { signal }: { signal: AbortSignal }) => {
       try {
         const query = reportData
-          ? `policy_name=in.(${policyName})&status=in.(COMPLETE)&or=(report_id.eq.null,report_id.eq.${reportData.id})`
-          : `policy_name=in.(${policyName})&status=in.(COMPLETE)&or=(report_id.eq.null)`;
+          ? `policy_name=in.(${policyName})&status=in.(COMPLETE,SENT_BACK)&or=(report_id.eq.null,report_id.eq.${reportData.id})`
+          : `policy_name=in.(${policyName})&status=in.(COMPLETE,SENT_BACK)&or=(report_id.eq.null)`;
         const response = await expenseService.getFilteredExpenses({
           query: query,
           limit: 200,

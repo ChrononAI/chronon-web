@@ -7,13 +7,13 @@ import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
 } from "@/components/ui/command";
 import { Button } from "../ui/button";
 import { ChevronsUpDown } from "lucide-react";
 import { Checkbox } from "../ui/checkbox";
 import { PolicyCategory } from "@/types/expense";
+import { Input } from "../ui/input";
 
 function SearchableMultiSelect({
   selectedCategories,
@@ -43,11 +43,11 @@ function SearchableMultiSelect({
 
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-none p-0" align="start">
         <Command className="flex flex-col">
-          {/* 🔝 Sticky Header */}
           <div className="sticky top-0 z-10 bg-white border-b">
-            <CommandInput
+            <Input
               placeholder="Search categories..."
-              onValueChange={setSearchTerm}
+              className="border-0 block outline-none ring-0 focus:border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 shadow-none"
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
 
             <div className="flex gap-2 p-2">
@@ -70,7 +70,6 @@ function SearchableMultiSelect({
 
           <CommandEmpty>No categories found.</CommandEmpty>
 
-          {/* ⬇️ Scrollable Options */}
           <CommandGroup className="max-h-64 overflow-y-auto">
             {filteredCategories.map((cat) => (
               <CommandItem

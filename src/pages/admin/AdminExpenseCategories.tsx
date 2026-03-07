@@ -1,3 +1,4 @@
+import CustomCategoryToolbar from "@/components/admin/categories/CustomCategoryToolbar";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { Button } from "@/components/ui/button";
@@ -11,8 +12,10 @@ import {
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { buildBackendQuery, FilterMap } from "../MyExpensesPage";
+import { useCaetgoryStore } from "@/store/admin/categoryStore";
 import { toast } from "sonner";
 
 const columns: GridColDef[] = [
@@ -38,14 +41,17 @@ const columns: GridColDef[] = [
 
 function AdminExpenseCategories() {
   const navigate = useNavigate();
+  const { query } = useCaetgoryStore();
   const [rows, setRows] = useState([]);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const GRID_OFFSET = 190;
+  const GRID_OFFSET = 220;
   const ROW_HEIGHT = 38;
-  const HEADER_HEIGHT = 0;
+  const HEADER_HEIGHT = 56;
 
   const calculatePageSize = () => {
     const availableHeight =
@@ -64,40 +70,68 @@ function AdminExpenseCategories() {
     navigate(`/admin-settings/product-config/expense-categories/create/${row.id}`, { state: row });
   };
 
-  const getCategories = async ({
-    page,
-    perPage,
-  }: {
-    page: number;
-    perPage: number;
-  }) => {
-    try {
-      setLoading(true);
-      const res = await categoryService.getCategories({ page, perPage });
+  const fetchFilteredCategories = useCallback(
+    async ({ signal }: { signal: AbortSignal }) => {
+      const limit = paginationModel?.pageSize ?? 10;
+      const offset = (paginationModel?.page ?? 0) * limit;
+
+      let newQuery: FilterMap = query;
+
+      const res = await categoryService.getFilteredCategories({
+        query: buildBackendQuery(newQuery),
+        limit,
+        offset,
+        signal,
+      });
       setRows(res.data.data);
-      setPagination(res.data.pagination);
-    } catch (error: any) {
-      console.log(error);
-      toast.error(
-        error?.response?.data?.message ||
-        error.message ||
-        "Failed to get categories"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+      setPagination({total: res.data.count});
+    },
+    [query, paginationModel?.page, paginationModel?.pageSize]
+  );
 
   useEffect(() => {
-    getCategories({
-      page: (paginationModel?.page || 0) + 1,
-      perPage: paginationModel?.pageSize || 0,
-    });
     setRowSelection({ type: "include", ids: new Set() });
   }, [paginationModel?.page, paginationModel?.pageSize]);
+
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      setLoading(true);
+      fetchFilteredCategories({ signal: controller.signal })
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            toast.error(err?.response?.data?.message || err?.message);
+            console.error(err);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setLoading(false);
+            setRowSelection({ type: "include", ids: new Set() });
+          }
+        });
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [fetchFilteredCategories]);
+
+  useEffect(() => {
+    setRowSelection({ type: "include", ids: new Set() });
+  }, [paginationModel?.page, paginationModel?.pageSize]);
+
   return (
     <div>
-      {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Categories</h1>
         <Button
@@ -116,9 +150,10 @@ function AdminExpenseCategories() {
           rows={loading ? [] : rows}
           loading={loading}
           slots={{
+            toolbar: CustomCategoryToolbar,
             noRowsOverlay: () => <CustomNoRows title="No categories found" description="There are currently no categories." />,
             loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
-           }}
+          }}
           sx={{
             border: 0,
             "& .MuiDataGrid-columnHeaderTitle": {
@@ -163,6 +198,7 @@ function AdminExpenseCategories() {
             },
           }}
           density="compact"
+          showToolbar
           checkboxSelection
           disableRowSelectionOnClick
           onRowClick={handleRowClick}

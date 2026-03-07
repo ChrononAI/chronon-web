@@ -1,6 +1,6 @@
 import { Badge, Box } from "@mui/material";
 import { Button } from "../ui/button";
-import { Filter, Search } from "lucide-react";
+import { Filter, Search, Download, ChevronDown } from "lucide-react";
 import MultiSelectDropdown from "../shared/MultiSelectDropdown";
 import { Input } from "../ui/input";
 import { useState } from "react";
@@ -14,6 +14,12 @@ import { FilterMap, getFilterValue } from "@/pages/MyExpensesPage";
 import DateRangePicker from "../shared/DateRangePicker";
 import FilterModal, { AllowedFilter } from "../expenses/FilterModal";
 import { useReportsStore } from "@/store/reportsStore";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 export interface CustomExpenseToolbarProps {
   allStatuses: string[];
@@ -26,10 +32,15 @@ export interface CustomExpenseToolbarProps {
 
 type Props = GridToolbarProps &
   ToolbarPropsOverrides &
-  Partial<CustomExpenseToolbarProps>;
+  Partial<CustomExpenseToolbarProps> & {
+    rowSelection?: GridRowSelectionModel;
+    onDownloadMultiple?: (type: 'pdf' | 'xlsx') => void;
+  };
 
 function CustomReportsApprovalToolbar({
-  allStatuses
+  allStatuses,
+  rowSelection,
+  onDownloadMultiple
 }: Props) {
   const { approvalQuery, setApprovalQuery } = useReportsStore();
 
@@ -127,52 +138,82 @@ function CustomReportsApprovalToolbar({
     });
   };
 
+  const selectedCount = rowSelection?.ids instanceof Set ? rowSelection.ids.size : 0;
+
   return (
     <>
-      <Toolbar className="flex items-center !justify-start !px-[1px] !gap-2 !my-3 !border-0 bg-white">
-        <Box sx={{ position: "relative", width: "20%", flexShrink: 0 }}>
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search"
-            className="pl-9 bg-white h-11 w-full"
-            value={searchValue}
-            onChange={(e) => updateSearch(e.target.value)}
+      <Toolbar className="flex items-center !justify-between !px-[1px] !gap-2 !my-3 !border-0 bg-white">
+        <div className="flex items-center gap-2 flex-1">
+          <Box sx={{ position: "relative", width: "20%", flexShrink: 0 }}>
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search"
+              className="pl-9 bg-white h-11 w-full"
+              value={searchValue}
+              onChange={(e) => updateSearch(e.target.value)}
+            />
+          </Box>
+
+          <Box sx={{ width: "28%", flexShrink: 0 }}>
+            <MultiSelectDropdown
+              allItems={allStatuses || []}
+              selectedItems={selectedStatuses}
+              toggleItem={toggleStatus}
+              deselectAll={deselectAllStatus}
+            />
+          </Box>
+
+          <DateRangePicker
+            className="w-[16%]"
+            value={{ gte: dateFrom, lte: dateTo }}
+            onChange={(range) => {
+              setDate("gte", range.gte);
+              setDate("lte", range.lte);
+            }}
           />
-        </Box>
 
-        <Box sx={{ width: "28%", flexShrink: 0 }}>
-          <MultiSelectDropdown
-            allItems={allStatuses || []}
-            selectedItems={selectedStatuses}
-            toggleItem={toggleStatus}
-            deselectAll={deselectAllStatus}
-          />
-        </Box>
+          <Button
+            variant="outline"
+            onClick={() => setFilterModalOpen(true)}
+            className="text-muted-foreground h-11 w-[10%] max-w-[48px] p-3"
+          >
+            {hasFilters && (
+              <Badge
+                color="error"
+                variant="dot"
+                className="relative -top-4 -right-7"
+                overlap="circular"
+              ></Badge>
+            )}
+            <Filter className="h-8 w-8" />
+          </Button>
+        </div>
 
-        <DateRangePicker
-          className="w-[16%]"
-          value={{ gte: dateFrom, lte: dateTo }}
-          onChange={(range) => {
-            setDate("gte", range.gte);
-            setDate("lte", range.lte);
-          }}
-        />
-
-        <Button
-          variant="outline"
-          onClick={() => setFilterModalOpen(true)}
-          className="text-muted-foreground h-11 w-[10%] max-w-[48px] p-3"
-        >
-          {hasFilters && (
-            <Badge
-              color="error"
-              variant="dot"
-              className="relative -top-4 -right-7"
-              overlap="circular"
-            ></Badge>
-          )}
-          <Filter className="h-8 w-8" />
-        </Button>
+        {selectedCount > 0 && onDownloadMultiple && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="flex items-center gap-2 h-11">
+                <Download className="h-4 w-4" />
+                Download {selectedCount} {selectedCount === 1 ? 'Report' : 'Reports'}
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => onDownloadMultiple('pdf')}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onDownloadMultiple('xlsx')}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </Toolbar>
 
       <FilterModal

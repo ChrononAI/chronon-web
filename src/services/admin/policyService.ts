@@ -3,7 +3,7 @@ import api from "@/lib/api";
 export interface CreatePolicyPayload {
   name: string;
   description: string;
-  category_ids: string[];
+  category_ids?: string[];
   is_pre_approval_required: boolean
 }
 
@@ -21,6 +21,14 @@ export const policyService = {
         try {
             const response = api.get(`/api/v1/expense-policies?page=${page}&per_page=${perPage}`);
             return response;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    async addCategoryToPolicy(payload: { policy_id: string, categories: string[] }) {
+        try {
+            return await api.post('/api/v1/expense_policies/categories', payload)
         } catch (error) {
             throw error;
         }

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/ui/date-field";
-import { Calendar, Copy, ExternalLink, Loader2 } from "lucide-react";
+import { Calendar, ChevronDown, Copy, ExternalLink, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { placesService } from "@/services/placesService";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
@@ -22,13 +22,6 @@ import { expenseService } from "@/services/expenseService";
 import { ExpenseComments } from "@/components/expenses/ExpenseComments";
 import { cn, parseLocalDate, formatCurrency } from "@/lib/utils";
 import { FormActionFooter } from "@/components/layout/FormActionFooter";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAuthStore } from "@/store/authStore";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -56,6 +49,8 @@ import {
 import { format } from "date-fns";
 import { Attachment } from "@/components/expenses/ExpenseDetailsStep2";
 import AttachmentViewer from "@/components/expenses/AttachmentViewer";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 interface PerdiemPageProps {
   mode?: "create" | "view" | "edit";
@@ -155,6 +150,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
   const [fileIds, setFileIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachmentLoading, setAttachmentLoading] = useState(true);
+
+  const [selectedCategory, setSelectedCategory] = useState<PolicyCategory | null>(null);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
   const {
     templateEntities,
@@ -283,6 +281,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
           ...prev,
           categoryId: category.id,
         }));
+        setSelectedCategory(category);
         form.setValue("categoryId", category.id);
       }
     }
@@ -344,7 +343,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
 
     const customAttributes = await extractCustomAttributes();
 
-    const submitData = {
+    const submitData: any = {
       expense_policy_id: formData.policyId,
       category_id: values.categoryId,
       amount: formData.totalAmount,
@@ -356,8 +355,11 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         end_date: values.endDate,
         location: values.location,
       },
-      ...(Object.keys(customAttributes).length > 0 && { custom_attributes: customAttributes })
     };
+
+    if (Object.keys(customAttributes).length > 0) {
+      submitData.custom_attributes = customAttributes;
+    }
 
     try {
       if (mode === "create") {
@@ -502,19 +504,19 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
       setAttachmentLoading(false);
       return;
     }
-  
+
     const existingMap = new Map(
       attachments.map((a) => [a.fileId, a.url])
     );
-  
+
     const fileIdsToFetch = fileIds.filter(
       (id) => !existingMap.has(id) || !existingMap.get(id)
     );
-  
+
     if (!fileIdsToFetch.length) return;
-  
+
     let cancelled = false;
-  
+
     const fetchUrls = async () => {
       try {
         const fetched = await Promise.all(
@@ -524,16 +526,16 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
             return { fileId, url: res.data.data.download_url };
           })
         );
-  
+
         if (cancelled) return;
-  
+
         setAttachments((prev) => {
           const map = new Map(prev.map((a) => [a.fileId, a]));
-  
+
           fetched.forEach((a) => {
             map.set(a.fileId, a);
           });
-  
+
           return Array.from(map.values());
         });
       } catch (err) {
@@ -542,9 +544,9 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
         setAttachmentLoading(false);
       }
     };
-  
+
     fetchUrls();
-  
+
     return () => {
       cancelled = true;
     };
@@ -750,50 +752,72 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                         disabled
                       />
                     </div>
-                    <FormField
-                      control={form.control}
-                      name="categoryId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Category *</FormLabel>
-                          <Select
-                            value={field.value}
-                            onValueChange={(value) => {
-                              handleInputChange("categoryId", value);
-                              field.onChange(value);
-                            }}
-                            disabled={
-                              mode === "view" ||
-                              !selectedPolicy ||
-                              loadingPolicies
-                            }
-                          >
+                  <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category *</FormLabel>
+                        <Popover
+                          open={categoryDropdownOpen}
+                          onOpenChange={setCategoryDropdownOpen}
+                        >
+                          <PopoverTrigger asChild>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue
-                                  placeholder={
-                                    !selectedPolicy
-                                      ? "Select policy first"
-                                      : "Select category"
-                                  }
-                                />
-                              </SelectTrigger>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={categoryDropdownOpen}
+                                className="h-11 w-full justify-between"
+                                disabled={
+                                  mode === "view" ||
+                                  !selectedPolicy ||
+                                  loadingPolicies
+                                }
+                              >
+                                <>
+                                  <span className="truncate max-w-[85%] overflow-hidden text-ellipsis text-left">
+                                    {selectedCategory
+                                      ? selectedCategory.name
+                                      : !selectedPolicy
+                                        ? "Select policy first"
+                                        : "Select a category"}
+                                  </span>
+                                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </>
+                              </Button>
                             </FormControl>
-                            <SelectContent>
-                              {categories.map((category) => (
-                                <SelectItem
-                                  key={category.id}
-                                  value={category.id}
-                                >
-                                  {category.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                              <CommandInput placeholder="Search categories..." />
+                              <CommandList>
+                                <CommandEmpty>
+                                  No category found.
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {categories.map((category) => (
+                                    <CommandItem
+                                      key={category.id}
+                                      value={category.name}
+                                      onSelect={() => {
+                                        field.onChange(category.id);
+                                        setSelectedCategory(category);
+                                        setCategoryDropdownOpen(false);
+                                      }}
+                                    >
+                                      {category.name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
