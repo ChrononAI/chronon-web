@@ -800,6 +800,7 @@ const PerdiemPage = ({ mode = "create", expenseData }: PerdiemPageProps) => {
                                       value={category.name}
                                       onSelect={() => {
                                         field.onChange(category.id);
+                                        handleInputChange("categoryId", category.id);
                                         setSelectedCategory(category);
                                         setCategoryDropdownOpen(false);
                                       }}
