@@ -90,6 +90,8 @@ import { useAuthStore } from "@/store/authStore";
 import { AdminReportsApprovalPage } from "./pages/admin-reports/AdminReportsApprovalPage";
 import AgentChat from "./pages/copilot/AgentChat";
 import CopilotHome from "./pages/copilot/CopilotHome";
+import FundingAccountPage from "./pages/funding-account/FundingAccountPage";
+import CardsUPIPage from "./pages/cardsUPI/CardsUPIPage";
 
 function VendorRedirect() {
   const { id } = useParams<{ id: string }>();
@@ -216,6 +218,9 @@ function App() {
               <Route path="/admin/admin-reports" element={<AdminReportsApprovalPage />} />
               <Route path="/admin/admin-reports/:id" element={<ReportDetailPage2 />} />
               <Route path="/admin/admin-reports/:id/:expenseId" element={<ExpenseDetailPage />} />
+
+              <Route path="/admin/funding-account" element={<FundingAccountPage />} />
+              <Route path="/admin/cards-upi" element={<CardsUPIPage />} />
 
               {/* ADMIN (No Padding Layout) */}
               <Route element={<AdminLayout />}>

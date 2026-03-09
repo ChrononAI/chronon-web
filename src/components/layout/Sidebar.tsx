@@ -145,6 +145,16 @@ const navigation: NavigationItem[] = [
         href: "/admin/admin-reports",
         icon: CheckSquare,
       },
+      {
+        name: "Funding Account",
+        href: "/admin/funding-account",
+        icon: CheckSquare,
+      },
+      {
+        name: "Cards/UPI",
+        href: "/admin/cards-upi",
+        icon: CheckSquare,
+      }
     ],
   },
   {

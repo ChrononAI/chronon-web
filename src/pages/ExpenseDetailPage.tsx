@@ -110,6 +110,8 @@ export function ExpenseDetailPage() {
   const isFromReport = searchParams.get("from") === "report";
   const isFromApprovals = searchParams.get("from") === "approvals";
 
+  console.log(expense);
+
   const isAdminUpdatingExpense =
     isAdmin &&
     (location.pathname.includes("/approvals") ||

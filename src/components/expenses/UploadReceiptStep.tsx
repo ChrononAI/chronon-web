@@ -45,6 +45,7 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
 
       const parsedData = await fileParseService.parseInvoiceFile(file);
       setParsedData(parsedData);
+      console.log(parsedData);
 
       if (parsedData?.is_duplicate_receipt === true) {
         if (onDuplicateDetected) {
