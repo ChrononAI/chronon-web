@@ -261,7 +261,7 @@ function ReceiptViewer({
               );
             })}
           </div>
-          {!readOnly && hasReceipt && activeReceiptTab === "receipt" && (expense.status === "INCOMPLETE" || expense.status === "COMPLETE") && !pathname.includes("admin-reports") && (
+          {!readOnly && hasReceipt && activeReceiptTab === "receipt" && (expense?.status === "INCOMPLETE" || expense?.status === "COMPLETE") && !pathname.includes("admin-reports") && (
             <Button
               type="button"
               variant="outline"
