@@ -180,14 +180,11 @@ export function LineItemsTable({
     onRowUpdate(rowId, "hsnCode", "");
     onRowUpdate(rowId, "gstCode", "");
     onRowUpdate(rowId, "tdsCode", "");
-    onRowUpdate(rowId, "quantity", "");
-    onRowUpdate(rowId, "rate", "");
     onRowUpdate(rowId, "igst", "");
     onRowUpdate(rowId, "cgst", "");
     onRowUpdate(rowId, "sgst", "");
     onRowUpdate(rowId, "utgst", "");
     onRowUpdate(rowId, "tdsAmount", "");
-    onRowUpdate(rowId, "netAmount", "");
     
     setTdsSearchResults([]);
     setGstSearchResults([]);
@@ -205,14 +202,11 @@ export function LineItemsTable({
       onValidationErrorChange(rowId, "hsnCode", false);
       onValidationErrorChange(rowId, "gstCode", false);
       onValidationErrorChange(rowId, "tdsCode", false);
-      onValidationErrorChange(rowId, "quantity", false);
-      onValidationErrorChange(rowId, "rate", false);
       onValidationErrorChange(rowId, "igst", false);
       onValidationErrorChange(rowId, "cgst", false);
       onValidationErrorChange(rowId, "sgst", false);
       onValidationErrorChange(rowId, "utgst", false);
       onValidationErrorChange(rowId, "tdsAmount", false);
-      onValidationErrorChange(rowId, "netAmount", false);
     }
   }, [onRowUpdate, onValidationErrorChange]);
 
