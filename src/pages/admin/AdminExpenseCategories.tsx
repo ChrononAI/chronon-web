@@ -4,13 +4,12 @@ import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { Button } from "@/components/ui/button";
 import { categoryService } from "@/services/admin/categoryService";
 import { PaginationInfo } from "@/store/expenseStore";
-import { Box } from "@mui/material";
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
+import { DataTable } from "@/components/shared/DataTable";
 import { Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -133,85 +132,64 @@ function AdminExpenseCategories() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Categories</h1>
+        <h1 
+          className="text-2xl"
+          style={{
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: "24px",
+            lineHeight: "100%",
+            letterSpacing: "0%",
+            color: "#1A1A1A",
+          }}
+        >
+          Categories
+        </h1>
         <Button
           onClick={() =>
             navigate("/admin-settings/product-config/expense-categories/create")
           }
+          style={{
+            backgroundColor: "#0D9C99",
+            color: "#FFFFFF",
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: "12px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#0b8a87";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "#0D9C99";
+          }}
         >
           <Plus className="mr-2 h-4 w-4" />
           Add Categories
         </Button>
       </div>
-      <Box sx={{ height: "calc(100vh - 120px)", width: "100%" }}>
-        <DataGrid
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          columns={columns}
-          rows={loading ? [] : rows}
-          loading={loading}
-          slots={{
-            toolbar: CustomCategoryToolbar,
-            noRowsOverlay: () => <CustomNoRows title="No categories found" description="There are currently no categories." />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
-          }}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-              borderTop: "none",
-              borderBottom: "none",
-            },
-            "& .MuiCheckbox-root": {
-              color: "#9AA0A6",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          density="compact"
-          showToolbar
-          checkboxSelection
-          disableRowSelectionOnClick
-          onRowClick={handleRowClick}
-          showCellVerticalBorder
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
-          pagination
-          paginationMode="server"
-          rowCount={pagination ? pagination.total : 0}
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-        />
-      </Box>
+      <DataTable
+        rows={loading ? [] : rows}
+        columns={columns}
+        loading={loading}
+        height="calc(100vh - 120px)"
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={handleRowClick}
+        rowCount={pagination ? pagination.total : 0}
+        paginationMode="server"
+        emptyStateComponent={
+          <CustomNoRows title="No categories found" description="There are currently no categories." />
+        }
+        slots={{
+          toolbar: CustomCategoryToolbar,
+          loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+        }}
+        showToolbar
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={setRowSelection}
+        disableRowSelectionOnClick
+      />
     </div>
   );
 }

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { FormFooter } from "@/components/layout/FormFooter";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 
 interface Operator {
   name: string;
@@ -474,28 +474,22 @@ function CreateCategoryLimitPage() {
           );
         })}
       </div>
-      <FormFooter>
-        <Button
-          variant="outline"
-          onClick={() =>
-            navigate("/admin-settings/product-config/category-limits")
-          }
-          disabled={loading}
-          className="px-6 py-2"
-        >
-          Back
-        </Button>
-        <Button disabled={loading} onClick={submitRule}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
-            </>
-          ) : (
-            "Submit"
-          )}
-        </Button>
-      </FormFooter>
+      <FormActionFooter
+        secondaryButton={{
+          label: "Back",
+          onClick: () =>
+            navigate("/admin-settings/product-config/category-limits"),
+          disabled: loading,
+        }}
+        primaryButton={{
+          label: "Submit",
+          onClick: submitRule,
+          type: "button",
+          disabled: loading,
+          loading: loading,
+          loadingText: "Submitting...",
+        }}
+      />
     </>
   );
 }

@@ -8,9 +8,8 @@ import {
 } from "@/services/admin/workflows";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { DataGrid, GridColDef, GridRowSelectionModel } from "@mui/x-data-grid";
-import { Box } from "@mui/material";
-import { GridPaginationModel } from "@mui/x-data-grid";
+import { GridColDef, GridRowSelectionModel, GridPaginationModel } from "@mui/x-data-grid";
+import { DataTable } from "@/components/shared/DataTable";
 import { formatDate } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import CustomNoRows from "@/components/shared/CustomNoRows";
@@ -254,7 +253,19 @@ const WorkFlowPage = () => {
     <>
       <div className="flex flex-col gap-3 max-w-full">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold mb-3">New Workflow</h1>
+          <h1 
+            className="text-2xl mb-3"
+            style={{
+              fontFamily: "Inter",
+              fontWeight: 600,
+              fontSize: "24px",
+              lineHeight: "100%",
+              letterSpacing: "0%",
+              color: "#1A1A1A",
+            }}
+          >
+            New Workflow
+          </h1>
           {activeTab === "workflow" && (
             <Button
               onClick={() =>
@@ -262,6 +273,19 @@ const WorkFlowPage = () => {
                   "/admin-settings/product-config/workflow/create-workflow"
                 )
               }
+              style={{
+                backgroundColor: "#0D9C99",
+                color: "#FFFFFF",
+                fontFamily: "Inter",
+                fontWeight: 600,
+                fontSize: "12px",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#0b8a87";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#0D9C99";
+              }}
             >
               Create Workflow
             </Button>
@@ -271,6 +295,19 @@ const WorkFlowPage = () => {
               onClick={() =>
                 navigate("/admin-settings/product-config/workflow/create-rule")
               }
+              style={{
+                backgroundColor: "#0D9C99",
+                color: "#FFFFFF",
+                fontFamily: "Inter",
+                fontWeight: 600,
+                fontSize: "12px",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#0b8a87";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#0D9C99";
+              }}
             >
               Create Rule
             </Button>
@@ -288,155 +325,59 @@ const WorkFlowPage = () => {
         />
 
         {activeTab === "workflow" && (
-          <Box
-            sx={{
-              height: "calc(100vh - 180px)",
-              width: "100%",
-              marginTop: "-18px",
-            }}
-          >
-            <DataGrid
+          <div style={{ marginTop: "-18px" }}>
+            <DataTable
               rows={workflowsLoading ? [] : workflows}
               columns={getWorkflowColumns()}
-              disableRowSelectionOnClick
               loading={workflowsLoading}
+              height="calc(100vh - 180px)"
+              paginationModel={workflowPaginationModel}
+              onPaginationModelChange={setWorkflowPaginationModel}
+              onRowClick={handleWorkflowClick}
+              emptyStateComponent={
+                <CustomNoRows title="No entries found" description="There are currently no entries" />
+              }
               slots={{
-                noRowsOverlay: () => <CustomNoRows title="No entries found" description="There are currently no entries" />,
                 loadingOverlay: () => <SkeletonLoaderOverlay rowCount={workflowPaginationModel.pageSize} />
               }}
-              sx={{
-                border: 0,
-                "& .MuiDataGrid-columnHeaderTitle": {
-                  color: "#9AA0A6",
-                  fontWeight: "bold",
-                  fontSize: "12px",
-                },
-                "& .MuiDataGrid-panel .MuiSelect-select": {
-                  fontSize: "12px",
-                },
-                "& .MuiDataGrid-main": {
-                  border: "0.2px solid #f3f4f6",
-                },
-                "& .MuiDataGrid-virtualScroller": {
-                  overflow: workflowsLoading ? "hidden" : "auto",
-                },
-                "& .MuiDataGrid-columnHeader": {
-                  backgroundColor: "#f3f4f6",
-                  border: "none",
-                },
-                "& .MuiDataGrid-columnHeaders": {
-                  border: "none",
-                },
-                "& .MuiDataGrid-row:hover": {
-                  cursor: "pointer",
-                  backgroundColor: "#f5f5f5",
-                },
-                "& .MuiDataGrid-cell": {
-                  color: "#2E2E2E",
-                  border: "0.2px solid #f3f4f6",
-                },
-                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                {
-                  outline: "none",
-                },
-                "& .MuiDataGrid-cell:focus-within": {
-                  outline: "none",
-                },
-                "& .MuiDataGrid-columnSeparator": {
-                  color: "#f3f4f6",
-                },
-              }}
-              density="compact"
               getRowClassName={(params) =>
                 params.row.original_expense_id ? "bg-yellow-50" : ""
               }
               checkboxSelection
-              showCellVerticalBorder
               rowSelectionModel={rowSelection}
-              onRowClick={handleWorkflowClick}
               onRowSelectionModelChange={setRowSelection}
-              pagination
-              paginationModel={workflowPaginationModel}
-              onPaginationModelChange={setWorkflowPaginationModel}
+              disableRowSelectionOnClick
             />
-          </Box>
+          </div>
         )}
 
         {activeTab === "rules" && (
-          <Box
-            sx={{
-              height: "calc(100vh - 180px)",
-              width: "100%",
-              marginTop: "-18px",
-            }}
-          >
-            <DataGrid
+          <div style={{ marginTop: "-18px" }}>
+            <DataTable
               rows={workflowsLoading ? [] : rules}
               columns={rulesColumns}
-              disableRowSelectionOnClick
               loading={workflowsLoading}
+              height="calc(100vh - 180px)"
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
+              onRowClick={handleRuleClick}
+              rowCount={rulePaginationInfo?.total}
+              paginationMode="server"
+              emptyStateComponent={
+                <CustomNoRows title="No entries found" description="There are currently no entries" />
+              }
               slots={{
-                noRowsOverlay: () => <CustomNoRows title="No entries found" description="There are currently no entries" />,
                 loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
               }}
-              sx={{
-                border: 0,
-                "& .MuiDataGrid-columnHeaderTitle": {
-                  color: "#9AA0A6",
-                  fontWeight: "bold",
-                  fontSize: "12px",
-                },
-                "& .MuiDataGrid-panel .MuiSelect-select": {
-                  fontSize: "12px",
-                },
-                "& .MuiDataGrid-virtualScroller": {
-                  overflow: workflowsLoading ? "hidden" : "auto",
-                },
-                "& .MuiDataGrid-main": {
-                  border: "0.2px solid #f3f4f6",
-                },
-                "& .MuiDataGrid-columnHeader": {
-                  backgroundColor: "#f3f4f6",
-                  border: "none",
-                },
-                "& .MuiDataGrid-columnHeaders": {
-                  border: "none",
-                },
-                "& .MuiDataGrid-row:hover": {
-                  cursor: "pointer",
-                  backgroundColor: "#f5f5f5",
-                },
-                "& .MuiDataGrid-cell": {
-                  color: "#2E2E2E",
-                  border: "0.2px solid #f3f4f6",
-                },
-                "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus":
-                {
-                  outline: "none",
-                },
-                "& .MuiDataGrid-cell:focus-within": {
-                  outline: "none",
-                },
-                "& .MuiDataGrid-columnSeparator": {
-                  color: "#f3f4f6",
-                },
-              }}
-              density="compact"
               getRowClassName={(params) =>
                 params.row.original_expense_id ? "bg-yellow-50" : ""
               }
               checkboxSelection
-              showCellVerticalBorder
-              onRowClick={handleRuleClick}
               rowSelectionModel={rowSelection}
               onRowSelectionModelChange={setRowSelection}
-              pagination
-              paginationMode="server"
-              rowCount={rulePaginationInfo?.total}
-              paginationModel={paginationModel}
-              onPaginationModelChange={setPaginationModel}
+              disableRowSelectionOnClick
             />
-          </Box>
+          </div>
         )}
       </div>
     </>

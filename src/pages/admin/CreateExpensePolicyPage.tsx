@@ -12,7 +12,7 @@ import {
   CreatePolicyPayload,
   policyService,
 } from "@/services/admin/policyService";
-import { FormFooter } from "@/components/layout/FormFooter";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { Badge } from "@/components/ui/badge";
 import CategorySelectionDialog from "@/components/admin/policies/SelectCategoriesDialog";
@@ -351,30 +351,27 @@ function CreateExpensePolicyPage() {
           </div>
         )}
       </div>
-      <FormFooter>
-        <Button
-          variant="outline"
-          onClick={() =>
-            navigate("/admin-settings/product-config/expense-policies")
-          }
-          disabled={loading}
-          className="px-6 py-2"
-        >
-          Back
-        </Button>
-        {mode === "create" && (
-          <Button form="create-policy-form" type="submit" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              "Submit"
-            )}
-          </Button>
-        )}
-      </FormFooter>
+      <FormActionFooter
+        secondaryButton={{
+          label: "Back",
+          onClick: () =>
+            navigate("/admin-settings/product-config/expense-policies"),
+          disabled: loading,
+        }}
+        primaryButton={
+          mode === "create"
+            ? {
+                label: "Submit",
+                onClick: () => {},
+                type: "submit",
+                form: "create-policy-form",
+                disabled: loading,
+                loading: loading,
+                loadingText: "Submitting...",
+              }
+            : undefined
+        }
+      />
     </>
   );
 }

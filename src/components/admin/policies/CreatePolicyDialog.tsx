@@ -70,7 +70,21 @@ const navigate = useNavigate();
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
-        <Button>
+        <Button
+          style={{
+            backgroundColor: "#0D9C99",
+            color: "#FFFFFF",
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: "12px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#0b8a87";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "#0D9C99";
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Add Policy
         </Button>
@@ -142,7 +156,19 @@ const navigate = useNavigate();
 
               <Button
                 type="submit"
-                className="bg-primary text-white rounded-md"
+                style={{
+                  backgroundColor: "#0D9C99",
+                  color: "#FFFFFF",
+                  fontFamily: "Inter",
+                  fontWeight: 600,
+                  fontSize: "12px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#0b8a87";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#0D9C99";
+                }}
               >
                 Save Policy
               </Button>

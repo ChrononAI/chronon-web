@@ -141,7 +141,24 @@ function BulkUploadedFilesPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold capitalize">Bulk Uploaded Files</h1>
-        <Button onClick={() => navigate('/admin-settings/product-config/bulk-uploads/user')}>Bulk Upload</Button>
+        <Button 
+          onClick={() => navigate('/admin-settings/product-config/bulk-uploads/user')}
+          style={{
+            backgroundColor: "#0D9C99",
+            color: "#FFFFFF",
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: "12px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#0b8a87";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "#0D9C99";
+          }}
+        >
+          Bulk Upload
+        </Button>
       </div>
       <Box
         sx={{

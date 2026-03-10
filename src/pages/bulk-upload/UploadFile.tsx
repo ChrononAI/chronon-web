@@ -1,4 +1,4 @@
-import { FormFooter } from "@/components/layout/FormFooter";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 import { Button } from "@/components/ui/button";
 import { bulkImportService } from "@/services/bulkImportService";
 import {
@@ -93,18 +93,45 @@ function UploadFile() {
             {uploadedFile ? (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
-                  <Check className="h-12 w-12 mx-auto mb-4 text-primary" />
+                  <Check 
+                    className="h-12 w-12 mx-auto mb-4" 
+                    style={{
+                      color: "#0D9C99",
+                    }}
+                  />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     File Uploaded{" "}
                   </h3>
                   <p className="text-gray-600 mb-4">{uploadedFile.name}</p>
-                  <Button onClick={handleRemove}>Upload Another</Button>
+                  <Button 
+                    onClick={handleRemove}
+                    style={{
+                      backgroundColor: "#0D9C99",
+                      color: "#FFFFFF",
+                      fontFamily: "Inter",
+                      fontWeight: 600,
+                      fontSize: "12px",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#0b8a87";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#0D9C99";
+                    }}
+                  >
+                    Upload Another
+                  </Button>
                 </div>
               </div>
             ) : isProcessing ? (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
-                  <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+                  <Loader2 
+                    className="h-12 w-12 animate-spin mx-auto mb-4" 
+                    style={{
+                      color: "#0D9C99",
+                    }}
+                  />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     Processing file...
                   </h3>
@@ -115,9 +142,18 @@ function UploadFile() {
               </div>
             ) : (
               <div
-                className="p-12 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                className="p-12 text-center transition-colors cursor-pointer border-2 border-dashed"
+                style={{
+                  borderColor: "#EBEBEB",
+                }}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#0D9C99";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#EBEBEB";
+                }}
                 onClick={() => {
                   const input = document.createElement("input");
                   input.type = "file";
@@ -132,8 +168,18 @@ function UploadFile() {
                 }}
               >
                 <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Upload className="h-8 w-8 text-primary" />
+                  <div 
+                    className="w-16 h-16 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: "rgba(13, 156, 153, 0.1)",
+                    }}
+                  >
+                    <Upload 
+                      className="h-8 w-8" 
+                      style={{
+                        color: "#0D9C99",
+                      }}
+                    />
                   </div>
                   <div>
                     <p className="text-xl font-semibold text-gray-900 mb-2">
@@ -142,7 +188,22 @@ function UploadFile() {
                     <p className="text-gray-600 mb-4">
                       Drag and drop or click to upload
                     </p>
-                    <Button className="bg-primary hover:bg-primary/90 mb-4">
+                    <Button 
+                      className="mb-4"
+                      style={{
+                        backgroundColor: "#0D9C99",
+                        color: "#FFFFFF",
+                        fontFamily: "Inter",
+                        fontWeight: 600,
+                        fontSize: "12px",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#0b8a87";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "#0D9C99";
+                      }}
+                    >
                       <FileText className="h-4 w-4 mr-2" />
                       Browse file
                     </Button>
@@ -164,8 +225,18 @@ function UploadFile() {
                   key={step.title}
                   className="space-y-4 p-6 border rounded-md"
                 >
-                  <div className="w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center mb-4">
-                    <step.icon className="flex items-center justify-between mx-auto text-primary" />
+                  <div 
+                    className="w-12 h-12 rounded-md flex items-center justify-center mb-4"
+                    style={{
+                      backgroundColor: "rgba(13, 156, 153, 0.1)",
+                    }}
+                  >
+                    <step.icon 
+                      className="h-6 w-6 mx-auto" 
+                      style={{
+                        color: "#0D9C99",
+                      }}
+                    />
                   </div>
                   <h2>{step.title}</h2>
                   <p>{step.description}</p>
@@ -175,11 +246,13 @@ function UploadFile() {
           </div>
         </div>
       </div>
-      <FormFooter>
-        <Button variant="outline" onClick={() => navigate(-1)}>
-          Back
-        </Button>
-      </FormFooter>
+      <FormActionFooter
+        secondaryButton={{
+          label: "Back",
+          onClick: () => navigate(-1),
+          disabled: false,
+        }}
+      />
     </>
   );
 }

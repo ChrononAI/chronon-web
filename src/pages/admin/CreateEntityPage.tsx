@@ -29,7 +29,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
-import { FormFooter } from "@/components/layout/FormFooter";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 import SearchableMultiSelect from "@/components/admin/SearchableMultiSelect";
 import { PolicyCategory } from "@/types/expense";
 import { categoryService } from "@/services/admin/categoryService";
@@ -556,29 +556,21 @@ export const CreateEntityPage = () => {
               </div>
             )}
           </fieldset>
-          <FormFooter>
-            <Button
-              variant="outline"
-              type="button"
-              className="px-6 py-2"
-              onClick={() => navigate("/admin-settings/entities")}
-              disabled={loading}
-            >
-              Back
-            </Button>
-            <Button type="submit" disabled={loading || loadingEntity}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isEditMode ? "Updating..." : "Submitting..."}
-                </>
-              ) : isEditMode ? (
-                "UPDATE"
-              ) : (
-                "SUBMIT"
-              )}
-            </Button>
-          </FormFooter>
+          <FormActionFooter
+            secondaryButton={{
+              label: "Back",
+              onClick: () => navigate("/admin-settings/entities"),
+              disabled: loading,
+            }}
+            primaryButton={{
+              label: isEditMode ? "UPDATE" : "SUBMIT",
+              onClick: () => form.handleSubmit(onSubmit)(),
+              type: "button",
+              disabled: loading || loadingEntity,
+              loading: loading,
+              loadingText: isEditMode ? "Updating..." : "Submitting...",
+            }}
+          />
         </form>
       </Form>
     </div>

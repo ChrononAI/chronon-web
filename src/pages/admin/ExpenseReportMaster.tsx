@@ -342,8 +342,17 @@ const ExpenseReportMasterPage = () => {
 
               <div className="mt-4">
                 <a
-                  className="text-sm text-blue-600 underline cursor-pointer"
+                  className="text-sm underline cursor-pointer"
+                  style={{
+                    color: "#0D9C99",
+                  }}
                   onClick={addCustomField}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#0b8a87";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "#0D9C99";
+                  }}
                 >
                   Add
                 </a>

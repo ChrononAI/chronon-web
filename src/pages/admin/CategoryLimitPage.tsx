@@ -3,8 +3,8 @@ import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { Button } from "@/components/ui/button";
 import { policyRulesService } from "@/services/admin/policyRulesService";
 import { useCategoryLimitStore } from "@/store/admin/categoryLimitStore";
-import { Box } from "@mui/material";
-import { DataGrid, GridColDef, GridPaginationModel, GridRowSelectionModel } from "@mui/x-data-grid";
+import { GridColDef, GridPaginationModel, GridRowSelectionModel } from "@mui/x-data-grid";
+import { DataTable } from "@/components/shared/DataTable";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -92,83 +92,60 @@ function CategoryLimitPage() {
     <div>
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Category Limits</h1>
+        <h1 
+          className="text-2xl"
+          style={{
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: "24px",
+            lineHeight: "100%",
+            letterSpacing: "0%",
+            color: "#1A1A1A",
+          }}
+        >
+          Category Limits
+        </h1>
         <Button
           onClick={() =>
             navigate("/admin-settings/product-config/category-limits/create")
           }
+          style={{
+            backgroundColor: "#0D9C99",
+            color: "#FFFFFF",
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: "12px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#0b8a87";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "#0D9C99";
+          }}
         >
           <Plus className="mr-2 h-4 w-4" />
           Category Limits
         </Button>
       </div>
-      <Box
-        sx={{
-          height: "calc(100vh - 100px)",
-          width: "100%",
+      <DataTable
+        rows={loading ? [] : policyRules}
+        columns={columns}
+        loading={loading}
+        height="calc(100vh - 100px)"
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={handleRowClick}
+        emptyStateComponent={
+          <CustomNoRows title="No rules found" description="There are currently no rules" />
+        }
+        slots={{
+          loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
         }}
-      >
-        <DataGrid
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          columns={columns}
-          rows={loading ? [] : policyRules}
-          loading={loading}
-          slots={{
-            noRowsOverlay: () => <CustomNoRows title="No rules found" description="There are currently no rules" />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
-          }}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-              borderTop: "none",
-              borderBottom: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          density="compact"
-          checkboxSelection
-          disableRowSelectionOnClick
-          showCellVerticalBorder
-          onRowClick={handleRowClick}
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
-          pagination
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-        />
-      </Box>
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={setRowSelection}
+        disableRowSelectionOnClick
+      />
     </div>
   );
 }

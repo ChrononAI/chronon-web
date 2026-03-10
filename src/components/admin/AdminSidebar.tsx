@@ -181,7 +181,6 @@ export default function AdminSidebar() {
   };
 
   const renderNavigationItem = (item: NavigationItem, level: number = 0) => {
-    const paddingLeft = level * 16 + 12;
     const isDisabled = item.disabled;
 
     if (item.children) {
@@ -207,22 +206,35 @@ export default function AdminSidebar() {
             <Button
               variant="ghost"
               className={cn(
-                "w-full justify-between h-auto font-medium text-sm px-3 py-2.5 hover:bg-accent/50 transition-all duration-200",
-                hasActiveChild && "bg-accent/30 text-foreground",
-                isDisabled &&
-                  "opacity-50 cursor-not-allowed hover:bg-transparent"
+                "w-full justify-between h-auto transition-all duration-200",
+                isDisabled && "opacity-50 cursor-not-allowed hover:bg-transparent"
               )}
-              style={{ paddingLeft: `${paddingLeft}px` }}
+              style={{ 
+                padding: "12px",
+                height: "41px",
+                borderRadius: "8px",
+                backgroundColor: hasActiveChild ? "transparent" : "transparent",
+              }}
               disabled={isDisabled}
             >
-              <div className="flex items-center gap-2.5 text-muted-foreground">
-                <IconComponent className="h-4 w-4 shrink-0" />
-                <span className="font-medium">{item.name}</span>
+              <div 
+                className="flex items-center gap-2.5"
+                style={{
+                  fontFamily: "Inter",
+                  fontWeight: 500,
+                  fontSize: "14px",
+                  lineHeight: "100%",
+                  letterSpacing: "0%",
+                  color: "#47536C",
+                }}
+              >
+                <IconComponent className="h-4 w-4 shrink-0" style={{ color: "#47536C" }} />
+                <span>{item.name}</span>
               </div>
               {isOpen ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200" />
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" style={{ color: "#47536C" }} />
               ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200" />
+                <ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200" style={{ color: "#47536C" }} />
               )}
             </Button>
           </CollapsibleTrigger>
@@ -241,14 +253,23 @@ export default function AdminSidebar() {
         return (
           <div
             key={item.name}
-            className={cn(
-              "flex items-center gap-2.5 py-2.5 text-sm rounded-md transition-colors px-3",
-              item.isBold && "font-semibold",
-              "opacity-50 cursor-not-allowed text-muted-foreground"
-            )}
-            style={{ paddingLeft: `${paddingLeft}px` }}
+            className="flex items-center gap-2.5 rounded-md transition-colors"
+            style={{ 
+              padding: "12px",
+              height: "41px",
+              borderRadius: "8px",
+              marginLeft: level > 0 ? "16px" : "0px",
+              opacity: 0.5,
+              cursor: "not-allowed",
+              fontFamily: "Inter",
+              fontWeight: 500,
+              fontSize: "14px",
+              lineHeight: "100%",
+              letterSpacing: "0%",
+              color: "#47536C",
+            }}
           >
-            {IconComponent && <IconComponent className="h-4 w-4 shrink-0" />}
+            {IconComponent && <IconComponent className="h-4 w-4 shrink-0" style={{ color: "#47536C" }} />}
             <span>{item.name}</span>
           </div>
         );
@@ -263,23 +284,43 @@ export default function AdminSidebar() {
         <NavLink
           key={item.name}
           to={item.href}
-          className={({ isActive: navIsActive }) =>
-            cn(
-              "flex items-center gap-2.5 py-2.5 text-sm rounded-md transition-all duration-200 px-3 group",
-              item.isBold && "font-semibold",
-              navIsActive || isActive
-                ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-            )
-          }
-          style={{ paddingLeft: `${paddingLeft}px` }}
+          className={({ isActive: navIsActive }) => {
+            const active = navIsActive || isActive;
+            return cn(
+              "flex items-center gap-2.5 rounded-md transition-all duration-200 group",
+              active && "bg-[#0D9C99] hover:bg-[#0b8a87]"
+            );
+          }}
+          style={{ 
+            padding: "12px",
+            height: "41px",
+            borderRadius: "8px",
+            marginLeft: level > 0 ? "16px" : "0px",
+            fontFamily: "Inter",
+            fontWeight: 500,
+            fontSize: "14px",
+            lineHeight: "100%",
+            letterSpacing: "0%",
+            color: isActive ? "#FFFFFF" : "#47536C",
+            backgroundColor: isActive ? "#0D9C99" : "transparent",
+          }}
+          onMouseEnter={(e) => {
+            if (!isActive) {
+              e.currentTarget.style.backgroundColor = "#f5f5f5";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isActive) {
+              e.currentTarget.style.backgroundColor = "transparent";
+            }
+          }}
         >
           {IconComponent && (
             <IconComponent
-              className={cn(
-                "h-4 w-4 shrink-0 transition-transform duration-200",
-                "group-hover:scale-110"
-              )}
+              className="h-4 w-4 shrink-0 transition-transform duration-200"
+              style={{ 
+                color: isActive ? "#FFFFFF" : "#47536C"
+              }}
             />
           )}
           <span>{item.name}</span>
@@ -292,28 +333,59 @@ export default function AdminSidebar() {
     return (
       <div
         key={item.name}
-        className="flex items-center gap-2.5 py-2.5 text-sm text-muted-foreground font-medium px-3"
-        style={{ paddingLeft: `${paddingLeft}px` }}
+        className="flex items-center gap-2.5"
+        style={{ 
+          padding: "12px",
+          height: "41px",
+          marginLeft: level > 0 ? "16px" : "0px",
+          fontFamily: "Inter",
+          fontWeight: 500,
+          fontSize: "14px",
+          lineHeight: "100%",
+          letterSpacing: "0%",
+          color: "#47536C",
+        }}
       >
-        {IconComponent && <IconComponent className="h-4 w-4 shrink-0" />}
+        {IconComponent && <IconComponent className="h-4 w-4 shrink-0" style={{ color: "#47536C" }} />}
         <span>{item.name}</span>
       </div>
     );
   };
 
   return (
-    <div className="w-[17rem] bg-card border-r border-border h-screen overflow-y-auto flex flex-col shadow-sm">
+    <div className="w-[17rem] bg-white border-r border-[#EBEBEB] h-screen overflow-y-auto flex flex-col shadow-sm">
       {/* Header */}
-      <div className="p-4 border-b border-border bg-muted/30">
+      <div className="p-4 border-b border-[#EBEBEB] bg-white">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <LayoutDashboard className="h-4 w-4 text-primary" />
+          <div className="p-2 rounded-lg bg-[#0D9C99]/10">
+            <LayoutDashboard className="h-4 w-4" style={{ color: "#0D9C99" }} />
           </div>
           <div>
-            <h2 className="font-semibold text-sm text-foreground tracking-tight">
+            <h2 
+              className="text-sm tracking-tight"
+              style={{
+                fontFamily: "Inter",
+                fontWeight: 600,
+                fontSize: "14px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                color: "#1A1A1A",
+              }}
+            >
               Admin Settings
             </h2>
-            <p className="text-xs text-muted-foreground">
+            <p 
+              className="text-xs"
+              style={{
+                fontFamily: "Inter",
+                fontWeight: 500,
+                fontSize: "12px",
+                lineHeight: "100%",
+                letterSpacing: "0%",
+                color: "#64748B",
+                marginTop: "4px",
+              }}
+            >
               Configuration & Management
             </p>
           </div>

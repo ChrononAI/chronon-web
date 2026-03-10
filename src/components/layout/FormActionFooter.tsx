@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
 interface FormActionFooterProps {
-  primaryButton: {
+  primaryButton?: {
     label: string;
     onClick: () => void;
     type?: "button" | "submit";
@@ -190,20 +190,20 @@ export const FormActionFooter: React.FC<FormActionFooterProps> = ({
             paddingLeft: "12px",
             gap: "8px",
             borderRadius: "4px",
-            border: `1px solid ${primaryColor}`,
+            border: "1px solid #1A1A1A",
             fontFamily: "Inter",
             fontWeight: 600,
             fontSize: "12px",
             lineHeight: "100%",
             letterSpacing: "0%",
-            color: primaryColor,
-            backgroundColor: "transparent",
+            color: "#1A1A1A",
+            backgroundColor: "#FFFFFF",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = "#f5f5f5";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
+            e.currentTarget.style.backgroundColor = "#FFFFFF";
           }}
         >
           {secondaryButton.loading ? (
@@ -258,46 +258,48 @@ export const FormActionFooter: React.FC<FormActionFooterProps> = ({
           )}
         </Button>
       )}
-      <Button
-        type={primaryButton.type || "button"}
-        form={primaryButton.form}
-        onClick={primaryButton.onClick}
-        disabled={primaryButton.disabled || primaryButton.loading}
-        style={{
-          width: "auto",
-          minWidth: "65px",
-          height: "31px",
-          paddingTop: "8px",
-          paddingRight: "12px",
-          paddingBottom: "8px",
-          paddingLeft: "12px",
-          gap: "8px",
-          borderRadius: "4px",
-          border: `1px solid ${primaryColor}`,
-          fontFamily: "Inter",
-          fontWeight: 600,
-          fontSize: "12px",
-          lineHeight: "100%",
-          letterSpacing: "0%",
-          color: "#FFFFFF",
-          backgroundColor: primaryColor,
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = primaryHoverColor;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = primaryColor;
-        }}
-      >
-        {primaryButton.loading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {primaryButton.loadingText || "Loading..."}
-          </>
-        ) : (
-          primaryButton.label
-        )}
-      </Button>
+      {primaryButton && (
+        <Button
+          type={primaryButton.type || "button"}
+          form={primaryButton.form}
+          onClick={primaryButton.onClick}
+          disabled={primaryButton.disabled || primaryButton.loading}
+          style={{
+            width: "auto",
+            minWidth: "65px",
+            height: "31px",
+            paddingTop: "8px",
+            paddingRight: "12px",
+            paddingBottom: "8px",
+            paddingLeft: "12px",
+            gap: "8px",
+            borderRadius: "4px",
+            border: `1px solid ${primaryColor}`,
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: "12px",
+            lineHeight: "100%",
+            letterSpacing: "0%",
+            color: "#FFFFFF",
+            backgroundColor: primaryColor,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = primaryHoverColor;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = primaryColor;
+          }}
+        >
+          {primaryButton.loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {primaryButton.loadingText || "Loading..."}
+            </>
+          ) : (
+            primaryButton.label
+          )}
+        </Button>
+      )}
       </div>
     </div>
   );

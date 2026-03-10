@@ -1,5 +1,4 @@
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
   GridRowSelectionModel,
@@ -10,9 +9,9 @@ import { Plus } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getEntities } from "@/services/admin/entities";
-import { Box } from "@mui/material";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import { DataTable } from "@/components/shared/DataTable";
 
 type APIEntity = {
   id: string;
@@ -111,84 +110,60 @@ export const EntityPage = () => {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Entities</h1>
-        <Button asChild>
+        <h1 
+          className="text-2xl"
+          style={{
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: "24px",
+            lineHeight: "100%",
+            letterSpacing: "0%",
+            color: "#1A1A1A",
+          }}
+        >
+          Entities
+        </h1>
+        <Button 
+          asChild
+          style={{
+            backgroundColor: "#0D9C99",
+            color: "#FFFFFF",
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: "12px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#0b8a87";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "#0D9C99";
+          }}
+        >
           <Link to="/admin-settings/entities/create">
             <Plus className="mr-2 h-4 w-4" />
             CREATE
           </Link>
         </Button>
       </div>
-      <Box
-        sx={{
-          height: "calc(100vh - 120px)",
-          width: "100%",
+      <DataTable
+        rows={loading ? [] : rows}
+        columns={columns}
+        loading={loading}
+        height="calc(100vh - 120px)"
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={handleRowClick}
+        emptyStateComponent={
+          <CustomNoRows title="No entities found" description="There are currently no entities." />
+        }
+        slots={{
+          loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
         }}
-      >
-        <DataGrid
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          columns={columns}
-          rows={loading ? [] : rows}
-          loading={loading}
-          slots={{
-            noRowsOverlay: () => <CustomNoRows title="No entities found" description="There are currently no entities." />,
-            loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize}/>
-          }}
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiToolbar-root": {
-              paddingX: 0,
-            },
-            "& .MuiDataGrid-panel .MuiSelect-select": {
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={setRowSelection}
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          density="compact"
-          checkboxSelection
-          disableRowSelectionOnClick
-          onRowClick={handleRowClick}
-          showCellVerticalBorder
-        />
-      </Box>
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={setRowSelection}
+        disableRowSelectionOnClick
+      />
     </>
   );
 };

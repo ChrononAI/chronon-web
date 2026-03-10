@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { getTemplates, assignEntity } from "@/services/admin/templates";
 import { getEntities } from "@/services/admin/entities";
 import { toast } from "sonner";
-import { FormFooter } from "@/components/layout/FormFooter";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 
 const CORE_FIELDS = ["Expense Report ID"];
 
@@ -190,9 +190,14 @@ const ExpenseRequestMasterPage = () => {
               ))}
             </div>
           </Card>
-          <FormFooter>
-            <Button>Save Configuration</Button>
-          </FormFooter>
+          <FormActionFooter
+            primaryButton={{
+              label: "Save Configuration",
+              onClick: () => {},
+              type: "button",
+              disabled: false,
+            }}
+          />
         </>
       ) : (
         <>
@@ -300,31 +305,42 @@ const ExpenseRequestMasterPage = () => {
 
               <div className="mt-4">
                 <a
-                  className="text-sm text-blue-600 underline cursor-pointer"
+                  className="text-sm underline cursor-pointer"
+                  style={{
+                    color: "#0D9C99",
+                  }}
                   onClick={addCustomField}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#0b8a87";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "#0D9C99";
+                  }}
                 >
                   Add
                 </a>
               </div>
             </div>
           </Card>
-          <FormFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
+          <FormActionFooter
+            secondaryButton={{
+              label: "Back",
+              onClick: () => {
                 setCustomFields([]);
                 setTemplates([]);
                 setActiveTab("core");
-              }}
-              disabled={loading}
-              className="px-6 py-2"
-            >
-              Back
-            </Button>
-            <Button onClick={handleSubmitCustom} disabled={loading}>
-              {loading ? "Submitting..." : "Submit"}
-            </Button>
-          </FormFooter>
+              },
+              disabled: loading,
+            }}
+            primaryButton={{
+              label: "Submit",
+              onClick: handleSubmitCustom,
+              type: "button",
+              disabled: loading,
+              loading: loading,
+              loadingText: "Submitting...",
+            }}
+          />
         </>
       )}
     </>

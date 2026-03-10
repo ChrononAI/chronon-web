@@ -17,7 +17,7 @@ import {
 import { getEntities, type Entity } from "@/services/admin/entities";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { FormFooter } from "@/components/layout/FormFooter";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 
 const CORE_FIELDS = [
   "Expense ID",
@@ -421,18 +421,16 @@ const ExpenseMasterPage = () => {
             </div>
           )}
         </Card>
-        <FormFooter>
-          <Button onClick={handleSaveCoreConfig} disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Configuration"
-            )}
-          </Button>
-        </FormFooter>
+        <FormActionFooter
+          primaryButton={{
+            label: "Save Configuration",
+            onClick: handleSaveCoreConfig,
+            type: "button",
+            disabled: loading,
+            loading: loading,
+            loadingText: "Saving...",
+          }}
+        />
       </>
     );
   };
@@ -554,7 +552,16 @@ const ExpenseMasterPage = () => {
                 <Button
                   variant="link"
                   onClick={addCustomField}
-                  className="text-sm text-blue-600"
+                  className="text-sm"
+                  style={{
+                    color: "#0D9C99",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#0b8a87";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "#0D9C99";
+                  }}
                 >
                   Add
                 </Button>
@@ -567,26 +574,21 @@ const ExpenseMasterPage = () => {
             </div>
           )}
         </Card>
-        <FormFooter>
-          <Button
-            variant="outline"
-            className="px-6 py-2"
-            onClick={handleCancel}
-            disabled={loading}
-          >
-            Back
-          </Button>
-          <Button onClick={handleSubmitCustom} disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              "Submit"
-            )}
-          </Button>
-        </FormFooter>
+        <FormActionFooter
+          secondaryButton={{
+            label: "Back",
+            onClick: handleCancel,
+            disabled: loading,
+          }}
+          primaryButton={{
+            label: "Submit",
+            onClick: handleSubmitCustom,
+            type: "button",
+            disabled: loading,
+            loading: loading,
+            loadingText: "Submitting...",
+          }}
+        />
       </>
     );
   };

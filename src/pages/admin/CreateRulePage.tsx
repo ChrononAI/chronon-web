@@ -1,4 +1,4 @@
-import { FormFooter } from "@/components/layout/FormFooter";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -639,29 +639,21 @@ function CreateRulePage() {
             </Button>
           </div>
         </form>
-        <FormFooter>
-          <Button variant="outline" onClick={() => navigate(-1)}>
-            Back
-          </Button>
-          <Button
-            type="button"
-            className="min-w-[150px]"
-            form="create-rule-form"
-            disabled={creatingRule}
-            onClick={handleCreateRule}
-          >
-            {creatingRule ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isEditMode ? "Updating..." : "Creating..."}
-              </>
-            ) : isEditMode ? (
-              "Update"
-            ) : (
-              "Create"
-            )}
-          </Button>
-        </FormFooter>
+        <FormActionFooter
+          secondaryButton={{
+            label: "Back",
+            onClick: () => navigate(-1),
+            disabled: creatingRule,
+          }}
+          primaryButton={{
+            label: isEditMode ? "Update" : "Create",
+            onClick: handleCreateRule,
+            type: "button",
+            disabled: creatingRule,
+            loading: creatingRule,
+            loadingText: isEditMode ? "Updating..." : "Creating...",
+          }}
+        />
       </>
     </div>
   );

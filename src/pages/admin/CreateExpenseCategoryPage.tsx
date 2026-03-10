@@ -1,4 +1,4 @@
-import { FormFooter } from "@/components/layout/FormFooter";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -168,33 +168,27 @@ function CreateExpenseCategoryPage() {
           </div>
         </div>
       </div>
-      <FormFooter>
-        <Button
-          variant="outline"
-          onClick={() =>
-            navigate("/admin-settings/product-config/expense-categories")
-          }
-          disabled={loading}
-          className="px-6 py-2"
-        >
-          Back
-        </Button>
-        {mode === "create" && <Button
-          type="submit"
-          form="create-category-form"
-          disabled={loading}
-          variant="default"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
-            </>
-          ) : 
-            "Submit All"
-          }
-        </Button>}
-      </FormFooter>
+      <FormActionFooter
+        secondaryButton={{
+          label: "Back",
+          onClick: () =>
+            navigate("/admin-settings/product-config/expense-categories"),
+          disabled: loading,
+        }}
+        primaryButton={
+          mode === "create"
+            ? {
+                label: "Submit All",
+                onClick: () => {},
+                type: "submit",
+                form: "create-category-form",
+                disabled: loading,
+                loading: loading,
+                loadingText: "Submitting...",
+              }
+            : undefined
+        }
+      />
     </>
   );
 }

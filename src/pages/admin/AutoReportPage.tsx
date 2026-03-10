@@ -263,7 +263,22 @@ export const AutoReportPage = () => {
         <h1 className="text-2xl font-bold">
           Automated expense reports submissions
         </h1>
-        <Button onClick={() => setShowScheduleModal(true)}>
+        <Button 
+          onClick={() => setShowScheduleModal(true)}
+          style={{
+            backgroundColor: "#0D9C99",
+            color: "#FFFFFF",
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: "12px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#0b8a87";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "#0D9C99";
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Create Submission Schedule
         </Button>
@@ -423,6 +438,23 @@ export const AutoReportPage = () => {
             <Button
               onClick={handleCreateSchedule}
               disabled={!canSubmit || isSubmitting}
+              style={{
+                backgroundColor: "#0D9C99",
+                color: "#FFFFFF",
+                fontFamily: "Inter",
+                fontWeight: 600,
+                fontSize: "12px",
+              }}
+              onMouseEnter={(e) => {
+                if (!isSubmitting && canSubmit) {
+                  e.currentTarget.style.backgroundColor = "#0b8a87";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isSubmitting && canSubmit) {
+                  e.currentTarget.style.backgroundColor = "#0D9C99";
+                }
+              }}
             >
               {isSubmitting ? "Creating…" : "Create schedule"}
             </Button>

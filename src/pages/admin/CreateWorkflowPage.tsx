@@ -16,7 +16,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { FormFooter } from "@/components/layout/FormFooter";
+import { FormActionFooter } from "@/components/layout/FormActionFooter";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
@@ -709,28 +709,22 @@ const removeStep = useCallback((id: number) => {
             </Button>
           </div>
         </form>
-        <FormFooter>
-          <Button onClick={() => navigate(-1)} variant="outline">
-            Back
-          </Button>
-          <Button
-            type="submit"
-            form="workflow-config-form"
-            className="min-w-[150px]"
-            disabled={submitting}
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isEditMode ? "Updating..." : "Submitting..."}
-              </>
-            ) : isEditMode ? (
-              "Update"
-            ) : (
-              "Submit"
-            )}
-          </Button>
-        </FormFooter>
+        <FormActionFooter
+          secondaryButton={{
+            label: "Back",
+            onClick: () => navigate(-1),
+            disabled: submitting,
+          }}
+          primaryButton={{
+            label: isEditMode ? "Update" : "Submit",
+            onClick: () => {},
+            type: "submit",
+            form: "workflow-config-form",
+            disabled: submitting,
+            loading: submitting,
+            loadingText: isEditMode ? "Updating..." : "Submitting...",
+          }}
+        />
       </>
     </div>
   );

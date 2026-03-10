@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  DataGrid,
   GridColDef,
   GridPaginationModel,
   GridRowSelectionModel,
@@ -14,10 +13,10 @@ import { toast } from "sonner";
 import { getOrgIdFromToken } from "@/lib/jwtUtils";
 import { bulkUploadService } from "@/services/admin/bulkUploadService";
 import { getTemplates } from "@/services/admin/templates";
-import { Box } from "@mui/material";
 import CustomNoRows from "@/components/shared/CustomNoRows";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import CustomUsersToolbar from "@/components/admin/CustomUsersToolbar";
+import { DataTable } from "@/components/shared/DataTable";
 import { useUsersStore } from "@/store/admin/usersStore";
 import { Badge } from "@/components/ui/badge";
 import { userService } from "@/services/admin/userService";
@@ -233,10 +232,37 @@ const UserPage = () => {
     <>
       <div className="flex justify-between items-center mb-1">
         <div>
-          <h1 className="text-2xl font-bold">Users</h1>
+          <h1 
+            className="text-2xl"
+            style={{
+              fontFamily: "Inter",
+              fontWeight: 600,
+              fontSize: "24px",
+              lineHeight: "100%",
+              letterSpacing: "0%",
+              color: "#1A1A1A",
+            }}
+          >
+            Users
+          </h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild>
+          <Button 
+            asChild
+            style={{
+              backgroundColor: "#0D9C99",
+              color: "#FFFFFF",
+              fontFamily: "Inter",
+              fontWeight: 600,
+              fontSize: "12px",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#0b8a87";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#0D9C99";
+            }}
+          >
             <Link to="/admin-settings/users/create">
               <Plus className="mr-2 h-4 w-4" />
               CREATE
@@ -252,95 +278,45 @@ const UserPage = () => {
         </div>
       </div>
 
-      <Box
-        sx={{
-          height: "calc(100vh - 120px)",
-          width: "100%",
+      <DataTable
+        rows={loading ? [] : rows}
+        columns={columns}
+        loading={loading}
+        height="calc(100vh - 120px)"
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={handleRowClick}
+        rowCount={rowCount}
+        paginationMode="server"
+        pageSizeOptions={[10, 25, 50, 100]}
+        emptyStateComponent={
+          <CustomNoRows
+            title="No users found"
+            description="There are currently no users."
+          />
+        }
+        slots={{
+          toolbar: CustomUsersToolbar,
+          loadingOverlay: () => (
+            <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          ),
         }}
-      >
-        <DataGrid
-          className="rounded border-[0.2px] border-[#f3f4f6] h-full"
-          columns={columns}
-          rows={loading ? [] : rows}
-          loading={loading}
-          slots={{
-            noRowsOverlay: () => (
-              <CustomNoRows
-                title="No users found"
-                description="There are currently no users."
-              />
-            ),
-            loadingOverlay: () => (
-              <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
-            ),
-            toolbar: CustomUsersToolbar,
-          }}
-          slotProps={{
-            toolbar: {
-              handleDisableUser,
-            } as any,
-          }}
-          showToolbar
-          sx={{
-            border: 0,
-            "& .MuiDataGrid-columnHeaderTitle": {
-              color: "#9AA0A6",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            "& .MuiDataGrid-main": {
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-columnHeader": {
-              backgroundColor: "#f3f4f6",
-              border: "none",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: loading ? "hidden" : "auto",
-            },
-            "& .MuiDataGrid-columnHeaders": {
-              border: "none",
-              borderTop: "none",
-              borderBottom: "none",
-            },
-            "& .MuiDataGrid-row:hover": {
-              cursor: "pointer",
-              backgroundColor: "#f5f5f5",
-            },
-            "& .MuiDataGrid-cell": {
-              color: "#2E2E2E",
-              border: "0.2px solid #f3f4f6",
-            },
-            "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
-            },
-            "& .MuiDataGrid-columnSeparator": {
-              color: "#f3f4f6",
-            },
-          }}
-          density="compact"
-          checkboxSelection
-          rowSelectionModel={rowSelection}
-          onRowSelectionModelChange={(val) => {
-            const users = rows.filter((user) => val.ids.has(user.id));
-            setSelectedUsers(users);
-            setRowSelection(val);
-          }}
-          disableRowSelectionExcludeModel
-          pagination
-          paginationMode="server"
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[10, 25, 50, 100]}
-          rowCount={rowCount}
-          disableRowSelectionOnClick
-          onRowClick={handleRowClick}
-          showCellVerticalBorder
-        />
-      </Box>
+        slotProps={{
+          toolbar: {
+            handleDisableUser,
+          } as any,
+        }}
+        showToolbar
+        checkboxSelection
+        rowSelectionModel={rowSelection}
+        onRowSelectionModelChange={(val: GridRowSelectionModel) => {
+          const users = rows.filter((user) => val.ids.has(user.id));
+          setSelectedUsers(users);
+          setRowSelection(val);
+        }}
+        disableRowSelectionExcludeModel
+        disableRowSelectionOnClick
+      />
     </>
   );
 };
