@@ -180,11 +180,14 @@ export function LineItemsTable({
     onRowUpdate(rowId, "hsnCode", "");
     onRowUpdate(rowId, "gstCode", "");
     onRowUpdate(rowId, "tdsCode", "");
+    onRowUpdate(rowId, "quantity", "");
+    onRowUpdate(rowId, "rate", "");
     onRowUpdate(rowId, "igst", "");
     onRowUpdate(rowId, "cgst", "");
     onRowUpdate(rowId, "sgst", "");
     onRowUpdate(rowId, "utgst", "");
     onRowUpdate(rowId, "tdsAmount", "");
+    onRowUpdate(rowId, "netAmount", "");
     
     setTdsSearchResults([]);
     setGstSearchResults([]);
@@ -202,11 +205,14 @@ export function LineItemsTable({
       onValidationErrorChange(rowId, "hsnCode", false);
       onValidationErrorChange(rowId, "gstCode", false);
       onValidationErrorChange(rowId, "tdsCode", false);
+      onValidationErrorChange(rowId, "quantity", false);
+      onValidationErrorChange(rowId, "rate", false);
       onValidationErrorChange(rowId, "igst", false);
       onValidationErrorChange(rowId, "cgst", false);
       onValidationErrorChange(rowId, "sgst", false);
       onValidationErrorChange(rowId, "utgst", false);
       onValidationErrorChange(rowId, "tdsAmount", false);
+      onValidationErrorChange(rowId, "netAmount", false);
     }
   }, [onRowUpdate, onValidationErrorChange]);
 
@@ -1121,7 +1127,7 @@ export function LineItemsTable({
                   <TableCell className="px-4 py-1 min-w-[160px]">
                     <div>
                       <Autocomplete
-                        key={`tds-${row.id}-${row.tdsCode || 'empty'}`}
+                        key={`tds-${row.id}-${row.tdsCode ? 'set' : 'empty'}`}
                         freeSolo
                         options={tdsSearchResults.length > 0 ? tdsSearchResults : defaultTDSCodes}
                         getOptionLabel={(option) => typeof option === 'string' ? option : option.tds_code}
@@ -1281,7 +1287,7 @@ export function LineItemsTable({
                   <TableCell className="px-4 py-1 min-w-[160px]">
                     <div>
                       <Autocomplete
-                        key={`gst-${row.id}-${row.gstCode || 'empty'}`}
+                        key={`gst-${row.id}-${row.gstCode ? 'set' : 'empty'}`}
                         freeSolo
                         options={(() => {
                           const allOptions = gstSearchResults.length > 0 ? gstSearchResults : defaultTaxCodes;
