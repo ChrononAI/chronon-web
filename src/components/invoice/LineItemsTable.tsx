@@ -75,6 +75,7 @@ export function LineItemsTable({
   const [itemSearchResults, setItemSearchResults] = useState<ItemData[]>([]);
   const [itemSearchLoading, setItemSearchLoading] = useState(false);
   const itemSearchTimeoutRef = useRef<Record<number, NodeJS.Timeout>>({});
+  const lastSearchedDescriptionRef = useRef<Record<number, string>>({});
 
   // Default options for dropdowns (2-3 items)
   const [defaultItems, setDefaultItems] = useState<ItemData[]>([]);
@@ -175,23 +176,72 @@ export function LineItemsTable({
     };
   }, []);
 
-  const searchItemsByDescription = useCallback(async (searchTerm: string) => {
+  const clearRowCodes = useCallback((rowId: number) => {
+    onRowUpdate(rowId, "hsnCode", "");
+    onRowUpdate(rowId, "gstCode", "");
+    onRowUpdate(rowId, "tdsCode", "");
+    onRowUpdate(rowId, "quantity", "");
+    onRowUpdate(rowId, "rate", "");
+    onRowUpdate(rowId, "igst", "");
+    onRowUpdate(rowId, "cgst", "");
+    onRowUpdate(rowId, "sgst", "");
+    onRowUpdate(rowId, "utgst", "");
+    onRowUpdate(rowId, "tdsAmount", "");
+    onRowUpdate(rowId, "netAmount", "");
+    
+    setTdsSearchResults([]);
+    setGstSearchResults([]);
+    
+    if (tdsSearchTimeoutRef.current[rowId]) {
+      clearTimeout(tdsSearchTimeoutRef.current[rowId]);
+      delete tdsSearchTimeoutRef.current[rowId];
+    }
+    if (gstSearchTimeoutRef.current[rowId]) {
+      clearTimeout(gstSearchTimeoutRef.current[rowId]);
+      delete gstSearchTimeoutRef.current[rowId];
+    }
+    
+    if (onValidationErrorChange) {
+      onValidationErrorChange(rowId, "hsnCode", false);
+      onValidationErrorChange(rowId, "gstCode", false);
+      onValidationErrorChange(rowId, "tdsCode", false);
+      onValidationErrorChange(rowId, "quantity", false);
+      onValidationErrorChange(rowId, "rate", false);
+      onValidationErrorChange(rowId, "igst", false);
+      onValidationErrorChange(rowId, "cgst", false);
+      onValidationErrorChange(rowId, "sgst", false);
+      onValidationErrorChange(rowId, "utgst", false);
+      onValidationErrorChange(rowId, "tdsAmount", false);
+      onValidationErrorChange(rowId, "netAmount", false);
+    }
+  }, [onRowUpdate, onValidationErrorChange]);
+
+  const searchItemsByDescription = useCallback(async (searchTerm: string, rowId: number) => {
     if (!searchTerm.trim() || searchTerm.trim().length < 3) {
       setItemSearchResults([]);
       return;
     }
 
+    const trimmedTerm = searchTerm.trim();
+    lastSearchedDescriptionRef.current[rowId] = trimmedTerm;
+
     setItemSearchLoading(true);
     try {
-      const response = await itemsCodeService.searchItems(searchTerm, 20, 0);
-      setItemSearchResults(response?.data || []);
+      const response = await itemsCodeService.searchItems(trimmedTerm, 20, 0);
+      const items = response?.data || [];
+      setItemSearchResults(items);
+
+      if (items.length === 0) {
+        clearRowCodes(rowId);
+      }
     } catch (error) {
       console.error("Error searching items:", error);
       setItemSearchResults([]);
+      clearRowCodes(rowId);
     } finally {
       setItemSearchLoading(false);
     }
-  }, []);
+  }, [clearRowCodes]);
 
   const searchItemsByHsn = useCallback(async (hsnCode: string, rowId: number) => {
     if (!hsnCode.trim()) {
@@ -269,11 +319,11 @@ export function LineItemsTable({
     }
     itemSearchTimeoutRef.current[rowId] = setTimeout(() => {
       if (newValue.trim() && newValue.trim().length >= 3) {
-        searchItemsByDescription(newValue);
+        searchItemsByDescription(newValue, rowId);
       } else {
         setItemSearchResults([]);
       }
-  }, 300);
+    }, 300);
   }, [onRowUpdate, searchItemsByDescription]);
 
   const searchTDSCodes = useCallback(async (searchTerm: string) => {
@@ -593,7 +643,23 @@ export function LineItemsTable({
         }
       }
     });
-  }, [rows.map(r => `${r.id}-${r.quantity}-${r.rate}-${r.gstCode}`).join(',')]); // Re-run when quantity, rate, or GST codes change
+  }, [rows.map(r => `${r.id}-${r.quantity}-${r.rate}-${r.gstCode}`).join(',')]);
+
+  useEffect(() => {
+    if (itemSearchResults.length === 0 && !itemSearchLoading) {
+      const timeoutId = setTimeout(() => {
+        rows.forEach((row) => {
+          if (row.itemDescription && row.itemDescription.trim().length >= 3) {
+            const trimmedDesc = row.itemDescription.trim();
+            if (lastSearchedDescriptionRef.current[row.id] === trimmedDesc && (row.gstCode || row.tdsCode || row.hsnCode)) {
+              clearRowCodes(row.id);
+            }
+          }
+        });
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [itemSearchResults.length, itemSearchLoading]);
 
   const handleSelectRow = (rowId: number, checked: boolean) => {
     setSelectedRows((prev) => {
@@ -777,7 +843,6 @@ export function LineItemsTable({
                         }}
                       onChange={(_event, newValue) => {
                         if (newValue && typeof newValue === 'object') {
-                          // Item selected from dropdown
                           onRowUpdate(row.id, "itemDescription", newValue.description);
                           if (onValidationErrorChange && newValue.description.trim()) {
                             onValidationErrorChange(row.id, "itemDescription", false);
@@ -791,8 +856,7 @@ export function LineItemsTable({
                               fetchTaxCodesByHsn(newValue.hsn_sac_code);
                             }, 500);
                           }
-                          // Optionally auto-populate tax_code and tds_code if they're empty
-                          if (!row.gstCode && newValue.tax_code) {
+                          if (newValue.tax_code) {
                             onRowUpdate(row.id, "gstCode", newValue.tax_code);
                             if (onValidationErrorChange) {
                               onValidationErrorChange(row.id, "gstCode", false);
@@ -813,7 +877,7 @@ export function LineItemsTable({
                               onRowUpdate(row.id, "utgst", ((baseAmount * utgstPercentage) / 100).toFixed(2));
                             }
                           }
-                          if (!row.tdsCode && newValue.tds_code) {
+                          if (newValue.tds_code) {
                             onRowUpdate(row.id, "tdsCode", newValue.tds_code);
                             if (onValidationErrorChange) {
                               onValidationErrorChange(row.id, "tdsCode", false);
@@ -829,11 +893,12 @@ export function LineItemsTable({
                             }
                           }
                         } else if (typeof newValue === 'string') {
-                          // User typed a custom description
                           onRowUpdate(row.id, "itemDescription", newValue);
                           if (onValidationErrorChange && newValue.trim()) {
                             onValidationErrorChange(row.id, "itemDescription", false);
                           }
+                        } else if (newValue === null) {
+                          onRowUpdate(row.id, "itemDescription", "");
                         }
                       }}
                       loading={itemSearchLoading}
@@ -1062,10 +1127,11 @@ export function LineItemsTable({
                   <TableCell className="px-4 py-1 min-w-[160px]">
                     <div>
                       <Autocomplete
+                        key={`tds-${row.id}-${row.tdsCode ? 'set' : 'empty'}`}
                         freeSolo
                         options={tdsSearchResults.length > 0 ? tdsSearchResults : defaultTDSCodes}
                         getOptionLabel={(option) => typeof option === 'string' ? option : option.tds_code}
-                        value={(tdsSearchResults.length > 0 ? tdsSearchResults : defaultTDSCodes).find(tds => tds.tds_code === row.tdsCode) || row.tdsCode || null}
+                        value={row.tdsCode && row.tdsCode.trim() ? ((tdsSearchResults.length > 0 ? tdsSearchResults : defaultTDSCodes).find(tds => tds.tds_code === row.tdsCode) || row.tdsCode) : null}
                         onInputChange={(_event, newValue) => {
                           handleTDSCodeChange(row.id, newValue);
                           if (onValidationErrorChange && newValue.trim()) {
@@ -1221,6 +1287,7 @@ export function LineItemsTable({
                   <TableCell className="px-4 py-1 min-w-[160px]">
                     <div>
                       <Autocomplete
+                        key={`gst-${row.id}-${row.gstCode ? 'set' : 'empty'}`}
                         freeSolo
                         options={(() => {
                           const allOptions = gstSearchResults.length > 0 ? gstSearchResults : defaultTaxCodes;
@@ -1230,11 +1297,12 @@ export function LineItemsTable({
                         })()}
                         getOptionLabel={(option) => typeof option === 'string' ? option : option.tax_code}
                         value={(() => {
+                          if (!row.gstCode || !row.gstCode.trim()) return null;
                           const allOptions = gstSearchResults.length > 0 ? gstSearchResults : defaultTaxCodes;
                           const filtered = row.hsnCode?.trim() 
                             ? filterTaxCodesByHsn(allOptions, row.hsnCode)
                             : allOptions;
-                          return filtered.find(tax => tax.tax_code === row.gstCode) || row.gstCode || null;
+                          return filtered.find(tax => tax.tax_code === row.gstCode) || row.gstCode;
                         })()}
                         onInputChange={(_event, newValue) => {
                           handleGSTCodeChange(row.id, newValue);
