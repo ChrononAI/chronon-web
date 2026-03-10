@@ -777,7 +777,6 @@ export function LineItemsTable({
                         }}
                       onChange={(_event, newValue) => {
                         if (newValue && typeof newValue === 'object') {
-                          // Item selected from dropdown
                           onRowUpdate(row.id, "itemDescription", newValue.description);
                           if (onValidationErrorChange && newValue.description.trim()) {
                             onValidationErrorChange(row.id, "itemDescription", false);
@@ -791,8 +790,7 @@ export function LineItemsTable({
                               fetchTaxCodesByHsn(newValue.hsn_sac_code);
                             }, 500);
                           }
-                          // Optionally auto-populate tax_code and tds_code if they're empty
-                          if (!row.gstCode && newValue.tax_code) {
+                          if (newValue.tax_code) {
                             onRowUpdate(row.id, "gstCode", newValue.tax_code);
                             if (onValidationErrorChange) {
                               onValidationErrorChange(row.id, "gstCode", false);
@@ -813,7 +811,7 @@ export function LineItemsTable({
                               onRowUpdate(row.id, "utgst", ((baseAmount * utgstPercentage) / 100).toFixed(2));
                             }
                           }
-                          if (!row.tdsCode && newValue.tds_code) {
+                          if (newValue.tds_code) {
                             onRowUpdate(row.id, "tdsCode", newValue.tds_code);
                             if (onValidationErrorChange) {
                               onValidationErrorChange(row.id, "tdsCode", false);
