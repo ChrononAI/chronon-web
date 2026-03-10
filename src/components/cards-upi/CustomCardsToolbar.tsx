@@ -1,6 +1,6 @@
 import { Badge, Box } from "@mui/material";
 import { Button } from "../ui/button";
-import { Filter, Search } from "lucide-react";
+import { Filter, Plus, Search } from "lucide-react";
 import MultiSelectDropdown from "../shared/MultiSelectDropdown";
 import { Input } from "../ui/input";
 import { useState } from "react";
@@ -10,8 +10,8 @@ import {
   ToolbarPropsOverrides,
 } from "@mui/x-data-grid";
 import { FilterMap, getFilterValue } from "@/pages/MyExpensesPage";
-import { useExpenseStore } from "@/store/expenseStore";
 import FilterModal, { AllowedFilter } from "../expenses/FilterModal";
+import { useCardsStore } from "@/store/cardsStore";
 
 export interface CustomExpenseToolbarProps {
   allStatuses: string[];
@@ -22,7 +22,7 @@ type Props = GridToolbarProps &
   Partial<CustomExpenseToolbarProps>;
 
 function CustomCardsToolbar({ allStatuses }: Props) {
-  const { query, setQuery } = useExpenseStore();
+  const { query, setQuery } = useCardsStore();
 
   const hasFilters = Object.keys(query).length > 0;
 
@@ -177,15 +177,6 @@ function CustomCardsToolbar({ allStatuses }: Props) {
           />
         </Box>
 
-        {/* <DateRangePicker
-          className="w-[16%]"
-          value={{ gte: dateFrom, lte: dateTo }}
-          onChange={(range) => {
-            setDate("gte", range.gte);
-            setDate("lte", range.lte);
-          }}
-        /> */}
-
         <Button
           variant="outline"
           onClick={() => setFilterModalOpen(true)}
@@ -201,6 +192,58 @@ function CustomCardsToolbar({ allStatuses }: Props) {
           )}
           <Filter className="h-8 w-8" />
         </Button>
+
+              <Button
+        onClick={() => {
+          console.log("clicked");
+        }}
+        style={{
+          width: "163px",
+          height: "31px",
+          gap: "8px",
+          borderRadius: "4px",
+          paddingTop: "8px",
+          paddingRight: "12px",
+          paddingBottom: "8px",
+          paddingLeft: "12px",
+          backgroundColor: "#0D9C99",
+          marginLeft: "auto",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: "none",
+          cursor: "pointer",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = "#0b8a87";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "#0D9C99";
+        }}
+      >
+        <Plus
+          style={{
+            width: "12px",
+            height: "12px",
+            color: "#FFFFFF",
+          }}
+        />
+        <span
+          style={{
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: "12px",
+            lineHeight: "100%",
+            letterSpacing: "0%",
+            color: "#FFFFFF",
+            height: "15px",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          Issue Cards/UPI
+        </span>
+      </Button>
       </Toolbar>
 
       <FilterModal

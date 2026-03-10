@@ -1,6 +1,7 @@
 import CustomCardsToolbar from "@/components/cards-upi/CustomCardsToolbar";
 import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import { DataTable } from "@/components/shared/DataTable";
+import { StatusPill } from "@/components/shared/StatusPill";
 import { GridColDef } from "@mui/x-data-grid";
 import { DotsVerticalIcon } from "@radix-ui/react-icons";
 import { Ban, CreditCard, QrCode } from "lucide-react";
@@ -53,6 +54,9 @@ export const columns: GridColDef[] = [
     headerName: "STATUS",
     flex: 1,
     minWidth: 130,
+    renderCell: ({ value }) => {
+      return <span><StatusPill status={value} /></span>
+    }
   },
   {
     field: "actions",
@@ -97,7 +101,7 @@ export const rows: CardUPIRow[] = [
     employeeId: "CHR-4432",
     instrument: "UPI",
     idNumber: "ms@upi",
-    status: "KYC PENDING",
+    status: "KYC_PENDING",
   },
   {
     id: 3,
@@ -105,7 +109,7 @@ export const rows: CardUPIRow[] = [
     employeeId: "CHR-1298",
     instrument: null,
     idNumber: "N/A",
-    status: "NOT ISSUED",
+    status: "NOT_ISSUED",
   },
   {
     id: 4,
