@@ -19,6 +19,7 @@ import {
   TicketCheck,
   Receipt,
   Bot,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -159,6 +160,12 @@ const navigation: NavigationItem[] = [
     isBold: false,
     icon: Bot,
   },
+  {
+    name: "Integration",
+    href: "/integration",
+    isBold: false,
+    icon: Zap,
+  }
 ];
 
 const permissionMap: any = {

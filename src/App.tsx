@@ -90,6 +90,9 @@ import { useAuthStore } from "@/store/authStore";
 import { AdminReportsApprovalPage } from "./pages/admin-reports/AdminReportsApprovalPage";
 import AgentChat from "./pages/copilot/AgentChat";
 import CopilotHome from "./pages/copilot/CopilotHome";
+import { IntegrationsPage } from "./pages/IntegrationsPage";
+import { IntegrationDetailPage } from "./pages/IntegrationDetailPage";
+import { IntegrationDashboardPage } from "./pages/IntegrationDashboardPage";
 
 function VendorRedirect() {
   const { id } = useParams<{ id: string }>();
@@ -261,6 +264,11 @@ function App() {
               <Route path="/ai-copilot/approver-agent" element={<AgentChat />} />
               <Route path="/ai-copilot/spender-agent" element={<AgentChat />} />
               <Route path="/ai-copilot/onboarding-agent" element={<AgentChat />} />
+
+              {/* INTEGRATIONS */}
+              <Route path="/integration" element={<IntegrationsPage />} />
+              <Route path="/integration/:id" element={<IntegrationDetailPage />} />
+              <Route path="/integration/:id/dashboard" element={<IntegrationDashboardPage />} />
 
               {/* INVOICES - Redirect old routes to flow */}
               <Route path="/invoice" element={<Navigate to="/flow/invoice" replace />} />
