@@ -996,8 +996,7 @@ export function InvoicePage() {
   const calculatedCgst = tableRows.reduce((sum, row) => sum + (parseFloat(row.cgst) || 0), 0);
   const calculatedSgst = tableRows.reduce((sum, row) => sum + (parseFloat(row.sgst) || 0), 0);
   const calculatedIgst = tableRows.reduce((sum, row) => sum + (parseFloat(row.igst) || 0), 0);
-  const calculatedTotalAmount = calculatedSubtotal + calculatedCgst + calculatedSgst + calculatedIgst;
-  const calculatedTotalPayable = calculatedTotalAmount;
+  const calculatedTotalPayable = calculatedSubtotal + calculatedCgst + calculatedSgst + calculatedIgst;
 
   return (
     <div className="flex flex-col min-h-screen bg-sky-100">
@@ -1469,12 +1468,6 @@ export function InvoicePage() {
                 <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">IGST</Label>
                 <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("igst_amount", calculatedIgst) ? "bg-yellow-100" : "bg-gray-50"}`}>
                   <span className="text-xs font-medium text-right">{formatCurrency(calculatedIgst)}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
-                <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Total Amount</Label>
-                <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("total_amount", calculatedTotalAmount) ? "bg-yellow-100" : "bg-gray-50"}`}>
-                  <span className="text-xs font-semibold text-right">{formatCurrency(calculatedTotalAmount)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
