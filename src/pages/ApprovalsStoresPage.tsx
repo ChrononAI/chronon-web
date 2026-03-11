@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useLayoutEffect } from "react";
 import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
+import { useLayoutStore } from "@/store/layoutStore";
 import {
   GridColDef,
   GridPaginationModel,
@@ -72,6 +73,7 @@ const columns: GridColDef[] = [
 function ApprovalsStoresPage() {
   const navigate = useNavigate();
   const { setSelectedStoreToApprove } = useStoreStore();
+  const setNoPadding = useLayoutStore((s) => s.setNoPadding);
 
   const [loading, setLoading] = useState(true);
   const [allRows, setAllRows] = useState([]);
@@ -212,6 +214,13 @@ function ApprovalsStoresPage() {
       setLoading(false);
     }
   };
+
+  useLayoutEffect(() => {
+    setNoPadding(true);
+    return () => {
+      setNoPadding(false);
+    };
+  }, [setNoPadding]);
 
   useEffect(() => {
     if (paginationModel) {

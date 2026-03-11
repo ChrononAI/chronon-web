@@ -185,7 +185,7 @@ export function StoreComments({
               <Button
                 type="button"
                 size="icon"
-                className="h-12 w-12 rounded-full bg-primary hover:bg-primary/90"
+                className="h-12 w-12 rounded-full bg-[#0D9C99] hover:bg-[#0D9C99]/90"
                 disabled={!newComment.trim() || postingComment}
                 onClick={handlePostComment}
               >

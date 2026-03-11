@@ -233,7 +233,7 @@ export function UploadReceiptStep({ onNext, onDuplicateDetected }: UploadReceipt
           <Button 
             variant="outline" 
             onClick={handleAddManually}
-            className="border-primary text-primary hover:bg-primary hover:text-white"
+            className="border-[#0D9C99] text-[#0D9C99] hover:bg-[#0D9C99] hover:text-white"
           >
             Add Manually
           </Button>

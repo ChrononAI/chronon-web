@@ -725,7 +725,7 @@ export function ReportDetailPage2() {
           <div className="w-full flex items-center justify-between">
             <div>
               <span className="text-gray-600">Total Amount: </span>
-              <span className="text-lg font-bold text-primary">
+              <span className="text-lg font-bold text-[#1A1A1A]">
                 {formatCurrency(totalAmount || 0)}
               </span>
             </div>
@@ -733,7 +733,7 @@ export function ReportDetailPage2() {
               type="button"
               variant="outline"
               onClick={() => navigate(-1)}
-              className="px-6 py-2"
+              className="px-6 py-2 border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#f5f5f5]"
             >
               Back
             </Button>

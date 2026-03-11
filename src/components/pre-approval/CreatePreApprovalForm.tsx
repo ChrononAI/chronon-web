@@ -11,9 +11,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
-import { Button } from "../ui/button";
 import { DateField } from "../ui/date-field";
-import { Loader2 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Select,
@@ -32,7 +30,7 @@ import {
 import { toast } from "sonner";
 import { Currency } from "../advances/CreateAdvanceForm";
 import { trackEvent } from "@/mixpanel";
-import { FormFooter } from "../layout/FormFooter";
+import { FormActionFooter } from "../layout/FormActionFooter";
 import { format } from "date-fns";
 
 // Form schema
@@ -453,35 +451,27 @@ function CreatePreApprovalForm({
               )}
             />
           </div>
-          <FormFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleBack}
-              className="px-6 py-2"
-            >
-              Back
-            </Button>
-            {(selectedPreApproval?.status === "COMPLETE" ||
-              mode !== "view") && (
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {mode === "edit" ? "Submitting..." : "Creating..."}
-                  </>
-                ) : selectedPreApproval?.status === "COMPLETE" ? (
-                  "Resubmit Pre Approval"
-                ) : (
-                  "Create Pre Approval"
-                )}
-              </Button>
-            )}
-          </FormFooter>
+          {(selectedPreApproval?.status === "COMPLETE" ||
+            mode !== "view") && (
+            <FormActionFooter
+              secondaryButton={{
+                label: "Back",
+                onClick: handleBack,
+                disabled: loading,
+              }}
+              primaryButton={{
+                label:
+                  selectedPreApproval?.status === "COMPLETE"
+                    ? "Resubmit Pre Approval"
+                    : "Create Pre Approval",
+                onClick: () => form.handleSubmit(onSubmit)(),
+                type: "submit",
+                disabled: loading,
+                loading: loading,
+                loadingText: mode === "edit" ? "Submitting..." : "Creating...",
+              }}
+            />
+          )}
         </form>
       </Form>
     </div>
