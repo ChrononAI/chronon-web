@@ -591,6 +591,7 @@ class ReportService {
       description?: string;
       custom_attributes?: Record<string, string>;
       expense_ids?: string[];
+      trip_id?: string | null;
     }
   ): Promise<{ success: boolean; message: string; data?: any }> {
     try {
@@ -684,6 +685,51 @@ class ReportService {
       return {
         success: false,
         message: error.response?.data?.message || "Failed to delete report",
+      };
+    }
+  }
+
+  async addTripToReport(
+    reportId: string,
+    tripId: string
+  ): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const response = await api.post(`/api/v1/reports/${reportId}/trip`, {
+        trip_id: tripId,
+      });
+
+      return {
+        success: true,
+        message: response.data.message || "Trip added to report successfully",
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      console.error("Error adding trip to report:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message || "Failed to add trip to report",
+      };
+    }
+  }
+
+  async removeTripFromReport(
+    reportId: string
+  ): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const response = await api.delete(`/api/v1/reports/${reportId}/trip`);
+
+      return {
+        success: true,
+        message: response.data.message || "Trip removed from report successfully",
+        data: response.data.data,
+      };
+    } catch (error: any) {
+      console.error("Error removing trip from report:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message || "Failed to remove trip from report",
       };
     }
   }

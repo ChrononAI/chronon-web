@@ -10,12 +10,9 @@ import {
 import { Box } from "@mui/material";
 import { formatDate, getStatusColor } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import {
-  preApprovalService,
-  PreApprovalType,
-} from "@/services/preApprovalService";
+import { tripService, TripType } from "@/services/tripService";
 import { Badge } from "@/components/ui/badge";
-import { usePreApprovalStore } from "@/store/preApprovalStore";
+import { useTripStore } from "@/store/tripStore";
 import { PaginationInfo } from "@/store/expenseStore";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import CustomNoRows from "@/components/shared/CustomNoRows";
@@ -23,7 +20,7 @@ import CustomNoRows from "@/components/shared/CustomNoRows";
 const columns: GridColDef[] = [
   {
     field: "sequence_number",
-    headerName: "PRE APPROVAL ID",
+    headerName: "TRIP ID",
     minWidth: 160,
     flex: 1,
   },
@@ -52,12 +49,6 @@ const columns: GridColDef[] = [
     },
   },
   {
-    field: "policy_name",
-    headerName: "POLICY",
-    minWidth: 150,
-    flex: 1,
-  },
-  {
     field: "status",
     headerName: "STATUS",
     minWidth: 170,
@@ -80,16 +71,16 @@ const columns: GridColDef[] = [
     },
   },
   {
-    field: "description",
+    field: "purpose",
     headerName: "PURPOSE",
     flex: 1,
     minWidth: 150,
   },
 ];
 
-function PreApprovalPage() {
+function TripPage() {
   const navigate = useNavigate();
-  const { setSelectedPreApproval } = usePreApprovalStore();
+  const { setSelectedTrip } = useTripStore();
 
   const [activeTab, setActiveTab] = useState<"all" | "pending" | "approved">(
     "all"
@@ -122,18 +113,18 @@ function PreApprovalPage() {
   ];
 
   const handleRowClick = ({ row }: GridRowModel) => {
-    setSelectedPreApproval(row);
-    navigate(`/requests/pre-approvals/${row.id}`);
+    setSelectedTrip(row);
+    navigate(`/requests/trips/${row.id}`);
   };
 
-  const [allRows, setAllRows] = useState<PreApprovalType[]>([]);
+  const [allRows, setAllRows] = useState<TripType[]>([]);
   const [allPagination, setAllPagination] = useState<PaginationInfo | null>(
     null
   );
-  const [pendingRows, setPendingRows] = useState<PreApprovalType[]>([]);
+  const [pendingRows, setPendingRows] = useState<TripType[]>([]);
   const [pendingPagination, setPendingPagination] =
     useState<PaginationInfo | null>(null);
-  const [processedRows, setProcessedRows] = useState<PreApprovalType[]>([]);
+  const [processedRows, setProcessedRows] = useState<TripType[]>([]);
   const [processedPagination, setProcessedPagination] =
     useState<PaginationInfo | null>(null);
   const [rowSelection, setRowSelection] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() })
@@ -154,59 +145,41 @@ function PreApprovalPage() {
     },
   ];
 
-  const getAllPreApprovals = async ({
-    page,
-    perPage,
-  }: {
-    perPage: number;
-    page: number;
-  }) => {
+  const getAllTrips = async () => {
     try {
-      const response: any = await preApprovalService.getAllPreApprovals({
-        page,
-        perPage,
+      const response: any = await tripService.getTripRequests();
+      const allTrips = response?.data?.data || [];
+      setAllRows(allTrips);
+      setAllPagination({
+        total: response?.data?.count || 0,
+        page: 1,
+        per_page: allTrips.length,
+        pages: 1,
       });
-      setAllPagination(response?.data.pagination);
-      setAllRows(response?.data.data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-  const getPendingPreApprovals = async ({
-    page,
-    perPage,
-  }: {
-    page: number;
-    perPage: number;
-  }) => {
-    try {
-      const response: any = await preApprovalService.getPreApprovalsByStatus({
-        status: "PENDING_APPROVAL",
-        page,
-        perPage,
+      
+      // Filter trips by status for pending and processed tabs
+      const pendingTrips = allTrips.filter((trip: TripType) => 
+        trip.status === "PENDING_APPROVAL" || trip.status === "PENDING"
+      );
+      const processedTrips = allTrips.filter((trip: TripType) => 
+        trip.status === "APPROVED" || trip.status === "REJECTED"
+      );
+      
+      setPendingRows(pendingTrips);
+      setPendingPagination({
+        total: pendingTrips.length,
+        page: 1,
+        per_page: pendingTrips.length,
+        pages: 1,
       });
-      setPendingPagination(response?.data.pagination);
-      setPendingRows(response?.data.data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const getProcessedPreApprovals = async ({
-    page,
-    perPage,
-  }: {
-    page: number;
-    perPage: number;
-  }) => {
-    try {
-      const response: any = await preApprovalService.getPreApprovalsByStatus({
-        status: "APPROVED,REJECTED",
-        page,
-        perPage,
+      
+      setProcessedRows(processedTrips);
+      setProcessedPagination({
+        total: processedTrips.length,
+        page: 1,
+        per_page: processedTrips.length,
+        pages: 1,
       });
-      setProcessedPagination(response?.data.pagination);
-      setProcessedRows(response?.data.data);
     } catch (error) {
       console.log(error);
     }
@@ -216,22 +189,9 @@ function PreApprovalPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        await Promise.all([
-          getAllPreApprovals({
-            page: (paginationModel?.page || 0) + 1,
-            perPage: (paginationModel?.pageSize || 0),
-          }),
-          getPendingPreApprovals({
-            page: (paginationModel?.page || 0) + 1,
-            perPage: (paginationModel?.pageSize || 0),
-          }),
-          getProcessedPreApprovals({
-            page: (paginationModel?.page || 0) + 1,
-            perPage: (paginationModel?.pageSize || 0),
-          }),
-        ]);
+        await getAllTrips();
       } catch (error) {
-        console.error("Error fetching pre-approvals:", error);
+        console.error("Error fetching trips:", error);
       } finally {
         setLoading(false);
       }
@@ -239,7 +199,7 @@ function PreApprovalPage() {
 
     fetchData();
     setRowSelection({ type: "include", ids: new Set() });
-  }, [paginationModel.page, paginationModel.pageSize]);
+  }, []);
 
   useEffect(() => {
     setRowSelection({ type: "include", ids: new Set() });
@@ -247,7 +207,7 @@ function PreApprovalPage() {
 
   return (
     <ReportsPageWrapper
-      title="Pre Approval"
+      title="Trips"
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={(tabId) => {
@@ -268,8 +228,8 @@ function PreApprovalPage() {
       showFilters={false}
       showDateFilter={false}
       showCreateButton={true}
-      createButtonText="Create Pre Approval"
-      createButtonLink="/requests/pre-approvals/create"
+      createButtonText="Create Trip"
+      createButtonLink="/requests/trips/create"
     >
       <Box
         sx={{
@@ -284,7 +244,7 @@ function PreApprovalPage() {
           rows={loading ? [] : rows}
           loading={loading}
           slots={{
-            noRowsOverlay: () => <CustomNoRows title="No pre apporvals found" description="There are currently no pre approvals." />,
+            noRowsOverlay: () => <CustomNoRows title="No trips found" description="There are currently no trips." />,
             loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
           }}
           sx={{
@@ -336,20 +296,14 @@ function PreApprovalPage() {
           rowSelectionModel={rowSelection}
           onRowSelectionModelChange={setRowSelection}
           pagination
-          paginationMode="server"
+          paginationMode="client"
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          rowCount={
-            (activeTab === "all"
-              ? allPagination?.total
-              : activeTab === "pending"
-                ? pendingPagination?.total
-                : processedPagination?.total) || 0
-          }
+          rowCount={rows.length}
         />
       </Box>
     </ReportsPageWrapper>
   );
 }
 
-export default PreApprovalPage;
+export default TripPage;

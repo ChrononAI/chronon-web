@@ -1,4 +1,4 @@
-import { CurrencyConversionRate } from "@/pages/ProcessPreApprovalPage";
+import { CurrencyConversionRate } from "@/pages/ProcessTripPage";
 import { ApprovalWorkflow } from "@/types/expense";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";

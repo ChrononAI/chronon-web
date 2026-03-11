@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import { CurrencyConversionPayload, CurrencyConversionRate } from "@/pages/ProcessPreApprovalPage";
+import { CurrencyConversionPayload, CurrencyConversionRate } from "@/pages/ProcessTripPage";
 import { toast } from "sonner";
 
 export interface PreApprovalType {
@@ -134,5 +134,5 @@ fetchAllPreApprovals: async () => {
         } catch (error) {
             throw error;
         }
-    }
+        }
 }

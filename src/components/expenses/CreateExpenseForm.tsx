@@ -46,7 +46,7 @@ export function getYesterday() {
 export function CreateExpenseForm() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { parsedData, setParsedData, setSelectedPreApproval } =
+  const { parsedData, setParsedData, setSelectedTrip } =
     useExpenseStore();
   const baseCurrency = getOrgCurrency();
   const [currentStep, setCurrentStep] = useState(1);
@@ -289,7 +289,7 @@ export function CreateExpenseForm() {
   };
 
   useEffect(() => {
-    setSelectedPreApproval(null);
+    setSelectedTrip(null);
   }, []);
 
   return (

@@ -1,6 +1,6 @@
 import { FilterMap } from "@/pages/MyExpensesPage";
 import { ParsedInvoiceData } from "@/services/fileParseService";
-import { PreApprovalType } from "@/services/preApprovalService";
+import { TripType } from "@/services/tripService";
 import { Expense } from "@/types/expense";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
@@ -27,7 +27,7 @@ interface ExpenseState {
   reportedExpenses: Expense[];
   reportedExpensesPagination: PaginationInfo;
 
-  selectedPreApproval: PreApprovalType | null;
+  selectedTrip: TripType | null;
 
   // Methods
   setParsedData: (data: ParsedInvoiceData | null) => void;
@@ -41,7 +41,7 @@ interface ExpenseState {
   setReportedExpenses: (data: Expense[]) => void;
   setReportedExpensesPagination: (pagination: PaginationInfo) => void;
 
-  setSelectedPreApproval: (data: PreApprovalType | null) => void;
+  setSelectedTrip: (data: TripType | null) => void;
 }
 
 export const useExpenseStore = create<ExpenseState>()(
@@ -77,7 +77,7 @@ export const useExpenseStore = create<ExpenseState>()(
           per_page: 10,
           total: 0,
         },
-        selectedPreApproval: null,
+        selectedTrip: null,
 
         setParsedData: (data) =>
           set({ parsedData: data }, false, "expense/setParsedData"),
@@ -124,13 +124,13 @@ export const useExpenseStore = create<ExpenseState>()(
             "expense/setCompletedExpensesPagination"
           ),
 
-        setSelectedPreApproval: (data) =>
+        setSelectedTrip: (data) =>
           set(
             {
-              selectedPreApproval: data,
+              selectedTrip: data,
             },
             false,
-            "expense/setSelectedPreApproval"
+            "expense/setSelectedTrip"
           ),
       }),
       {
