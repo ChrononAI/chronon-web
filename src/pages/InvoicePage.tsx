@@ -38,8 +38,6 @@ import { formatCurrency } from "@/lib/utils";
 import { Autocomplete, TextField } from "@mui/material";
 import { vendorService, VendorData } from "@/services/vendorService";
 import { itemsCodeService, ItemData } from "@/services/items/itemsCodeService";
-import { taxService, TaxData } from "@/services/taxService";
-import { tdsService, TDSData } from "@/services/tdsService";
 import { toast } from "sonner";
 
 type InvoiceUploadState = {
@@ -95,8 +93,6 @@ export function InvoicePage() {
   const [, setPageActivityError] = useState<string | null>(null);
   
   const [itemsData, setItemsData] = useState<ItemData[]>([]);
-  const [taxDataCache, setTaxDataCache] = useState<Record<string, TaxData>>({});
-  const [tdsDataCache, setTdsDataCache] = useState<Record<string, TDSData>>({});
   const hsnMatchingProcessedRef = useRef(false);
   
   const [showActionDialog, setShowActionDialog] = useState(false);
@@ -123,28 +119,10 @@ export function InvoicePage() {
 
     const fetchItemsAndCodes = async () => {
       try {
-        const [itemsResponse, taxResponse, tdsResponse] = await Promise.all([
-          itemsCodeService.getItems(20, 0),
-          taxService.getTaxes(20, 0),
-          tdsService.getTDS(20, 0),
-        ]);
+        const itemsResponse = await itemsCodeService.getItems(20, 0);
 
         const items = itemsResponse?.data || [];
         setItemsData(items);
-
-        const taxCodes = taxResponse?.data || [];
-        const taxCache: Record<string, TaxData> = {};
-        taxCodes.forEach((tax) => {
-          taxCache[tax.tax_code] = tax;
-        });
-        setTaxDataCache(taxCache);
-
-        const tdsCodes = tdsResponse?.data || [];
-        const tdsCache: Record<string, TDSData> = {};
-        tdsCodes.forEach((tds) => {
-          tdsCache[tds.tds_code] = tds;
-        });
-        setTdsDataCache(tdsCache);
       } catch (error) {
         console.error("Error fetching items and codes:", error);
       }
@@ -320,9 +298,6 @@ export function InvoicePage() {
                 quantity: quantity > 0 ? quantity.toString() : "",
                 rate: rate > 0 ? rate.toString() : "",
                 hsnCode: item.hsn_sac || "",
-                tdsCode: item.tds_code || "",
-                tdsAmount: item.tds_amount || "",
-                gstCode: item.tax_code || "",
                 igst: item.igst_amount || "",
                 cgst: item.cgst_amount || "",
                 sgst: item.sgst_amount || "",
@@ -530,9 +505,6 @@ export function InvoicePage() {
       quantity: "",
       rate: "",
       hsnCode: "",
-      tdsCode: "",
-      tdsAmount: "",
-      gstCode: "",
       igst: "",
       cgst: "",
       sgst: "",
@@ -733,39 +705,7 @@ export function InvoicePage() {
           updatedRow.itemDescription = matchingItem.description;
         }
         
-        if (matchingItem.tax_code) {
-          updatedRow.gstCode = matchingItem.tax_code;
-          
-          const taxData = taxDataCache[matchingItem.tax_code];
-          if (taxData) {
-            const quantity = parseFloat(updatedRow.quantity) || 0;
-            const rate = parseFloat(updatedRow.rate) || 0;
-            const baseAmount = quantity * rate;
-            
-            const igstPercentage = parseFloat(taxData.igst_percentage) || 0;
-            const cgstPercentage = parseFloat(taxData.cgst_percentage) || 0;
-            const sgstPercentage = parseFloat(taxData.sgst_percentage) || 0;
-            const utgstPercentage = parseFloat(taxData.utgst_percentage) || 0;
-            
-            updatedRow.igst = ((baseAmount * igstPercentage) / 100).toFixed(2);
-            updatedRow.cgst = ((baseAmount * cgstPercentage) / 100).toFixed(2);
-            updatedRow.sgst = ((baseAmount * sgstPercentage) / 100).toFixed(2);
-            updatedRow.utgst = ((baseAmount * utgstPercentage) / 100).toFixed(2);
-          }
-        }
-        
-        if (matchingItem.tds_code) {
-          updatedRow.tdsCode = matchingItem.tds_code;
-          
-          const tdsData = tdsDataCache[matchingItem.tds_code];
-          if (tdsData) {
-            const quantity = parseFloat(updatedRow.quantity) || 0;
-            const rate = parseFloat(updatedRow.rate) || 0;
-            const baseAmount = quantity * rate;
-            const tdsPercentage = parseFloat(tdsData.tds_percentage) || 0;
-            updatedRow.tdsAmount = ((baseAmount * tdsPercentage) / 100).toFixed(2);
-          }
-        }
+        // GST code auto-population removed
         
         setOriginalOcrValues(prev => ({
           ...prev,
@@ -781,7 +721,7 @@ export function InvoicePage() {
 
     setTableRows(updatedRows);
     setUnmatchedHsnRows(unmatchedRows);
-  }, [itemsData, taxDataCache, tdsDataCache]);
+  }, [itemsData]);
 
   useEffect(() => {
     const processedStatuses = ["PENDING_APPROVAL", "APPROVED", "REJECTED"];
@@ -791,14 +731,14 @@ export function InvoicePage() {
       return;
     }
     
-    if (itemsData.length > 0 && tableRows.length > 0 && Object.keys(taxDataCache).length > 0 && Object.keys(tdsDataCache).length > 0 && !hsnMatchingProcessedRef.current) {
+    if (itemsData.length > 0 && tableRows.length > 0 && !hsnMatchingProcessedRef.current) {
       const timeoutId = setTimeout(() => {
         processHsnMatching(tableRows, rawOcrPayload);
         hsnMatchingProcessedRef.current = true;
       }, 100);
       return () => clearTimeout(timeoutId);
     }
-  }, [itemsData.length, tableRows.length, Object.keys(taxDataCache).length, Object.keys(tdsDataCache).length, invoiceStatus]);
+  }, [itemsData.length, tableRows.length, invoiceStatus]);
   
   useEffect(() => {
     hsnMatchingProcessedRef.current = false;
@@ -809,31 +749,13 @@ export function InvoicePage() {
       setTableRows((prev) => {
         const updated = prev.map((row) => (row.id === rowId ? { ...row, [field]: value } : row));
         
-        if (field === "gstCode" || field === "tdsCode" || field === "quantity" || field === "rate") {
+        if (field === "quantity" || field === "rate") {
           const row = updated.find(r => r.id === rowId);
           if (row) {
             const quantity = parseFloat(row.quantity) || 0;
             const rate = parseFloat(row.rate) || 0;
             const baseAmount = quantity * rate;
             
-            if (row.gstCode && taxDataCache[row.gstCode]) {
-              const taxData = taxDataCache[row.gstCode];
-              const igstPercentage = parseFloat(taxData.igst_percentage) || 0;
-              const cgstPercentage = parseFloat(taxData.cgst_percentage) || 0;
-              const sgstPercentage = parseFloat(taxData.sgst_percentage) || 0;
-              const utgstPercentage = parseFloat(taxData.utgst_percentage) || 0;
-              
-              row.igst = ((baseAmount * igstPercentage) / 100).toFixed(2);
-              row.cgst = ((baseAmount * cgstPercentage) / 100).toFixed(2);
-              row.sgst = ((baseAmount * sgstPercentage) / 100).toFixed(2);
-              row.utgst = ((baseAmount * utgstPercentage) / 100).toFixed(2);
-            }
-            
-            if (row.tdsCode && tdsDataCache[row.tdsCode]) {
-              const tdsData = tdsDataCache[row.tdsCode];
-              const tdsPercentage = parseFloat(tdsData.tds_percentage) || 0;
-              row.tdsAmount = ((baseAmount * tdsPercentage) / 100).toFixed(2);
-            }         
             row.netAmount = baseAmount.toFixed(2);
           }
         }
@@ -841,7 +763,7 @@ export function InvoicePage() {
         return updated;
       });
     },
-    [taxDataCache, tdsDataCache]
+    []
   );
 
 
@@ -891,9 +813,6 @@ export function InvoicePage() {
       if (!row.itemDescription.trim()) rowErrors.itemDescription = true;
       if (!row.quantity.trim() || parseFloat(row.quantity) <= 0) rowErrors.quantity = true;
       if (!row.rate.trim() || parseFloat(row.rate) <= 0) rowErrors.rate = true;
-      if (!row.tdsCode.trim()) rowErrors.tdsCode = true;
-      if (!row.tdsAmount.trim() || parseFloat(row.tdsAmount) < 0) rowErrors.tdsAmount = true;
-      if (!row.gstCode.trim()) rowErrors.gstCode = true;
       if (!row.igst.trim() || parseFloat(row.igst) < 0) rowErrors.igst = true;
       if (!row.cgst.trim() || parseFloat(row.cgst) < 0) rowErrors.cgst = true;
       if (!row.sgst.trim() || parseFloat(row.sgst) < 0) rowErrors.sgst = true;
@@ -948,10 +867,6 @@ export function InvoicePage() {
             igst_amount: row.igst || null,
             utgst_amount: row.utgst || null,
             discount: "0.0000",
-            
-            tax_code: row.gstCode || null,
-            tds_code: row.tdsCode || null,
-            tds_amount: row.tdsAmount || null,
           };
 
           const quantity = parseFloat(row.quantity) || 0;
@@ -1012,9 +927,6 @@ export function InvoicePage() {
             igst_amount: row.igst || null,
             utgst_amount: row.utgst || null,
             discount: "0.0000",
-            tax_code: row.gstCode || null,
-            tds_code: row.tdsCode || null,
-            tds_amount: row.tdsAmount || null,
           };
 
           const quantity = parseFloat(row.quantity) || 0;
@@ -1084,9 +996,8 @@ export function InvoicePage() {
   const calculatedCgst = tableRows.reduce((sum, row) => sum + (parseFloat(row.cgst) || 0), 0);
   const calculatedSgst = tableRows.reduce((sum, row) => sum + (parseFloat(row.sgst) || 0), 0);
   const calculatedIgst = tableRows.reduce((sum, row) => sum + (parseFloat(row.igst) || 0), 0);
-  const calculatedTds = tableRows.reduce((sum, row) => sum + (parseFloat(row.tdsAmount) || 0), 0);
   const calculatedTotalAmount = calculatedSubtotal + calculatedCgst + calculatedSgst + calculatedIgst;
-  const calculatedTotalPayable = calculatedTotalAmount - calculatedTds;
+  const calculatedTotalPayable = calculatedTotalAmount;
 
   return (
     <div className="flex flex-col min-h-screen bg-sky-100">
@@ -1564,12 +1475,6 @@ export function InvoicePage() {
                 <Label className="font-semibold text-xs text-gray-900 whitespace-nowrap">Total Amount</Label>
                 <div className={`w-[140px] h-8 flex items-center justify-end px-0 ${getFieldHighlightClass("total_amount", calculatedTotalAmount) ? "bg-yellow-100" : "bg-gray-50"}`}>
                   <span className="text-xs font-semibold text-right">{formatCurrency(calculatedTotalAmount)}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-end gap-3 w-full py-1">
-                <Label className="font-medium text-[10px] text-gray-600 whitespace-nowrap">TDS</Label>
-                <div className="w-[140px] h-8 bg-gray-50 flex items-center justify-end px-0">
-                  <span className="text-xs font-medium text-right">{formatCurrency(calculatedTds)}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 w-full border-t border-gray-300 pt-1 py-1">
