@@ -2,79 +2,11 @@ import CustomCardsToolbar from "@/components/cards-upi/CustomCardsToolbar";
 import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import { DataTable } from "@/components/shared/DataTable";
 import { StatusPill } from "@/components/shared/StatusPill";
+import { IconButton, Menu, MenuItem } from "@mui/material";
 import { GridColDef } from "@mui/x-data-grid";
 import { DotsVerticalIcon } from "@radix-ui/react-icons";
-import { Ban, CreditCard, QrCode } from "lucide-react";
-
-export const columns: GridColDef[] = [
-  {
-    field: "userName",
-    headerName: "USER NAME",
-    flex: 1.5,
-    minWidth: 200,
-  },
-  {
-    field: "employeeId",
-    headerName: "EMPLOYEE ID",
-    flex: 1,
-    minWidth: 140,
-  },
-  {
-    field: "instrument",
-    headerName: "INSTRUMENT",
-    flex: 1,
-    minWidth: 120,
-    renderCell: ({ value }) => {
-      let icon;
-
-      if (value === "CARD") {
-        icon = <CreditCard className="h-4 w-4" />;
-      } else if (value === "UPI") {
-        icon = <QrCode className="h-4 w-4" />;
-      } else {
-        icon = <Ban className="h-4 w-4" />;
-      }
-
-      return (
-        <span className="flex items-center gap-2">
-          {icon}
-          {value || "None"}
-        </span>
-      );
-    },
-  },
-  {
-    field: "idNumber",
-    headerName: "ID NUMBER",
-    flex: 1,
-    minWidth: 150,
-  },
-  {
-    field: "status",
-    headerName: "STATUS",
-    flex: 1,
-    minWidth: 130,
-    renderCell: ({ value }) => {
-      return <span><StatusPill status={value} /></span>
-    }
-  },
-  {
-    field: "actions",
-    headerName: "ACTIONS",
-    sortable: false,
-    align: "right",
-    filterable: false,
-    flex: 0.5,
-    minWidth: 90,
-    renderCell: () => {
-      return (
-        <span className="flex justify-end">
-          <DotsVerticalIcon />
-        </span>
-      );
-    },
-  },
-];
+import { Ban, CreditCard, QrCode, Redo, RefreshCw } from "lucide-react";
+import { useState } from "react";
 
 export interface CardUPIRow {
   id: number;
@@ -130,6 +62,99 @@ export const rows: CardUPIRow[] = [
 ];
 
 function CardsUPIPage() {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedRow, setSelectedRow] = useState<any>(null);
+
+  const open = Boolean(anchorEl);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, row: any) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedRow(row);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const columns: GridColDef[] = [
+    {
+      field: "userName",
+      headerName: "USER NAME",
+      flex: 1.5,
+      minWidth: 200,
+    },
+    {
+      field: "employeeId",
+      headerName: "EMPLOYEE ID",
+      flex: 1,
+      minWidth: 140,
+    },
+    {
+      field: "instrument",
+      headerName: "INSTRUMENT",
+      flex: 1,
+      minWidth: 120,
+      renderCell: ({ value }) => {
+        let icon;
+
+        if (value === "CARD") {
+          icon = <CreditCard className="h-4 w-4" />;
+        } else if (value === "UPI") {
+          icon = <QrCode className="h-4 w-4" />;
+        } else {
+          icon = <Ban className="h-4 w-4" />;
+        }
+
+        return (
+          <span className="flex items-center gap-2">
+            {icon}
+            {value || "None"}
+          </span>
+        );
+      },
+    },
+    {
+      field: "idNumber",
+      headerName: "ID NUMBER",
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      field: "status",
+      headerName: "STATUS",
+      flex: 1,
+      minWidth: 130,
+      renderCell: ({ value }) => {
+        return (
+          <span>
+            <StatusPill status={value} />
+          </span>
+        );
+      },
+    },
+    {
+      field: "actions",
+      headerName: "ACTIONS",
+      sortable: false,
+      align: "right",
+      filterable: false,
+      flex: 0.5,
+      minWidth: 90,
+      renderCell: (params) => {
+        return (
+          <span className="flex justify-end w-full">
+            <IconButton
+              size="small"
+              onClick={(e) => handleMenuOpen(e, params.row)}
+            >
+              <DotsVerticalIcon />
+            </IconButton>
+          </span>
+        );
+      },
+    },
+  ];
+
   return (
     <InvoicePageWrapper
       title="Cards/UPI Management"
@@ -144,12 +169,35 @@ function CardsUPIPage() {
           toolbar: CustomCardsToolbar,
         }}
         slotProps={{
-            toolbar: {
-                allStatuses: ["ISSUED", "NOT ISSUED", "KYC PENDING"]
-            }
+          toolbar: {
+            allStatuses: ["ISSUED", "NOT ISSUED", "KYC PENDING"],
+          },
         }}
         showToolbar
       />
+      <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
+        <MenuItem
+          className="!text-sm flex items-center gap-2"
+          onClick={() => {
+            console.log("refresh", selectedRow);
+            handleMenuClose();
+          }}
+        >
+          <RefreshCw className="h-4 w-4" />
+          <span>Refresh Status</span>
+        </MenuItem>
+
+        <MenuItem
+          className="!text-sm flex items-center gap-2"
+          onClick={() => {
+            console.log("rekyc", selectedRow);
+            handleMenuClose();
+          }}
+        >
+          <Redo className="h-4 w-4" />
+          <span>Redo KYC</span>
+        </MenuItem>
+      </Menu>
     </InvoicePageWrapper>
   );
 }

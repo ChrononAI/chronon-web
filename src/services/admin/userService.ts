@@ -8,7 +8,7 @@ export const userService = {
       throw new Error("Organization ID not found in token");
     }
     try {
-        return await api.get(`/auth/em/users?org_id=${orgId}`)
+        return await api.get(`/auth/em/users?org_id=${orgId}&limit=300&offset=0`)
     } catch (error) {
         throw error;
     }

@@ -12,6 +12,7 @@ import {
 import { FilterMap, getFilterValue } from "@/pages/MyExpensesPage";
 import FilterModal, { AllowedFilter } from "../expenses/FilterModal";
 import { useCardsStore } from "@/store/cardsStore";
+import InitiateKYCDialog from "./InitiateKYCDialog";
 
 export interface CustomExpenseToolbarProps {
   allStatuses: string[];
@@ -27,6 +28,7 @@ function CustomCardsToolbar({ allStatuses }: Props) {
   const hasFilters = Object.keys(query).length > 0;
 
   const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [kycDialogOpen, setKycDialogOpen] = useState(false);
   const searchValue = (getFilterValue(query, "q", "eq") as string) ?? "";
   const selectedStatuses =
     (getFilterValue(query, "status", "in") as string[]) ?? [];
@@ -193,57 +195,57 @@ function CustomCardsToolbar({ allStatuses }: Props) {
           <Filter className="h-8 w-8" />
         </Button>
 
-              <Button
-        onClick={() => {
-          console.log("clicked");
-        }}
-        style={{
-          width: "163px",
-          height: "31px",
-          gap: "8px",
-          borderRadius: "4px",
-          paddingTop: "8px",
-          paddingRight: "12px",
-          paddingBottom: "8px",
-          paddingLeft: "12px",
-          backgroundColor: "#0D9C99",
-          marginLeft: "auto",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          border: "none",
-          cursor: "pointer",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "#0b8a87";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "#0D9C99";
-        }}
-      >
-        <Plus
-          style={{
-            width: "12px",
-            height: "12px",
-            color: "#FFFFFF",
+        <Button
+          onClick={() => {
+            setKycDialogOpen(true);
           }}
-        />
-        <span
           style={{
-            fontFamily: "Inter",
-            fontWeight: 600,
-            fontSize: "12px",
-            lineHeight: "100%",
-            letterSpacing: "0%",
-            color: "#FFFFFF",
-            height: "15px",
+            width: "163px",
+            height: "31px",
+            gap: "8px",
+            borderRadius: "4px",
+            paddingTop: "8px",
+            paddingRight: "12px",
+            paddingBottom: "8px",
+            paddingLeft: "12px",
+            backgroundColor: "#0D9C99",
+            marginLeft: "auto",
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
+            border: "none",
+            cursor: "pointer",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#0b8a87";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "#0D9C99";
           }}
         >
-          Issue Cards/UPI
-        </span>
-      </Button>
+          <Plus
+            style={{
+              width: "12px",
+              height: "12px",
+              color: "#FFFFFF",
+            }}
+          />
+          <span
+            style={{
+              fontFamily: "Inter",
+              fontWeight: 600,
+              fontSize: "12px",
+              lineHeight: "100%",
+              letterSpacing: "0%",
+              color: "#FFFFFF",
+              height: "15px",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            Issue Cards/UPI
+          </span>
+        </Button>
       </Toolbar>
 
       <FilterModal
@@ -253,6 +255,7 @@ function CustomCardsToolbar({ allStatuses }: Props) {
         setQuery={setQuery}
         allowedFilters={filters}
       />
+      <InitiateKYCDialog open={kycDialogOpen} onOpenChange={setKycDialogOpen} handleSubmit={(payload) => console.log(payload)} />
     </>
   );
 }
