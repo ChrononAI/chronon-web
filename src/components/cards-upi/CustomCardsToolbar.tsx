@@ -16,6 +16,7 @@ import InitiateKYCDialog from "./InitiateKYCDialog";
 
 export interface CustomExpenseToolbarProps {
   allStatuses: string[];
+  handleRefresh: () => void;
 }
 
 type Props = GridToolbarProps &
@@ -150,17 +151,17 @@ function CustomCardsToolbar({ allStatuses }: Props) {
   return (
     <>
       <Toolbar className="flex items-center !justify-start !px-[1px] !gap-2 !my-3 !border-0 bg-white">
-        <Box sx={{ position: "relative", width: "20%", flexShrink: 0 }}>
+        <Box sx={{ position: "relative", width: "15%", flexShrink: 0 }}>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search"
-            className="pl-9 bg-white h-10 w-full"
+            className="pl-9 bg-white h-11 w-full"
             value={searchValue}
             onChange={(e) => updateSearch(e.target.value)}
           />
         </Box>
 
-        <Box sx={{ width: "28%", flexShrink: 0 }}>
+        <Box sx={{ width: "20%", flexShrink: 0 }}>
           <MultiSelectDropdown
             allItems={allStatuses || []}
             selectedItems={selectedStatuses}
@@ -169,7 +170,7 @@ function CustomCardsToolbar({ allStatuses }: Props) {
           />
         </Box>
 
-        <Box sx={{ width: "28%", flexShrink: 0 }}>
+        <Box sx={{ width: "20%", flexShrink: 0 }}>
           <MultiSelectDropdown
             allItems={["CARD", "UPI"]}
             selectedItems={selectedInstruments}
@@ -194,6 +195,22 @@ function CustomCardsToolbar({ allStatuses }: Props) {
           )}
           <Filter className="h-8 w-8" />
         </Button>
+
+        {/* <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-11 p-3 text-muted-foreground"
+              onClick={handleRefresh}
+            >
+              <RefreshCw className="h-6 w-6" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="bg-white text-black border border-[0.5]">
+            <p>Refresh KYC Status</p>
+          </TooltipContent>
+        </Tooltip> */}
 
         <Button
           onClick={() => {
@@ -255,7 +272,11 @@ function CustomCardsToolbar({ allStatuses }: Props) {
         setQuery={setQuery}
         allowedFilters={filters}
       />
-      <InitiateKYCDialog open={kycDialogOpen} onOpenChange={setKycDialogOpen} handleSubmit={(payload) => console.log(payload)} />
+      <InitiateKYCDialog
+        open={kycDialogOpen}
+        onOpenChange={setKycDialogOpen}
+        handleSubmit={(payload) => console.log(payload)}
+      />
     </>
   );
 }

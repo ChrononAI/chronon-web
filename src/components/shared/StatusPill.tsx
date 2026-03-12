@@ -14,7 +14,9 @@ export function StatusPill({ status, className }: StatusPillProps) {
       normalizedStatus === "OCR_PROCESSED" ||
       normalizedStatus === "APPROVED" ||
       normalizedStatus === "OPEN" ||
-      normalizedStatus === "ISSUED"
+      normalizedStatus === "ISSUED" ||
+      normalizedStatus === "COMPLETED" ||
+      normalizedStatus === "ACTIVE"
     ) {
       return "bg-[#5DC364]/10";
     } else if (
@@ -46,7 +48,9 @@ export function StatusPill({ status, className }: StatusPillProps) {
       normalizedStatus === "OCR_PROCESSED" ||
       normalizedStatus === "APPROVED" ||
       normalizedStatus === "OPEN" ||
-      normalizedStatus === "ISSUED"
+      normalizedStatus === "ISSUED" ||
+      normalizedStatus === "COMPLETED" ||
+      normalizedStatus === "ACTIVE"
     ) {
       return "text-[#5DC364]";
     } else if (
