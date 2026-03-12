@@ -601,7 +601,7 @@ export const VendorDetailsPage = () => {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#0D9C99]" />
           <div className="text-muted-foreground">Loading vendor details...</div>
         </div>
       </div>

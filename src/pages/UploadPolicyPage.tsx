@@ -185,7 +185,7 @@ const UploadPolicyPage: React.FC = () => {
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="text-center space-y-6 p-8">
             <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-              <Loader2 className="h-10 w-10 text-primary animate-spin" />
+              <Loader2 className="h-10 w-10 text-[#0D9C99] animate-spin" />
             </div>
             <div className="space-y-2">
               <h3 className="text-xl font-semibold">

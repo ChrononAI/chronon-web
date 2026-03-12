@@ -186,7 +186,11 @@ function CustomSettlementsToolbar({
         </Button>
 
       {activeTab === "unpaid" && (
-        <Button disabled={disabled} onClick={onCustomClick}>
+        <Button
+          disabled={disabled}
+          onClick={onCustomClick}
+          className="bg-[#0D9C99] hover:bg-[#0a7d7a] text-white"
+        >
           {marking ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
