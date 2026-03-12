@@ -47,26 +47,6 @@ export function IntegrationDashboardPage() {
             >
               Export log
             </button>
-            <button
-              onClick={() => setActiveTab("mapping")}
-              className={`px-0 py-2 font-medium transition-colors ${
-                activeTab === "mapping"
-                  ? "text-gray-900 border-b-2 border-yellow-500"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Mapping
-            </button>
-            <button
-              onClick={() => setActiveTab("configuration")}
-              className={`px-0 py-2 font-medium transition-colors ${
-                activeTab === "configuration"
-                  ? "text-gray-900 border-b-2 border-yellow-500"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Configuration
-            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -234,32 +214,6 @@ export function IntegrationDashboardPage() {
                     <p className="text-gray-600 text-center max-w-md">
                       All your successful exports and their details will be stored here.
                     </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Mapping Tab */}
-          {activeTab === "mapping" && (
-            <div className="max-w-4xl mx-auto">
-              <Card className="bg-white rounded-lg shadow-sm">
-                <CardContent className="p-12">
-                  <div className="text-center text-gray-600">
-                    <p className="text-lg">Mapping configuration will be available here.</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Configuration Tab */}
-          {activeTab === "configuration" && (
-            <div className="max-w-4xl mx-auto">
-              <Card className="bg-white rounded-lg shadow-sm">
-                <CardContent className="p-12">
-                  <div className="text-center text-gray-600">
-                    <p className="text-lg">Configuration settings will be available here.</p>
                   </div>
                 </CardContent>
               </Card>
