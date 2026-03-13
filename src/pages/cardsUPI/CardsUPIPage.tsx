@@ -83,6 +83,19 @@ function CardsUPIPage() {
     }
   };
 
+  const initiateKyc = async (payload: { user_id: string }[]) => {
+    try {
+      await cardsUpiService.initiateKyc(payload);
+      toast.success("Successfully initiated KYC");
+      const limit = paginationModel?.pageSize;
+      const offset = paginationModel?.page * limit;
+      await getKycStatuses({ limit, offset });
+    } catch (error) {
+      console.log(error);
+      toast.error("Error initiating KYC");
+    }
+  };
+
   useEffect(() => {
     const limit = paginationModel?.pageSize;
     const offset = paginationModel?.page * limit;
@@ -172,7 +185,9 @@ function CardsUPIPage() {
         loading={loading}
         slots={{
           toolbar: CustomCardsToolbar,
-          loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          loadingOverlay: () => (
+            <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+          ),
         }}
         slotProps={{
           toolbar: {
@@ -189,7 +204,7 @@ function CardsUPIPage() {
         <MenuItem
           className="!text-sm flex items-center gap-2"
           onClick={() => {
-            console.log("rekyc", selectedRow);
+            initiateKyc([{ user_id: selectedRow.user_id }]);
             handleMenuClose();
           }}
         >

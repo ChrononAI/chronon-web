@@ -39,7 +39,7 @@ export type Account = {
 export const cardsUpiService = {
   initiateKyc: async (payload: { user_id: string }[]) => {
     try {
-      return await api.post("/api/v1/pinelabs/kyc/initiate", payload[0]);
+      return await api.post("/api/v1/pinelabs/kyc/initiate", payload);
     } catch (error) {
       throw error;
     }

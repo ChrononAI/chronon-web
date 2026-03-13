@@ -24,6 +24,7 @@ function InitiateKYCDialog({
 }) {
   const [users, setUsers] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const toggleCategory = (id: string) => {
     setSelectedUsers((prev) =>
@@ -42,12 +43,15 @@ function InitiateKYCDialog({
 
   const initiateKyc = async (payload: { user_id: string }[]) => {
     try {
-      const res = await cardsUpiService.initiateKyc(payload);
-      console.log(res);
+      setLoading(true);
+      await cardsUpiService.initiateKyc(payload);
+      setSelectedUsers([]);
       onOpenChange(false);
     } catch (error) {
       console.log(error);
       toast.error("Error initiating KYC");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -132,7 +136,7 @@ function InitiateKYCDialog({
               border: "none",
               cursor: "pointer",
             }}
-            disabled={selectedUsers.length === 0}
+            disabled={selectedUsers.length === 0 || loading}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = "#0b8a87";
             }}
@@ -140,7 +144,7 @@ function InitiateKYCDialog({
               e.currentTarget.style.backgroundColor = "#0D9C99";
             }}
           >
-            Initiate KYC
+            {loading ? "Initiating..." : "Initiate KYC"}
           </Button>
         </div>
       </DialogContent>
