@@ -126,10 +126,14 @@ export function AllInvoicesPage() {
       ? parseFloat(invoice.total_amount) 
       : 0;
     
+    const vendorName = invoice.raw_ocr_payload?.vendor_id || invoice.vendor_id || "—";
+    const vendorGstin = invoice.gst_number || "—";
+    
     return {
       id: invoice.id,
       invoiceId: invoice.id,
-      vendorName: invoice.gst_number || "—", 
+      vendorName,
+      vendorGstin,
       invoiceNumber: invoice.invoice_number || "",
       invoiceDate: formatDate(invoice.invoice_date),
       currency: invoice.currency || "INR",
@@ -262,6 +266,7 @@ export function AllInvoicesPage() {
       filtered = filtered.filter(
         (invoice) =>
           (invoice.vendorName || "").toLowerCase().includes(searchLower) ||
+          (invoice.vendorGstin || "").toLowerCase().includes(searchLower) ||
           (invoice.invoiceNumber || "").toLowerCase().includes(searchLower) ||
           (invoice.currency || "").toLowerCase().includes(searchLower)
       );
@@ -273,7 +278,7 @@ export function AllInvoicesPage() {
   const tabs = useMemo(() => {
     return [
       { key: "osc_processed", label: "OCR Processed", count: tabCounts.osc_processed },
-      { key: "osc_pending", label: "OCR Pending", count: tabCounts.osc_pending },
+      { key: "osc_pending", label: "OCR Processing", count: tabCounts.osc_pending },
       { key: "booked", label: "Booked", count: tabCounts.booked },
     ];
   }, [tabCounts]);
@@ -318,8 +323,26 @@ export function AllInvoicesPage() {
 
     return [
       {
+        field: "invoiceNumber",
+        headerName: "Invoice Number",
+        flex: 1,
+        minWidth: 150,
+        renderCell: (params) => {
+          const processing = isProcessing(params.row);
+          return (
+            <div className="flex items-center h-full">
+              {processing ? (
+                renderSkeleton("w-28")
+              ) : (
+                <span className="text-sm">{params.value || "—"}</span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
         field: "vendorName",
-        headerName: "GST NUMBER",
+        headerName: "Vendor Name",
         flex: 1,
         minWidth: 200,
         renderCell: (params) => {
@@ -352,8 +375,8 @@ export function AllInvoicesPage() {
         },
       },
       {
-        field: "invoiceNumber",
-        headerName: "INVOICE NUMBER",
+        field: "vendorGstin",
+        headerName: "Vendor GSTIN",
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -361,25 +384,7 @@ export function AllInvoicesPage() {
           return (
             <div className="flex items-center h-full">
               {processing ? (
-                renderSkeleton("w-28")
-              ) : (
-                <span className="text-sm">{params.value}</span>
-              )}
-            </div>
-          );
-        },
-      },
-      {
-        field: "sequenceNumber",
-        headerName: "SEQUENCE NUMBER",
-        flex: 1,
-        minWidth: 150,
-        renderCell: (params) => {
-          const processing = isProcessing(params.row);
-          return (
-            <div className="flex items-center h-full">
-              {processing ? (
-                renderSkeleton("w-28")
+                renderSkeleton("w-32")
               ) : (
                 <span className="text-sm">{params.value || "—"}</span>
               )}
@@ -389,7 +394,7 @@ export function AllInvoicesPage() {
       },
       {
         field: "invoiceDate",
-        headerName: "INVOICE DATE",
+        headerName: "Date",
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -399,25 +404,7 @@ export function AllInvoicesPage() {
               {processing ? (
                 renderSkeleton("w-24")
               ) : (
-                <span className="text-sm">{params.value}</span>
-              )}
-            </div>
-          );
-        },
-      },
-      {
-        field: "currency",
-        headerName: "CURRENCY",
-        flex: 1,
-        minWidth: 150,
-        renderCell: (params) => {
-          const processing = isProcessing(params.row);
-          return (
-            <div className="flex items-center h-full">
-              {processing ? (
-                renderSkeleton("w-24")
-              ) : (
-                <span className="text-sm">{params.value}</span>
+                <span className="text-sm">{params.value || "—"}</span>
               )}
             </div>
           );
@@ -425,7 +412,7 @@ export function AllInvoicesPage() {
       },
       {
         field: "status",
-        headerName: "STATUS",
+        headerName: "status",
         flex: 1,
         minWidth: 160,
         renderCell: (params) => {
@@ -465,7 +452,7 @@ export function AllInvoicesPage() {
       },
       {
         field: "totalAmount",
-        headerName: "TOTAL AMOUNT",
+        headerName: "Amount",
         flex: 1,
         minWidth: 150,
         align: "right",
@@ -531,7 +518,7 @@ export function AllInvoicesPage() {
             }
             return "";
           }}
-          firstColumnField="vendorName"
+          firstColumnField="invoiceNumber"
           emptyStateComponent={<CustomNoRows />}
           slots={{
             toolbar: CustomInvoiceToolbar,

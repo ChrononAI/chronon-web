@@ -2,8 +2,9 @@ import { create } from "zustand";
 
 export interface InvoiceListRow {
   id: string; 
-  invoiceId?: string; // 
+  invoiceId?: string;
   vendorName: string;
+  vendorGstin: string;
   invoiceNumber: string;
   invoiceDate: string;
   currency: string;
