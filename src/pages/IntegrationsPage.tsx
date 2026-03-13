@@ -1,11 +1,14 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLayoutStore } from "@/store/layoutStore";
 
 export function IntegrationsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const setNoPadding = useLayoutStore((s) => s.setNoPadding);
+  const isFlowContext = location.pathname.startsWith("/flow");
+  const basePath = isFlowContext ? "/flow/integration" : "/integration";
 
   useEffect(() => {
     setNoPadding(true);
@@ -41,7 +44,7 @@ export function IntegrationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <Card 
           className="cursor-pointer hover:shadow-lg transition-shadow ml-4"
-          onClick={() => navigate("/integration/dynamics-365-business-central")}
+          onClick={() => navigate(`${basePath}/dynamics-365-business-central`)}
         >
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center space-y-4">

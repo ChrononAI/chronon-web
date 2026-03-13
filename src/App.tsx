@@ -155,6 +155,9 @@ function App() {
               <Route path="/flow/master/items" element={<ItemsPage />} />
               <Route path="/flow/master/tds-code" element={<TDSCodePage />} />
               <Route path="/flow/master/tax-code" element={<TaxCodePage />} />
+              <Route path="/flow/integration" element={<IntegrationsPage />} />
+              <Route path="/flow/integration/:id" element={<IntegrationDetailPage />} />
+              <Route path="/flow/integration/:id/dashboard" element={<IntegrationDashboardPage />} />
             </Route>
           </Route>
 
@@ -264,11 +267,6 @@ function App() {
               <Route path="/ai-copilot/approver-agent" element={<AgentChat />} />
               <Route path="/ai-copilot/spender-agent" element={<AgentChat />} />
               <Route path="/ai-copilot/onboarding-agent" element={<AgentChat />} />
-
-              {/* INTEGRATIONS */}
-              <Route path="/integration" element={<IntegrationsPage />} />
-              <Route path="/integration/:id" element={<IntegrationDetailPage />} />
-              <Route path="/integration/:id/dashboard" element={<IntegrationDashboardPage />} />
 
               {/* INVOICES - Redirect old routes to flow */}
               <Route path="/invoice" element={<Navigate to="/flow/invoice" replace />} />

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { ArrowLeft, ExternalLink } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,8 +8,11 @@ import { useLayoutStore } from "@/store/layoutStore";
 
 export function IntegrationDetailPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const setNoPadding = useLayoutStore((s) => s.setNoPadding);
+  const isFlowContext = location.pathname.startsWith("/flow");
+  const basePath = isFlowContext ? "/flow/integration" : "/integration";
 
   useEffect(() => {
     setNoPadding(true);
@@ -89,7 +92,7 @@ export function IntegrationDetailPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/integration")}
+            onClick={() => navigate(basePath)}
             className="mr-2 h-8 w-8"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -127,7 +130,7 @@ export function IntegrationDetailPage() {
               </a>
               <Button 
                 className="bg-green-600 hover:bg-green-700"
-                onClick={() => navigate(`/integration/${id}/dashboard`)}
+                onClick={() => navigate(`${basePath}/${id}/dashboard`)}
               >
                 Connect
               </Button>

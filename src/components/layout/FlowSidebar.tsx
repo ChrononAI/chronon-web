@@ -9,6 +9,7 @@ import {
   SlidersHorizontal,
   Building2,
   User,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ const flowNavigation: NavigationItem[] = [
       },
     ],
   },
+  { name: "Integration", href: "/flow/integration", icon: Zap },
 ];
 
 export function FlowSidebar() {
@@ -191,7 +193,8 @@ export function FlowSidebar() {
     if (item.href) {
       const currentPath = location.pathname;
       const isApprovalActive = item.name === "Approval" && currentPath.startsWith("/flow/approvals");
-      const isActive = currentPath.startsWith(item.href) || isApprovalActive;
+      const isIntegrationActive = item.name === "Integration" && currentPath.startsWith("/flow/integration");
+      const isActive = currentPath.startsWith(item.href) || isApprovalActive || isIntegrationActive;
       
       return (
         <NavLink
