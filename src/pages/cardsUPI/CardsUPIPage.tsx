@@ -4,10 +4,9 @@ import { DataTable } from "@/components/shared/DataTable";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { cardsUpiService, KYCRecord } from "@/services/cardsUpiService";
-import { IconButton, Menu, MenuItem } from "@mui/material";
+import { Menu, MenuItem } from "@mui/material";
 import { GridColDef, GridPaginationModel } from "@mui/x-data-grid";
-import { DotsVerticalIcon } from "@radix-ui/react-icons";
-import { Redo, RefreshCcw } from "lucide-react";
+import { Ellipsis, Redo, RefreshCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -44,7 +43,7 @@ function CardsUPIPage() {
 
   const open = Boolean(anchorEl);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, row: any) => {
+  const handleMenuOpen = (event: any, row: any) => {
     setAnchorEl(event.currentTarget);
     setSelectedRow(row);
   };
@@ -104,7 +103,7 @@ function CardsUPIPage() {
 
   const columns: GridColDef[] = [
     {
-      field: "full_kyc_customer_name",
+      field: "user_name",
       headerName: "NAME",
       flex: 1.5,
       minWidth: 200,
@@ -118,6 +117,7 @@ function CardsUPIPage() {
       flex: 1.5,
       minWidth: 200,
       renderCell: ({ value }) => {
+        console.log(value);
         return <div>{value || "-"}</div>;
       },
     },
@@ -153,19 +153,13 @@ function CardsUPIPage() {
       field: "actions",
       headerName: "ACTIONS",
       sortable: false,
-      align: "right",
       filterable: false,
       flex: 0.5,
       minWidth: 90,
       renderCell: (params) => {
         return (
-          <span className="flex justify-end w-full">
-            <IconButton
-              size="small"
-              onClick={(e) => handleMenuOpen(e, params.row)}
-            >
-              <DotsVerticalIcon />
-            </IconButton>
+          <span className="flex justify-center w-full">
+            <Ellipsis onClick={(e) => handleMenuOpen(e, params.row)} className="h-4 w-4" />
           </span>
         );
       },
