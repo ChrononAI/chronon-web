@@ -90,6 +90,9 @@ import { useAuthStore } from "@/store/authStore";
 import { AdminReportsApprovalPage } from "./pages/admin-reports/AdminReportsApprovalPage";
 import AgentChat from "./pages/copilot/AgentChat";
 import CopilotHome from "./pages/copilot/CopilotHome";
+import { IntegrationsPage } from "./pages/IntegrationsPage";
+import { IntegrationDetailPage } from "./pages/IntegrationDetailPage";
+import { IntegrationDashboardPage } from "./pages/IntegrationDashboardPage";
 
 function VendorRedirect() {
   const { id } = useParams<{ id: string }>();
@@ -152,6 +155,9 @@ function App() {
               <Route path="/flow/master/items" element={<ItemsPage />} />
               <Route path="/flow/master/tds-code" element={<TDSCodePage />} />
               <Route path="/flow/master/tax-code" element={<TaxCodePage />} />
+              <Route path="/flow/integration" element={<IntegrationsPage />} />
+              <Route path="/flow/integration/:id" element={<IntegrationDetailPage />} />
+              <Route path="/flow/integration/:id/dashboard" element={<IntegrationDashboardPage />} />
             </Route>
           </Route>
 
