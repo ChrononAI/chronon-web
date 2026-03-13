@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Calendar, ChevronDown, Loader2 } from "lucide-react";
+import { Calendar, ChevronDown} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {

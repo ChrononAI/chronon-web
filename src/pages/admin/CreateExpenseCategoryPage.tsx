@@ -7,7 +7,6 @@ import {
   categoryService,
   CreateCategoriesPayloadType,
 } from "@/services/admin/categoryService";
-import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
