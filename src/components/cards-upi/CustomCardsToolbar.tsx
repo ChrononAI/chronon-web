@@ -196,22 +196,6 @@ function CustomCardsToolbar({ allStatuses }: Props) {
           <Filter className="h-8 w-8" />
         </Button>
 
-        {/* <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-11 w-11 p-3 text-muted-foreground"
-              onClick={handleRefresh}
-            >
-              <RefreshCw className="h-6 w-6" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="bg-white text-black border border-[0.5]">
-            <p>Refresh KYC Status</p>
-          </TooltipContent>
-        </Tooltip> */}
-
         <Button
           onClick={() => {
             setKycDialogOpen(true);

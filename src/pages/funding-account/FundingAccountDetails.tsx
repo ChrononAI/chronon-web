@@ -1,7 +1,7 @@
 import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import { DataTable } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { Filter, Plus } from "lucide-react";
 import { Typography } from "@mui/material";
@@ -14,6 +14,11 @@ import { Account, cardsUpiService } from "@/services/cardsUpiService";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function AccountInfoBox({ label, value }: { label: string; value: string }) {
   return (
@@ -38,49 +43,6 @@ function AccountInfoBox({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
-const columns: GridColDef[] = [
-  { field: "transaction_date", headerName: "DATE", flex: 1, minWidth: 130 },
-  {
-    field: "message",
-    headerName: "DESCRIPTION",
-    flex: 2,
-    minWidth: 250,
-    renderCell: ({ value }) => {
-      return <span className="!font-bold">{value}</span>;
-    },
-  },
-  {
-    field: "merchant_name",
-    headerName: "TRANSACTION ID",
-    flex: 1.5,
-    minWidth: 160,
-  },
-  {
-    field: "transaction_id",
-    headerName: "TRANSACTION ID",
-    flex: 1.5,
-    minWidth: 360,
-  },
-  {
-    field: "amount",
-    headerName: "AMOUNT",
-    flex: 1,
-    minWidth: 120,
-    renderCell: ({ value }) => {
-      return <span className="!font-bold">{formatCurrency(value)}</span>;
-    },
-  },
-  {
-    field: "transaction_status",
-    headerName: "STATUS",
-    flex: 1,
-    minWidth: 130,
-    renderCell: ({ value }) => {
-      return <StatusPill status={value} />;
-    },
-  },
-];
 
 function FundingAccountDetails() {
   const { id } = useParams();
@@ -135,10 +97,9 @@ function FundingAccountDetails() {
       if (id) {
         const res = await cardsUpiService.getAccountById(id);
         setAccountDetails(res.data.data[0]);
-        const { user_id } = res.data.data[0];
         const limit = paginationModel?.pageSize;
         const offset = paginationModel?.page * limit;
-        await getAccountTransactions({ limit, offset, userId: user_id });
+        await getAccountTransactions({ limit, offset, userId: id });
       }
     } catch (error: any) {
       console.log(error);
@@ -147,17 +108,95 @@ function FundingAccountDetails() {
   };
 
   useEffect(() => {
-    if (accountDetails) {
+    if (accountDetails && id) {
       const limit = paginationModel?.pageSize;
       const offset = paginationModel?.page * limit;
-      const { user_id } = accountDetails;
-      getAccountTransactions({ limit, offset, userId: user_id });
+      getAccountTransactions({ limit, offset, userId: id });
     }
   }, [paginationModel.page, paginationModel.pageSize]);
 
   useEffect(() => {
     getAccountDetails();
   }, [id]);
+
+  const handleCopy = (value: string) => {
+    navigator.clipboard.writeText(value);
+    toast.success("Copied Reference ID");
+  };
+
+  const columns: GridColDef[] = [
+    {
+      field: "reference_id",
+      headerName: "REFERENCE ID",
+      flex: 1.5,
+      minWidth: 300,
+      renderCell: ({ value }) => {
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span onClick={() => handleCopy(value)}>{value}</span>
+            </TooltipTrigger>
+            <TooltipContent
+              side="bottom"
+              className="bg-white text-black border border-[0.5]"
+            >
+              <p>{value}</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      field: "created_at",
+      headerName: "DATE",
+      flex: 1,
+      minWidth: 130,
+      renderCell: ({ value }) => {
+        return <span>{formatDate(value)}</span>;
+      },
+    },
+    {
+      field: "description",
+      headerName: "DESCRIPTION",
+      flex: 2,
+      minWidth: 250,
+      renderCell: ({ value }) => {
+        return <span className="!font-bold">{value}</span>;
+      },
+    },
+    {
+      field: "merchant_name",
+      headerName: "MERCHANT NAME",
+      flex: 1.5,
+      minWidth: 180,
+      renderCell: ({ row }) => {
+        return <span>{row.additional_data?.pine_response?.merchantName}</span>;
+      },
+    },
+    {
+      field: "amount",
+      headerName: "AMOUNT",
+      flex: 1,
+      minWidth: 120,
+      renderCell: ({ value }) => {
+        return (
+          <span className="!font-bold">
+            {formatCurrency(value, accountDetails?.currency)}
+          </span>
+        );
+      },
+    },
+    {
+      field: "transaction_status",
+      headerName: "STATUS",
+      flex: 1,
+      minWidth: 130,
+      renderCell: ({ value }) => {
+        return <StatusPill status={value} />;
+      },
+    },
+  ];
+
   return (
     <>
       <InvoicePageWrapper
@@ -170,10 +209,11 @@ function FundingAccountDetails() {
           <div className="p-6">
             <p className="text-gray-400 font-bold text-xs">CURRENT BALANCE</p>
             <span className="font-bold text-black text-4xl">
-              {accountDetails && formatCurrency(
-                +(accountDetails?.source_balance),
-                accountDetails?.currency,
-              )}
+              {accountDetails &&
+                formatCurrency(
+                  +accountDetails?.ledger_balance,
+                  accountDetails?.currency,
+                )}
             </span>
           </div>
           <div>
@@ -225,7 +265,9 @@ function FundingAccountDetails() {
               rows={loading ? [] : transactions}
               loading={loading}
               slots={{
-                loadingOverlay: () => <SkeletonLoaderOverlay rowCount={paginationModel.pageSize}/>
+                loadingOverlay: () => (
+                  <SkeletonLoaderOverlay rowCount={paginationModel.pageSize} />
+                ),
               }}
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}

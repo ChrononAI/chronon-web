@@ -117,7 +117,7 @@ export const cardsUpiService = {
   }) => {
     try {
       return await api.get(
-        `/api/v1/transactions?user_account_id=eq.ac_user_${userId}&limit=${limit}&offset=${offset}`,
+        `/api/v1/transactions/org?account_id=eq.${userId}&limit=${limit}&offset=${offset}`,
       );
     } catch (error) {
       throw error;
