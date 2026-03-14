@@ -71,8 +71,6 @@ function FundingAccountDetails() {
     pageSize: calculatePageSize(),
   });
 
-  console.log(paginationModel)
-
   const { query, setQuery } = useFundingAccountStore();
   const searchValue =
     (getFilterValue(query, "reference_id", "ilike") as string) ?? "";
