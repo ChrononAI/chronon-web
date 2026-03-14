@@ -96,6 +96,7 @@ export function InvoicePageWrapper({
             letterSpacing: "0%",
             color: "#1A1A1A",
             margin: 0,
+            whiteSpace: "nowrap"
           }}
         >
           {title}

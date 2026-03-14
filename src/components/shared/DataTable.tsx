@@ -142,7 +142,7 @@ export function DataTable({
       fontSize: "14px",
       lineHeight: "100%",
       letterSpacing: "0%",
-      textTransform: "capitalize",
+      // textTransform: "capitalize",
     },
     ...(firstColumnField && {
       [`& .MuiDataGrid-cell[data-field='${firstColumnField}']`]: {
@@ -155,7 +155,7 @@ export function DataTable({
       fontSize: "14px",
       lineHeight: "100%",
       letterSpacing: "0%",
-      textTransform: "capitalize",
+      // textTransform: "capitalize",
       color: "#1A1A1A",
     },
     "& .MuiDataGrid-cell > *": {
@@ -164,7 +164,7 @@ export function DataTable({
       fontSize: "14px",
       lineHeight: "100%",
       letterSpacing: "0%",
-      textTransform: "capitalize",
+      // textTransform: "capitalize",
       color: "#1A1A1A",
     },
     "& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus": {

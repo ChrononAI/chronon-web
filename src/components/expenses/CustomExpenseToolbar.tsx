@@ -171,7 +171,7 @@ function CustomExpenseToolbar({ allStatuses }: Props) {
             color="error"
             variant="dot"
             className="relative -top-4 -right-7"
-            overlap="circular"
+          overlap="circular"
           ></Badge>}
           <Filter className="h-8 w-8" />
         </Button>
