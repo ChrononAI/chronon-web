@@ -117,7 +117,6 @@ function CardsUPIPage() {
       flex: 1.5,
       minWidth: 200,
       renderCell: ({ value }) => {
-        console.log(value);
         return <div>{value || "-"}</div>;
       },
     },
