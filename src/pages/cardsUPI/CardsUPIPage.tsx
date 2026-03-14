@@ -3,12 +3,15 @@ import { InvoicePageWrapper } from "@/components/invoice/InvoicePageWrapper";
 import { DataTable } from "@/components/shared/DataTable";
 import SkeletonLoaderOverlay from "@/components/shared/SkeletonLoaderOverlay";
 import { StatusPill } from "@/components/shared/StatusPill";
+import { formatDate } from "@/lib/utils";
 import { cardsUpiService, KYCRecord } from "@/services/cardsUpiService";
+import { useCardsStore } from "@/store/cardsStore";
 import { Menu, MenuItem } from "@mui/material";
 import { GridColDef, GridPaginationModel } from "@mui/x-data-grid";
-import { Ellipsis, Redo, RefreshCcw } from "lucide-react";
+import { Ellipsis, RefreshCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { buildBackendQuery } from "../MyExpensesPage";
 
 export interface CardUPIRow {
   id: number;
@@ -21,6 +24,9 @@ export interface CardUPIRow {
 }
 
 function CardsUPIPage() {
+  const { query } = useCardsStore();
+  console.log(buildBackendQuery(query));
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedRow, setSelectedRow] = useState<any>(null);
   const [rows, setRows] = useState<KYCRecord[]>([]);
@@ -55,12 +61,18 @@ function CardsUPIPage() {
   const getKycStatuses = async ({
     limit,
     offset,
+    query,
   }: {
     limit: number;
     offset: number;
+    query: string;
   }) => {
     try {
-      const res = await cardsUpiService.getKycStatuses({ limit, offset });
+      const res = await cardsUpiService.getKycStatuses({
+        limit,
+        offset,
+        query,
+      });
       setRows(res.data.data);
       setRowCount(res.data.count);
     } catch (error: any) {
@@ -76,30 +88,18 @@ function CardsUPIPage() {
       await cardsUpiService.refreshKycStatus(user_id);
       const limit = paginationModel?.pageSize;
       const offset = paginationModel?.page * limit;
-      await getKycStatuses({ limit, offset });
+      await getKycStatuses({ limit, offset, query: buildBackendQuery(query) });
     } catch (error) {
       console.log(error);
-    }
-  };
-
-  const initiateKyc = async (payload: { user_id: string }[]) => {
-    try {
-      await cardsUpiService.initiateKyc(payload);
-      toast.success("Successfully initiated KYC");
-      const limit = paginationModel?.pageSize;
-      const offset = paginationModel?.page * limit;
-      await getKycStatuses({ limit, offset });
-    } catch (error) {
-      console.log(error);
-      toast.error("Error initiating KYC");
     }
   };
 
   useEffect(() => {
     const limit = paginationModel?.pageSize;
     const offset = paginationModel?.page * limit;
-    getKycStatuses({ limit, offset });
-  }, [paginationModel.pageSize, paginationModel.page]);
+    const apiQuery= buildBackendQuery(query);
+    getKycStatuses({ limit, offset, query: apiQuery });
+  }, [paginationModel.pageSize, paginationModel.page, query]);
 
   const columns: GridColDef[] = [
     {
@@ -119,12 +119,6 @@ function CardsUPIPage() {
       renderCell: ({ value }) => {
         return <div>{value || "-"}</div>;
       },
-    },
-    {
-      field: "user_id",
-      headerName: "EMPLOYEE ID",
-      flex: 1,
-      minWidth: 140,
     },
     {
       field: "user_phone_number",
@@ -149,6 +143,24 @@ function CardsUPIPage() {
       },
     },
     {
+      field: "full_kyc_completed_at",
+      headerName: "COMPLETED AT",
+      flex: 1,
+      minWidth: 130,
+      renderCell: ({ value }) => {
+        return <span>{formatDate(value)}</span>;
+      },
+    },
+    {
+      field: "full_kyc_expires_at",
+      headerName: "EXPIRES AT",
+      flex: 1,
+      minWidth: 130,
+      renderCell: ({ value }) => {
+        return <span>{formatDate(value)}</span>;
+      },
+    },
+    {
       field: "actions",
       headerName: "ACTIONS",
       sortable: false,
@@ -158,7 +170,10 @@ function CardsUPIPage() {
       renderCell: (params) => {
         return (
           <span className="flex justify-center w-full">
-            <Ellipsis onClick={(e) => handleMenuOpen(e, params.row)} className="h-4 w-4" />
+            <Ellipsis
+              onClick={(e) => handleMenuOpen(e, params.row)}
+              className="h-4 w-4"
+            />
           </span>
         );
       },
@@ -184,7 +199,7 @@ function CardsUPIPage() {
         }}
         slotProps={{
           toolbar: {
-            allStatuses: ["ISSUED", "NOT ISSUED", "KYC PENDING"],
+            allStatuses: ["COMPLETED", "PENDING"],
           },
         }}
         paginationMode="server"
@@ -194,16 +209,6 @@ function CardsUPIPage() {
         onPaginationModelChange={setPaginationModel}
       />
       <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
-        <MenuItem
-          className="!text-sm flex items-center gap-2"
-          onClick={() => {
-            initiateKyc([{ user_id: selectedRow.user_id }]);
-            handleMenuClose();
-          }}
-        >
-          <Redo className="h-4 w-4" />
-          <span>Redo KYC</span>
-        </MenuItem>
         <MenuItem
           className="!text-sm flex items-center gap-2"
           onClick={() => {

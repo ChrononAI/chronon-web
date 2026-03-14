@@ -18,12 +18,14 @@ function AddFundsDialog({
   onSuccess: () => void;
 }) {
   const [amount, setAmount] = useState<number>();
+  const [loading, setLoading] = useState(false);
 
   const reloadAccount = async (payload: {
     user_id: number;
     amount: number;
   }) => {
     try {
+      setLoading(true);
       await cardsUpiService.reloadAccount(payload);
       toast.success("Successfully reloaded account");
       onSuccess();
@@ -33,6 +35,7 @@ function AddFundsDialog({
     } finally {
         onOpenChange(false);
         setAmount(undefined);
+        setLoading(false);
     }
   };
 
@@ -102,8 +105,9 @@ function AddFundsDialog({
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = "#0D9C99";
             }}
+            disabled={loading}
           >
-            Add Funds
+            {loading ? "Adding..." : "Add Funds"}
           </Button>
         </div>
       </DialogContent>

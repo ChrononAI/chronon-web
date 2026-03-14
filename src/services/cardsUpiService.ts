@@ -93,13 +93,15 @@ export const cardsUpiService = {
   getKycStatuses: async ({
     limit,
     offset,
+    query
   }: {
     limit: number;
     offset: number;
+    query: string;
   }) => {
     try {
       return await api.get(
-        `/api/v1/pinelabs/kyc_statuses?limit=${limit}&offset=${offset}`,
+        `/api/v1/pinelabs/kyc_statuses?limit=${limit}&offset=${offset}&${query}`,
       );
     } catch (error) {
       throw error;
@@ -110,14 +112,16 @@ export const cardsUpiService = {
     limit,
     offset,
     userId,
+    query
   }: {
     limit: number;
     offset: number;
     userId: string | number;
+    query: string
   }) => {
     try {
       return await api.get(
-        `/api/v1/transactions/org?account_id=eq.${userId}&limit=${limit}&offset=${offset}`,
+        `/api/v1/transactions/org?account_id=eq.${userId}&limit=${limit}&offset=${offset}&${query}`,
       );
     } catch (error) {
       throw error;

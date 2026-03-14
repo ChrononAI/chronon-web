@@ -47,6 +47,7 @@ function InitiateKYCDialog({
       await cardsUpiService.initiateKyc(payload);
       setSelectedUsers([]);
       onOpenChange(false);
+      toast.error("Successfully initiated KYC process");
     } catch (error) {
       console.log(error);
       toast.error("Error initiating KYC");
