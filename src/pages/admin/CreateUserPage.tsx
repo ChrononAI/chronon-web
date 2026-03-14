@@ -808,7 +808,7 @@ const CreateUserForm = ({
             type="submit"
             form="create-user-form"
             className="min-w-[140px]"
-            disabled={submitting || !initialValues?.is_active}
+            disabled={submitting || (initialValues ? !initialValues?.is_active : false)}
           >
             {submitting ? (
               <>
